@@ -1,0 +1,12 @@
+{
+  "crons": [
+    {
+      "path": "/api/attendance/auto-send",
+      "schedule": "0 8 * * 1-6"
+    },
+    {
+      "path": "/api/finance/payment-reminder",
+      "schedule": "0 9 * * 1"
+    }
+  ]
+}
