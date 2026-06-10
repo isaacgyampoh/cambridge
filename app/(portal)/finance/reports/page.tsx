@@ -1,0 +1,142 @@
+'use client'
+import { useState, useEffect } from 'react'
+import { createClient } from '@/lib/supabase/client'
+import { formatGHS } from '@/lib/utils'
+import { DollarSign, TrendingUp, AlertCircle, Users } from 'lucide-react'
+
+export default function FinanceReports() {
+  const [data, setData] = useState<any>(null)
+  const [range, setRange] = useState('30')
+  const sb = createClient()
+
+  useEffect(() => { load() }, [range])
+
+  async function load() {
+    const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
+    const [{ data: payments }, { data: invoices }] = await Promise.all([
+      sb.from('payments').select('*,student:student_id(full_name)').gte('created_at', since),
+      sb.from('invoices').select('*,student:student_id(full_name)').order('outstanding', { ascending: false }),
+    ])
+
+    const p = payments || []
+    const paid = p.filter(x => x.status === 'paid')
+    const byMethod: Record<string, number> = {}
+    paid.forEach(x => { byMethod[x.method] = (byMethod[x.method] || 0) + Number(x.amount) })
+
+    // Daily revenue trend
+    const daily: Record<string, number> = {}
+    for (let i = Math.min(parseInt(range), 30) - 1; i >= 0; i--) {
+      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+      daily[d] = 0
+    }
+    paid.forEach(x => {
+      const d = x.paid_at?.slice(0, 10) || x.created_at.slice(0, 10)
+      if (daily[d] !== undefined) daily[d] += Number(x.amount)
+    })
+
+    setData({
+      totalRevenue: paid.reduce((a, x) => a + Number(x.amount), 0),
+      txCount: paid.length,
+      avgTx: paid.length ? paid.reduce((a, x) => a + Number(x.amount), 0) / paid.length : 0,
+      byMethod,
+      outstanding: (invoices || []).filter(i => Number(i.outstanding) > 0),
+      totalOutstanding: (invoices || []).reduce((a, i) => a + Number(i.outstanding), 0),
+      daily,
+    })
+  }
+
+  if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+
+  const maxDaily = Math.max(...Object.values(data.daily as Record<string, number>), 1)
+
+  return (
+    <div className="fade-in">
+      <div className="flex items-center justify-between mb-6">
+        <div>
+          <h1 className="text-2xl font-bold text-gray-900">Finance Reports</h1>
+          <p className="text-gray-500 text-sm mt-0.5">Revenue and payment analytics</p>
+        </div>
+        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
+          <option value="7">Last 7 days</option>
+          <option value="30">Last 30 days</option>
+          <option value="90">Last 90 days</option>
+        </select>
+      </div>
+
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+        {[
+          { label: 'Revenue', value: formatGHS(data.totalRevenue), icon: DollarSign, color: 'text-green-600 bg-green-50' },
+          { label: 'Transactions', value: data.txCount, icon: TrendingUp, color: 'text-blue-600 bg-blue-50' },
+          { label: 'Avg Transaction', value: formatGHS(data.avgTx), icon: TrendingUp, color: 'text-purple-600 bg-purple-50' },
+          { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-red-600 bg-red-50' },
+        ].map(k => (
+          <div key={k.label} className="bg-white rounded-2xl border border-gray-200 p-4">
+            <div className={`w-10 h-10 rounded-xl ${k.color.split(' ')[1]} flex items-center justify-center mb-3`}>
+              <k.icon size={20} className={k.color.split(' ')[0]} />
+            </div>
+            <div className="text-xl font-bold text-gray-900">{k.value}</div>
+            <div className="text-sm text-gray-500 mt-0.5">{k.label}</div>
+          </div>
+        ))}
+      </div>
+
+      {/* Revenue chart */}
+      <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-5">
+        <h3 className="text-sm font-bold text-gray-900 mb-4">Daily Revenue</h3>
+        <div className="flex items-end gap-1 h-32">
+          {Object.entries(data.daily).slice(-30).map(([date, amount]: any) => (
+            <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 transition">
+                {date.slice(5)}: GHS {amount.toFixed(0)}
+              </div>
+              <div className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
+                style={{ height: `${Math.round((amount / maxDaily) * 100)}%`, minHeight: amount > 0 ? '4px' : '0' }} />
+            </div>
+          ))}
+        </div>
+        <div className="flex justify-between text-[10px] text-gray-400 mt-1">
+          <span>{Object.keys(data.daily)[0]?.slice(5)}</span>
+          <span>{Object.keys(data.daily).slice(-1)[0]?.slice(5)}</span>
+        </div>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
+        {/* By method */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h3 className="text-sm font-bold text-gray-900 mb-4">Revenue by Payment Method</h3>
+          <div className="space-y-3">
+            {Object.entries(data.byMethod).sort((a: any, b: any) => b[1] - a[1]).map(([method, amt]: any) => (
+              <div key={method}>
+                <div className="flex justify-between text-sm mb-1">
+                  <span className="font-medium capitalize text-gray-700">{method.replace(/_/g,' ')}</span>
+                  <span className="font-bold text-gray-900">{formatGHS(amt)}</span>
+                </div>
+                <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+                  <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.round(amt / data.totalRevenue * 100)}%` }} />
+                </div>
+              </div>
+            ))}
+            {Object.keys(data.byMethod).length === 0 && <p className="text-sm text-gray-400 text-center py-4">No data</p>}
+          </div>
+        </div>
+
+        {/* Outstanding balances */}
+        <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <h3 className="text-sm font-bold text-gray-900 mb-4">Outstanding Balances</h3>
+          <div className="space-y-2 max-h-64 overflow-y-auto">
+            {data.outstanding.slice(0, 20).map((inv: any) => (
+              <div key={inv.id} className="flex items-center justify-between py-2 border-b border-gray-50">
+                <div>
+                  <div className="text-sm font-semibold text-gray-900">{inv.student?.full_name || '—'}</div>
+                  <div className="text-xs text-gray-400">{inv.invoice_number}</div>
+                </div>
+                <span className="text-sm font-bold text-red-600">{formatGHS(inv.outstanding)}</span>
+              </div>
+            ))}
+            {data.outstanding.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No outstanding balances 🎉</p>}
+          </div>
+        </div>
+      </div>
+    </div>
+  )
+}
