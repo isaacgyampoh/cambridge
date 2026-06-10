@@ -22,6 +22,8 @@ const NAV_BY_ROLE: Record<string, { label: string; href: string; icon: any }[]> 
     { label: 'Classes', href: '/admin/classes', icon: GraduationCap },
     { label: 'Attendance', href: '/admin/attendance', icon: ClipboardList },
     { label: 'Documents', href: '/admin/documents', icon: BookOpen },
+    { label: 'Marketers', href: '/admin/marketers', icon: TrendingUp },
+    { label: 'Alumni', href: '/admin/alumni', icon: GraduationCap },
     { label: 'Reports', href: '/admin/reports', icon: ClipboardList },
     { label: 'Settings', href: '/admin/settings', icon: Settings },
   ],

@@ -24,15 +24,15 @@ export default function ReceptionistDashboard() {
     setLoading(false)
   }
 
-  async function sendReminders(batchId: string, type: 'week' | '2days' | 'day') {
+  async function sendReminders(batchId: string, type: string) {
     setSending(batchId)
-    const res = await fetch('/api/reminders', {
+    const res = await fetch('/api/reminders/personalized', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ batchId, type }),
     })
     const d = await res.json()
-    if (d.success) toast.success(`Reminders sent to ${d.count} students!`)
+    if (d.success) toast.success(`✅ Personalized reminders sent to ${d.count} of ${d.total} students — in each marketer's name!`)
     else toast.error('Failed to send reminders')
     setSending(null)
   }
@@ -112,9 +112,10 @@ export default function ReceptionistDashboard() {
                   <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Send Reminders</p>
                   <div className="flex flex-wrap gap-2">
                     {[
-                      { type: 'week' as const, label: '1 Week Before', color: 'bg-blue-600 hover:bg-blue-700' },
-                      { type: '2days' as const, label: '2 Days Before', color: 'bg-orange-500 hover:bg-orange-600' },
-                      { type: 'day' as const, label: 'Class Day', color: 'bg-red-500 hover:bg-red-600' },
+                      { type: '1_week', label: '1 Week Before', color: 'bg-blue-600 hover:bg-blue-700' },
+                      { type: '2_days', label: '2 Days Before', color: 'bg-orange-500 hover:bg-orange-600' },
+                      { type: 'day', label: 'Day Before', color: 'bg-purple-600 hover:bg-purple-700' },
+                      { type: 'class_day', label: 'Class Day 🔔', color: 'bg-red-500 hover:bg-red-600' },
                     ].map(r => (
                       <button key={r.type}
                         disabled={sending === batch.id}
@@ -125,7 +126,7 @@ export default function ReceptionistDashboard() {
                       </button>
                     ))}
                   </div>
-                  <p className="text-[11px] text-gray-400 mt-2">Sends SMS + WhatsApp + Email to all enrolled students</p>
+                  <p className="text-[11px] text-blue-500 mt-2 font-medium">💬 Sent in each student's assigned marketer's name — feels personal, not automated</p>
                 </div>
               </div>
             )
