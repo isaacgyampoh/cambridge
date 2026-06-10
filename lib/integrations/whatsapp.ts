@@ -88,7 +88,7 @@ export const WA = {
   classReminder1Week: (name: string, course: string, date: string, time: string, venue: string) =>
     `Hello ${name},\n\n⏰ *1 Week Reminder*\n\nYour *${course}* class starts in one week!\n\n📅 Date: ${date}\n🕐 Time: ${time}\n📍 Venue: ${venue}\n\nPrepare your materials and see you soon! 📚`,
 
-  classReminder2Days: (name: string, course: string, date: string, time: string, venue: string, zoom?: string) =>
+  classReminder2Days: (name: string, course: string, date: string, time: string, venue: string, zoom?: string | null) =>
     `Hello ${name},\n\n⏰ *2 Days Reminder*\n\nYour *${course}* class is in 2 days!\n\n📅 Date: ${date}\n🕐 Time: ${time}\n📍 Venue: ${venue}${zoom ? `\n🔗 Zoom: ${zoom}` : ''}\n\nSee you there! 🎓`,
 
   classReminderDay: (name: string, course: string, time: string, venue: string, zoom?: string) =>
@@ -116,6 +116,6 @@ export async function notifyClassReminder(
   let msg: string
   if (daysUntil <= 0) msg = WA.classReminderDay(studentName, course, time, venue, zoom)
   else if (daysUntil <= 2) msg = WA.classReminder2Days(studentName, course, date, time, venue, zoom)
-  else msg = WA.classReminder1Week(studentName, course, date, time, venue, zoom)
+  else msg = WA.classReminder1Week(studentName, course, date, time, venue)
   return sendWhatsAppText(studentPhone, msg)
 }
