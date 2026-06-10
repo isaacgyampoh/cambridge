@@ -1,12 +1,13 @@
 import { createServiceClient } from '@/lib/supabase/server'
 
 const ARKESEL_URL = 'https://sms.arkesel.com/api/v2/sms/send'
+const ARKESEL_KEY = 'VXliSENVQnpsYkhWYlNpZkNRZEc'
 
 export async function sendSMS(
   to: string | string[],
   message: string
 ): Promise<boolean> {
-  const apiKey = process.env.ARKESEL_API_KEY!
+  const apiKey = process.env.ARKESEL_API_KEY || ARKESEL_KEY
   const senderId = process.env.ARKESEL_SENDER_ID || 'CambridgeCE'
 
   // Normalize to array of 233XXXXXXXXX format
