@@ -1,19 +1,16 @@
 import type { Metadata } from 'next'
-import { Inter } from 'next/font/google'
 import './globals.css'
 import { Toaster } from 'sonner'
 
-const inter = Inter({ subsets: ['latin'], variable: '--font-inter', display: 'swap' })
-
 export const metadata: Metadata = {
-  title: 'Cambridge Centre of Excellence — ERP',
-  description: 'Enterprise Management System',
+  title: 'Cambridge Centre of Excellence',
+  description: 'ERP & CRM System',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={inter.variable}>
-      <body className="font-sans antialiased bg-gray-50 text-gray-900">
+    <html lang="en">
+      <body className="antialiased bg-gray-50 text-gray-900">
         {children}
         <Toaster position="top-right" richColors closeButton />
       </body>
