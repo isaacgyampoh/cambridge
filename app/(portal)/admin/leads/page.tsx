@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Lead } from '@/types'
 import { SOURCE_COLORS, STATUS_COLORS, formatDateTime } from '@/lib/utils'
-import { Search, Download } from 'lucide-react'
+import { Search, Download, Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminLeads() {
@@ -52,9 +52,19 @@ export default function AdminLeads() {
           <h1 className="text-2xl font-bold text-gray-900">All Leads</h1>
           <p className="text-gray-500 text-sm mt-0.5">{filtered.length} of {leads.length} leads</p>
         </div>
-        <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
-          <Download size={15} /> Export CSV
-        </button>
+        <div className="flex gap-2">
+          <Link href="/admin/leads/new"
+            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+            <Plus size={15} /> Add Lead
+          </Link>
+          <Link href="/admin/leads/import"
+            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
+            <Upload size={15} /> Import
+          </Link>
+          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
+            <Download size={15} /> Export
+          </button>
+        </div>
       </div>
 
       {/* Filters */}
