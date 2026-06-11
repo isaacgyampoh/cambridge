@@ -355,14 +355,20 @@ export default function StaffPage() {
                       </span>
                     </td>
                     <td className="px-4 py-3">
-                      <button onClick={() => toggleActive(s.id, s.is_active)}
-                        className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition ${
-                          s.is_active
-                            ? 'text-red-600 bg-red-50 hover:bg-red-100'
-                            : 'text-green-600 bg-green-50 hover:bg-green-100'
-                        }`}>
-                        {s.is_active ? 'Deactivate' : 'Activate'}
-                      </button>
+                      <div className="flex gap-2">
+                        <a href={`/admin/staff/${s.id}`}
+                          className="text-xs font-semibold px-3 py-1.5 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 transition">
+                          Manage Access
+                        </a>
+                        <button onClick={() => toggleActive(s.id, s.is_active)}
+                          className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition ${
+                            s.is_active
+                              ? 'text-red-600 bg-red-50 hover:bg-red-100'
+                              : 'text-green-600 bg-green-50 hover:bg-green-100'
+                          }`}>
+                          {s.is_active ? 'Deactivate' : 'Activate'}
+                        </button>
+                      </div>
                     </td>
                   </tr>
                 ))}
