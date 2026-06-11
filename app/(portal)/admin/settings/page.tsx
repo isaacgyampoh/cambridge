@@ -1,4 +1,5 @@
 'use client'
+import { CONFIG } from '@/lib/config'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { Settings, Bell, Globe, Shield } from 'lucide-react'
@@ -95,7 +96,7 @@ export default function SettingsPage() {
             <div key={w.label} className="p-3 bg-gray-50 rounded-xl">
               <div className="text-xs font-bold text-gray-700 mb-1">{w.label}</div>
               <code className="text-[11px] text-blue-600 break-all block">
-                {process.env.NEXT_PUBLIC_APP_URL}{w.url}
+                {CONFIG.appUrl}{w.url}
               </code>
               <div className="text-[10px] text-gray-400 mt-0.5">Method: {w.method}</div>
             </div>

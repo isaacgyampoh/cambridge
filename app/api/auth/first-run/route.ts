@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN } from '@/lib/auth/pin'
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const secret = url.searchParams.get('secret')
 
-  if (secret !== (process.env.SETUP_SECRET || 'cce-setup-2024')) {
+  if (secret !== (CONFIG.setupSecret || 'cce-setup-2024')) {
     return NextResponse.json({ error: 'Invalid setup secret' }, { status: 401 })
   }
 
@@ -28,8 +29,8 @@ export async function GET(req: NextRequest) {
   }
 
   // Create Supabase auth user for super admin
-  const adminEmail = process.env.SUPER_ADMIN_EMAIL || 'admin@cambridge.edu.gh'
-  const adminPassword = process.env.SUPER_ADMIN_PASSWORD || 'CCE-Admin-2024!'
+  const adminEmail = CONFIG.superAdminEmail || 'admin@cambridge.edu.gh'
+  const adminPassword = CONFIG.superAdminPassword || 'CCE-Admin-2024!'
 
   const { data: authData, error: authErr } = await sb.auth.admin.createUser({
     email: adminEmail,

@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
 
 const ARKESEL_URL = 'https://sms.arkesel.com/api/v2/sms/send'
@@ -7,8 +8,8 @@ export async function sendSMS(
   to: string | string[],
   message: string
 ): Promise<boolean> {
-  const apiKey = process.env.ARKESEL_API_KEY || ARKESEL_KEY
-  const senderId = process.env.ARKESEL_SENDER_ID || 'CambridgeCE'
+  const apiKey = CONFIG.arkeselApiKey || ARKESEL_KEY
+  const senderId = CONFIG.arkeselSenderId || 'CambridgeCE'
 
   // Normalize to array of 233XXXXXXXXX format
   const recipients = (Array.isArray(to) ? to : [to]).map(num =>
@@ -57,16 +58,16 @@ export async function sendSMS(
 // ── SMS Templates ────────────────────────────────────────────
 export const SMS = {
   newLeadToPM: (leadName: string, source: string, count: number) =>
-    `CCE Alert: New lead "${leadName}" from ${source}. You have ${count} unassigned lead(s). Assign now: ${process.env.NEXT_PUBLIC_APP_URL}/pm`,
+    `CCE Alert: New lead "${leadName}" from ${source}. You have ${count} unassigned lead(s). Assign now: ${CONFIG.appUrl}/pm`,
 
   leadAssignedToMarketer: (marketerName: string, leadName: string) =>
-    `CCE: Hi ${marketerName}, a new lead "${leadName}" has been assigned to you. View now: ${process.env.NEXT_PUBLIC_APP_URL}/marketer`,
+    `CCE: Hi ${marketerName}, a new lead "${leadName}" has been assigned to you. View now: ${CONFIG.appUrl}/marketer`,
 
   readyToJoinToOfficer: (officerName: string, studentName: string) =>
-    `CCE: Hi ${officerName}, ${studentName} is ready to join a class. Process admission: ${process.env.NEXT_PUBLIC_APP_URL}/admission`,
+    `CCE: Hi ${officerName}, ${studentName} is ready to join a class. Process admission: ${CONFIG.appUrl}/admission`,
 
   readyToJoinToAccountant: (studentName: string) =>
-    `CCE: ${studentName} is ready to join. Awaiting registration fee. Check: ${process.env.NEXT_PUBLIC_APP_URL}/finance`,
+    `CCE: ${studentName} is ready to join. Awaiting registration fee. Check: ${CONFIG.appUrl}/finance`,
 
   classReminder: (name: string, course: string, date: string, time: string, venue: string) =>
     `CCE Reminder: Hi ${name}, your ${course} class is on ${date} at ${time}. Venue: ${venue}. See you there!`,

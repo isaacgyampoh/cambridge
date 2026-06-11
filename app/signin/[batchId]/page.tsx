@@ -1,4 +1,5 @@
 'use client'
+import { CONFIG } from '@/lib/config'
 
 import { useState, useEffect, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -142,7 +143,7 @@ export default function SignInPage({ params, searchParams }: {
     const ps = (window as any).PaystackPop
     if (!ps) { setError('Payment not available. Please refresh.'); return }
     const fee = (session as any)?.batches?.courses?.course_fee || 0
-    const key = process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY
+    const key = CONFIG.paystackPublicKey
 
     ps.setup({
       key,

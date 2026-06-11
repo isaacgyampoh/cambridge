@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
 import { cookies } from 'next/headers'
 import { createHash, randomBytes } from 'crypto'
@@ -7,7 +8,7 @@ const SESSION_HOURS = 8
 
 // Simple SHA-256 hash for PIN (no bcrypt needed on Vercel Edge)
 export function hashPIN(pin: string): string {
-  return createHash('sha256').update(pin + process.env.PIN_SALT || 'cce-salt-2024').digest('hex')
+  return createHash('sha256').update(pin + CONFIG.pinSalt || 'cce-salt-2024').digest('hex')
 }
 
 export function verifyPIN(pin: string, hash: string): boolean {

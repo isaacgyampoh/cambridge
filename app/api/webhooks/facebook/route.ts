@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
@@ -10,7 +11,7 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get('hub.verify_token')
   const challenge = searchParams.get('hub.challenge')
 
-  if (mode === 'subscribe' && token === process.env.FACEBOOK_VERIFY_TOKEN) {
+  if (mode === 'subscribe' && token === CONFIG.facebookVerifyToken) {
     return new Response(challenge, { status: 200 })
   }
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
   // Verify signature
   const sig = req.headers.get('x-hub-signature-256') || ''
   const expected = 'sha256=' + crypto
-    .createHmac('sha256', process.env.FACEBOOK_APP_SECRET || '')
+    .createHmac('sha256', CONFIG.facebookAppSecret || '')
     .update(body)
     .digest('hex')
 
@@ -44,7 +45,7 @@ export async function POST(req: NextRequest) {
       let leadData: any = {}
       try {
         const res = await fetch(
-          `https://graph.facebook.com/v18.0/${leadgen_id}?access_token=${process.env.FACEBOOK_PAGE_ACCESS_TOKEN}`,
+          `https://graph.facebook.com/v18.0/${leadgen_id}?access_token=${CONFIG.facebookPageAccessToken}`,
           { signal: AbortSignal.timeout(8000) }
         )
         leadData = await res.json()

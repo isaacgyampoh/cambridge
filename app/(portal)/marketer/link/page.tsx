@@ -1,4 +1,5 @@
 'use client'
+import { CONFIG } from '@/lib/config'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import type { Profile, Application } from '@/types'
@@ -31,7 +32,7 @@ export default function MarketerLink() {
   }, [])
 
   const appUrl = profile?.marketer_code
-    ? `${process.env.NEXT_PUBLIC_APP_URL}/apply/${profile.marketer_code}`
+    ? `${CONFIG.appUrl}/apply/${profile.marketer_code}`
     : null
 
   function copy() {

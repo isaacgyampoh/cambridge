@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
 
 // WAWP API — https://app.wawp.net
@@ -18,8 +19,8 @@ async function wawpSend(
   type: 'text' | 'media' = 'text',
   mediaUrl?: string
 ): Promise<boolean> {
-  const instanceId = process.env.WAWP_INSTANCE_ID!
-  const accessToken = process.env.WAWP_ACCESS_TOKEN!
+  const instanceId = CONFIG.wawpInstanceId
+  const accessToken = CONFIG.wawpAccessToken
   const phone = normalizePhone(to)
 
   const body: Record<string, any> = {

@@ -1,4 +1,5 @@
 'use client'
+import { CONFIG } from '@/lib/config'
 import { useState, useEffect } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { formatDateTime } from '@/lib/utils'
@@ -107,7 +108,7 @@ export default function AttendanceDashboard() {
   }
 
   function getSigninUrl(session: any) {
-    return `${process.env.NEXT_PUBLIC_APP_URL}/signin/${session?.batch_id}`
+    return `${CONFIG.appUrl}/signin/${session?.batch_id}`
   }
 
   function copyLink(session: any) {

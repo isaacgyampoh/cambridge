@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
 
   if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 })
 
-  const apiKey = process.env.RESEND_API_KEY
+  const apiKey = CONFIG.resendApiKey
   if (!apiKey) return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
 
   let sent = 0
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
           'Content-Type': 'application/json',
         },
         body: JSON.stringify({
-          from: process.env.RESEND_FROM_EMAIL || 'Cambridge CE <noreply@cambridge.edu.gh>',
+          from: CONFIG.resendFromEmail || 'Cambridge CE <noreply@cambridge.edu.gh>',
           to: student.email,
           subject,
           html,

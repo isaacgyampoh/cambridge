@@ -1,4 +1,5 @@
 'use client'
+import { CONFIG } from '@/lib/config'
 
 import { useState, useEffect, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
@@ -97,7 +98,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
     if (!ps || !applicationId) return
 
     ps.setup({
-      key: process.env.NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY,
+      key: CONFIG.paystackPublicKey,
       email: form.email,
       amount: 20000, // GHS 200 in pesewas
       currency: 'GHS',

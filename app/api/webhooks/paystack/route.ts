@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { onPaymentConfirmed } from '@/lib/notifications'
@@ -8,7 +9,7 @@ export async function POST(req: NextRequest) {
 
   // Verify signature
   const hash = crypto
-    .createHmac('sha512', process.env.PAYSTACK_SECRET_KEY!)
+    .createHmac('sha512', CONFIG.paystackSecretKey)
     .update(body)
     .digest('hex')
 
@@ -55,7 +56,7 @@ export async function POST(req: NextRequest) {
     }).select().single()
 
     // Create admission case
-    await fetch(`${process.env.NEXT_PUBLIC_APP_URL}/api/admissions`, {
+    await fetch(`${CONFIG.appUrl}/api/admissions`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ leadId: app.lead_id, applicationId }),

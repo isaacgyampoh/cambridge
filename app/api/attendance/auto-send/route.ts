@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
@@ -15,7 +16,7 @@ function generateClassCode(): string {
 export async function POST(req: NextRequest) {
   // Verify this is a legit cron call
   const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET || 'cce-cron-2024'}`) {
+  if (authHeader !== `Bearer ${CONFIG.cronSecret || 'cce-cron-2024'}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -62,7 +63,7 @@ export async function POST(req: NextRequest) {
       .select('*, student:student_id(*)')
       .eq('batch_id', batch.id)
 
-    const appUrl = process.env.NEXT_PUBLIC_APP_URL
+    const appUrl = CONFIG.appUrl
     const signinUrl = `${appUrl}/signin/${batch.id}`
     const courseName = (batch as any).courses?.name || batch.name
 
@@ -116,12 +117,12 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   const secret = url.searchParams.get('secret')
-  if (secret !== (process.env.CRON_SECRET || 'cce-cron-2024')) {
+  if (secret !== (CONFIG.cronSecret || 'cce-cron-2024')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
   return POST(new NextRequest(req.url, {
     method: 'POST',
-    headers: { authorization: `Bearer ${process.env.CRON_SECRET || 'cce-cron-2024'}` },
+    headers: { authorization: `Bearer ${CONFIG.cronSecret || 'cce-cron-2024'}` },
   }))
 }

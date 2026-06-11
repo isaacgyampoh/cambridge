@@ -1,10 +1,11 @@
+import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
 
 const RESEND_URL = 'https://api.resend.com/emails'
 
 async function sendEmail(to: string, subject: string, html: string, text?: string) {
-  const apiKey = process.env.RESEND_API_KEY
-  const from = process.env.RESEND_FROM_EMAIL || 'Cambridge CE <noreply@cambridge.edu.gh>'
+  const apiKey = CONFIG.resendApiKey
+  const from = CONFIG.resendFromEmail || 'Cambridge CE <noreply@cambridge.edu.gh>'
 
   if (!apiKey) {
     console.warn('[Email] RESEND_API_KEY not set — skipping')

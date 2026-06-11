@@ -1,3 +1,4 @@
+import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS } from '@/lib/integrations/sms'
@@ -5,7 +6,7 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 
 export async function POST(req: NextRequest) {
   const authHeader = req.headers.get('authorization')
-  if (authHeader !== `Bearer ${process.env.CRON_SECRET || 'cce-cron-2024'}`) {
+  if (authHeader !== `Bearer ${CONFIG.cronSecret || 'cce-cron-2024'}`) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
@@ -75,11 +76,11 @@ export async function POST(req: NextRequest) {
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
-  if (url.searchParams.get('secret') !== (process.env.CRON_SECRET || 'cce-cron-2024')) {
+  if (url.searchParams.get('secret') !== (CONFIG.cronSecret || 'cce-cron-2024')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   return POST(new NextRequest(req.url, {
     method: 'POST',
-    headers: { authorization: `Bearer ${process.env.CRON_SECRET || 'cce-cron-2024'}` },
+    headers: { authorization: `Bearer ${CONFIG.cronSecret || 'cce-cron-2024'}` },
   }))
 }
