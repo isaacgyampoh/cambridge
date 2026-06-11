@@ -20,6 +20,8 @@ const NAV_BY_ROLE: Record<string, { label: string; href: string; icon: any }[]> 
     { label: 'Finance', href: '/admin/finance', icon: DollarSign },
     { label: 'Courses', href: '/admin/courses', icon: BookOpen },
     { label: 'Classes', href: '/admin/classes', icon: GraduationCap },
+    { label: 'Pipeline', href: '/admin/pipeline', icon: TrendingUp },
+    { label: 'Broadcast', href: '/admin/broadcast', icon: Bell },
     { label: 'Attendance', href: '/admin/attendance', icon: ClipboardList },
     { label: 'Documents', href: '/admin/documents', icon: BookOpen },
     { label: 'Marketers', href: '/admin/marketers', icon: TrendingUp },
@@ -38,6 +40,7 @@ const NAV_BY_ROLE: Record<string, { label: string; href: string; icon: any }[]> 
     { label: 'Dashboard', href: '/marketer', icon: LayoutDashboard },
     { label: 'My Leads', href: '/marketer/leads', icon: TrendingUp },
     { label: 'Activities', href: '/marketer/activities', icon: ClipboardList },
+    { label: 'Follow-ups', href: '/marketer/activities', icon: Bell },
     { label: 'My Link', href: '/marketer/link', icon: Users },
   ],
   admissions_officer: [
