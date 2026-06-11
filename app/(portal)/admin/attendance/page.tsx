@@ -122,7 +122,7 @@ export default function AttendanceDashboard() {
   const inPerson = signins.filter(s => s.attendance_type === 'in_person')
 
   return (
-    <div className="fade-in">
+    <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Attendance Dashboard</h1>

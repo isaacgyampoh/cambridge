@@ -71,7 +71,7 @@ export default function TrainerDashboard() {
   ]
 
   return (
-    <div className="fade-in">
+    <div className="fade-in w-full">
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-gray-900">Trainer Portal</h1>
         <p className="text-gray-400 text-sm">Manage your classes and record attendance</p>

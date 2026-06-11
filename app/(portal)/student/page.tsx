@@ -32,7 +32,7 @@ export default function StudentDashboard() {
   const totalOwed = invoices.reduce((a, i) => a + Number(i.outstanding || 0), 0)
 
   return (
-    <div className="fade-in max-w-2xl">
+    <div className="fade-in w-full">
       {/* Welcome banner */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-5 mb-5 text-white">
         <div className="text-sm opacity-70 mb-0.5">Welcome back,</div>

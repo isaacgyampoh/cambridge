@@ -128,7 +128,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   ]
 
   return (
-    <div className="fade-in max-w-5xl">
+    <div className="fade-in w-full">
       <Link href="/marketer" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-5 transition">
         <ArrowLeft size={16} /> Back to my leads
       </Link>

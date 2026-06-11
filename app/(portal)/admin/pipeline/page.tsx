@@ -45,7 +45,7 @@ export default function PipelinePage() {
   const byStage = (key: string) => leads.filter(l => l.status === key)
 
   return (
-    <div className="fade-in">
+    <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Lead Pipeline</h1>

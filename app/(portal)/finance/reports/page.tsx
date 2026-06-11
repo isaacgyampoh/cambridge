@@ -50,7 +50,7 @@ export default function FinanceReports() {
   const maxDaily = Math.max(...Object.values(data.daily as Record<string, number>), 1)
 
   return (
-    <div className="fade-in">
+    <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Finance Reports</h1>

@@ -41,7 +41,7 @@ export default function PMReports() {
   if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
 
   return (
-    <div className="fade-in">
+    <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Marketing Reports</h1>

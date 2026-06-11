@@ -32,7 +32,7 @@ export default function SettingsPage() {
   ]
 
   return (
-    <div className="fade-in max-w-2xl">
+    <div className="fade-in w-full">
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-gray-900">System Settings</h1>
         <p className="text-gray-500 text-sm mt-0.5">Configure integrations and system preferences</p>

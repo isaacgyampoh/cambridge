@@ -58,7 +58,7 @@ export default function AdmissionPage() {
   }
 
   return (
-    <div className="fade-in max-w-5xl">
+    <div className="fade-in w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>

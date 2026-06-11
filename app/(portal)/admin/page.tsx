@@ -35,7 +35,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="fade-in max-w-6xl">
+    <div className="fade-in w-full">
       <div className="mb-5">
         <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
         <p className="text-gray-400 text-sm">Cambridge Centre of Excellence — System Overview</p>

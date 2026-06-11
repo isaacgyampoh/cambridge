@@ -60,7 +60,7 @@ export default function ChangePINPage() {
   )
 
   return (
-    <div className="fade-in max-w-md">
+    <div className="fade-in w-full">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
           <Shield size={20} className="text-blue-600" />

@@ -34,7 +34,7 @@ export default function ReceptionistDashboard() {
   ]
 
   return (
-    <div className="fade-in max-w-3xl">
+    <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-5">
         <div>
           <h1 className="text-2xl font-bold text-gray-900">Class Reminders</h1>

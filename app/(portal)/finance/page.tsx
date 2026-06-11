@@ -69,7 +69,7 @@ export default function FinancePage() {
   }
 
   return (
-    <div className="fade-in max-w-6xl">
+    <div className="fade-in w-full">
       {/* Header */}
       <div className="flex items-center justify-between mb-5">
         <div>
