@@ -10,58 +10,86 @@ export async function GET(req: NextRequest) {
   }
 
   const sb = createServiceClient()
+  const pinHash = hashPIN('1024')
 
-  // Check if super admin already exists
-  const { data: existing } = await sb.from('profiles')
-    .select('id, phone, full_name')
-    .eq('role', 'super_admin')
-    .limit(1)
+  // Step 1: Create Supabase Auth user
+  let userId: string | null = null
 
-  if (existing?.length) {
-    return NextResponse.json({
-      already_exists: true,
-      message: 'Super admin already exists.',
-      login: {
-        phone: existing[0].phone?.replace(/^233/, '0') || '0201024000',
-        pin: '1024 (if not changed yet)',
-      },
-    })
-  }
-
-  // Create Supabase auth user
   const { data: authData, error: authErr } = await sb.auth.admin.createUser({
     email: CONFIG.superAdminEmail,
     password: CONFIG.superAdminPassword,
     email_confirm: true,
   })
 
-  let userId = authData?.user?.id
-
   if (authErr?.message?.includes('already')) {
-    // User exists in auth but no profile — get their ID
     const { data: users } = await sb.auth.admin.listUsers()
-    userId = users?.users?.find((u: any) => u.email === CONFIG.superAdminEmail)?.id
+    userId = users?.users?.find((u: any) => u.email === CONFIG.superAdminEmail)?.id || null
   } else if (authErr) {
-    return NextResponse.json({ error: authErr.message }, { status: 500 })
+    return NextResponse.json({ error: `Auth error: ${authErr.message}` }, { status: 500 })
+  } else {
+    userId = authData?.user?.id || null
   }
 
-  if (!userId) return NextResponse.json({ error: 'Could not get auth user ID' }, { status: 500 })
+  if (!userId) {
+    return NextResponse.json({
+      error: 'Could not get user ID. Run FULL-SCHEMA.sql in Supabase SQL Editor first.',
+      hint: 'Go to supabase.com → your project → SQL Editor → paste FULL-SCHEMA.sql → Run',
+    }, { status: 500 })
+  }
 
-  // Insert profile — phone stored as 233XXXXXXXXX
-  const { error: profileErr } = await sb.from('profiles').upsert({
+  // Step 2: Check if profile already exists
+  const { data: existing } = await sb.from('profiles')
+    .select('id, phone')
+    .eq('id', userId)
+    .maybeSingle()
+
+  if (existing) {
+    // Already exists — just reset PIN
+    await sb.from('profiles').update({
+      pin_hash: pinHash,
+      must_change_pin: true,
+      is_active: true,
+      locked_until: null,
+      login_attempts: 0,
+    }).eq('id', userId)
+
+    return NextResponse.json({
+      success: true,
+      message: '✅ Super admin PIN reset to 1024',
+      login: {
+        phone: existing.phone?.replace(/^233/, '0') || '0201024000',
+        pin: '1024',
+      },
+    })
+  }
+
+  // Step 3: Create profile
+  const { error: profileErr } = await sb.from('profiles').insert({
     id: userId,
     full_name: 'Super Admin',
     email: CONFIG.superAdminEmail,
     phone: '233201024000',
     role: 'super_admin',
-    pin_hash: hashPIN('1024'),
+    pin_hash: pinHash,
     must_change_pin: true,
     is_active: true,
-  }, { onConflict: 'id' })
+    login_attempts: 0,
+  })
 
   if (profileErr) {
-    return NextResponse.json({ error: profileErr.message, hint: 'Make sure you have run FULL-SCHEMA.sql in Supabase first!' }, { status: 500 })
+    return NextResponse.json({
+      error: profileErr.message,
+      hint: profileErr.message.includes('does not exist')
+        ? '❌ The profiles table does not exist yet. Go to supabase.com → SQL Editor → run FULL-SCHEMA.sql first!'
+        : 'Check Supabase logs for details',
+      supabase_url: 'https://supabase.com/dashboard/project/gejtxkbatldxbbqynpfg/editor',
+    }, { status: 500 })
   }
+
+  // Step 4: Create pin_sessions table entry placeholder (if table exists)
+  try {
+    await sb.from('pin_sessions').select('id').limit(1)
+  } catch {}
 
   return NextResponse.json({
     success: true,
