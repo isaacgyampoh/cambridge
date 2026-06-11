@@ -39,8 +39,8 @@ export default function StaffPage() {
   function openModal() { setForm({ ...EMPTY }); setCreds(null); setShowModal(true) }
 
   async function createStaff() {
-    if (!form.full_name.trim() || !form.email.trim() || !form.phone.trim()) {
-      toast.error('Name, email and phone are required')
+    if (!form.full_name.trim() || !form.phone.trim()) {
+      toast.error('Full name and phone number are required')
       return
     }
     setSaving(true)
@@ -124,10 +124,10 @@ export default function StaffPage() {
                   <div className="space-y-3">
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Email</div>
-                        <div className="text-sm font-semibold text-gray-900">{creds.email}</div>
+                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Phone (Login)</div>
+                        <div className="text-sm font-semibold text-gray-900">{creds.phone}</div>
                       </div>
-                      <button onClick={() => copyText(creds.email, 'Email')}
+                      <button onClick={() => copyText(creds.phone, 'Phone')}
                         className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
                         <Copy size={14} />
                       </button>
@@ -147,7 +147,7 @@ export default function StaffPage() {
 
                   <div className="flex items-center gap-2 mt-3 p-2 bg-amber-50 border border-amber-200 rounded-xl">
                     <Shield size={13} className="text-amber-600 flex-shrink-0" />
-                    <p className="text-[11px] text-amber-700 font-medium">They must change their PIN on first login</p>
+                    <p className="text-[11px] text-amber-700 font-medium">They log in with phone number + PIN. Must change PIN on first login.</p>
                   </div>
                 </div>
 
@@ -181,7 +181,7 @@ export default function StaffPage() {
                   {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                      Email Address *
+                      Email <span className="text-[10px] text-gray-400 normal-case font-normal">(optional — for sending documents)</span>
                     </label>
                     <div className="relative">
                       <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />

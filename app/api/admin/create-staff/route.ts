@@ -3,7 +3,6 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, getSessionFromCookies } from '@/lib/auth/pin'
 
 export async function POST(req: NextRequest) {
-  // Verify caller is super admin or project manager
   const session = await getSessionFromCookies()
   if (!session.valid || !['super_admin', 'project_manager'].includes(session.role || '')) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -11,27 +10,37 @@ export async function POST(req: NextRequest) {
 
   const { full_name, email, phone, role, initial_pin, department } = await req.json()
 
-  if (!full_name || !email || !role || !phone) {
-    return NextResponse.json({ error: 'Name, email, phone and role are required' }, { status: 400 })
+  if (!full_name?.trim() || !phone?.trim() || !role) {
+    return NextResponse.json({ error: 'Full name, phone number and role are required' }, { status: 400 })
   }
 
-  // Generate PIN — use provided or default to last 4 of phone
-  const pin = initial_pin || phone.replace(/\D/g, '').slice(-4) || '1234'
+  // Normalize phone to 233XXXXXXXXX
+  const rawPhone = phone.trim().replace(/\s+/g, '')
+  const phone233 = rawPhone.startsWith('0') ? '233' + rawPhone.slice(1)
+    : rawPhone.startsWith('+') ? rawPhone.slice(1)
+    : rawPhone
 
+  // Generate PIN — last 4 digits of phone or custom
+  const pin = initial_pin?.trim() || phone233.slice(-4)
   if (!/^\d{4,6}$/.test(pin)) {
     return NextResponse.json({ error: 'PIN must be 4-6 digits' }, { status: 400 })
   }
 
   const sb = createServiceClient()
 
-  // Check email not already used
-  const { data: existing } = await sb.from('profiles').select('id').eq('email', email.toLowerCase()).maybeSingle()
-  if (existing) return NextResponse.json({ error: 'Email already registered' }, { status: 409 })
+  // Check phone not already used
+  const { data: existingPhone } = await sb.from('profiles')
+    .select('id').eq('phone', phone233).maybeSingle()
+  if (existingPhone) {
+    return NextResponse.json({ error: 'This phone number is already registered' }, { status: 409 })
+  }
 
-  // Create Supabase auth user
+  // Use provided email or generate a placeholder (needed for Supabase Auth)
+  const authEmail = email?.trim() || `${phone233}@cambridge.staff`
   const randomPassword = 'CCE-' + Math.random().toString(36).slice(2, 10) + '!'
+
   const { data: authData, error: authErr } = await sb.auth.admin.createUser({
-    email: email.toLowerCase(),
+    email: authEmail,
     password: randomPassword,
     email_confirm: true,
   })
@@ -43,17 +52,16 @@ export async function POST(req: NextRequest) {
     ? full_name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 6)
     : null
 
-  // Create profile with hashed PIN
   const { error: profileErr } = await sb.from('profiles').insert({
     id: userId,
-    full_name,
-    email: email.toLowerCase(),
-    phone: phone.replace(/\s+/g, '').replace(/^0/, '233'),
+    full_name: full_name.trim(),
+    email: email?.trim() || null,
+    phone: phone233,
     role,
-    department: department || null,
+    department: department?.trim() || null,
     pin_hash: hashPIN(pin),
     pin_set_at: new Date().toISOString(),
-    must_change_pin: true, // force change on first login
+    must_change_pin: true,
     marketer_code: marketerCode,
     is_active: true,
   })
@@ -66,11 +74,10 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     success: true,
     userId,
-    message: `Account created for ${full_name}`,
     credentials: {
-      email: email.toLowerCase(),
+      phone: rawPhone,           // show the original format they typed
       initial_pin: pin,
-      note: 'Staff must change their PIN on first login',
+      note: 'Staff logs in with phone number + PIN. They must change PIN on first login.',
     },
   })
 }

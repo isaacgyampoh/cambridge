@@ -1,40 +1,32 @@
-import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN } from '@/lib/auth/pin'
+import { CONFIG } from '@/lib/config'
 
-// This endpoint sets up the super admin account on first run
-// Call: GET /api/auth/first-run?secret=cce-setup-2024
-// Only works if no super admin exists yet — completely safe to expose
-
+// One-time setup — creates super admin
+// GET /api/auth/first-run?secret=cce-setup-2024
 export async function GET(req: NextRequest) {
-  const url = new URL(req.url)
-  const secret = url.searchParams.get('secret')
-
-  if (secret !== (CONFIG.setupSecret || 'cce-setup-2024')) {
+  const { searchParams } = new URL(req.url)
+  if (searchParams.get('secret') !== CONFIG.setupSecret) {
     return NextResponse.json({ error: 'Invalid setup secret' }, { status: 401 })
   }
 
   const sb = createServiceClient()
 
   // Check if super admin already exists
-  const { data: existing } = await sb.from('profiles')
-    .select('id').eq('role', 'super_admin').limit(1)
-
-  if (existing && existing.length > 0) {
+  const { data: existing } = await sb.from('profiles').select('id, phone').eq('role', 'super_admin').limit(1)
+  if (existing?.length) {
     return NextResponse.json({
       success: false,
-      message: 'Super admin already exists. Use staff management to change PIN.',
+      message: 'Super admin already exists.',
+      login: { phone: existing[0].phone || '0201024000', pin: '1024 (if unchanged)' },
     })
   }
 
   // Create Supabase auth user for super admin
-  const adminEmail = CONFIG.superAdminEmail || 'admin@cambridge.edu.gh'
-  const adminPassword = CONFIG.superAdminPassword || 'CCE-Admin-2024!'
-
   const { data: authData, error: authErr } = await sb.auth.admin.createUser({
-    email: adminEmail,
-    password: adminPassword,
+    email: CONFIG.superAdminEmail,
+    password: CONFIG.superAdminPassword,
     email_confirm: true,
   })
 
@@ -42,59 +34,33 @@ export async function GET(req: NextRequest) {
     return NextResponse.json({ error: authErr.message }, { status: 500 })
   }
 
-  const userId = authData?.user?.id
+  const userId = authData?.user?.id || (await sb.auth.admin.listUsers())
+    .data?.users?.find((u: any) => u.email === CONFIG.superAdminEmail)?.id
 
-  if (!userId) {
-    // Try to find existing auth user
-    const { data: users } = await sb.auth.admin.listUsers()
-    const existing = users?.users?.find((u: any) => u.email === adminEmail)
-    if (!existing) return NextResponse.json({ error: 'Could not create auth user' }, { status: 500 })
+  if (!userId) return NextResponse.json({ error: 'Could not create auth user' }, { status: 500 })
 
-    // Just update their profile
-    await sb.from('profiles').upsert({
-      id: existing.id,
-      full_name: 'Super Admin',
-      email: adminEmail,
-      phone: null,
-      role: 'super_admin',
-      pin_hash: hashPIN('1024'),
-      must_change_pin: true,
-      is_active: true,
-      marketer_code: null,
-    }, { onConflict: 'id' })
+  // Super admin phone — used to log in
+  const adminPhone = '0201024000' // default phone for super admin login
 
-    return NextResponse.json({
-      success: true,
-      message: 'Super admin profile updated.',
-      login: { email: adminEmail, pin: '1024' },
-      warning: 'Change your PIN immediately after first login!',
-    })
-  }
-
-  // Create profile
-  const { error: profileErr } = await sb.from('profiles').insert({
+  await sb.from('profiles').upsert({
     id: userId,
     full_name: 'Super Admin',
-    email: adminEmail,
-    phone: null,
+    email: CONFIG.superAdminEmail,
+    phone: '233201024000', // stored as 233 format
     role: 'super_admin',
     pin_hash: hashPIN('1024'),
     must_change_pin: true,
     is_active: true,
-  })
-
-  if (profileErr) {
-    return NextResponse.json({ error: profileErr.message }, { status: 500 })
-  }
+  }, { onConflict: 'id' })
 
   return NextResponse.json({
     success: true,
-    message: 'Super admin created successfully!',
+    message: '✅ Super admin created!',
     login: {
       url: '/login',
-      email: adminEmail,
+      phone: adminPhone,
       pin: '1024',
+      note: 'You will be forced to set a new PIN on first login',
     },
-    warning: '⚠️ Change your PIN immediately after first login via Staff Management!',
   })
 }
