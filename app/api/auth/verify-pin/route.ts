@@ -3,54 +3,30 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, createSession, ROLE_PORTAL, SESSION_COOKIE } from '@/lib/auth/pin'
 
 export async function POST(req: NextRequest) {
-  const body = await req.json()
-  const { phone, pin } = body
+  const { pin } = await req.json()
 
-  if (!phone || !pin) {
-    return NextResponse.json({ error: 'Phone number and PIN are required' }, { status: 400 })
+  if (!pin || pin.length < 4) {
+    return NextResponse.json({ error: 'Please enter your 4-digit PIN' }, { status: 400 })
   }
 
   const sb = createServiceClient()
   const ip = req.headers.get('x-forwarded-for') || 'unknown'
+  const pinHash = hashPIN(pin)
 
-  // Build all possible phone formats to search
-  const raw  = String(phone).replace(/[\s\-\(\)]/g, '')
-  const digits = raw.replace(/^\+/, '')
-  
-  const formats: string[] = []
-  if (digits.startsWith('233')) {
-    formats.push(digits)                    // 233XXXXXXXXX
-    formats.push('0' + digits.slice(3))    // 0XXXXXXXXX
-    formats.push('+' + digits)             // +233XXXXXXXXX
-  } else if (digits.startsWith('0') && digits.length >= 9) {
-    formats.push(digits)                    // 0XXXXXXXXX
-    formats.push('233' + digits.slice(1))  // 233XXXXXXXXX
-    formats.push('+233' + digits.slice(1)) // +233XXXXXXXXX
-  } else {
-    formats.push(digits)
-    formats.push('0' + digits)
-    formats.push('233' + digits)
-  }
-
-  // Deduplicate
-  const unique = [...new Set(formats)]
-
-  // Try each format — fetch all profiles and match
-  const { data: allProfiles } = await sb.from('profiles')
+  // Find user by PIN hash directly
+  const { data: profile } = await sb.from('profiles')
     .select('*')
+    .eq('pin_hash', pinHash)
     .eq('is_active', true)
-
-  const profile = allProfiles?.find(p =>
-    p.phone && unique.includes(p.phone.replace(/[\s\-\(\)]/g, ''))
-  )
+    .maybeSingle()
 
   if (!profile) {
-    return NextResponse.json({
-      error: 'Phone number not found. Contact your administrator.',
-    }, { status: 401 })
+    // Log failed attempt (no user_id since we don't know who)
+    try { await sb.from('login_events').insert({ event_type: 'wrong_pin', ip_address: ip }) } catch {}
+    return NextResponse.json({ error: 'Incorrect PIN. Try again.' }, { status: 401 })
   }
 
-  // Locked?
+  // Check if locked out
   if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
     const mins = Math.ceil((new Date(profile.locked_until).getTime() - Date.now()) / 60000)
     return NextResponse.json({
@@ -58,27 +34,7 @@ export async function POST(req: NextRequest) {
     }, { status: 429 })
   }
 
-  // No PIN set yet?
-  if (!profile.pin_hash) {
-    return NextResponse.json({
-      error: 'No PIN set for this account. Contact your administrator.'
-    }, { status: 401 })
-  }
-
-  // Verify PIN
-  if (hashPIN(pin) !== profile.pin_hash) {
-    const attempts = (profile.login_attempts || 0) + 1
-    const lockUntil = attempts >= 5 ? new Date(Date.now() + 15 * 60000).toISOString() : null
-    await sb.from('profiles').update({ login_attempts: attempts, locked_until: lockUntil }).eq('id', profile.id)
-    const remaining = 5 - attempts
-    return NextResponse.json({
-      error: attempts >= 5
-        ? 'Account locked for 15 minutes. Too many wrong PINs.'
-        : `Wrong PIN. ${remaining} attempt${remaining !== 1 ? 's' : ''} remaining.`
-    }, { status: 401 })
-  }
-
-  // ✅ Success
+  // ✅ Success — reset attempts
   await sb.from('profiles').update({
     login_attempts: 0,
     locked_until: null,
@@ -86,19 +42,14 @@ export async function POST(req: NextRequest) {
   }).eq('id', profile.id)
 
   try {
-    await sb.from('login_events').insert({
-      user_id: profile.id,
-      event_type: 'success',
-      ip_address: ip,
-    })
+    await sb.from('login_events').insert({ user_id: profile.id, event_type: 'success', ip_address: ip })
   } catch {}
 
   const sessionToken = await createSession(profile.id, ip)
 
-  const portal = ROLE_PORTAL[profile.role] || '/admin'
   const res = NextResponse.json({
     success: true,
-    redirect: portal,
+    redirect: ROLE_PORTAL[profile.role] || '/admin',
     role: profile.role,
     fullName: profile.full_name,
     mustChangePIN: profile.must_change_pin || false,
