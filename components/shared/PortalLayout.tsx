@@ -96,9 +96,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await sb.auth.getUser()
-      if (!user) { router.push('/login'); return }
-      const { data } = await sb.from('profiles').select('*').eq('id', user.id).single()
+      const res = await fetch('/api/auth/me')
+      if (!res.ok) { router.push('/login'); return }
+      const session = await res.json()
+      if (!session.valid) { router.push('/login'); return }
+      const { data } = await sb.from('profiles').select('*').eq('id', session.userId).single()
       setProfile(data)
     }
     load()
@@ -128,7 +130,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }, [profile])
 
   async function logout() {
-    await sb.auth.signOut()
+    await fetch('/api/auth/logout', { method: 'POST' })
     router.push('/login')
   }
 

@@ -20,7 +20,8 @@ export default function StaffPage() {
   const [staff, setStaff] = useState<Profile[]>([])
   const [loading, setLoading] = useState(true)
   const [adding, setAdding] = useState(false)
-  const [form, setForm] = useState({ full_name: '', email: '', phone: '', role: 'marketing_officer' as UserRole, password: '' })
+  const [form, setForm] = useState({ full_name: '', email: '', phone: '', role: 'marketing_officer' as UserRole, initial_pin: '', department: '' })
+  const [createdCredentials, setCreatedCredentials] = useState<any>(null)
   const [saving, setSaving] = useState(false)
   const sb = createClient()
 
@@ -34,8 +35,8 @@ export default function StaffPage() {
   }
 
   async function createStaff() {
-    if (!form.full_name || !form.email || !form.password) {
-      toast.error('Fill in all required fields')
+    if (!form.full_name || !form.email || !form.phone) {
+      toast.error('Name, email and phone are required')
       return
     }
     setSaving(true)
@@ -47,9 +48,9 @@ export default function StaffPage() {
       })
       const data = await res.json()
       if (!data.success) throw new Error(data.error)
-      toast.success('Staff member created!')
-      setAdding(false)
-      setForm({ full_name: '', email: '', phone: '', role: 'marketing_officer', password: '' })
+      toast.success('Staff account created!')
+      setCreatedCredentials(data.credentials)
+      setForm({ full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '' })
       load()
     } catch (e: any) {
       toast.error(e.message)
@@ -106,8 +107,9 @@ export default function StaffPage() {
               {[
                 { key: 'full_name', label: 'Full Name *', placeholder: 'John Mensah', type: 'text' },
                 { key: 'email', label: 'Email *', placeholder: 'john@cambridge.edu.gh', type: 'email' },
-                { key: 'phone', label: 'Phone', placeholder: '0241234567', type: 'tel' },
-                { key: 'password', label: 'Password *', placeholder: '••••••••', type: 'password' },
+                { key: 'phone', label: 'Phone Number * (used for WhatsApp notifications)', placeholder: '0241234567', type: 'tel' },
+                { key: 'department', label: 'Department', placeholder: 'e.g. Marketing', type: 'text' },
+                { key: 'initial_pin', label: 'Initial PIN (4 digits, leave blank = last 4 of phone)', placeholder: '1234', type: 'text' },
               ].map(f => (
                 <div key={f.key}>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{f.label}</label>
@@ -125,6 +127,17 @@ export default function StaffPage() {
                 </select>
               </div>
             </div>
+            {createdCredentials && (
+              <div className="mb-4 p-4 bg-green-50 border border-green-200 rounded-xl">
+                <p className="text-sm font-bold text-green-800 mb-2">✅ Account Created — Share these with the staff member:</p>
+                <div className="text-sm text-green-700 space-y-1">
+                  <div>Email: <strong>{createdCredentials.email}</strong></div>
+                  <div>Initial PIN: <strong className="text-2xl tracking-widest">{createdCredentials.initial_pin}</strong></div>
+                </div>
+                <p className="text-xs text-green-600 mt-2">⚠️ They must change their PIN on first login.</p>
+                <button onClick={() => setCreatedCredentials(null)} className="text-xs text-green-500 mt-1 hover:text-green-700">Dismiss</button>
+              </div>
+            )}
             <div className="flex gap-2 mt-5">
               <button onClick={createStaff} disabled={saving}
                 className="flex-1 h-10 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-blue-700 transition flex items-center justify-center gap-2">
