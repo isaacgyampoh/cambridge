@@ -1,9 +1,8 @@
 import { NextResponse, type NextRequest } from 'next/server'
+import { createClient as createSupabase } from '@supabase/supabase-js'
 
-const PUBLIC_PATHS = [
-  '/login', '/apply/', '/signin/', '/public-alumni',
-  '/api/auth/', '/api/webhooks/', '/_next', '/favicon'
-]
+const SUPABASE_URL = 'https://gejtxkbatldxbbqynpfg.supabase.co'
+const SERVICE_KEY = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlanR4a2JhdGxkeGJicXlucGZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTExODYzOSwiZXhwIjoyMDk2Njk0NjM5fQ.FSHbZgJ2ZnzFnHl_DAM2SWwuVkXTbDmK0GQDPJCyBLs'
 
 const ROLE_PORTAL: Record<string, string> = {
   super_admin: '/admin',
@@ -16,74 +15,68 @@ const ROLE_PORTAL: Record<string, string> = {
   student: '/student',
 }
 
-// Which path prefixes each role can access
 const ROLE_ALLOWED: Record<string, string[]> = {
   super_admin: ['/admin', '/api'],
-  project_manager: ['/pm', '/api/leads', '/api/admissions', '/api/reminders', '/api/sms'],
-  marketing_officer: ['/marketer', '/api/leads', '/api/reminders'],
-  admissions_officer: ['/admission', '/api/admissions', '/api/documents'],
-  accountant: ['/finance', '/api/finance', '/api/broadcast'],
-  receptionist: ['/receptionist', '/api/reminders', '/api/attendance'],
-  trainer: ['/trainer', '/api/attendance'],
-  student: ['/student'],
+  project_manager: ['/pm', '/api'],
+  marketing_officer: ['/marketer', '/api/leads', '/api/reminders', '/api/auth'],
+  admissions_officer: ['/admission', '/api/admissions', '/api/documents', '/api/auth'],
+  accountant: ['/finance', '/api/finance', '/api/auth'],
+  receptionist: ['/receptionist', '/api/reminders', '/api/attendance', '/api/auth'],
+  trainer: ['/trainer', '/api/attendance', '/api/auth'],
+  student: ['/student', '/api/auth'],
 }
+
+const PUBLIC = ['/login', '/apply/', '/signin/', '/public-alumni', '/api/auth/', '/api/webhooks/', '/_next', '/favicon', '/networks/']
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
-  // Allow public paths
-  if (PUBLIC_PATHS.some(p => pathname.startsWith(p))) {
-    return NextResponse.next()
-  }
+  // Always allow public paths
+  if (PUBLIC.some(p => pathname.startsWith(p))) return NextResponse.next()
+  if (pathname === '/') return NextResponse.redirect(new URL('/login', request.url))
 
-  // Allow root
-  if (pathname === '/') {
-    return NextResponse.redirect(new URL('/login', request.url))
-  }
-
-  // Get session cookie
-  const sessionToken = request.cookies.get('cce_session')?.value
-
-  if (!sessionToken) {
-    // Not logged in — redirect to login
+  const token = request.cookies.get('cce_session')?.value
+  if (!token) {
     const url = new URL('/login', request.url)
-    if (pathname !== '/login') url.searchParams.set('from', pathname)
     return NextResponse.redirect(url)
   }
 
-  // Verify session via internal API call
-  const verifyRes = await fetch(new URL('/api/auth/me', request.url), {
-    headers: { Cookie: `cce_session=${sessionToken}` },
-  })
+  // Verify session directly via Supabase (no internal fetch)
+  try {
+    const sb = createSupabase(SUPABASE_URL, SERVICE_KEY)
+    const { data } = await sb
+      .from('pin_sessions')
+      .select('user_id, expires_at, profiles(role, is_active)')
+      .eq('session_token', token)
+      .gt('expires_at', new Date().toISOString())
+      .single()
 
-  if (!verifyRes.ok) {
-    // Invalid session — clear and redirect
-    const res = NextResponse.redirect(new URL('/login', request.url))
-    res.cookies.delete('cce_session')
-    return res
+    if (!data) {
+      const res = NextResponse.redirect(new URL('/login', request.url))
+      res.cookies.delete('cce_session')
+      return res
+    }
+
+    const profile = (data as any).profiles
+    if (!profile?.is_active) {
+      const res = NextResponse.redirect(new URL('/login', request.url))
+      res.cookies.delete('cce_session')
+      return res
+    }
+
+    const role: string = profile.role
+    if (role === 'super_admin') return NextResponse.next()
+
+    const allowed = ROLE_ALLOWED[role] || []
+    const ok = allowed.some(p => pathname.startsWith(p))
+    if (!ok) {
+      return NextResponse.redirect(new URL(ROLE_PORTAL[role] || '/login', request.url))
+    }
+
+    return NextResponse.next()
+  } catch {
+    return NextResponse.next() // fail open — let page handle auth
   }
-
-  const { role, valid } = await verifyRes.json()
-  if (!valid || !role) {
-    const res = NextResponse.redirect(new URL('/login', request.url))
-    res.cookies.delete('cce_session')
-    return res
-  }
-
-  // Super admin can go anywhere
-  if (role === 'super_admin') return NextResponse.next()
-
-  // Check if accessing their own portal
-  const allowedPaths = ROLE_ALLOWED[role] || []
-  const isAllowed = allowedPaths.some(p => pathname.startsWith(p))
-
-  if (!isAllowed) {
-    // Wrong portal — redirect to their own
-    const home = ROLE_PORTAL[role] || '/login'
-    return NextResponse.redirect(new URL(home, request.url))
-  }
-
-  return NextResponse.next()
 }
 
 export const config = {

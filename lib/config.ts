@@ -7,7 +7,7 @@ export const CONFIG = {
 
   // ── APP ─────────────────────────────────────────────────────
   appName: 'Cambridge Centre of Excellence',
-  appUrl: 'https://cambridge-cce.vercel.app', // update after deploy
+  appUrl: 'https://cambridge-mu.vercel.app', // update after deploy
 
   // ── SUPABASE ────────────────────────────────────────────────
   supabaseUrl: 'https://gejtxkbatldxbbqynpfg.supabase.co',
