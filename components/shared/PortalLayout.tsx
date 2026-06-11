@@ -340,14 +340,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
       {/* ── Desktop sidebar ────────────────────────────────────────────── */}
       <div
-        className="hidden lg:block relative flex-shrink-0 bg-slate-900 z-30"
+        className="hidden lg:block relative flex-shrink-0 bg-slate-900 z-10"
         style={{ width: expanded ? W_FULL : W_ICON, transition: 'width 0.2s ease' }}
         onMouseEnter={onMouseEnter}
         onMouseLeave={onMouseLeave}>
 
         {/* When icon-only + hovering, float the full panel on top */}
         {!pinned && hovered ? (
-          <div className="absolute inset-y-0 left-0 z-50 shadow-2xl" style={{ width: W_FULL }}>
+          <div className="absolute inset-y-0 left-0 z-20 shadow-2xl" style={{ width: W_FULL }}>
             <SidebarBody />
           </div>
         ) : (
