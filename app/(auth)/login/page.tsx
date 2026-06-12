@@ -26,8 +26,14 @@ function LoginForm() {
     const ch = val.slice(-1)
     const next = [...arr]; next[i] = ch; set(next)
     if (ch) {
-      if (i < 3) refs[i + 1].current?.focus()
-      else { const full = next.join(''); if (full.length === 4 && onFull && !busy.current) onFull(full) }
+      if (i < 3) {
+        setTimeout(() => refs[i + 1].current?.focus(), 0)
+      } else {
+        const full = next.join('')
+        if (full.length === 4 && onFull && !busy.current) {
+          setTimeout(() => onFull(full), 0)
+        }
+      }
     }
   }
 
@@ -56,10 +62,17 @@ function LoginForm() {
     router.replace(d.redirect || '/admin')
   }
 
-  async function submitNewPin() {
-    const np = newPin.join(''), cp = confPin.join('')
-    if (np.length < 4) { setError('Enter 4 digits'); return }
-    if (np !== cp) { setError("PINs don't match"); setConfPin(['', '', '', '']); setTimeout(() => c[0].current?.focus(), 80); return }
+  async function submitNewPin(confirmOverride?: string) {
+    const np = newPin.join('')
+    const cp = confirmOverride ?? confPin.join('')
+    if (np.length < 4) { setError('Enter your new 4-digit PIN above first'); return }
+    if (cp.length < 4) { setError('Confirm your PIN'); return }
+    if (np !== cp) {
+      setError("PINs don't match — try again")
+      setConfPin(['', '', '', ''])
+      setTimeout(() => c[0].current?.focus(), 80)
+      return
+    }
     setLoading(true); setError('')
     const res = await fetch('/api/auth/change-pin', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ newPin: np }) })
     const d = await res.json()
@@ -177,7 +190,7 @@ function LoginForm() {
                 </div>
                 <div>
                   <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 text-center">Confirm PIN</p>
-                  <Boxes vals={confPin} setVals={setConfPin} refs={c} onFull={() => submitNewPin()} />
+                  <Boxes vals={confPin} setVals={setConfPin} refs={c} onFull={(full) => submitNewPin(full)} />
                 </div>
               </div>
 
@@ -195,7 +208,7 @@ function LoginForm() {
                 </div>
               )}
 
-              <button onClick={submitNewPin} disabled={loading || newPin.join('').length < 4}
+              <button onClick={() => submitNewPin()} disabled={loading || newPin.join('').length < 4}
                 className="w-full h-12 bg-blue-600 text-white rounded-xl font-bold text-sm mt-6 hover:bg-blue-700 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
                 {loading
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Setting PIN</>
