@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Plus, Star, GraduationCap, Briefcase, X, Eye, EyeOff } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import Modal from '@/components/shared/Modal'
 
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '', photo_url: '',
@@ -124,9 +125,9 @@ export default function AlumniPage() {
       </div>
 
       {/* Modal */}
-      {modal && (
-        <div className="fixed inset-0 bg-black/60 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl my-auto">
+      {(
+        <Modal open={modal} onClose={() => { setModal(false) }} maxWidth="max-w-2xl">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">{editId ? 'Edit' : 'Add'} Alumni</h2>
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -214,7 +215,7 @@ export default function AlumniPage() {
               <button onClick={() => setModal(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Alumni grid */}

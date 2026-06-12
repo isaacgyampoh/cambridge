@@ -5,6 +5,7 @@ import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Upload, FileText, Download, Trash2, Send, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import Modal from '@/components/shared/Modal'
 
 const DOC_TYPES = [
   { value: 'admission_letter', label: 'Admission Letter' },
@@ -177,14 +178,14 @@ export default function DocumentsPage() {
       </div>
 
       {/* Send modal */}
-      {sendModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md my-auto max-h-[90vh] flex flex-col">
+      {(
+        <Modal open={!!sendModal} onClose={() => setSendModal(null)} maxWidth="max-w-md">
+          <div className="p-6 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-lg font-bold text-gray-900">Send to Students</h2>
               <button onClick={() => setSendModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
             </div>
-            <p className="text-sm text-gray-500 mb-4">Select students to send <strong>{sendModal.name}</strong> via email.</p>
+            <p className="text-sm text-gray-500 mb-4">Select students to send <strong>{sendModal?.name}</strong> via email.</p>
 
             {/* Select all */}
             <label className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100 cursor-pointer">
@@ -222,7 +223,7 @@ export default function DocumentsPage() {
               <button onClick={() => setSendModal(null)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Document grid */}

@@ -5,6 +5,7 @@ import type { Course } from '@/types'
 import { toast } from 'sonner'
 import { Plus, X, BookOpen } from 'lucide-react'
 import { formatGHS } from '@/lib/utils'
+import Modal from '@/components/shared/Modal'
 
 export default function CoursesPage() {
   const { data: courses, loading, refetch: load } = useData<Course>({ table: 'courses', orderBy: 'name', limit: 200 })
@@ -69,9 +70,9 @@ export default function CoursesPage() {
       </div>
 
       {/* Modal */}
-      {modal && editing && (
-        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md my-auto">
+      {(
+        <Modal open={!!(modal && editing)} onClose={() => { setModal(null); setEditing(null) }} maxWidth="max-w-md">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">{modal === 'new' ? 'New Course' : 'Edit Course'}</h2>
               <button onClick={() => { setModal(null); setEditing(null) }} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -101,7 +102,7 @@ export default function CoursesPage() {
                 className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">Cancel</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Grid */}

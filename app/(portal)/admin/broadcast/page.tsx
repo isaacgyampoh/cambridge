@@ -4,6 +4,7 @@ import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Send, Users, Clock, CheckCircle, XCircle, Plus, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import Modal from '@/components/shared/Modal'
 
 const TARGET_TYPES = [
   { value: 'all_leads', label: 'All Leads', desc: 'Every lead in the system' },
@@ -104,9 +105,9 @@ export default function BroadcastPage() {
       </div>
 
       {/* Broadcast modal */}
-      {modal && (
-        <div className="fixed inset-0 bg-black/60 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-2xl my-auto">
+      {(
+        <Modal open={modal} onClose={() => setModal(false)} maxWidth="max-w-2xl">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">New Broadcast</h2>
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -227,7 +228,7 @@ export default function BroadcastPage() {
               <button onClick={() => setModal(false)} className="flex-1 h-12 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Broadcasts list */}

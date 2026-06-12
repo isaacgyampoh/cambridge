@@ -5,6 +5,7 @@ import { useData, mutate } from '@/hooks/useData'
 import { formatDateTime } from '@/lib/utils'
 import { Users, CheckCircle, XCircle, Download, RefreshCw, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
+import Modal from '@/components/shared/Modal'
 
 export default function AttendanceDashboard() {
   const [selected, setSelected]   = useState<any>(null)
@@ -153,9 +154,9 @@ export default function AttendanceDashboard() {
       )}
 
       {/* Create session modal */}
-      {creating && (
-        <div className="fixed inset-0 bg-black/50 z-[9999] overflow-y-auto p-4 flex items-start sm:items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm relative my-auto">
+      {(
+        <Modal open={creating} onClose={() => setCreating(false)} maxWidth="max-w-sm">
+          <div className="p-6 relative">
             <button onClick={() => setCreating(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition">
               <X size={18} />
             </button>
@@ -188,7 +189,7 @@ export default function AttendanceDashboard() {
               <button onClick={() => setCreating(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">Cancel</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">

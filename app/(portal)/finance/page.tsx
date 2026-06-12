@@ -5,6 +5,7 @@ import { formatGHS, formatDateTime } from '@/lib/utils'
 import { DollarSign, TrendingUp, AlertCircle, Plus, RefreshCw, X } from 'lucide-react'
 import Link from 'next/link'
 import { toast } from 'sonner'
+import Modal from '@/components/shared/Modal'
 
 const METHOD_COLOR: Record<string, string> = {
   cash: 'bg-green-100 text-green-700',
@@ -115,9 +116,9 @@ export default function FinancePage() {
       </div>
 
       {/* Modal */}
-      {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl my-auto">
+      {(
+        <Modal open={showModal} onClose={() => setShowModal(false)} maxWidth="max-w-sm">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold text-gray-900">Record Payment</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition"><X size={18} /></button>
@@ -161,7 +162,7 @@ export default function FinancePage() {
               <button onClick={() => setShowModal(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">Cancel</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Tabs */}

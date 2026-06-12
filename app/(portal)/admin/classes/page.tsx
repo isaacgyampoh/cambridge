@@ -5,6 +5,7 @@ import type { Batch, Course, Profile } from '@/types'
 import { toast } from 'sonner'
 import { Plus, X, GraduationCap } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
+import Modal from '@/components/shared/Modal'
 
 export default function ClassesPage() {
   const { data: batches, loading, refetch: load } = useData<Batch>({
@@ -72,9 +73,9 @@ export default function ClassesPage() {
       </div>
 
       {/* Modal */}
-      {modal && (
-        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md my-auto">
+      {(
+        <Modal open={modal} onClose={() => setModal(false)} maxWidth="max-w-md">
+          <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">New Batch</h2>
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
@@ -120,7 +121,7 @@ export default function ClassesPage() {
               <button onClick={() => setModal(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>
-        </div>
+        </Modal>
       )}
 
       {/* Batch list */}
