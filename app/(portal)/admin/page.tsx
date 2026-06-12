@@ -1,8 +1,12 @@
 'use client'
 import { useData } from '@/hooks/useData'
-import { Users, TrendingUp, DollarSign, GraduationCap, UserCheck, BookOpen, ArrowRight } from 'lucide-react'
+import {
+  Users, TrendingUp, DollarSign, GraduationCap, UserCheck,
+  Radio, CalendarCheck, BarChart3, FolderOpen, ArrowUpRight, Kanban,
+} from 'lucide-react'
 import Link from 'next/link'
 import { formatGHS } from '@/lib/utils'
+import { StatCard, SectionLabel, Card } from '@/components/ui'
 
 export default function AdminDashboard() {
   const { data: leads } = useData({ table: 'leads', select: 'id, status, assigned_to, created_at', limit: 500 })
@@ -11,71 +15,91 @@ export default function AdminDashboard() {
   const { data: profiles } = useData({ table: 'profiles', select: 'id, role, is_active', limit: 200 })
 
   const today = new Date().toISOString().slice(0, 10)
-  const stats = {
+  const s = {
     totalLeads: leads.length,
-    todayLeads: leads.filter(l => l.created_at?.startsWith(today)).length,
-    unassigned: leads.filter(l => !l.assigned_to).length,
-    readyToJoin: leads.filter(l => l.status === 'ready_to_join').length,
-    admitted: admissions.filter(a => a.status === 'admitted').length,
+    todayLeads: leads.filter((l: any) => l.created_at?.startsWith(today)).length,
+    unassigned: leads.filter((l: any) => !l.assigned_to).length,
+    readyToJoin: leads.filter((l: any) => l.status === 'ready_to_join').length,
+    admitted: admissions.filter((a: any) => a.status === 'admitted').length,
     totalAdmissions: admissions.length,
-    revenue: payments.reduce((a, p) => a + Number(p.amount), 0),
-    activeStaff: profiles.filter(p => p.is_active && p.role !== 'student').length,
+    revenue: payments.reduce((a: number, p: any) => a + Number(p.amount), 0),
+    activeStaff: profiles.filter((p: any) => p.is_active && p.role !== 'student').length,
   }
 
-  const quickLinks = [
-    { label: 'Lead Pipeline', href: '/admin/pipeline', desc: 'Drag & drop Kanban board', color: 'bg-blue-50 border-blue-100 hover:border-blue-300' },
-    { label: 'All Leads', href: '/admin/leads', desc: `${stats.unassigned} unassigned`, color: 'bg-yellow-50 border-yellow-100 hover:border-yellow-300' },
-    { label: 'Admissions', href: '/admin/admissions', desc: `${stats.totalAdmissions - stats.admitted} pending`, color: 'bg-indigo-50 border-indigo-100 hover:border-indigo-300' },
-    { label: 'Finance', href: '/admin/finance', desc: formatGHS(stats.revenue) + ' revenue', color: 'bg-green-50 border-green-100 hover:border-green-300' },
-    { label: 'Broadcast', href: '/admin/broadcast', desc: 'Bulk WhatsApp & SMS', color: 'bg-purple-50 border-purple-100 hover:border-purple-300' },
-    { label: 'Attendance', href: '/admin/attendance', desc: 'Live class sign-ins', color: 'bg-orange-50 border-orange-100 hover:border-orange-300' },
-    { label: 'Marketers', href: '/admin/marketers', desc: 'Performance monitor', color: 'bg-pink-50 border-pink-100 hover:border-pink-300' },
-    { label: 'Documents', href: '/admin/documents', desc: 'PDF templates & letters', color: 'bg-slate-50 border-slate-100 hover:border-slate-300' },
-    { label: 'Staff', href: '/admin/staff', desc: `${stats.activeStaff} active staff`, color: 'bg-teal-50 border-teal-100 hover:border-teal-300' },
+  const now = new Date()
+  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening'
+  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+
+  const sections = [
+    {
+      label: 'Admissions & enrolment',
+      links: [
+        { label: 'Lead pipeline', href: '/admin/pipeline', desc: 'Track leads through every stage', icon: Kanban },
+        { label: 'All leads', href: '/admin/leads', desc: `${s.unassigned} awaiting assignment`, icon: TrendingUp },
+        { label: 'Admissions', href: '/admin/admissions', desc: `${s.totalAdmissions - s.admitted} pending review`, icon: UserCheck },
+      ],
+    },
+    {
+      label: 'Operations',
+      links: [
+        { label: 'Finance', href: '/admin/finance', desc: `${formatGHS(s.revenue)} collected`, icon: DollarSign },
+        { label: 'Attendance', href: '/admin/attendance', desc: 'Live class sign-ins', icon: CalendarCheck },
+        { label: 'Broadcast', href: '/admin/broadcast', desc: 'WhatsApp & SMS campaigns', icon: Radio },
+      ],
+    },
+    {
+      label: 'People & content',
+      links: [
+        { label: 'Marketers', href: '/admin/marketers', desc: 'Team performance', icon: BarChart3 },
+        { label: 'Staff', href: '/admin/staff', desc: `${s.activeStaff} active`, icon: Users },
+        { label: 'Documents', href: '/admin/documents', desc: 'Letters & templates', icon: FolderOpen },
+      ],
+    },
   ]
 
   return (
-    <div className="fade-in w-full">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-gray-900">Admin Dashboard</h1>
-        <p className="text-gray-400 text-sm">Cambridge Centre of Excellence — System Overview</p>
+    <div className="fade-in max-w-6xl">
+      {/* Header */}
+      <div className="mb-8">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">{dateStr}</div>
+        <h1 className="font-display text-[30px] leading-tight font-semibold text-[var(--ink)]">{greeting}</h1>
+        <p className="text-[var(--ink-soft)] text-sm mt-1.5">Here is where things stand across the centre today.</p>
       </div>
 
-      {/* KPI cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-6">
-        {[
-          { label: 'Total Leads', value: stats.totalLeads, sub: `${stats.todayLeads} today`, icon: TrendingUp, color: 'text-blue-600 bg-blue-50' },
-          { label: 'Unassigned', value: stats.unassigned, sub: 'Need attention', icon: Users, color: stats.unassigned > 0 ? 'text-yellow-600 bg-yellow-50' : 'text-green-600 bg-green-50' },
-          { label: 'Ready to Join', value: stats.readyToJoin, sub: 'Await admission', icon: UserCheck, color: 'text-purple-600 bg-purple-50' },
-          { label: 'Revenue', value: formatGHS(stats.revenue), sub: 'All payments', icon: DollarSign, color: 'text-green-600 bg-green-50' },
-          { label: 'Admitted', value: stats.admitted, sub: `of ${stats.totalAdmissions} cases`, icon: GraduationCap, color: 'text-indigo-600 bg-indigo-50' },
-          { label: 'Active Staff', value: stats.activeStaff, sub: 'All roles', icon: BookOpen, color: 'text-slate-600 bg-slate-50' },
-        ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100 shadow-sm">
-            <div className={`w-9 h-9 rounded-xl ${s.color.split(' ')[1]} flex items-center justify-center mb-2`}>
-              <s.icon size={17} className={s.color.split(' ')[0]} />
-            </div>
-            <div className="text-xl font-bold text-gray-900">{s.value}</div>
-            <div className="text-xs font-medium text-gray-700">{s.label}</div>
-            <div className="text-[11px] text-gray-400">{s.sub}</div>
+      {/* Metrics */}
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
+        <StatCard label="Total leads" value={s.totalLeads} sub={`${s.todayLeads} added today`} icon={<TrendingUp size={18} />} />
+        <StatCard label="Unassigned" value={s.unassigned} sub={s.unassigned > 0 ? 'Need attention' : 'All assigned'} icon={<Users size={18} />} />
+        <StatCard label="Ready to join" value={s.readyToJoin} sub="Awaiting admission" icon={<UserCheck size={18} />} />
+        <StatCard label="Revenue" value={formatGHS(s.revenue)} sub="Collected to date" icon={<DollarSign size={18} />} accent />
+      </div>
+      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
+        <StatCard label="Admitted" value={s.admitted} sub={`of ${s.totalAdmissions} cases`} icon={<GraduationCap size={18} />} />
+        <StatCard label="Active staff" value={s.activeStaff} sub="Across all roles" icon={<Users size={18} />} />
+      </div>
+
+      {/* Navigation sections */}
+      {sections.map(section => (
+        <div key={section.label} className="mb-8">
+          <SectionLabel>{section.label}</SectionLabel>
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3">
+            {section.links.map(l => (
+              <Link key={l.href} href={l.href} className="group">
+                <Card hover className="p-4 flex items-center gap-3.5">
+                  <div className="w-10 h-10 rounded-lg bg-[var(--line-soft)] group-hover:bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0 transition-colors">
+                    <l.icon size={18} className="text-[var(--ink-soft)] group-hover:text-[var(--accent)] transition-colors" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-semibold text-[var(--ink)]">{l.label}</div>
+                    <div className="text-xs text-[var(--ink-faint)] mt-0.5 truncate">{l.desc}</div>
+                  </div>
+                  <ArrowUpRight size={15} className="text-[var(--ink-faint)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
+                </Card>
+              </Link>
+            ))}
           </div>
-        ))}
-      </div>
-
-      {/* Quick access */}
-      <h2 className="text-sm font-bold text-gray-500 uppercase tracking-wide mb-3">Quick Access</h2>
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-        {quickLinks.map(l => (
-          <Link key={l.href} href={l.href}
-            className={`flex items-center justify-between p-4 rounded-2xl border-2 transition-all group ${l.color}`}>
-            <div>
-              <div className="text-sm font-bold text-gray-900 group-hover:text-blue-700 transition-colors">{l.label}</div>
-              <div className="text-xs text-gray-500 mt-0.5">{l.desc}</div>
-            </div>
-            <ArrowRight size={16} className="text-gray-300 group-hover:text-blue-500 transition-colors" />
-          </Link>
-        ))}
-      </div>
+        </div>
+      ))}
     </div>
   )
 }

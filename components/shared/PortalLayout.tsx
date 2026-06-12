@@ -164,16 +164,16 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   }
 
   if (loading) return (
-    <div className="fixed inset-0 bg-white flex items-center justify-center">
+    <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'var(--canvas)' }}>
       <div className="text-center">
-        <div className="w-8 h-8 border-2 border-gray-900 border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-gray-400 text-sm">Loading…</p>
+        <div className="w-7 h-7 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
+        <p className="text-[var(--ink-faint)] text-sm">Loading…</p>
       </div>
     </div>
   )
 
   const navItems  = profile ? getNavItems(profile) : []
-  const roleColor = ROLE_COLOR[profile?.role || ''] || '#2563eb'
+  const roleColor = '#1c4a45'  // pine accent — unified across roles
   const segments  = pathname.split('/').filter(Boolean)
   const canGoBack = segments.length > 1
   const expanded  = hovered || mobileOpen
@@ -241,15 +241,15 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   )
 
   const SidebarPanel = ({ wide, mobile = false }: { wide: boolean; mobile?: boolean }) => (
-    <div className="flex flex-col h-full bg-white">
+    <div className="flex flex-col h-full bg-[var(--paper)]">
       {/* Brand */}
-      <div className={`flex items-center border-b border-gray-100 flex-shrink-0 ${wide ? 'px-4 gap-3' : 'justify-center'}`} style={{ height: 60 }}>
-        <div className="w-9 h-9 rounded-xl flex items-center justify-center text-white text-sm font-black flex-shrink-0" style={{ backgroundColor: roleColor }}>
-          CC
+      <div className={`flex items-center border-b border-[var(--line)] flex-shrink-0 ${wide ? 'px-4 gap-3' : 'justify-center'}`} style={{ height: 60 }}>
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: roleColor }}>
+          <span className="font-display text-[15px] font-semibold leading-none">C</span>
         </div>
         {wide && (
           <div className="min-w-0 flex-1">
-            <div className="text-[13px] font-bold text-gray-900 truncate">Cambridge CE</div>
+            <div className="font-display text-[14px] font-semibold text-[var(--ink)] truncate leading-tight">Cambridge</div>
             <div className="text-[10px] text-gray-400 truncate">{ROLE_LABEL[profile?.role || '']}</div>
           </div>
         )}
@@ -266,7 +266,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       </nav>
 
       {/* Footer */}
-      <div className="border-t border-gray-100 p-2.5 flex-shrink-0">
+      <div className="border-t border-[var(--line)] p-2.5 flex-shrink-0">
         {wide ? (
           <>
             <div className="flex items-center gap-2.5 px-2 py-1.5 mb-1.5">
@@ -302,17 +302,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   )
 
   return (
-    <div className="flex h-screen w-screen overflow-hidden bg-gray-50">
+    <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--canvas)' }}>
 
       {/* ── Desktop sidebar — collapsed strip, hover floats wide panel ── */}
       <div
-        className="hidden lg:block relative flex-shrink-0 border-r border-gray-100 z-30"
+        className="hidden lg:block relative flex-shrink-0 border-r border-[var(--line)] z-30"
         style={{ width: W_ICON }}
         onMouseEnter={onEnter}
         onMouseLeave={onLeave}>
         <SidebarPanel wide={false} />
         {expanded && (
-          <div className="absolute inset-y-0 left-0 shadow-2xl border-r border-gray-100" style={{ width: W_FULL }}>
+          <div className="absolute inset-y-0 left-0 shadow-2xl border-r border-[var(--line)]" style={{ width: W_FULL }}>
             <SidebarPanel wide={true} />
           </div>
         )}
@@ -332,7 +332,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
 
         {/* Topbar */}
-        <header className="flex-shrink-0 bg-white border-b border-gray-100 flex items-center gap-3 px-5" style={{ height: 60 }}>
+        <header className="flex-shrink-0 bg-[var(--paper)] border-b border-[var(--line)] flex items-center gap-3 px-5" style={{ height: 60 }}>
           <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors">
             <Menu size={19} />
           </button>
@@ -382,7 +382,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </header>
 
         {/* Page */}
-        <main className="flex-1 overflow-y-auto overflow-x-hidden bg-gray-50">
+        <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: 'var(--canvas)' }}>
           <div className="w-full p-5 lg:p-7">{children}</div>
         </main>
       </div>
