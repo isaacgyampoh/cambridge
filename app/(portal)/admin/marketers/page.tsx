@@ -235,7 +235,7 @@ export default function MarketerPerformancePage() {
       {/* Alert modal */}
       {selected && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm max-h-[90vh] overflow-y-auto">
             <h2 className="text-lg font-bold text-gray-900 mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
             <p className="text-sm text-gray-500 mb-4">This will send an in-app notification and SMS.</p>
             <div className="bg-orange-50 rounded-xl p-3 mb-4 text-xs text-orange-700">
