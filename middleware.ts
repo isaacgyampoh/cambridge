@@ -6,8 +6,8 @@ const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // Public paths — no auth needed
 const PUBLIC = [
-  '/login', '/apply/', '/signin/', '/public-alumni',
-  '/api/auth/', '/api/webhooks/', '/_next', '/favicon',
+  '/login', '/setup', '/apply/', '/signin/', '/public-alumni',
+  '/api/auth/', '/api/setup/', '/api/webhooks/', '/_next', '/favicon',
 ]
 
 // Portal ID → path prefixes it grants access to
