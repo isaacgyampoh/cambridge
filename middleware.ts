@@ -20,7 +20,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   finance:     ['/admin/finance', '/finance'],
   broadcast:   ['/admin/broadcast'],
   attendance:  ['/admin/attendance'],
-  academics:   ['/admin/courses', '/admin/classes'],
+  academics:   ['/admin/academics', '/admin/courses', '/admin/classes'],
   documents:   ['/admin/documents'],
   marketers:   ['/admin/marketers'],
   alumni:      ['/admin/alumni'],

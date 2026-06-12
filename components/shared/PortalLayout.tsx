@@ -45,8 +45,9 @@ export const ALL_PORTALS = [
     ]},
   { id: 'broadcast',   label: 'Broadcast',    icon: Radio,           href: '/admin/broadcast' },
   { id: 'attendance',  label: 'Attendance',   icon: CalendarCheck,   href: '/admin/attendance' },
-  { id: 'academics',   label: 'Academics',    icon: BookOpen,        href: '/admin/courses',
+  { id: 'academics',   label: 'Academics',    icon: BookOpen,        href: '/admin/academics',
     children: [
+      { label: 'Overview', href: '/admin/academics' },
       { label: 'Courses', href: '/admin/courses' },
       { label: 'Classes', href: '/admin/classes' },
     ]},

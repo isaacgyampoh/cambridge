@@ -1,11 +1,12 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import type { Batch, Course, Profile } from '@/types'
 import { toast } from 'sonner'
-import { Plus, X, GraduationCap } from 'lucide-react'
+import { Plus, X, GraduationCap, Calendar, Clock, User, MapPin } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
+import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass } from '@/components/ui'
 
 export default function ClassesPage() {
   const { data: batches, loading, refetch: load } = useData<Batch>({
@@ -26,7 +27,7 @@ export default function ClassesPage() {
   })
 
   async function save() {
-    if (!form.name || !form.course_id) { toast.error('Name and course are required'); return }
+    if (!form.name || !form.course_id) { toast.error('Enter a name and select a course'); return }
     setSaving(true)
     try {
       await mutate('POST', 'batches', {
@@ -36,141 +37,127 @@ export default function ClassesPage() {
         start_date: form.start_date || null,
         end_date: form.end_date || null,
       })
-      toast.success('Batch created!'); setModal(false); load()
+      toast.success('Class created')
+      setModal(false)
+      setForm({ name: '', course_id: '', trainer_id: '', class_type: 'physical', status: 'upcoming', start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30 })
+      load()
     } catch (e: any) {
-      toast.error(e.message || 'Failed to create batch')
-    } finally {
-      setSaving(false)
-    }
+      toast.error(e.message || 'Could not create the class')
+    } finally { setSaving(false) }
   }
 
   async function updateStatus(id: string, status: string) {
-    try {
-      await mutate('PATCH', 'batches', { status }, [{ col: 'id', val: id }])
-      load()
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to update status')
-    }
+    try { await mutate('PATCH', 'batches', { status }, [{ col: 'id', val: id }]); load() }
+    catch (e: any) { toast.error(e.message || 'Could not update status') }
   }
 
-  const STATUS_COLORS: Record<string, string> = {
-    upcoming: 'bg-blue-100 text-blue-700',
-    ongoing: 'bg-green-100 text-green-700',
-    completed: 'bg-gray-100 text-gray-600',
-    cancelled: 'bg-red-100 text-red-600',
+  const STATUS_TONE: Record<string, any> = {
+    upcoming: 'accent', ongoing: 'success', completed: 'muted', cancelled: 'danger',
   }
 
   return (
-    <div className="fade-in w-full">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">Classes & Batches</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{batches.length} batches</p>
-        </div>
-        <button onClick={() => setModal(true)} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-          <Plus size={16} /> New Batch
-        </button>
-      </div>
+    <div className="fade-in max-w-5xl">
+      <PageHeader
+        eyebrow="Academics"
+        title="Classes"
+        description="Class batches running against your courses, with trainers, schedules and venues."
+        actions={<Button onClick={() => setModal(true)} icon={<Plus size={15} />}>New class</Button>}
+      />
 
-      {/* Modal */}
-      {(
-        <Modal open={modal} onClose={() => setModal(false)} maxWidth="max-w-md">
-          <div className="p-6">
-            <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">New Batch</h2>
-              <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+      <Modal open={modal} onClose={() => setModal(false)} maxWidth="max-w-md">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-6">
+            <h2 className="font-display text-xl font-semibold text-[var(--ink)]">New class</h2>
+            <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition"><X size={20} /></button>
+          </div>
+          <div className="space-y-4">
+            <Field label="Class name" required>
+              <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="PMP — March 2026" className={inputClass} />
+            </Field>
+            <Field label="Course" required>
+              <select value={form.course_id} onChange={e => setForm({ ...form, course_id: e.target.value })} className={inputClass}>
+                <option value="">Select a course</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+            </Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Start date"><input type="date" value={form.start_date} onChange={e => setForm({ ...form, start_date: e.target.value })} className={inputClass} /></Field>
+              <Field label="End date"><input type="date" value={form.end_date} onChange={e => setForm({ ...form, end_date: e.target.value })} className={inputClass} /></Field>
             </div>
-            <div className="space-y-3">
-              {[
-                { key: 'name', label: 'Batch Name *', type: 'text', placeholder: 'PMP March 2025' },
-                { key: 'start_date', label: 'Start Date', type: 'date', placeholder: '' },
-                { key: 'end_date', label: 'End Date', type: 'date', placeholder: '' },
-                { key: 'schedule', label: 'Schedule', type: 'text', placeholder: 'Mon/Wed/Fri 9am–12pm' },
-                { key: 'venue', label: 'Venue', type: 'text', placeholder: 'Cambridge Accra Campus' },
-                { key: 'zoom_link', label: 'Zoom Link (if online)', type: 'url', placeholder: 'https://zoom.us/j/...' },
-                { key: 'max_students', label: 'Max Students', type: 'number', placeholder: '30' },
-              ].map(f => (
-                <div key={f.key}>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{f.label}</label>
-                  <input type={f.type} placeholder={f.placeholder}
-                    value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: f.type === 'number' ? parseInt(e.target.value) : e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
-                </div>
-              ))}
-              {[
-                { key: 'course_id', label: 'Course *', opts: courses.map(c => ({ v: c.id, l: c.name })) },
-                { key: 'trainer_id', label: 'Trainer', opts: trainers.map(t => ({ v: t.id, l: t.full_name })) },
-                { key: 'class_type', label: 'Type', opts: [{ v: 'physical', l: 'Physical' }, { v: 'online', l: 'Online' }] },
-                { key: 'status', label: 'Status', opts: [{ v: 'upcoming', l: 'Upcoming' }, { v: 'ongoing', l: 'Ongoing' }] },
-              ].map(f => (
-                <div key={f.key}>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1">{f.label}</label>
-                  <select value={form[f.key]} onChange={e => setForm({ ...form, [f.key]: e.target.value })}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500">
-                    <option value="">Select...</option>
-                    {f.opts.map(o => <option key={o.v} value={o.v}>{o.l}</option>)}
-                  </select>
-                </div>
-              ))}
+            <Field label="Schedule"><input value={form.schedule} onChange={e => setForm({ ...form, schedule: e.target.value })} placeholder="Mon / Wed / Fri, 9am–12pm" className={inputClass} /></Field>
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Trainer">
+                <select value={form.trainer_id} onChange={e => setForm({ ...form, trainer_id: e.target.value })} className={inputClass}>
+                  <option value="">Unassigned</option>
+                  {trainers.map(t => <option key={t.id} value={t.id}>{t.full_name}</option>)}
+                </select>
+              </Field>
+              <Field label="Format">
+                <select value={form.class_type} onChange={e => setForm({ ...form, class_type: e.target.value })} className={inputClass}>
+                  <option value="physical">In person</option>
+                  <option value="online">Online</option>
+                </select>
+              </Field>
             </div>
-            <div className="flex gap-2 mt-5">
-              <button onClick={save} disabled={saving}
-                className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50">
-                {saving ? 'Creating...' : 'Create Batch'}
-              </button>
-              <button onClick={() => setModal(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
+            {form.class_type === 'physical'
+              ? <Field label="Venue"><input value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} placeholder="Accra Campus" className={inputClass} /></Field>
+              : <Field label="Meeting link"><input value={form.zoom_link} onChange={e => setForm({ ...form, zoom_link: e.target.value })} placeholder="https://…" className={inputClass} /></Field>}
+            <div className="grid grid-cols-2 gap-3">
+              <Field label="Max students"><input type="number" value={form.max_students} onChange={e => setForm({ ...form, max_students: parseInt(e.target.value) || 0 })} className={inputClass} /></Field>
+              <Field label="Status">
+                <select value={form.status} onChange={e => setForm({ ...form, status: e.target.value })} className={inputClass}>
+                  <option value="upcoming">Upcoming</option>
+                  <option value="ongoing">Ongoing</option>
+                </select>
+              </Field>
             </div>
           </div>
-        </Modal>
-      )}
+          <div className="flex gap-2 mt-6">
+            <Button onClick={save} disabled={saving} className="flex-1">{saving ? 'Creating…' : 'Create class'}</Button>
+            <Button variant="secondary" onClick={() => setModal(false)}>Cancel</Button>
+          </div>
+        </div>
+      </Modal>
 
-      {/* Batch list */}
-      {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+      {loading ? <Spinner /> : batches.length === 0 ? (
+        <EmptyState
+          icon={<GraduationCap size={22} />}
+          title="No classes yet"
+          description="Create a class batch from one of your courses to begin enrolling students."
+          action={<Button onClick={() => setModal(true)} icon={<Plus size={15} />}>New class</Button>}
+        />
       ) : (
-        <div className="space-y-3">
+        <div className="space-y-3 stagger">
           {batches.map(b => {
             const course = (b as any).courses
             const trainer = (b as any).trainer
             return (
-              <div key={b.id} className="bg-white rounded-2xl border border-gray-200 p-5">
-                <div className="flex items-start justify-between">
-                  <div className="flex items-start gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                      <GraduationCap size={20} className="text-blue-600" />
+              <Card key={b.id} className="p-5">
+                <div className="flex items-start justify-between gap-4">
+                  <div className="flex items-start gap-4 min-w-0">
+                    <div className="w-11 h-11 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0">
+                      <GraduationCap size={20} className="text-[var(--accent)]" />
                     </div>
-                    <div>
-                      <h3 className="font-bold text-gray-900">{b.name}</h3>
-                      <p className="text-sm text-gray-500">{course?.name}</p>
-                      <div className="flex flex-wrap gap-3 mt-2 text-xs text-gray-500">
-                        {b.start_date && <span>📅 {formatDate(b.start_date)}</span>}
-                        {b.schedule && <span>🕐 {b.schedule}</span>}
-                        {trainer && <span>👤 {trainer.full_name}</span>}
-                        {b.venue && <span>📍 {b.venue}</span>}
-                        <span className={`px-2 py-0.5 rounded-full font-semibold ${b.class_type === 'online' ? 'bg-purple-100 text-purple-700' : 'bg-gray-100 text-gray-600'}`}>
-                          {b.class_type}
-                        </span>
+                    <div className="min-w-0">
+                      <h3 className="font-display text-lg font-semibold text-[var(--ink)] leading-snug">{b.name}</h3>
+                      <p className="text-sm text-[var(--ink-soft)]">{course?.name}</p>
+                      <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-xs text-[var(--ink-faint)]">
+                        {b.start_date && <span className="flex items-center gap-1.5"><Calendar size={12} />{formatDate(b.start_date)}</span>}
+                        {b.schedule && <span className="flex items-center gap-1.5"><Clock size={12} />{b.schedule}</span>}
+                        {trainer && <span className="flex items-center gap-1.5"><User size={12} />{trainer.full_name}</span>}
+                        {b.venue && <span className="flex items-center gap-1.5"><MapPin size={12} />{b.venue}</span>}
+                        <Badge tone={b.class_type === 'online' ? 'accent' : 'neutral'}>{b.class_type === 'online' ? 'Online' : 'In person'}</Badge>
                       </div>
                     </div>
                   </div>
-                  <div className="flex items-center gap-2">
-                    <select value={b.status} onChange={e => updateStatus(b.id, e.target.value)}
-                      className={`text-xs font-bold px-3 py-1 rounded-full border-0 ${STATUS_COLORS[b.status]} focus:outline-none cursor-pointer`}>
-                      {['upcoming','ongoing','completed','cancelled'].map(s => (
-                        <option key={s} value={s}>{s}</option>
-                      ))}
-                    </select>
-                  </div>
+                  <select value={b.status} onChange={e => updateStatus(b.id, e.target.value)}
+                    className="text-[12px] font-semibold px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-white text-[var(--ink-soft)] focus:outline-none focus:border-[var(--accent)] cursor-pointer flex-shrink-0">
+                    {['upcoming', 'ongoing', 'completed', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
+                  </select>
                 </div>
-              </div>
+              </Card>
             )
           })}
-          {batches.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
-              <GraduationCap size={40} className="mx-auto mb-3 opacity-30" />
-              <p>No batches yet. Create your first class batch.</p>
-            </div>
-          )}
         </div>
       )}
     </div>
