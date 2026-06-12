@@ -73,8 +73,8 @@ export default function ClassesPage() {
 
       {/* Modal */}
       {modal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-md max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-md my-auto">
             <div className="flex items-center justify-between mb-5">
               <h2 className="text-lg font-bold text-gray-900">New Batch</h2>
               <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>

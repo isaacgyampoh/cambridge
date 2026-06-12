@@ -91,9 +91,9 @@ export default function StaffPage() {
 
       {/* ── Modal ── */}
       {showModal && (
-        <div className="fixed inset-0 z-[9999] flex items-center justify-center p-4"
+        <div className="fixed inset-0 z-[9999] overflow-y-auto p-4 flex items-start sm:items-center justify-center"
           style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}>
-          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg max-h-[90vh] overflow-y-auto">
+          <div className="bg-white rounded-2xl shadow-2xl w-full max-w-lg my-auto">
 
             {/* Modal header */}
             <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">

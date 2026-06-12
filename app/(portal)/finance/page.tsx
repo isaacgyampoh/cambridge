@@ -116,8 +116,8 @@ export default function FinancePage() {
 
       {/* Modal */}
       {showModal && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl max-h-[90vh] overflow-y-auto">
+        <div className="fixed inset-0 bg-black/50 z-50 overflow-y-auto p-4 flex items-start sm:items-center justify-center" onClick={e => e.target === e.currentTarget && setShowModal(false)}>
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm shadow-2xl my-auto">
             <div className="flex items-center justify-between mb-4">
               <h2 className="text-base font-bold text-gray-900">Record Payment</h2>
               <button onClick={() => setShowModal(false)} className="text-gray-400 hover:text-gray-600 transition"><X size={18} /></button>
