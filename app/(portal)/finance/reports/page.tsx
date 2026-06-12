@@ -1,27 +1,35 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+
 import { formatGHS } from '@/lib/utils'
 import { DollarSign, TrendingUp, AlertCircle, Users } from 'lucide-react'
+
+
+async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], orderBy?: string, orderAsc?: boolean, limit = 2000) {
+  const params = new URLSearchParams({ table, select, limit: String(limit) })
+  if (filters?.length) params.set('filters', JSON.stringify(filters))
+  if (orderBy) { params.set('orderBy', orderBy); if (orderAsc !== undefined) params.set('orderAsc', String(orderAsc)) }
+  const res = await fetch(`/api/data?${params}`)
+  const json = await res.json()
+  return json.data || []
+}
 
 export default function FinanceReports() {
   const [data, setData] = useState<any>(null)
   const [range, setRange] = useState('30')
-  const sb = createClient()
-
   useEffect(() => { load() }, [range])
 
   async function load() {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
-    const [{ data: payments }, { data: invoices }] = await Promise.all([
-      sb.from('payments').select('*,student:student_id(full_name)').gte('created_at', since),
-      sb.from('invoices').select('*,student:student_id(full_name)').order('outstanding', { ascending: false }),
+    const [payments, invoices] = await Promise.all([
+      apiQuery('payments', '*,student:student_id(full_name)', [{ col: 'created_at', op: 'gte', val: since }]),
+      apiQuery('invoices', '*,student:student_id(full_name)', undefined, 'outstanding', false),
     ])
 
-    const p = payments || []
-    const paid = p.filter(x => x.status === 'paid')
+    const p: any[] = payments
+    const paid = p.filter((x: any) => x.status === 'paid')
     const byMethod: Record<string, number> = {}
-    paid.forEach(x => { byMethod[x.method] = (byMethod[x.method] || 0) + Number(x.amount) })
+    paid.forEach((x: any) => { byMethod[x.method] = (byMethod[x.method] || 0) + Number(x.amount) })
 
     // Daily revenue trend
     const daily: Record<string, number> = {}
@@ -29,18 +37,20 @@ export default function FinanceReports() {
       const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
       daily[d] = 0
     }
-    paid.forEach(x => {
+    paid.forEach((x: any) => {
       const d = x.paid_at?.slice(0, 10) || x.created_at.slice(0, 10)
       if (daily[d] !== undefined) daily[d] += Number(x.amount)
     })
 
+    const inv: any[] = invoices
+
     setData({
-      totalRevenue: paid.reduce((a, x) => a + Number(x.amount), 0),
+      totalRevenue: paid.reduce((a: number, x: any) => a + Number(x.amount), 0),
       txCount: paid.length,
-      avgTx: paid.length ? paid.reduce((a, x) => a + Number(x.amount), 0) / paid.length : 0,
+      avgTx: paid.length ? paid.reduce((a: number, x: any) => a + Number(x.amount), 0) / paid.length : 0,
       byMethod,
-      outstanding: (invoices || []).filter(i => Number(i.outstanding) > 0),
-      totalOutstanding: (invoices || []).reduce((a, i) => a + Number(i.outstanding), 0),
+      outstanding: inv.filter((i: any) => Number(i.outstanding) > 0),
+      totalOutstanding: inv.reduce((a: number, i: any) => a + Number(i.outstanding), 0),
       daily,
     })
   }

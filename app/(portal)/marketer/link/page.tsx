@@ -1,7 +1,7 @@
 'use client'
 import { CONFIG } from '@/lib/config'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+
 import type { Profile, Application } from '@/types'
 import { toast } from 'sonner'
 import { Copy, ExternalLink, TrendingUp } from 'lucide-react'
@@ -10,21 +10,34 @@ export default function MarketerLink() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState({ total: 0, paid: 0, converted: 0 })
   const [applications, setApplications] = useState<Application[]>([])
-  const sb = createClient()
 
   useEffect(() => {
     async function load() {
-      const { data: { user } } = await sb.auth.getUser()
-      if (!user) return
-      const { data: p } = await sb.from('profiles').select('*').eq('id', user.id).single()
+      const s = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
+      if (!s?.valid) return
+
+      const params = new URLSearchParams({
+        table: 'profiles', select: '*',
+        filters: JSON.stringify([{ col: 'id', op: 'eq', val: s.userId }]),
+        limit: '1',
+      })
+      const profRes = await fetch(`/api/data?${params}`).then(r => r.json())
+      const p = profRes.data?.[0] || null
       setProfile(p)
+
       if (p) {
-        const { data: apps } = await sb.from('applications').select('*,course:course_id(name)').eq('marketer_id', user.id).order('created_at', { ascending: false })
-        setApplications(apps || [])
+        const appParams = new URLSearchParams({
+          table: 'applications', select: '*,course:course_id(name)',
+          filters: JSON.stringify([{ col: 'marketer_id', op: 'eq', val: s.userId }]),
+          orderBy: 'created_at', orderAsc: 'false', limit: '500',
+        })
+        const appRes = await fetch(`/api/data?${appParams}`).then(r => r.json())
+        const apps: any[] = appRes.data || []
+        setApplications(apps)
         setStats({
-          total: apps?.length || 0,
-          paid: apps?.filter(a => a.payment_status === 'paid').length || 0,
-          converted: apps?.filter(a => a.is_submitted).length || 0,
+          total: apps.length,
+          paid: apps.filter(a => a.payment_status === 'paid').length,
+          converted: apps.filter(a => a.is_submitted).length,
         })
       }
     }

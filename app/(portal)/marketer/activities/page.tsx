@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { mutate } from '@/hooks/useData'
 import { formatDateTime } from '@/lib/utils'
 import { toast } from 'sonner'
 import { Clock, CheckCircle, Phone, MessageSquare, AlertTriangle } from 'lucide-react'
@@ -11,14 +11,13 @@ export default function ActivitiesPage() {
   const [profile, setProfile] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [filter, setFilter] = useState('today')
-  const sb = createClient()
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await sb.auth.getUser()
-      const { data: p } = await sb.from('profiles').select('*').eq('id', user!.id).single()
-      setProfile(p)
-      loadQueue(user!.id)
+      const s = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
+      if (!s?.valid) return
+      setProfile({ id: s.userId })
+      loadQueue(s.userId)
     }
     init()
   }, [filter])
@@ -29,32 +28,48 @@ export default function ActivitiesPage() {
     const today = new Date(now.setHours(23, 59, 59))
     const tomorrow = new Date(Date.now() + 86400000)
 
-    let q = sb.from('follow_up_queue')
-      .select('*, lead:lead_id(id, full_name, phone, status, course_interest)')
-      .eq('marketer_id', userId)
-      .eq('status', 'pending')
-      .order('follow_up_at')
+    const filters: { col: string; op: string; val: any }[] = [
+      { col: 'marketer_id', op: 'eq', val: userId },
+      { col: 'status', op: 'eq', val: 'pending' },
+    ]
+    if (filter === 'today') filters.push({ col: 'follow_up_at', op: 'lte', val: today.toISOString() })
+    else if (filter === 'overdue') filters.push({ col: 'follow_up_at', op: 'lte', val: now.toISOString() })
+    else if (filter === 'tomorrow') {
+      filters.push({ col: 'follow_up_at', op: 'gte', val: now.toISOString() })
+      filters.push({ col: 'follow_up_at', op: 'lte', val: tomorrow.toISOString() })
+    }
 
-    if (filter === 'today') q = q.lte('follow_up_at', today.toISOString())
-    else if (filter === 'overdue') q = q.lt('follow_up_at', now.toISOString())
-    else if (filter === 'tomorrow') q = q.gte('follow_up_at', now.toISOString()).lte('follow_up_at', tomorrow.toISOString())
-
-    const { data } = await q.limit(50)
-    setQueue(data || [])
+    const params = new URLSearchParams({
+      table: 'follow_up_queue',
+      select: '*, lead:lead_id(id, full_name, phone, status, course_interest)',
+      filters: JSON.stringify(filters),
+      orderBy: 'follow_up_at', limit: '50',
+    })
+    const res = await fetch(`/api/data?${params}`)
+    const json = await res.json()
+    setQueue(json.data || [])
     setLoading(false)
   }
 
   async function markDone(id: string) {
-    await sb.from('follow_up_queue').update({ status: 'done', done_at: new Date().toISOString() }).eq('id', id)
-    toast.success('Marked as done!')
-    if (profile) loadQueue(profile.id)
+    try {
+      await mutate('PATCH', 'follow_up_queue', { status: 'done', done_at: new Date().toISOString() }, [{ col: 'id', val: id }])
+      toast.success('Marked as done!')
+      if (profile) loadQueue(profile.id)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update')
+    }
   }
 
   async function snooze(id: string, hours: number) {
-    const newTime = new Date(Date.now() + hours * 3600000).toISOString()
-    await sb.from('follow_up_queue').update({ follow_up_at: newTime, status: 'snoozed' }).eq('id', id)
-    toast.success(`Snoozed for ${hours} hour${hours > 1 ? 's' : ''}`)
-    if (profile) loadQueue(profile.id)
+    try {
+      const newTime = new Date(Date.now() + hours * 3600000).toISOString()
+      await mutate('PATCH', 'follow_up_queue', { follow_up_at: newTime, status: 'snoozed' }, [{ col: 'id', val: id }])
+      toast.success(`Snoozed for ${hours} hour${hours > 1 ? 's' : ''}`)
+      if (profile) loadQueue(profile.id)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to snooze')
+    }
   }
 
   const overdue = queue.filter(q => new Date(q.follow_up_at) < new Date())

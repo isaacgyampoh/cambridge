@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useData, mutate } from '@/hooks/useData'
 import { useRouter } from 'next/navigation'
 import type { Profile, Course } from '@/types'
 import { toast } from 'sonner'
@@ -9,38 +9,38 @@ import Link from 'next/link'
 
 export default function NewInvoice() {
   const router = useRouter()
-  const [students, setStudents] = useState<Profile[]>([])
-  const [courses, setCourses] = useState<Course[]>([])
+  const { data: students } = useData<Profile>({
+    table: 'profiles', filters: [{ col: 'role', op: 'eq', val: 'student' }, { col: 'is_active', op: 'eq', val: true }], orderBy: 'full_name', limit: 500,
+  })
+  const { data: courses } = useData<Course>({
+    table: 'courses', filters: [{ col: 'is_active', op: 'eq', val: true }], orderBy: 'name', limit: 200,
+  })
   const [saving, setSaving] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const [form, setForm] = useState({ student_id: '', course_id: '', total_amount: '', due_date: '', notes: '' })
-  const sb = createClient()
 
   useEffect(() => {
-    async function load() {
-      const [{ data: s }, { data: c }] = await Promise.all([
-        sb.from('profiles').select('*').eq('role', 'student').eq('is_active', true).order('full_name'),
-        sb.from('courses').select('*').eq('is_active', true).order('name'),
-      ])
-      setStudents(s || []); setCourses(c || [])
-    }
-    load()
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})
   }, [])
 
   async function save() {
     if (!form.student_id || !form.total_amount) { toast.error('Fill required fields'); return }
     setSaving(true)
-    const { data: { user } } = await sb.auth.getUser()
-    const { error } = await sb.from('invoices').insert({
-      student_id: form.student_id,
-      course_id: form.course_id || null,
-      total_amount: parseFloat(form.total_amount),
-      due_date: form.due_date || null,
-      notes: form.notes || null,
-      created_by: user?.id,
-    })
-    if (error) { toast.error(error.message); setSaving(false); return }
-    toast.success('Invoice created!')
-    router.push('/finance/invoices')
+    try {
+      await mutate('POST', 'invoices', {
+        student_id: form.student_id,
+        course_id: form.course_id || null,
+        total_amount: parseFloat(form.total_amount),
+        due_date: form.due_date || null,
+        notes: form.notes || null,
+        created_by: userId,
+      })
+      toast.success('Invoice created!')
+      router.push('/finance/invoices')
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to create invoice')
+      setSaving(false)
+    }
   }
 
   return (

@@ -1,30 +1,36 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+
 import { formatGHS } from '@/lib/utils'
+
+
+async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 2000) {
+  const params = new URLSearchParams({ table, select, limit: String(limit) })
+  if (filters?.length) params.set('filters', JSON.stringify(filters))
+  const res = await fetch(`/api/data?${params}`)
+  const json = await res.json()
+  return json.data || []
+}
 
 export default function PMReports() {
   const [data, setData] = useState<any>(null)
   const [range, setRange] = useState('30')
-  const sb = createClient()
-
   useEffect(() => { load() }, [range])
 
   async function load() {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
 
-    const [{ data: leads }, { data: marketers }] = await Promise.all([
-      sb.from('leads').select('*, assignee:assigned_to(full_name)').gte('created_at', since),
-      sb.from('profiles').select('id,full_name').eq('role', 'marketing_officer').eq('is_active', true),
+    const [leads] = await Promise.all([
+      apiQuery('leads', '*, assignee:assigned_to(full_name)', [{ col: 'created_at', op: 'gte', val: since }]),
     ])
 
-    const l = leads || []
+    const l: any[] = leads
     const total = l.length
     const bySource: Record<string, number> = {}
     const byStatus: Record<string, number> = {}
     const byMarketer: Record<string, { name: string; total: number; converted: number }> = {}
 
-    l.forEach(lead => {
+    l.forEach((lead: any) => {
       bySource[lead.source] = (bySource[lead.source] || 0) + 1
       byStatus[lead.status] = (byStatus[lead.status] || 0) + 1
       if (lead.assigned_to) {

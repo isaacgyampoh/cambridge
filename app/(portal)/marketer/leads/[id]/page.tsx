@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, STATUS_COLORS, SOURCE_COLORS } from '@/lib/utils'
 import { toast } from 'sonner'
 import { ArrowLeft, Phone, MessageSquare, Mail, Calendar, Plus, Clock } from 'lucide-react'
@@ -24,6 +24,15 @@ const ACTIVITY_TYPES = [
   { key: 'note', label: '📝 Note', color: 'bg-gray-100 text-gray-700' },
 ]
 
+
+async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 100) {
+  const params = new URLSearchParams({ table, select, limit: String(limit) })
+  if (filters?.length) params.set('filters', JSON.stringify(filters))
+  const res = await fetch(`/api/data?${params}`)
+  const json = await res.json()
+  return json.data || []
+}
+
 export default function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [lead, setLead] = useState<any>(null)
@@ -36,24 +45,23 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const [followUpDate, setFollowUpDate] = useState('')
   const [savingAct, setSavingAct] = useState(false)
   const [newStatus, setNewStatus] = useState('')
-  const sb = createClient()
 
   useEffect(() => {
     async function init() {
-      const { data: { user } } = await sb.auth.getUser()
-      const { data: p } = await sb.from('profiles').select('*').eq('id', user!.id).single()
-      setProfile(p)
+      const s = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
+      if (s?.valid) setProfile({ id: s.userId, full_name: s.fullName })
       load()
     }
     init()
   }, [id])
 
   async function load() {
-    const [{ data: l }, { data: a }] = await Promise.all([
-      sb.from('leads').select('*').eq('id', id).single(),
-      sb.from('lead_activities').select('*, creator:created_by(full_name)').eq('lead_id', id).order('created_at', { ascending: false }).limit(30),
+    const [leads, acts] = await Promise.all([
+      apiQuery('leads', '*', [{ col: 'id', op: 'eq', val: id }], 1),
+      apiQuery('lead_activities', '*, creator:created_by(full_name)', [{ col: 'lead_id', op: 'eq', val: id }], 30),
     ])
-    setLead(l); setActivities(a || [])
+    const l = leads[0] || null
+    setLead(l); setActivities(acts)
     setNewStatus(l?.status || '')
     setLoading(false)
   }
@@ -61,48 +69,56 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   async function logActivity() {
     if (!actNote.trim()) { toast.error('Add a note about this activity'); return }
     setSavingAct(true)
-
-    await sb.from('lead_activities').insert({
-      lead_id: id,
-      activity_type: actType,
-      subject: actType.charAt(0).toUpperCase() + actType.slice(1),
-      description: actNote,
-      outcome: actOutcome || null,
-      next_follow_up: followUpDate ? new Date(followUpDate).toISOString() : null,
-      created_by: profile?.id,
-    })
-
-    // Set follow-up queue if date provided
-    if (followUpDate && profile?.id) {
-      await sb.from('follow_up_queue').insert({
+    try {
+      await mutate('POST', 'lead_activities', {
         lead_id: id,
-        marketer_id: profile.id,
-        follow_up_at: new Date(followUpDate).toISOString(),
-        reason: actNote,
-        priority: 'normal',
+        activity_type: actType,
+        subject: actType.charAt(0).toUpperCase() + actType.slice(1),
+        description: actNote,
+        outcome: actOutcome || null,
+        next_follow_up: followUpDate ? new Date(followUpDate).toISOString() : null,
+        created_by: profile?.id,
       })
-    }
 
-    toast.success('Activity logged!')
-    setActNote(''); setActOutcome(''); setFollowUpDate('')
-    setSavingAct(false)
-    load()
+      // Set follow-up queue if date provided
+      if (followUpDate && profile?.id) {
+        await mutate('POST', 'follow_up_queue', {
+          lead_id: id,
+          marketer_id: profile.id,
+          follow_up_at: new Date(followUpDate).toISOString(),
+          reason: actNote,
+          priority: 'normal',
+        })
+      }
+
+      toast.success('Activity logged!')
+      setActNote(''); setActOutcome(''); setFollowUpDate('')
+      load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to log activity')
+    } finally {
+      setSavingAct(false)
+    }
   }
 
   async function updateStatus() {
     if (!newStatus || newStatus === lead?.status) return
-    await sb.from('leads').update({ status: newStatus }).eq('id', id)
-    if (newStatus === 'ready_to_join') {
-      await fetch('/api/admissions', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId: id }),
-      })
-      toast.success('Status updated! Admissions team notified.')
-    } else {
-      toast.success('Status updated')
+    try {
+      await mutate('PATCH', 'leads', { status: newStatus }, [{ col: 'id', val: id }])
+      if (newStatus === 'ready_to_join') {
+        await fetch('/api/admissions', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId: id }),
+        })
+        toast.success('Status updated! Admissions team notified.')
+      } else {
+        toast.success('Status updated')
+      }
+      load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update status')
     }
-    load()
   }
 
   async function sendQuickWA(template: string) {
@@ -111,11 +127,13 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     const msg = template.replace('{{name}}', lead.full_name.split(' ')[0])
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
     // Log the activity
-    await sb.from('lead_activities').insert({
-      lead_id: id, activity_type: 'whatsapp',
-      subject: 'WhatsApp sent', description: msg, created_by: profile?.id,
-    })
-    load()
+    try {
+      await mutate('POST', 'lead_activities', {
+        lead_id: id, activity_type: 'whatsapp',
+        subject: 'WhatsApp sent', description: msg, created_by: profile?.id,
+      })
+      load()
+    } catch {}
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
