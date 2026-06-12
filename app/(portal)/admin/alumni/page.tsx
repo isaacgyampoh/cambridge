@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
+import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
 import { Plus, Star, GraduationCap, Briefcase, X, Eye, EyeOff } from 'lucide-react'
@@ -14,24 +15,21 @@ const EMPTY_FORM = {
 }
 
 export default function AlumniPage() {
-  const [alumni, setAlumni] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: alumni, loading, refetch: load } = useData<any>({
+    table: 'alumni', orderBy: 'graduation_date', orderAsc: false, limit: 500,
+  })
   const [modal, setModal] = useState(false)
   const [form, setForm] = useState({ ...EMPTY_FORM })
   const [editId, setEditId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [uploading, setUploading] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const photoRef = useRef<HTMLInputElement>(null)
   const sb = createClient()
 
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    const { data } = await sb.from('alumni').select('*').order('is_featured', { ascending: false }).order('graduation_date', { ascending: false })
-    setAlumni(data || [])
-    setLoading(false)
-  }
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})
+  }, [])
 
   function openNew() {
     setForm({ ...EMPTY_FORM }); setEditId(null); setModal(true)
@@ -55,32 +53,33 @@ export default function AlumniPage() {
   async function save() {
     if (!form.full_name || !form.course_completed) { toast.error('Name and course are required'); return }
     setSaving(true)
-    const { data: { user } } = await sb.auth.getUser()
-    const payload = { ...form, added_by: user?.id, graduation_date: form.graduation_date || null }
-
-    const { error } = editId
-      ? await sb.from('alumni').update(payload).eq('id', editId)
-      : await sb.from('alumni').insert(payload)
-
-    if (error) { toast.error(error.message); setSaving(false); return }
-    toast.success(editId ? 'Alumni updated!' : 'Alumni added!')
-    setSaving(false); setModal(false); load()
+    try {
+      const payload = { ...form, added_by: userId, graduation_date: form.graduation_date || null }
+      if (editId) await mutate('PATCH', 'alumni', payload, [{ col: 'id', val: editId }])
+      else await mutate('POST', 'alumni', payload)
+      toast.success(editId ? 'Alumni updated!' : 'Alumni added!')
+      setModal(false); load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function togglePublish(id: string, current: boolean) {
-    await sb.from('alumni').update({ is_published: !current }).eq('id', id)
-    load()
+    try { await mutate('PATCH', 'alumni', { is_published: !current }, [{ col: 'id', val: id }]); load() }
+    catch (e: any) { toast.error(e.message || 'Failed to update') }
   }
 
   async function toggleFeatured(id: string, current: boolean) {
-    await sb.from('alumni').update({ is_featured: !current }).eq('id', id)
-    load()
+    try { await mutate('PATCH', 'alumni', { is_featured: !current }, [{ col: 'id', val: id }]); load() }
+    catch (e: any) { toast.error(e.message || 'Failed to update') }
   }
 
   async function del(id: string) {
     if (!confirm('Delete this alumni record?')) return
-    await sb.from('alumni').delete().eq('id', id)
-    load()
+    try { await mutateDelete('alumni', [{ col: 'id', val: id }]); load() }
+    catch (e: any) { toast.error(e.message || 'Failed to delete') }
   }
 
   const FIELD_GROUPS = [

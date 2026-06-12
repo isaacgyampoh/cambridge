@@ -1,6 +1,6 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
+import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Send, Users, Clock, CheckCircle, XCircle, Plus, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
@@ -19,9 +19,13 @@ const STATUS_OPTS = ['new', 'contacted', 'interested', 'follow_up', 'not_interes
 const SOURCE_OPTS = ['facebook', 'google', 'linkedin', 'website', 'referral', 'manual']
 
 export default function BroadcastPage() {
-  const [broadcasts, setBroadcasts] = useState<any[]>([])
-  const [batches, setBatches] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: broadcasts, loading, refetch: load } = useData<any>({
+    table: 'broadcasts', orderBy: 'created_at', orderAsc: false, limit: 20,
+  })
+  const { data: batches } = useData<any>({
+    table: 'batches', select: 'id, name, courses(name)',
+    filters: [{ col: 'status', op: 'eq', val: 'ongoing' }], limit: 100,
+  })
   const [modal, setModal] = useState(false)
   const [sending, setSending] = useState(false)
   const [preview, setPreview] = useState<{ count: number; names: string[] } | null>(null)
@@ -30,20 +34,6 @@ export default function BroadcastPage() {
     target_type: 'all_leads', target_filters: {} as any,
     scheduled_at: '',
   })
-  const sb = createClient()
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    const [{ data: b }, { data: btch }] = await Promise.all([
-      sb.from('broadcasts').select('*').order('created_at', { ascending: false }).limit(20),
-      sb.from('batches').select('id, name, courses(name)').eq('status', 'ongoing'),
-    ])
-    setBroadcasts(b || [])
-    setBatches(btch || [])
-    setLoading(false)
-  }
 
   async function getPreview() {
     const res = await fetch('/api/broadcast/preview', {

@@ -1,52 +1,53 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+
 import { formatGHS } from '@/lib/utils'
+
+
+async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 2000) {
+  const params = new URLSearchParams({ table, select, limit: String(limit) })
+  if (filters?.length) params.set('filters', JSON.stringify(filters))
+  const res = await fetch(`/api/data?${params}`)
+  const json = await res.json()
+  return json.data || []
+}
 
 export default function AdminReports() {
   const [data, setData] = useState<any>(null)
   const [range, setRange] = useState('30')
-  const sb = createClient()
-
   useEffect(() => { load() }, [range])
 
   async function load() {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
-    const [
-      { data: leads },
-      { data: admissions },
-      { data: payments },
-      { data: students },
-      { data: batches },
-    ] = await Promise.all([
-      sb.from('leads').select('source,status,created_at,assigned_to').gte('created_at', since),
-      sb.from('admissions').select('status,created_at').gte('created_at', since),
-      sb.from('payments').select('amount,status,method,paid_at').gte('created_at', since),
-      sb.from('profiles').select('id').eq('role', 'student').eq('is_active', true),
-      sb.from('batches').select('status,class_type'),
+    const [leads, admissions, payments, students, batches] = await Promise.all([
+      apiQuery('leads', 'source,status,created_at,assigned_to', [{ col: 'created_at', op: 'gte', val: since }]),
+      apiQuery('admissions', 'status,created_at', [{ col: 'created_at', op: 'gte', val: since }]),
+      apiQuery('payments', 'amount,status,method,paid_at', [{ col: 'created_at', op: 'gte', val: since }]),
+      apiQuery('profiles', 'id', [{ col: 'role', op: 'eq', val: 'student' }, { col: 'is_active', op: 'eq', val: true }]),
+      apiQuery('batches', 'status,class_type'),
     ])
 
-    const l = leads || []; const p = payments || []
-    const paidPayments = p.filter(x => x.status === 'paid')
+    const l = leads; const p = payments
+    const paidPayments = p.filter((x: any) => x.status === 'paid')
     const bySource: Record<string, number> = {}
-    l.forEach(x => { bySource[x.source] = (bySource[x.source] || 0) + 1 })
+    l.forEach((x: any) => { bySource[x.source] = (bySource[x.source] || 0) + 1 })
 
     const byAdmStatus: Record<string, number> = {}
-    ;(admissions || []).forEach(x => { byAdmStatus[x.status] = (byAdmStatus[x.status] || 0) + 1 })
+    admissions.forEach((x: any) => { byAdmStatus[x.status] = (byAdmStatus[x.status] || 0) + 1 })
 
     setData({
       totalLeads: l.length,
-      converted: l.filter(x => ['ready_to_join','registered'].includes(x.status)).length,
-      unassigned: l.filter(x => !x.assigned_to).length,
+      converted: l.filter((x: any) => ['ready_to_join','registered'].includes(x.status)).length,
+      unassigned: l.filter((x: any) => !x.assigned_to).length,
       bySource,
       totalAdmissions: (admissions || []).length,
       admitted: byAdmStatus.admitted || 0,
       byAdmStatus,
-      revenue: paidPayments.reduce((a, x) => a + Number(x.amount), 0),
+      revenue: paidPayments.reduce((a: number, x: any) => a + Number(x.amount), 0),
       txCount: paidPayments.length,
       totalStudents: (students || []).length,
-      ongoingBatches: (batches || []).filter(b => b.status === 'ongoing').length,
-      upcomingBatches: (batches || []).filter(b => b.status === 'upcoming').length,
+      ongoingBatches: (batches || []).filter((b: any) => b.status === 'ongoing').length,
+      upcomingBatches: (batches || []).filter((b: any) => b.status === 'upcoming').length,
     })
   }
 

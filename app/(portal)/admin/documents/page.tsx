@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Upload, FileText, Download, Trash2, Send, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
@@ -18,34 +19,30 @@ const DOC_TYPES = [
 const TEMPLATE_FIELDS = ['{{full_name}}', '{{email}}', '{{phone}}', '{{course}}', '{{batch}}', '{{date}}', '{{admission_number}}', '{{amount}}']
 
 export default function DocumentsPage() {
-  const [docs, setDocs] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: docs, loading, refetch: load } = useData<any>({
+    table: 'documents', orderBy: 'created_at', orderAsc: false, limit: 200,
+  })
   const [uploading, setUploading] = useState(false)
   const [sendModal, setSendModal] = useState<any>(null)
   const [students, setStudents] = useState<any[]>([])
   const [selectedStudents, setSelectedStudents] = useState<string[]>([])
   const [sending, setSending] = useState(false)
+  const [userId, setUserId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false })
   const sb = createClient()
 
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    const { data } = await sb.from('documents').select('*').order('created_at', { ascending: false })
-    setDocs(data || [])
-    setLoading(false)
-  }
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})
+  }, [])
 
   async function upload(file: File) {
     if (!form.name) { toast.error('Enter a document name first'); return }
     setUploading(true)
 
-    const { data: { user } } = await sb.auth.getUser()
     const path = `documents/${Date.now()}-${file.name.replace(/\s+/g, '-')}`
 
-    const { data: uploadData, error: uploadError } = await sb.storage
+    const { error: uploadError } = await sb.storage
       .from('documents')
       .upload(path, file, { contentType: 'application/pdf' })
 
@@ -53,39 +50,52 @@ export default function DocumentsPage() {
 
     const { data: { publicUrl } } = sb.storage.from('documents').getPublicUrl(path)
 
-    const { error } = await sb.from('documents').insert({
-      name: form.name,
-      type: form.type,
-      description: form.description || null,
-      file_url: publicUrl,
-      file_name: file.name,
-      file_size: file.size,
-      is_template: form.is_template,
-      template_fields: form.is_template ? TEMPLATE_FIELDS : null,
-      uploaded_by: user?.id,
-    })
-
-    if (error) { toast.error(error.message); setUploading(false); return }
-    toast.success('Document uploaded!')
-    setForm({ name: '', type: 'admission_letter', description: '', is_template: false })
-    setUploading(false)
-    load()
+    try {
+      await mutate('POST', 'documents', {
+        name: form.name,
+        type: form.type,
+        description: form.description || null,
+        file_url: publicUrl,
+        file_name: file.name,
+        file_size: file.size,
+        is_template: form.is_template,
+        template_fields: form.is_template ? TEMPLATE_FIELDS : null,
+        uploaded_by: userId,
+      })
+      toast.success('Document uploaded!')
+      setForm({ name: '', type: 'admission_letter', description: '', is_template: false })
+      load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save document')
+    } finally {
+      setUploading(false)
+    }
   }
 
   async function deleteDoc(id: string, fileUrl: string) {
     if (!confirm('Delete this document?')) return
-    await sb.from('documents').delete().eq('id', id)
-    // Extract path from URL and delete from storage
-    const path = fileUrl.split('/storage/v1/object/public/documents/')[1]
-    if (path) await sb.storage.from('documents').remove([path])
-    toast.success('Document deleted')
-    load()
+    try {
+      await mutateDelete('documents', [{ col: 'id', val: id }])
+      // Extract path from URL and delete from storage
+      const path = fileUrl.split('/storage/v1/object/public/documents/')[1]
+      if (path) await sb.storage.from('documents').remove([path])
+      toast.success('Document deleted')
+      load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to delete')
+    }
   }
 
   async function openSendModal(doc: any) {
     setSendModal(doc)
-    const { data } = await sb.from('profiles').select('id, full_name, email, phone').eq('role', 'student').eq('is_active', true).order('full_name')
-    setStudents(data || [])
+    const params = new URLSearchParams({
+      table: 'profiles', select: 'id, full_name, email, phone',
+      filters: JSON.stringify([{ col: 'role', op: 'eq', val: 'student' }, { col: 'is_active', op: 'eq', val: true }]),
+      orderBy: 'full_name', limit: '500',
+    })
+    const res = await fetch(`/api/data?${params}`)
+    const json = await res.json()
+    setStudents(json.data || [])
     setSelectedStudents([])
   }
 

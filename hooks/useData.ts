@@ -70,3 +70,14 @@ export async function mutate(
   if (!res.ok) throw new Error(json.error || 'Failed')
   return json.data
 }
+
+export async function mutateDelete(table: string, filters: { col: string; val: any }[]) {
+  const res = await fetch('/api/data', {
+    method: 'DELETE',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ table, filters }),
+  })
+  const json = await res.json()
+  if (!res.ok) throw new Error(json.error || 'Failed')
+  return json
+}

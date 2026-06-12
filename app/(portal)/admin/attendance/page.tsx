@@ -1,103 +1,114 @@
 'use client'
 import { CONFIG } from '@/lib/config'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useData, mutate } from '@/hooks/useData'
 import { formatDateTime } from '@/lib/utils'
-import { Users, CheckCircle, XCircle, Download, RefreshCw, Plus } from 'lucide-react'
+import { Users, CheckCircle, XCircle, Download, RefreshCw, Plus, X } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function AttendanceDashboard() {
-  const [sessions, setSessions] = useState<any[]>([])
-  const [selected, setSelected] = useState<any>(null)
-  const [signins, setSignins] = useState<any[]>([])
-  const [loading, setLoading] = useState(true)
-  const [creating, setCreating] = useState(false)
-  const [batches, setBatches] = useState<any[]>([])
+  const [selected, setSelected]   = useState<any>(null)
+  const [creating, setCreating]   = useState(false)
+  const [submitting, setSubmitting] = useState(false)
+  const [userId, setUserId]       = useState<string | null>(null)
   const [newSession, setNewSession] = useState({ batch_id: '', class_code: '' })
-  const sb = createClient()
+
+  const { data: sessions, loading, refetch: refetchSessions } = useData<any>({
+    table: 'class_sessions',
+    select: '*, batches(name, courses(name))',
+    orderBy: 'created_at',
+    orderAsc: false,
+    limit: 20,
+  })
+
+  const { data: batches } = useData<any>({
+    table: 'batches',
+    select: '*, courses(name)',
+    orderBy: 'created_at',
+    orderAsc: false,
+    limit: 100,
+  })
+
+  const { data: signins, refetch: refetchSignins } = useData<any>({
+    table: 'class_signins',
+    select: '*, marketer:marketer_id(full_name)',
+    filters: selected ? [{ col: 'session_id', op: 'eq', val: selected.id }] : [],
+    orderBy: 'created_at',
+    orderAsc: false,
+    limit: 200,
+    enabled: !!selected,
+  })
 
   useEffect(() => {
-    load()
-    if (selected) loadSignins(selected.id)
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})
+  }, [])
 
-    // Realtime — new sign-ins
-    const channel = sb.channel('signins-admin')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'class_signins' }, () => {
-        if (selected) loadSignins(selected.id)
-        load()
-      })
-      .subscribe()
-    return () => { sb.removeChannel(channel) }
+  // Light polling while a session is selected, to mimic realtime
+  useEffect(() => {
+    if (!selected) return
+    const id = setInterval(() => { refetchSignins(); refetchSessions() }, 8000)
+    return () => clearInterval(id)
   }, [selected?.id])
-
-  async function load() {
-    const { data: s } = await sb.from('class_sessions')
-      .select('*, batches(name, courses(name))')
-      .order('created_at', { ascending: false })
-      .limit(20)
-    setSessions(s || [])
-
-    const { data: b } = await sb.from('batches').select('*, courses(name)').eq('status', 'ongoing')
-    setBatches(b || [])
-    setLoading(false)
-  }
-
-  async function loadSignins(sessionId: string) {
-    const { data } = await sb.from('class_signins')
-      .select('*, marketer:marketer_id(full_name)')
-      .eq('session_id', sessionId)
-      .order('created_at', { ascending: false })
-    setSignins(data || [])
-  }
 
   async function selectSession(s: any) {
     setSelected(s)
-    await loadSignins(s.id)
   }
 
   async function createSession() {
-    if (!newSession.batch_id || !newSession.class_code) {
-      toast.error('Select batch and enter class code')
+    if (!newSession.batch_id || !newSession.class_code.trim()) {
+      toast.error('Select a batch and enter a class code')
       return
     }
-    const today = new Date().toISOString().slice(0, 10)
-    const { data: { user } } = await sb.auth.getUser()
-    const { data, error } = await sb.from('class_sessions').insert({
-      batch_id: newSession.batch_id,
-      class_code: newSession.class_code.toUpperCase(),
-      session_date: today,
-      signin_open: true,
-      created_by: user?.id,
-    }).select().single()
-
-    if (error) { toast.error(error.message); return }
-    toast.success('Session created! Share the sign-in link.')
-    setCreating(false)
-    setNewSession({ batch_id: '', class_code: '' })
-    load()
-    setSelected(data)
-    loadSignins(data.id)
+    setSubmitting(true)
+    try {
+      const today = new Date().toISOString().slice(0, 10)
+      const result = await mutate('POST', 'class_sessions', {
+        batch_id: newSession.batch_id,
+        class_code: newSession.class_code.toUpperCase(),
+        session_date: today,
+        signin_open: true,
+        created_by: userId,
+      })
+      toast.success('Session created! Share the sign-in link.')
+      setCreating(false)
+      setNewSession({ batch_id: '', class_code: '' })
+      await refetchSessions()
+      const created = Array.isArray(result) ? result[0] : result
+      if (created) setSelected(created)
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to create session')
+    } finally {
+      setSubmitting(false)
+    }
   }
 
   async function toggleSession(id: string, open: boolean) {
-    await sb.from('class_sessions').update({ signin_open: !open }).eq('id', id)
-    toast.success(open ? 'Sign-in closed' : 'Sign-in reopened')
-    load()
-    if (selected?.id === id) setSelected({ ...selected, signin_open: !open })
+    try {
+      await mutate('PATCH', 'class_sessions', { signin_open: !open }, [{ col: 'id', val: id }])
+      toast.success(open ? 'Sign-in closed' : 'Sign-in reopened')
+      await refetchSessions()
+      if (selected?.id === id) setSelected({ ...selected, signin_open: !open })
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update session')
+    }
   }
 
   async function markPaid(signinId: string) {
-    await sb.from('class_signins').update({ payment_status: 'paid', paid_at: new Date().toISOString() }).eq('id', signinId)
-    toast.success('Marked as paid')
-    if (selected) loadSignins(selected.id)
+    try {
+      await mutate('PATCH', 'class_signins', { payment_status: 'paid', paid_at: new Date().toISOString() }, [{ col: 'id', val: signinId }])
+      toast.success('Marked as paid')
+      await refetchSignins()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update')
+    }
   }
 
   function exportCSV() {
     if (!signins.length) return
-    const rows = signins.map(s => [
+    const rows = signins.map((s: any) => [
       s.full_name, s.phone || '', s.attendance_type, s.code_verified ? 'Verified' : 'Not verified',
       s.payment_status, s.payment_method || '', s.amount_paid || 0,
-      (s as any).marketer?.full_name || 'Direct',
+      s.marketer?.full_name || 'Direct',
       formatDateTime(s.created_at)
     ].map(v => `"${v}"`).join(','))
     const csv = 'Name,Phone,Type,Code,Payment,Method,Amount,Marketer,Time\n' + rows.join('\n')
@@ -116,10 +127,9 @@ export default function AttendanceDashboard() {
     toast.success('Sign-in link copied!')
   }
 
-  const verified = signins.filter(s => s.code_verified)
-  const paid = signins.filter(s => s.payment_status === 'paid')
-  const online = signins.filter(s => s.attendance_type === 'online')
-  const inPerson = signins.filter(s => s.attendance_type === 'in_person')
+  const verified = signins.filter((s: any) => s.code_verified)
+  const paid     = signins.filter((s: any) => s.payment_status === 'paid')
+  const inPerson = signins.filter((s: any) => s.attendance_type === 'in_person')
 
   return (
     <div className="fade-in w-full">
@@ -134,10 +144,21 @@ export default function AttendanceDashboard() {
         </button>
       </div>
 
+      {/* No batches warning */}
+      {batches.length === 0 && (
+        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 text-sm text-amber-800">
+          <strong>No classes/batches found.</strong> Go to <span className="font-semibold">Academics → Courses</span> to add a course,
+          then <span className="font-semibold">Academics → Classes</span> to create a batch. Once a batch exists, it will appear here.
+        </div>
+      )}
+
       {/* Create session modal */}
       {creating && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm">
+        <div className="fixed inset-0 bg-black/50 z-[9999] flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl p-6 w-full max-w-sm relative">
+            <button onClick={() => setCreating(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition">
+              <X size={18} />
+            </button>
             <h2 className="text-lg font-bold text-gray-900 mb-4">Create Sign-in Session</h2>
             <div className="space-y-3 mb-5">
               <div>
@@ -145,8 +166,11 @@ export default function AttendanceDashboard() {
                 <select value={newSession.batch_id} onChange={e => setNewSession(s => ({ ...s, batch_id: e.target.value }))}
                   className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500">
                   <option value="">Select batch...</option>
-                  {batches.map(b => <option key={b.id} value={b.id}>{b.name} — {(b as any).courses?.name}</option>)}
+                  {batches.map((b: any) => <option key={b.id} value={b.id}>{b.name} — {b.courses?.name}</option>)}
                 </select>
+                {batches.length === 0 && (
+                  <p className="text-xs text-red-500 mt-1">No batches available. Create one in Academics → Classes first.</p>
+                )}
               </div>
               <div>
                 <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Class Code (write this on the board)</label>
@@ -157,8 +181,11 @@ export default function AttendanceDashboard() {
               </div>
             </div>
             <div className="flex gap-2">
-              <button onClick={createSession} className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">Create</button>
-              <button onClick={() => setCreating(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
+              <button onClick={createSession} disabled={submitting || batches.length === 0}
+                className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
+                {submitting ? 'Creating…' : 'Create'}
+              </button>
+              <button onClick={() => setCreating(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">Cancel</button>
             </div>
           </div>
         </div>
@@ -169,16 +196,16 @@ export default function AttendanceDashboard() {
         <div>
           <h2 className="text-sm font-bold text-gray-700 mb-3">Recent Sessions</h2>
           <div className="space-y-2">
-            {sessions.map(s => (
+            {sessions.map((s: any) => (
               <button key={s.id} onClick={() => selectSession(s)}
                 className={`w-full text-left bg-white rounded-2xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600' : 'border-gray-200 hover:border-gray-300'}`}>
                 <div className="flex items-start justify-between mb-1">
-                  <div className="text-sm font-bold text-gray-900 truncate">{(s as any).batches?.name}</div>
+                  <div className="text-sm font-bold text-gray-900 truncate">{s.batches?.name}</div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
                     {s.signin_open ? 'OPEN' : 'CLOSED'}
                   </span>
                 </div>
-                <div className="text-xs text-gray-500">{(s as any).batches?.courses?.name}</div>
+                <div className="text-xs text-gray-500">{s.batches?.courses?.name}</div>
                 <div className="flex items-center gap-3 mt-2 text-xs">
                   <span className="font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">{s.class_code}</span>
                   <span className="text-gray-400">{s.session_date}</span>
@@ -210,8 +237,8 @@ export default function AttendanceDashboard() {
               <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h2 className="font-bold text-gray-900">{(selected as any).batches?.name}</h2>
-                    <p className="text-sm text-gray-500">{(selected as any).batches?.courses?.name} · {selected.session_date}</p>
+                    <h2 className="font-bold text-gray-900">{selected.batches?.name}</h2>
+                    <p className="text-sm text-gray-500">{selected.batches?.courses?.name} · {selected.session_date}</p>
                     <p className="text-sm font-mono text-blue-600 mt-1">Code: <strong>{selected.class_code}</strong></p>
                   </div>
                   <button onClick={() => toggleSession(selected.id, selected.signin_open)}
@@ -250,7 +277,7 @@ export default function AttendanceDashboard() {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
                   <span className="text-sm font-bold text-gray-900">{signins.length} sign-ins</span>
                   <div className="flex gap-2">
-                    <button onClick={() => loadSignins(selected.id)} className="p-2 text-gray-400 hover:text-gray-700 transition">
+                    <button onClick={() => refetchSignins()} className="p-2 text-gray-400 hover:text-gray-700 transition">
                       <RefreshCw size={15} />
                     </button>
                     <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition">
@@ -269,13 +296,13 @@ export default function AttendanceDashboard() {
                       </tr>
                     </thead>
                     <tbody>
-                      {signins.map(s => (
+                      {signins.map((s: any) => (
                         <tr key={s.id} className="border-t border-gray-50 hover:bg-gray-50">
                           <td className="px-3 py-2.5 text-sm font-semibold text-gray-900">{s.full_name}</td>
                           <td className="px-3 py-2.5 text-xs text-gray-600">{s.phone?.replace(/^233/, '0') || '—'}</td>
                           <td className="px-3 py-2.5">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {s.attendance_type === 'online' ? '💻 Online' : '🏫 In Person'}
+                              {s.attendance_type === 'online' ? 'Online' : 'In Person'}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
@@ -294,7 +321,7 @@ export default function AttendanceDashboard() {
                               <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Pending</span>
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-gray-500">{(s as any).marketer?.full_name?.split(' ')[0] || '—'}</td>
+                          <td className="px-3 py-2.5 text-xs text-gray-500">{s.marketer?.full_name?.split(' ')[0] || '—'}</td>
                           <td className="px-3 py-2.5 text-[10px] text-gray-400">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit' })}</td>
                         </tr>
                       ))}

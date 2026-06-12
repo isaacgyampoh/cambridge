@@ -1,54 +1,55 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useData, mutate } from '@/hooks/useData'
 import type { Batch, Course, Profile } from '@/types'
 import { toast } from 'sonner'
 import { Plus, X, GraduationCap } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 export default function ClassesPage() {
-  const [batches, setBatches] = useState<Batch[]>([])
-  const [courses, setCourses] = useState<Course[]>([])
-  const [trainers, setTrainers] = useState<Profile[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: batches, loading, refetch: load } = useData<Batch>({
+    table: 'batches', select: '*, courses(*), trainer:profiles!trainer_id(full_name)',
+    orderBy: 'start_date', orderAsc: false, limit: 200,
+  })
+  const { data: courses } = useData<Course>({
+    table: 'courses', filters: [{ col: 'is_active', op: 'eq', val: true }], orderBy: 'name', limit: 200,
+  })
+  const { data: trainers } = useData<Profile>({
+    table: 'profiles', filters: [{ col: 'role', op: 'eq', val: 'trainer' }, { col: 'is_active', op: 'eq', val: true }], orderBy: 'full_name', limit: 200,
+  })
   const [modal, setModal] = useState(false)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState<any>({
     name: '', course_id: '', trainer_id: '', class_type: 'physical', status: 'upcoming',
     start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30,
   })
-  const sb = createClient()
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    const [{ data: b }, { data: c }, { data: t }] = await Promise.all([
-      sb.from('batches').select('*, courses(*), profiles!trainer_id(full_name)').order('start_date', { ascending: false }),
-      sb.from('courses').select('*').eq('is_active', true).order('name'),
-      sb.from('profiles').select('*').eq('role', 'trainer').eq('is_active', true).order('full_name'),
-    ])
-    setBatches(b || []); setCourses(c || []); setTrainers(t || [])
-    setLoading(false)
-  }
 
   async function save() {
     if (!form.name || !form.course_id) { toast.error('Name and course are required'); return }
     setSaving(true)
-    const { error } = await sb.from('batches').insert({
-      ...form,
-      trainer_id: form.trainer_id || null,
-      zoom_link: form.zoom_link || null,
-      start_date: form.start_date || null,
-      end_date: form.end_date || null,
-    })
-    if (error) { toast.error(error.message); setSaving(false); return }
-    toast.success('Batch created!'); setModal(false); setSaving(false); load()
+    try {
+      await mutate('POST', 'batches', {
+        ...form,
+        trainer_id: form.trainer_id || null,
+        zoom_link: form.zoom_link || null,
+        start_date: form.start_date || null,
+        end_date: form.end_date || null,
+      })
+      toast.success('Batch created!'); setModal(false); load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to create batch')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function updateStatus(id: string, status: string) {
-    await sb.from('batches').update({ status }).eq('id', id)
-    load()
+    try {
+      await mutate('PATCH', 'batches', { status }, [{ col: 'id', val: id }])
+      load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update status')
+    }
   }
 
   const STATUS_COLORS: Record<string, string> = {
@@ -129,7 +130,7 @@ export default function ClassesPage() {
         <div className="space-y-3">
           {batches.map(b => {
             const course = (b as any).courses
-            const trainer = (b as any).profiles
+            const trainer = (b as any).trainer
             return (
               <div key={b.id} className="bg-white rounded-2xl border border-gray-200 p-5">
                 <div className="flex items-start justify-between">

@@ -1,27 +1,16 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useData, mutate } from '@/hooks/useData'
 import type { Course } from '@/types'
 import { toast } from 'sonner'
 import { Plus, X, BookOpen } from 'lucide-react'
 import { formatGHS } from '@/lib/utils'
 
 export default function CoursesPage() {
-  const [courses, setCourses] = useState<Course[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: courses, loading, refetch: load } = useData<Course>({ table: 'courses', orderBy: 'name', limit: 200 })
   const [modal, setModal] = useState<'new' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Partial<Course> | null>(null)
   const [saving, setSaving] = useState(false)
-  const sb = createClient()
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    const { data } = await sb.from('courses').select('*').order('name')
-    setCourses(data || [])
-    setLoading(false)
-  }
 
   function openNew() {
     setEditing({ name: '', code: '', description: '', duration: '', course_fee: 0, registration_fee: 200, is_active: true })
@@ -36,19 +25,27 @@ export default function CoursesPage() {
   async function save() {
     if (!editing?.name) { toast.error('Course name is required'); return }
     setSaving(true)
-    const { id, ...data } = editing as any
-    const { error } = modal === 'new'
-      ? await sb.from('courses').insert(data)
-      : await sb.from('courses').update(data).eq('id', id)
-    if (error) { toast.error(error.message); setSaving(false); return }
-    toast.success(modal === 'new' ? 'Course created!' : 'Course updated!')
-    setModal(null); setEditing(null); setSaving(false)
-    load()
+    try {
+      const { id, ...data } = editing as any
+      if (modal === 'new') await mutate('POST', 'courses', data)
+      else await mutate('PATCH', 'courses', data, [{ col: 'id', val: id }])
+      toast.success(modal === 'new' ? 'Course created!' : 'Course updated!')
+      setModal(null); setEditing(null)
+      load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to save course')
+    } finally {
+      setSaving(false)
+    }
   }
 
   async function toggle(id: string, active: boolean) {
-    await sb.from('courses').update({ is_active: !active }).eq('id', id)
-    load()
+    try {
+      await mutate('PATCH', 'courses', { is_active: !active }, [{ col: 'id', val: id }])
+      load()
+    } catch (e: any) {
+      toast.error(e.message || 'Failed to update')
+    }
   }
 
   const fields = [

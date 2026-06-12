@@ -1,30 +1,20 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { useState } from 'react'
+import { useData } from '@/hooks/useData'
 import type { Lead } from '@/types'
 import { SOURCE_COLORS, STATUS_COLORS, formatDateTime } from '@/lib/utils'
 import { Search, Download, Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
 
 export default function AdminLeads() {
-  const [leads, setLeads] = useState<Lead[]>([])
-  const [loading, setLoading] = useState(true)
+  const { data: leads, loading } = useData<Lead>({
+    table: 'leads',
+    select: '*, assignee:assigned_to(full_name), assigner:assigned_by(full_name)',
+    orderBy: 'created_at', orderAsc: false, limit: 500,
+  })
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
-  const sb = createClient()
-
-  useEffect(() => { load() }, [])
-
-  async function load() {
-    setLoading(true)
-    const { data } = await sb.from('leads')
-      .select('*, assignee:assigned_to(full_name), assigner:assigned_by(full_name)')
-      .order('created_at', { ascending: false })
-      .limit(500)
-    setLeads(data || [])
-    setLoading(false)
-  }
 
   function exportCSV() {
     const rows = filtered.map(l => [

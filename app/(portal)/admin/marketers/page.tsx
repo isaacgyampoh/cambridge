@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { createClient } from '@/lib/supabase/client'
+import { mutate } from '@/hooks/useData'
 import { formatDate, formatGHS } from '@/lib/utils'
 import { AlertTriangle, TrendingUp, Phone, MessageSquare, Users, Target, Bell } from 'lucide-react'
 import { toast } from 'sonner'
@@ -32,6 +32,15 @@ interface MarketerStats {
   status: 'active' | 'inactive' | 'at_risk' | 'top_performer'
 }
 
+
+async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 1000) {
+  const params = new URLSearchParams({ table, select, limit: String(limit) })
+  if (filters?.length) params.set('filters', JSON.stringify(filters))
+  const res = await fetch(`/api/data?${params}`)
+  const json = await res.json()
+  return json.data || []
+}
+
 export default function MarketerPerformancePage() {
   const [marketers, setMarketers] = useState<MarketerStats[]>([])
   const [loading, setLoading] = useState(true)
@@ -40,16 +49,16 @@ export default function MarketerPerformancePage() {
   const [alertMsg, setAlertMsg] = useState('')
   const [sendingAlert, setSendingAlert] = useState(false)
   const [view, setView] = useState<'table' | 'cards'>('cards')
-  const sb = createClient()
-
   useEffect(() => { load() }, [range])
 
   async function load() {
     setLoading(true)
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
 
-    const { data: profiles } = await sb.from('profiles')
-      .select('*').eq('role', 'marketing_officer').eq('is_active', true)
+    const profiles = await apiQuery('profiles', '*', [
+      { col: 'role', op: 'eq', val: 'marketing_officer' },
+      { col: 'is_active', op: 'eq', val: true },
+    ])
 
     if (!profiles?.length) { setMarketers([]); setLoading(false); return }
 
@@ -57,38 +66,38 @@ export default function MarketerPerformancePage() {
 
     for (const m of profiles) {
       // Get all leads assigned to this marketer
-      const { data: leads } = await sb.from('leads')
-        .select('status, created_at, updated_at')
-        .eq('assigned_to', m.id)
+      const leads = await apiQuery('leads', 'status,created_at,updated_at', [
+        { col: 'assigned_to', op: 'eq', val: m.id },
+      ])
 
       // Activities this week
       const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
-      const { data: activities } = await sb.from('lead_activities')
-        .select('activity_type, created_at')
-        .eq('created_by', m.id)
-        .gte('created_at', weekAgo)
+      const activities = await apiQuery('lead_activities', 'activity_type,created_at', [
+        { col: 'created_by', op: 'eq', val: m.id },
+        { col: 'created_at', op: 'gte', val: weekAgo },
+      ])
 
       // Applications via marketer link
-      const { data: applications } = await sb.from('applications')
-        .select('payment_status, amount_paid')
-        .eq('marketer_id', m.id)
-        .gte('created_at', since)
+      const applications = await apiQuery('applications', 'payment_status,amount_paid', [
+        { col: 'marketer_id', op: 'eq', val: m.id },
+        { col: 'created_at', op: 'gte', val: since },
+      ])
 
-      const l = leads || []
-      const a = activities || []
-      const apps = applications || []
+      const l: any[] = leads
+      const a: any[] = activities
+      const apps: any[] = applications
 
-      const converted = l.filter(x => ['ready_to_join','registered'].includes(x.status)).length
+      const converted = l.filter((x: any) => ['ready_to_join','registered'].includes(x.status)).length
       const total = l.length
       const lastActivity = a.length > 0
-        ? a.sort((a, b) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
+        ? a.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
         : null
       const daysSince = lastActivity
         ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000)
         : 999
 
-      const paidApps = apps.filter(a => a.payment_status === 'paid')
-      const revenue = paidApps.reduce((acc, a) => acc + Number(a.amount_paid), 0)
+      const paidApps = apps.filter((a: any) => a.payment_status === 'paid')
+      const revenue = paidApps.reduce((acc: number, a: any) => acc + Number(a.amount_paid), 0)
 
       let status: MarketerStats['status'] = 'active'
       const convRate = total > 0 ? Math.round(converted / total * 100) : 0
@@ -103,14 +112,14 @@ export default function MarketerPerformancePage() {
         phone: m.phone,
         marketer_code: m.marketer_code,
         totalLeads: total,
-        contactedLeads: l.filter(x => x.status !== 'new').length,
-        interestedLeads: l.filter(x => ['interested','follow_up'].includes(x.status)).length,
+        contactedLeads: l.filter((x: any) => x.status !== 'new').length,
+        interestedLeads: l.filter((x: any) => ['interested','follow_up'].includes(x.status)).length,
         convertedLeads: converted,
-        lostLeads: l.filter(x => ['not_interested','lost'].includes(x.status)).length,
-        uncontactedLeads: l.filter(x => x.status === 'new').length,
+        lostLeads: l.filter((x: any) => ['not_interested','lost'].includes(x.status)).length,
+        uncontactedLeads: l.filter((x: any) => x.status === 'new').length,
         conversionRate: convRate,
-        callsThisWeek: a.filter(x => x.activity_type === 'call').length,
-        waThisWeek: a.filter(x => x.activity_type === 'whatsapp').length,
+        callsThisWeek: a.filter((x: any) => x.activity_type === 'call').length,
+        waThisWeek: a.filter((x: any) => x.activity_type === 'whatsapp').length,
         lastActivityDate: lastActivity,
         daysSinceActivity: daysSince,
         applicationsGenerated: apps.length,
@@ -132,8 +141,7 @@ export default function MarketerPerformancePage() {
     setSendingAlert(true)
 
     // In-app notification
-    const sb2 = createClient()
-    await sb2.from('notifications').insert({
+    await mutate('POST', 'notifications', {
       user_id: marketer.id,
       type: 'system',
       title: '📊 Performance Alert from Management',
