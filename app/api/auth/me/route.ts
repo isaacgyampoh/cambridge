@@ -14,5 +14,7 @@ export async function GET(req: NextRequest) {
     role: session.role,
     fullName: session.fullName,
     email: session.email,
+    phone: session.phone,
+    portals: session.portals || null,
   })
 }

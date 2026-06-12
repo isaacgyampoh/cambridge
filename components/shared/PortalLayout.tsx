@@ -3,7 +3,6 @@
 import { useState, useEffect } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
-import { createClient } from '@/lib/supabase/client'
 import {
   LayoutDashboard, Users, UserCheck, DollarSign, BookOpen,
   Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
@@ -113,7 +112,6 @@ function getNavItems(profile: any) {
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
-  const sb       = createClient()
 
   const [profile,     setProfile]     = useState<any>(null)
   const [loading,     setLoading]     = useState(true)
@@ -125,16 +123,33 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => {
       if (!s?.valid) { router.replace('/login'); return }
-      sb.from('profiles').select('*').eq('id', s.userId).single()
-        .then(({ data }) => { setProfile(data); setLoading(false) })
+      setProfile({
+        id: s.userId,
+        full_name: s.fullName,
+        role: s.role,
+        email: s.email,
+        phone: s.phone,
+        portals: s.portals,
+      })
+      setLoading(false)
     }).catch(() => router.replace('/login'))
   }, [])
 
   useEffect(() => {
     if (!profile) return
-    sb.from('notifications').select('id', { count: 'exact', head: true })
-      .eq('user_id', profile.id).eq('is_read', false)
-      .then(({ count }) => setUnread(count || 0))
+    const params = new URLSearchParams({
+      table: 'notifications',
+      select: 'id',
+      filters: JSON.stringify([
+        { col: 'user_id', op: 'eq', val: profile.id },
+        { col: 'is_read', op: 'eq', val: false },
+      ]),
+      limit: '50',
+    })
+    fetch(`/api/data?${params}`)
+      .then(r => r.ok ? r.json() : null)
+      .then(d => setUnread(d?.data?.length || 0))
+      .catch(() => {})
   }, [profile?.id])
 
   useEffect(() => { setMobileOpen(false) }, [pathname])

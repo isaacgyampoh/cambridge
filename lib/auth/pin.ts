@@ -45,12 +45,14 @@ export async function verifySession(token: string): Promise<{
   role?: string
   fullName?: string
   email?: string
+  phone?: string
+  portals?: string[] | null
 } > {
   if (!token) return { valid: false }
 
   const sb = createServiceClient()
   const { data } = await sb.from('pin_sessions')
-    .select('user_id, expires_at, profiles(role, full_name, email, is_active)')
+    .select('user_id, expires_at, profiles(role, full_name, email, phone, portals, is_active)')
     .eq('session_token', token)
     .gt('expires_at', new Date().toISOString())
     .single()
@@ -66,6 +68,8 @@ export async function verifySession(token: string): Promise<{
     role: profile.role,
     fullName: profile.full_name,
     email: profile.email,
+    phone: profile.phone,
+    portals: profile.portals,
   }
 }
 
