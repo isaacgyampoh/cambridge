@@ -48,5 +48,16 @@ export async function POST(req: NextRequest) {
     created_by: marketer.id,
   })
 
+  // 4. In-app notification for the marketer
+  try {
+    await sb.from('notifications').insert({
+      user_id: marketer.id,
+      type: 'lead_assigned',
+      title: 'New lead assigned to you',
+      body: `${lead.full_name}${lead.course_interest ? ` — interested in ${lead.course_interest}` : ''}. Reach out soon.`,
+      link: `/marketer/leads/${leadId}`,
+    })
+  } catch {}
+
   return NextResponse.json({ success: true, results })
 }

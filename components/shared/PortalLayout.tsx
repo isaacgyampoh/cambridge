@@ -4,6 +4,7 @@ import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import CommandPalette from '@/components/shared/CommandPalette'
+import NotificationBell from '@/components/shared/NotificationBell'
 import {
   LayoutDashboard, Users, UserCheck, DollarSign, BookOpen,
   Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
@@ -380,14 +381,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               <span className="text-[13px]">Search</span>
               <kbd className="text-[10px] font-semibold bg-[var(--line-soft)] px-1.5 py-0.5 rounded">⌘K</kbd>
             </button>
-            <button className="relative p-2 text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
-              <Bell size={18} />
-              {unread > 0 && (
-                <span className="absolute top-1.5 right-1.5 min-w-[14px] h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
-                  {unread > 9 ? '9+' : unread}
-                </span>
-              )}
-            </button>
+            <NotificationBell userId={profile?.id || null} />
             <div className="flex items-center gap-2 pl-2.5 border-l border-[var(--line)]">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: roleColor }}>
                 {profile?.full_name?.charAt(0) || '?'}
