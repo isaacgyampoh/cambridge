@@ -13,14 +13,41 @@ function normalizePhone(phone: string): string {
     .replace(/^0/, '233')
 }
 
+interface Instance {
+  instanceId: string
+  accessToken: string
+}
+
+/**
+ * Resolve which WhatsApp instance to send through.
+ * If a senderId (a profile id) is given and that person has their own
+ * connected WAWP instance, use it — so the message comes from THEIR line.
+ * Otherwise fall back to the central system instance from CONFIG.
+ */
+async function resolveInstance(senderId?: string | null): Promise<Instance> {
+  if (senderId) {
+    try {
+      const sb = createServiceClient()
+      const { data } = await sb.from('profiles')
+        .select('wawp_instance_id, wawp_access_token, wawp_status')
+        .eq('id', senderId)
+        .maybeSingle()
+      if (data?.wawp_instance_id && data?.wawp_access_token && data?.wawp_status === 'connected') {
+        return { instanceId: data.wawp_instance_id, accessToken: data.wawp_access_token }
+      }
+    } catch {}
+  }
+  return { instanceId: CONFIG.wawpInstanceId, accessToken: CONFIG.wawpAccessToken }
+}
+
 async function wawpSend(
   to: string,
   message: string,
   type: 'text' | 'media' = 'text',
-  mediaUrl?: string
+  mediaUrl?: string,
+  senderId?: string | null,
 ): Promise<boolean> {
-  const instanceId = CONFIG.wawpInstanceId
-  const accessToken = CONFIG.wawpAccessToken
+  const { instanceId, accessToken } = await resolveInstance(senderId)
   const phone = normalizePhone(to)
 
   const body: Record<string, any> = {
@@ -66,57 +93,57 @@ async function wawpSend(
 
 // ── Public API ───────────────────────────────────────────────
 
-export async function sendWhatsAppText(to: string, message: string): Promise<boolean> {
-  return wawpSend(to, message, 'text')
+export async function sendWhatsAppText(to: string, message: string, senderId?: string | null): Promise<boolean> {
+  return wawpSend(to, message, 'text', undefined, senderId)
 }
 
-export async function sendWhatsAppMedia(to: string, message: string, mediaUrl: string): Promise<boolean> {
-  return wawpSend(to, message, 'media', mediaUrl)
+export async function sendWhatsAppMedia(to: string, message: string, mediaUrl: string, senderId?: string | null): Promise<boolean> {
+  return wawpSend(to, message, 'media', mediaUrl, senderId)
 }
 
 // ── WhatsApp Message Templates ───────────────────────────────
 
 export const WA = {
   leadAssigned: (leadName: string, marketerName: string) =>
-    `Hello ${leadName},\n\nThank you for your interest in *Cambridge Center of Excellence*.\n\n${marketerName} has been assigned to assist you and will contact you shortly.\n\nThank you. 🎓`,
+    `Hello ${leadName},\n\nThank you for your interest in *Cambridge Centre of Excellence*.\n\n${marketerName} has been assigned to assist you and will contact you shortly.\n\nThank you.`,
 
   applicationConfirmed: (name: string, course: string) =>
-    `Hello ${name},\n\nWe have received your application for *${course}* at Cambridge Center of Excellence.\n\nOur admissions team will review your application and get back to you shortly.\n\nThank you for choosing us! 🎓`,
+    `Hello ${name},\n\nWe have received your application for *${course}* at Cambridge Centre of Excellence.\n\nOur admissions team will review your application and get back to you shortly.\n\nThank you for choosing us.`,
 
   admissionAccepted: (name: string, course: string, startDate: string) =>
-    `🎉 Congratulations ${name}!\n\nYour admission to *${course}* at Cambridge Center of Excellence has been confirmed.\n\n📅 Start Date: ${startDate}\n\nWelcome to the Cambridge family! We look forward to seeing you. 🎓`,
+    `Congratulations ${name},\n\nYour admission to *${course}* at Cambridge Centre of Excellence has been confirmed.\n\nStart date: ${startDate}\n\nWelcome to the Cambridge family. We look forward to seeing you.`,
 
   classReminder1Week: (name: string, course: string, date: string, time: string, venue: string) =>
-    `Hello ${name},\n\n⏰ *1 Week Reminder*\n\nYour *${course}* class starts in one week!\n\n📅 Date: ${date}\n🕐 Time: ${time}\n📍 Venue: ${venue}\n\nPrepare your materials and see you soon! 📚`,
+    `Hello ${name},\n\n*One week reminder*\n\nYour *${course}* class starts in one week.\n\nDate: ${date}\nTime: ${time}\nVenue: ${venue}\n\nPlease prepare your materials. See you soon.`,
 
   classReminder2Days: (name: string, course: string, date: string, time: string, venue: string, zoom?: string | null) =>
-    `Hello ${name},\n\n⏰ *2 Days Reminder*\n\nYour *${course}* class is in 2 days!\n\n📅 Date: ${date}\n🕐 Time: ${time}\n📍 Venue: ${venue}${zoom ? `\n🔗 Zoom: ${zoom}` : ''}\n\nSee you there! 🎓`,
+    `Hello ${name},\n\n*Two day reminder*\n\nYour *${course}* class is in two days.\n\nDate: ${date}\nTime: ${time}\nVenue: ${venue}${zoom ? `\nLink: ${zoom}` : ''}\n\nSee you there.`,
 
   classReminderDay: (name: string, course: string, time: string, venue: string, zoom?: string) =>
-    `Hello ${name},\n\n🔔 *Class Today!*\n\nYour *${course}* class is TODAY!\n\n🕐 Time: ${time}\n📍 Venue: ${venue}${zoom ? `\n🔗 Zoom: ${zoom}` : ''}\n\nDon't be late! 🎓`,
+    `Hello ${name},\n\n*Class today*\n\nYour *${course}* class is today.\n\nTime: ${time}\nVenue: ${venue}${zoom ? `\nLink: ${zoom}` : ''}\n\nPlease arrive on time.`,
 
   paymentConfirmed: (name: string, amount: string, course: string, receipt: string) =>
-    `Hello ${name},\n\n✅ *Payment Confirmed*\n\nWe have received your payment of *GHS ${amount}* for *${course}*.\n\nReceipt No: ${receipt}\n\nThank you! 🎓`,
+    `Hello ${name},\n\n*Payment confirmed*\n\nWe have received your payment of *GHS ${amount}* for *${course}*.\n\nReceipt number: ${receipt}\n\nThank you.`,
 
   paymentReminder: (name: string, amount: string, course: string, dueDate: string) =>
-    `Hello ${name},\n\n💳 *Payment Reminder*\n\nYou have an outstanding balance of *GHS ${amount}* for *${course}*.\n\nDue Date: ${dueDate}\n\nPlease make payment to avoid disruption. Contact us for assistance.\n\nThank you. 🎓`,
+    `Hello ${name},\n\n*Payment reminder*\n\nYou have an outstanding balance of *GHS ${amount}* for *${course}*.\n\nDue date: ${dueDate}\n\nPlease make payment to avoid disruption. Contact us for assistance.\n\nThank you.`,
 }
 
 // ── Convenience senders ──────────────────────────────────────
 
 export async function notifyLeadAssigned(
-  leadPhone: string, leadName: string, marketerName: string
+  leadPhone: string, leadName: string, marketerName: string, senderId?: string | null
 ): Promise<boolean> {
-  return sendWhatsAppText(leadPhone, WA.leadAssigned(leadName, marketerName))
+  return sendWhatsAppText(leadPhone, WA.leadAssigned(leadName, marketerName), senderId)
 }
 
 export async function notifyClassReminder(
   studentPhone: string, studentName: string, course: string,
-  date: string, time: string, venue: string, daysUntil: number, zoom?: string
+  date: string, time: string, venue: string, daysUntil: number, zoom?: string, senderId?: string | null
 ): Promise<boolean> {
   let msg: string
   if (daysUntil <= 0) msg = WA.classReminderDay(studentName, course, time, venue, zoom)
   else if (daysUntil <= 2) msg = WA.classReminder2Days(studentName, course, date, time, venue, zoom)
   else msg = WA.classReminder1Week(studentName, course, date, time, venue)
-  return sendWhatsAppText(studentPhone, msg)
+  return sendWhatsAppText(studentPhone, msg, senderId)
 }

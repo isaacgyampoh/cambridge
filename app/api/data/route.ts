@@ -24,13 +24,13 @@ export async function GET(req: NextRequest) {
   // Role-based table access control
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
-    project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses'],
-    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications'],
-    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications'],
-    accountant: ['payments','invoices','applications','profiles','courses','notifications'],
-    receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications'],
-    trainer: ['batches','batch_students','attendance','profiles','courses','class_sessions'],
-    student: ['invoices','payments','batch_students','batches','courses','attendance'],
+    project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','staff_attendance','office_locations'],
+    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations'],
+    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations'],
+    accountant: ['payments','invoices','applications','profiles','courses','notifications','staff_attendance','office_locations'],
+    receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations'],
+    trainer: ['batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations'],
+    student: ['invoices','payments','batch_students','batches','courses','attendance','staff_attendance','office_locations'],
   }
 
   const allowed = ALLOWED[session.role || ''] || []
@@ -110,13 +110,13 @@ export async function DELETE(req: NextRequest) {
 
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
-    project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses'],
-    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications'],
-    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications'],
-    accountant: ['payments','invoices','applications','profiles','courses','notifications'],
-    receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications'],
-    trainer: ['batches','batch_students','attendance','profiles','courses','class_sessions'],
-    student: ['invoices','payments','batch_students','batches','courses','attendance'],
+    project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','staff_attendance','office_locations'],
+    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations'],
+    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations'],
+    accountant: ['payments','invoices','applications','profiles','courses','notifications','staff_attendance','office_locations'],
+    receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations'],
+    trainer: ['batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations'],
+    student: ['invoices','payments','batch_students','batches','courses','attendance','staff_attendance','office_locations'],
   }
   const allowed = ALLOWED[session.role || ''] || []
   if (!allowed.includes('*') && !allowed.includes(table)) {
