@@ -60,13 +60,14 @@ export default function AdmissionPage() {
   return (
     <div className="fade-in w-full">
       {/* Header */}
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex items-center justify-between mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Admissions</h1>
-          <p className="text-gray-400 text-sm">Process and track student admissions</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Admissions</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Admissions</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Process and track student admissions.</p>
         </div>
         <button onClick={() => { refetchA(); refetchApp() }}
-          className="h-9 w-9 flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
+          className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
           <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
         </button>
       </div>
@@ -74,23 +75,23 @@ export default function AdmissionPage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total', value: stats.total, color: 'text-blue-600 bg-blue-50'},
-          { label: 'Pending', value: stats.pending, color: 'text-yellow-600 bg-yellow-50'},
-          { label: 'Awaiting Payment', value: stats.awaitingPayment, color: 'text-orange-600 bg-orange-50'},
-          { label: 'Admitted', value: stats.admitted, color: 'text-green-600 bg-green-50'},
+          { label: 'Total', value: stats.total, tone: 'text-[var(--ink)]' },
+          { label: 'Pending', value: stats.pending, tone: 'text-amber-600' },
+          { label: 'Awaiting payment', value: stats.awaitingPayment, tone: 'text-orange-600' },
+          { label: 'Admitted', value: stats.admitted, tone: 'text-emerald-600' },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100 text-center">
-            <div className={`text-2xl font-bold ${s.color.split(' ')[0]}`}>{s.value}</div>
-            <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
+          <div key={s.label} className="bg-[var(--paper)] rounded-xl p-5 border border-[var(--line)]">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{s.label}</div>
+            <div className={`font-display text-[28px] font-semibold mt-2 leading-none ${s.tone}`}>{s.value}</div>
           </div>
         ))}
       </div>
 
       {/* Tabs */}
-      <div className="flex gap-1.5 mb-4">
+      <div className="flex gap-1 mb-4 bg-[var(--line-soft)] rounded-lg p-1 w-fit">
         {[{k:'admissions',l:`Admissions (${admissions.length})`},{k:'applications',l:`Applications (${applications.length})`}].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 h-9 rounded-xl text-sm font-semibold transition ${tab===t.k?'bg-gray-900 text-white':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
+            className={`px-4 h-8 rounded-md text-[13px] font-medium transition ${tab===t.k?'bg-white text-[var(--ink)] shadow-sm':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {t.l}
           </button>
         ))}

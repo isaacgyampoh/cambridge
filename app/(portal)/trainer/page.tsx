@@ -72,13 +72,14 @@ export default function TrainerDashboard() {
 
   return (
     <div className="fade-in w-full">
-      <div className="mb-5">
-        <h1 className="text-2xl font-bold text-gray-900">Trainer Portal</h1>
-        <p className="text-gray-400 text-sm">Manage your classes and record attendance</p>
+      <div className="mb-8">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Teaching</div>
+        <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Trainer portal</h1>
+        <p className="text-[var(--ink-soft)] text-sm mt-1.5">Manage your classes and record attendance.</p>
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Batch list */}

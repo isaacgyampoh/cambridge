@@ -37,10 +37,11 @@ export default function ReceptionistDashboard() {
     <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Class Reminders</h1>
-          <p className="text-gray-400 text-sm">Send personalized reminders in each marketer's name</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Front desk</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Class reminders</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send personalised reminders in each marketer's name.</p>
         </div>
-        <button onClick={refetch} className="h-9 w-9 flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
+        <button onClick={refetch} className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
           <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
         </button>
       </div>

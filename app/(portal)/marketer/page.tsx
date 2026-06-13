@@ -72,19 +72,20 @@ export default function MarketerDashboard() {
 
   return (
     <div className="fade-in w-full">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">My Leads</h1>
-          <p className="text-gray-400 text-sm">{leads.length} assigned to you</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">My work</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My leads</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">{leads.length} assigned to you</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <Link href="/marketer/activities"
-            className="flex items-center gap-1.5 h-9 px-3 bg-orange-50 border border-orange-200 text-orange-700 rounded-xl text-sm font-semibold hover:bg-orange-100 transition">
+            className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
             <Clock size={14} /> Follow-ups
           </Link>
           <Link href="/marketer/link"
-            className="flex items-center gap-1.5 h-9 px-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-50 transition">
-            My Link
+            className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
+            My link
           </Link>
         </div>
       </div>
@@ -102,10 +103,10 @@ export default function MarketerDashboard() {
       {/* Lead list */}
       {loading ? (
         <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+          <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
         </div>
       ) : leads.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center text-gray-300">
+        <div className="bg-[var(--paper)] rounded-xl border border-dashed border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
           <p className="font-medium">No leads assigned yet</p>
           <p className="text-sm mt-1">The project manager will assign leads to you</p>
         </div>
@@ -114,16 +115,16 @@ export default function MarketerDashboard() {
           {leads.map(lead => {
             const isExpanded = expanded === lead.id
             return (
-              <div key={lead.id} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm hover:shadow-md transition-shadow">
+              <div key={lead.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] overflow-hidden hover:border-[var(--ink-faint)] transition-colors">
                 {/* Header row */}
                 <div className="flex items-center px-4 py-3 cursor-pointer"
                   onClick={() => setExpanded(isExpanded ? null : lead.id)}>
-                  <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-sm flex-shrink-0 mr-3">
+                  <div className="w-9 h-9 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-sm flex-shrink-0 mr-3">
                     {lead.full_name?.charAt(0)}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-semibold text-sm text-gray-900 truncate">{lead.full_name}</div>
-                    <div className="text-[11px] text-gray-400">{lead.phone} {lead.course_interest ? `· ${lead.course_interest}` : ''}</div>
+                    <div className="font-medium text-sm text-[var(--ink)] truncate">{lead.full_name}</div>
+                    <div className="text-[11px] text-[var(--ink-faint)]">{lead.phone} {lead.course_interest ? `· ${lead.course_interest}` : ''}</div>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mx-2 flex-shrink-0 ${COLORS[lead.status]||'bg-gray-100 text-gray-600'}`}>
                     {lead.status?.replace(/_/g, ' ')}
@@ -133,7 +134,7 @@ export default function MarketerDashboard() {
 
                 {/* Expanded actions */}
                 {isExpanded && (
-                  <div className="border-t border-gray-50 bg-gray-50 px-4 py-3">
+                  <div className="border-t border-[var(--line-soft)] bg-[var(--canvas)] px-4 py-3">
                     {/* Quick contact */}
                     {lead.phone && (
                       <div className="flex gap-2 mb-3">
