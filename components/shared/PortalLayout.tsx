@@ -3,17 +3,19 @@
 import { useState, useEffect, useRef } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import CommandPalette from '@/components/shared/CommandPalette'
 import {
   LayoutDashboard, Users, UserCheck, DollarSign, BookOpen,
   Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
   ClipboardList, Settings, Building2, ChevronRight,
-  Radio, CalendarCheck, FolderOpen, BarChart3,
+  Radio, CalendarCheck, FolderOpen, BarChart3, Search,
   Shield, ArrowLeft, ChevronDown, UserPlus
 } from 'lucide-react'
 
 /* ── All portal modules ─────────────────────────────────────── */
 export const ALL_PORTALS = [
   { id: 'dashboard',   label: 'Dashboard',    icon: LayoutDashboard, href: '/__home__' },
+  { id: 'insights',    label: 'Insights',     icon: BarChart3,       href: '/admin/insights' },
   { id: 'leads',       label: 'CRM / Leads',  icon: TrendingUp,      href: '/admin/leads',
     children: [
       { label: 'All Leads',     href: '/admin/leads' },
@@ -76,7 +78,7 @@ const ROLE_HOME: Record<string, string> = {
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','clock_in','settings'],
+  super_admin:       ['dashboard','insights','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','leads','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],
@@ -307,6 +309,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   return (
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--canvas)' }}>
+      <CommandPalette />
 
       {/* ── Desktop sidebar — collapsed strip, hover floats wide panel ── */}
       <div
@@ -368,6 +371,12 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Right */}
           <div className="flex items-center gap-2 flex-shrink-0">
+            <button onClick={() => { const e = new KeyboardEvent('keydown', { key: 'k', metaKey: true }); window.dispatchEvent(e) }}
+              className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-lg border border-[var(--line)] text-[var(--ink-faint)] hover:border-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
+              <Search size={15} />
+              <span className="text-[13px]">Search</span>
+              <kbd className="text-[10px] font-semibold bg-[var(--line-soft)] px-1.5 py-0.5 rounded">⌘K</kbd>
+            </button>
             <button className="relative p-2 text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
               <Bell size={18} />
               {unread > 0 && (
