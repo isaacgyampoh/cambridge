@@ -42,7 +42,7 @@ export default function AdminLeads() {
   }
 
   return (
-    <div className="fade-in max-w-6xl">
+    <div className="fade-in w-full">
       <PageHeader
         eyebrow="CRM"
         title="Leads"

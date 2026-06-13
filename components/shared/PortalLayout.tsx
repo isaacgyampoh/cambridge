@@ -274,7 +274,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 {profile?.full_name?.charAt(0) || '?'}
               </div>
               <div className="min-w-0 flex-1">
-                <div className="text-[12px] font-semibold text-gray-900 truncate">{profile?.full_name}</div>
+                <div className="text-[12px] font-semibold text-[var(--ink)] truncate">{profile?.full_name}</div>
                 <div className="text-[10px] text-gray-400">{ROLE_LABEL[profile?.role || '']}</div>
               </div>
             </div>
@@ -333,7 +333,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
         {/* Topbar */}
         <header className="flex-shrink-0 bg-[var(--paper)] border-b border-[var(--line)] flex items-center gap-3 px-5" style={{ height: 60 }}>
-          <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 text-gray-500 hover:text-gray-900 hover:bg-gray-100 rounded-xl transition-colors">
+          <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
             <Menu size={19} />
           </button>
 
@@ -353,10 +353,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               const label  = seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
               return (
                 <span key={href} className="flex items-center gap-1 min-w-0">
-                  {i > 0 && <ChevronRight size={12} className="text-gray-300 flex-shrink-0" />}
+                  {i > 0 && <ChevronRight size={12} className="text-[var(--ink-faint)] flex-shrink-0" />}
                   {isLast
-                    ? <span className="font-semibold text-gray-900 truncate">{label}</span>
-                    : <Link href={href} className="text-gray-400 hover:text-gray-700 hidden sm:block truncate transition-colors">{label}</Link>}
+                    ? <span className="font-semibold text-[var(--ink)] truncate">{label}</span>
+                    : <Link href={href} className="text-[var(--ink-faint)] hover:text-[var(--ink)] hidden sm:block truncate transition-colors">{label}</Link>}
                 </span>
               )
             })}
@@ -364,7 +364,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* Right */}
           <div className="flex items-center gap-2 flex-shrink-0">
-            <button className="relative p-2 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+            <button className="relative p-2 text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
               <Bell size={18} />
               {unread > 0 && (
                 <span className="absolute top-1.5 right-1.5 min-w-[14px] h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
@@ -372,18 +372,18 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 </span>
               )}
             </button>
-            <div className="flex items-center gap-2 pl-2 border-l border-gray-100">
+            <div className="flex items-center gap-2 pl-2.5 border-l border-[var(--line)]">
               <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: roleColor }}>
                 {profile?.full_name?.charAt(0) || '?'}
               </div>
-              <span className="hidden md:block text-[13px] font-semibold text-gray-900">{profile?.full_name?.split(' ')[0]}</span>
+              <span className="hidden md:block text-[13px] font-semibold text-[var(--ink)]">{profile?.full_name?.split(' ')[0]}</span>
             </div>
           </div>
         </header>
 
         {/* Page */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: 'var(--canvas)' }}>
-          <div className="w-full p-5 lg:p-7">{children}</div>
+          <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 mx-auto max-w-[1600px]">{children}</div>
         </main>
       </div>
     </div>

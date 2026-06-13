@@ -29,7 +29,7 @@ export function PageHeader({
           <p className="text-[var(--ink-soft)] text-sm mt-1.5 max-w-xl">{description}</p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-shrink-0">{actions}</div>}
+      {actions && <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">{actions}</div>}
     </div>
   )
 }

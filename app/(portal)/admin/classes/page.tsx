@@ -56,7 +56,7 @@ export default function ClassesPage() {
   }
 
   return (
-    <div className="fade-in max-w-5xl">
+    <div className="fade-in w-full">
       <PageHeader
         eyebrow="Academics"
         title="Classes"

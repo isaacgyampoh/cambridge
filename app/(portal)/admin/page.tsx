@@ -58,7 +58,7 @@ export default function AdminDashboard() {
   ]
 
   return (
-    <div className="fade-in max-w-6xl">
+    <div className="fade-in w-full">
       {/* Header */}
       <div className="mb-8">
         <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">{dateStr}</div>
