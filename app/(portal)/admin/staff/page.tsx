@@ -276,12 +276,13 @@ export default function StaffPage() {
       {/* ── Page header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Staff Management</h1>
-          <p className="text-gray-400 text-sm">{staff.length} team members across all roles</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">People</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Staff</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">{staff.length} team members across all roles</p>
         </div>
         <button onClick={openModal}
-          className="flex items-center gap-2 h-10 px-5 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition">
-          <Plus size={16} /> Add Staff
+          className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm">
+          <Plus size={15} /> Add staff
         </button>
       </div>
 
@@ -295,12 +296,12 @@ export default function StaffPage() {
       </div>
 
       {/* ── Search + table ── */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] overflow-hidden">
         {/* Search bar */}
-        <div className="px-4 py-3 border-b border-gray-100">
+        <div className="px-4 py-3 border-b border-[var(--line)]">
           <input value={search} onChange={e => setSearch(e.target.value)}
-            placeholder="Search by name, email or phone..."
-            className="w-full h-9 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition" />
+            placeholder="Search by name, email or phone"
+            className="w-full h-9 px-4 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-white transition" />
         </div>
 
         {loading ? (
@@ -315,24 +316,24 @@ export default function StaffPage() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-[var(--line-soft)]">
                 <tr>
                   {['Staff Member', 'Contact', 'Role', 'Dept', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-bold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.map(s => (
-                  <tr key={s.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
+                  <tr key={s.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
                         <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${ROLE_COLOR[s.role]?.replace('text-', 'bg-').replace('-100', '-600').replace('-700','') || 'bg-gray-500'}`}>
                           {s.full_name?.charAt(0) || '?'}
                         </div>
                         <div>
-                          <div className="text-sm font-bold text-gray-900">{s.full_name}</div>
-                          <div className="text-[11px] text-gray-400">{s.email}</div>
+                          <div className="text-sm font-medium text-[var(--ink)]">{s.full_name}</div>
+                          <div className="text-[11px] text-[var(--ink-faint)]">{s.email}</div>
                         </div>
                       </div>
                     </td>
@@ -353,7 +354,7 @@ export default function StaffPage() {
                     <td className="px-4 py-3">
                       <div className="flex gap-2">
                         <a href={`/admin/staff/${s.id}`}
-                          className="text-xs font-semibold px-3 py-1.5 rounded-xl text-blue-600 bg-blue-50 hover:bg-blue-100 transition">
+                          className="text-xs font-medium px-3 py-1.5 rounded-lg text-[var(--accent)] bg-[var(--accent-soft)] hover:brightness-95 transition">
                           Manage Access
                         </a>
                         <button onClick={() => toggleActive(s.id, s.is_active)}

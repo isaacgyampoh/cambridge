@@ -112,14 +112,15 @@ export default function BroadcastPage() {
 
   return (
     <div className="fade-in w-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Broadcast Messages</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Send bulk WhatsApp/SMS to any segment</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Messaging</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Broadcasts</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send bulk WhatsApp and SMS to any segment of leads or students.</p>
         </div>
         <button onClick={() => setModal(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-          <Plus size={16} /> New Broadcast
+          className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm flex-shrink-0">
+          <Plus size={15} /> New broadcast
         </button>
       </div>
 
@@ -240,7 +241,7 @@ export default function BroadcastPage() {
 
             <div className="flex gap-2 mt-5">
               <button onClick={sendBroadcast} disabled={sending}
-                className="flex-1 h-12 bg-blue-600 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                className="flex-1 h-12 bg-[var(--accent)] text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
                 <Send size={16} />
                 {sending ? 'Sending...': form.scheduled_at ? 'Schedule Broadcast': 'Send Now'}
               </button>
@@ -256,11 +257,11 @@ export default function BroadcastPage() {
       ) : (
         <div className="space-y-3">
           {broadcasts.map(b => (
-            <div key={b.id} className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div key={b.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
               <div className="flex items-start justify-between mb-3">
                 <div>
-                  <h3 className="font-bold text-gray-900">{b.title}</h3>
-                  <p className="text-sm text-gray-500 mt-0.5 line-clamp-2">{b.message}</p>
+                  <h3 className="font-medium text-[var(--ink)]">{b.title}</h3>
+                  <p className="text-sm text-[var(--ink-soft)] mt-0.5 line-clamp-2">{b.message}</p>
                 </div>
                 <span className={`text-xs font-bold px-3 py-1 rounded-full ml-3 flex-shrink-0 ${STATUS_CONFIG[b.status]}`}>
                   {b.status}
