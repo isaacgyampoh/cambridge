@@ -3,9 +3,10 @@ import { useState } from 'react'
 import { useData } from '@/hooks/useData'
 import type { Lead } from '@/types'
 import { formatDateTime } from '@/lib/utils'
-import { Search, Download, Plus, Upload } from 'lucide-react'
+import { Search, Download, Plus, Upload, FileSpreadsheet } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import { exportToExcel } from '@/lib/utils/export'
 
 const STATUS_TONE: Record<string, any> = {
   new: 'neutral', contacted: 'accent', interested: 'accent', follow_up: 'warning',
@@ -29,6 +30,23 @@ export default function AdminLeads() {
     return matchSearch && matchSource && matchStatus
   })
 
+  function exportExcel() {
+    const rows = filtered.map((l: any) => ({
+      Name: l.full_name,
+      Phone: l.phone?.replace(/^233/, '0') || '',
+      Email: l.email || '',
+      Source: l.source,
+      Stage: l.status?.replace(/_/g, ' '),
+      Course: l.course_interest || '',
+      Score: l.score ?? '',
+      Temperature: l.score_label || '',
+      Owner: l.assignee?.full_name || 'Unassigned',
+      Added: formatDateTime(l.created_at),
+    }))
+    if (!rows.length) return
+    exportToExcel(rows, `cce-leads-${new Date().toISOString().slice(0, 10)}`, 'Leads')
+  }
+
   function exportCSV() {
     const rows = filtered.map((l: any) => [
       l.full_name, l.email || '', l.phone || '', l.source, l.status,
@@ -50,7 +68,8 @@ export default function AdminLeads() {
         actions={
           <>
             <Button variant="secondary" href="/admin/leads/import" icon={<Upload size={14} />}>Import</Button>
-            <Button variant="secondary" onClick={exportCSV} icon={<Download size={14} />}>Export</Button>
+            <Button variant="secondary" onClick={exportExcel} icon={<FileSpreadsheet size={14} />}>Excel</Button>
+            <Button variant="secondary" onClick={exportCSV} icon={<Download size={14} />}>CSV</Button>
             <Button href="/admin/leads/new" icon={<Plus size={15} />}>Add lead</Button>
           </>
         }

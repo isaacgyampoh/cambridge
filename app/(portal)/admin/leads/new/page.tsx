@@ -34,6 +34,18 @@ export default function NewLeadPage() {
     if (!form.full_name.trim()) { toast.error('Full name is required'); return }
     setSaving(true)
     try {
+      // Duplicate detection
+      if (form.phone.trim() || form.email.trim()) {
+        const dup = await fetch('/api/leads/check-duplicate', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ phone: form.phone.trim(), email: form.email.trim() }),
+        }).then(r => r.json())
+        if (dup.duplicate) {
+          const owner = dup.lead?.assignee?.full_name ? ` (with ${dup.lead.assignee.full_name})` : ''
+          const proceed = confirm(`A lead named "${dup.lead.full_name}" already exists with this phone/email${owner}. Add anyway?`)
+          if (!proceed) { setSaving(false); return }
+        }
+      }
       const res = await fetch('/api/data', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
