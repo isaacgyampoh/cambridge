@@ -32,6 +32,13 @@ export const CONFIG = {
   wawpInstanceId: '',
   wawpAccessToken: '',
 
+  // ── AI ASSISTANT (Anthropic Claude) ──────────────────────────
+  // Paste your Anthropic API key to enable the WhatsApp auto-responder.
+  // Get one at https://console.anthropic.com
+  anthropicApiKey: '',
+  aiAssistantEnabled: true,   // master on/off for WhatsApp auto-replies
+  aiModel: 'claude-sonnet-4-6',
+
   // ── RESEND EMAIL ─────────────────────────────────────────────
   // Add when you get from resend.com (free tier available)
   resendApiKey: '',

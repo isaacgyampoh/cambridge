@@ -32,12 +32,13 @@ const PORTAL_PATHS: Record<string, string[]> = {
   workforce:   ['/admin/workforce'],
   signins:     ['/admin/signins'],
   wa_lines:    ['/admin/whatsapp'],
+  knowledge:   ['/admin/knowledge'],
   clock_in:    ['/clock-in'],
   settings:    ['/admin/settings'],
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','clock_in','settings'],
+  super_admin:       ['dashboard','insights','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','leads','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],

@@ -8,19 +8,19 @@ import { toast } from 'sonner'
 
 export default function WhatsAppLinesPage() {
   const { data: staff, loading, refetch } = useData<any>({
-    table: 'profiles', select: 'id, full_name, role, phone, wawp_instance_id, wawp_status, wawp_number',
+    table: 'profiles', select: 'id, full_name, role, phone, wawp_instance_id, wawp_status, wawp_number, wa_intro',
     filters: [{ col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', limit: 200,
   })
 
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm] = useState({ instanceId: '', accessToken: '', number: '' })
+  const [form, setForm] = useState({ instanceId: '', accessToken: '', number: '', intro: '' })
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
 
   function open(s: any) {
     setEditing(s)
-    setForm({ instanceId: s.wawp_instance_id || '', accessToken: '', number: s.wawp_number || s.phone?.replace(/^233/, '0') || '' })
+    setForm({ instanceId: s.wawp_instance_id || '', accessToken: '', number: s.wawp_number || s.phone?.replace(/^233/, '0') || '', intro: s.wa_intro || '' })
   }
 
   async function save() {
@@ -39,6 +39,11 @@ export default function WhatsAppLinesPage() {
       })
       const d = await res.json()
       if (!res.ok) { toast.error(d.error || 'Could not save'); return }
+      // Save the personal intro line used by the AI assistant
+      await fetch('/api/data', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'profiles', data: { wa_intro: form.intro || null }, filters: [{ col: 'id', val: editing.id }] }),
+      })
       toast.success('WhatsApp line saved')
       setEditing(null)
       refetch()
@@ -125,6 +130,9 @@ export default function WhatsAppLinesPage() {
             <div className="space-y-4">
               <Field label="WhatsApp number" hint="the line they will use">
                 <input value={form.number} onChange={e => setForm({ ...form, number: e.target.value })} placeholder="0244 000 000" className={inputClass} />
+              </Field>
+              <Field label="Personal intro" hint="how the AI introduces them">
+                <input value={form.intro} onChange={e => setForm({ ...form, intro: e.target.value })} placeholder="I'm Ike, your admissions advisor" className={inputClass} />
               </Field>
               <Field label="Instance ID" required>
                 <input value={form.instanceId} onChange={e => setForm({ ...form, instanceId: e.target.value })} placeholder="From your WAWP dashboard" className={inputClass} />

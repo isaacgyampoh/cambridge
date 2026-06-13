@@ -2,7 +2,7 @@
 import { CONFIG } from '@/lib/config'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Globe, Send, CheckCircle2, AlertCircle, Copy, MessageSquare, CreditCard, Mail, Database, Smartphone } from 'lucide-react'
+import { Globe, Send, CheckCircle2, AlertCircle, Copy, MessageSquare, CreditCard, Mail, Database, Smartphone, Sparkles } from 'lucide-react'
 import { PageHeader, Card, Button, Badge, SectionLabel, Field, inputClass, Spinner } from '@/components/ui'
 
 export default function SettingsPage() {
@@ -48,6 +48,7 @@ export default function SettingsPage() {
     { name: 'SMS', desc: `Arkesel · sender "${status.senderId}"`, icon: Smartphone, ok: status.arkesel, detail: status.arkesel ? 'Active' : 'No API key' },
     { name: 'Payments', desc: 'Paystack', icon: CreditCard, ok: status.paystack, detail: status.paystack ? (status.paystackLive ? 'Live keys active' : 'Test keys') : 'Not configured' },
     { name: 'WhatsApp', desc: `${status.wawpLines} line${status.wawpLines === 1 ? '' : 's'} connected`, icon: MessageSquare, ok: status.wawpLines > 0 || status.wawpCentral, detail: status.wawpLines > 0 ? `${status.wawpLines} connected` : status.wawpCentral ? 'Central line set' : 'No lines yet' },
+    { name: 'AI assistant', desc: 'Auto-answers WhatsApp inquiries', icon: Sparkles, ok: status.ai, detail: status.ai ? 'Active' : 'Add Anthropic key' },
     { name: 'Email', desc: 'Resend', icon: Mail, ok: status.resend, detail: status.resend ? 'Active' : 'Optional — not set' },
   ] : []
 
@@ -56,6 +57,7 @@ export default function SettingsPage() {
     { label: 'Google Lead Forms', url: '/api/webhooks/google' },
     { label: 'Paystack Payments', url: '/api/webhooks/paystack' },
     { label: 'Website Forms', url: '/api/webhooks/website' },
+    { label: 'WhatsApp Replies (AI assistant)', url: '/api/webhooks/whatsapp' },
   ]
 
   function copy(text: string) { navigator.clipboard.writeText(text); toast.success('Copied') }

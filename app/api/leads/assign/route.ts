@@ -30,11 +30,11 @@ export async function POST(req: NextRequest) {
     )
   }
 
-  // 2. WhatsApp to lead — sent FROM the assigned marketer's own line
+  // 2. WhatsApp to lead — warm, personal, sent FROM the marketer's own line
   if (lead.phone) {
     results.wa_lead = await sendWhatsAppText(
       lead.phone,
-      WA.leadAssigned(lead.full_name, marketer.full_name),
+      WA.leadAssigned(lead.full_name, marketer.full_name, lead.course_interest, marketer.wa_intro),
       marketerId,  // route through this marketer's WhatsApp instance
     )
   }
