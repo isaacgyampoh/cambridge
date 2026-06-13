@@ -33,12 +33,14 @@ const PORTAL_PATHS: Record<string, string[]> = {
   signins:     ['/admin/signins'],
   wa_lines:    ['/admin/whatsapp'],
   knowledge:   ['/admin/knowledge'],
+  conversations: ['/admin/conversations'],
+  hotleads:    ['/admin/hotleads'],
   clock_in:    ['/clock-in'],
   settings:    ['/admin/settings'],
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','clock_in','settings'],
+  super_admin:       ['dashboard','insights','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','leads','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],
@@ -100,7 +102,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 
