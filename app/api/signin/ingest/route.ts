@@ -59,7 +59,27 @@ export async function POST(req: NextRequest) {
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-  return NextResponse.json({ success: true, matched: !!matched_lead_id })
+  // If this person isn't already a lead, auto-create one so they enter the CRM
+  let createdLead = false
+  if (!matched_lead_id && phone && full_name) {
+    const leadData: any = {
+      full_name, phone, email: email || null, status: 'new',
+      course_interest: course_interest || null,
+      notes: campus ? `Walk-in sign-in at ${campus}` : 'Walk-in sign-in',
+    }
+    // Try 'walk_in' source; if the enum doesn't have it yet, fall back to 'manual'
+    let { data: newLead } = await sb.from('leads').insert({ ...leadData, source: 'walk_in' }).select('id').maybeSingle()
+    if (!newLead) {
+      const retry = await sb.from('leads').insert({ ...leadData, source: 'manual' }).select('id').maybeSingle()
+      newLead = retry.data
+    }
+    if (newLead) {
+      createdLead = true
+      await sb.from('external_signins').update({ matched_lead_id: newLead.id }).eq('phone', phone).is('matched_lead_id', null)
+    }
+  }
+
+  return NextResponse.json({ success: true, matched: !!matched_lead_id, createdLead })
 }
 
 // Allow simple GET-based ping to verify the endpoint is live
