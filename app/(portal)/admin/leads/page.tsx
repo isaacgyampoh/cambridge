@@ -2,9 +2,15 @@
 import { useState } from 'react'
 import { useData } from '@/hooks/useData'
 import type { Lead } from '@/types'
-import { SOURCE_COLORS, STATUS_COLORS, formatDateTime } from '@/lib/utils'
+import { formatDateTime } from '@/lib/utils'
 import { Search, Download, Plus, Upload } from 'lucide-react'
 import Link from 'next/link'
+import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+
+const STATUS_TONE: Record<string, any> = {
+  new: 'neutral', contacted: 'accent', interested: 'accent', follow_up: 'warning',
+  ready_to_join: 'success', registered: 'success', not_interested: 'muted', lost: 'danger',
+}
 
 export default function AdminLeads() {
   const { data: leads, loading } = useData<Lead>({
@@ -16,103 +22,94 @@ export default function AdminLeads() {
   const [sourceFilter, setSourceFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
 
-  function exportCSV() {
-    const rows = filtered.map(l => [
-      l.full_name, l.email || '', l.phone || '', l.source, l.status,
-      l.course_interest || '', (l as any).assignee?.full_name || '', formatDateTime(l.created_at)
-    ].map(v => `"${v}"`).join(','))
-    const csv = 'Name,Email,Phone,Source,Status,Course,Assigned To,Date\n' + rows.join('\n')
-    const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
-    a.download = `cce-leads-${new Date().toISOString().slice(0,10)}.csv`
-    a.click()
-  }
-
-  const filtered = leads.filter(l => {
+  const filtered = leads.filter((l: any) => {
     const matchSearch = !search || [l.full_name, l.email, l.phone, l.course_interest].some(v => v?.toLowerCase().includes(search.toLowerCase()))
     const matchSource = sourceFilter === 'all' || l.source === sourceFilter
     const matchStatus = statusFilter === 'all' || l.status === statusFilter
     return matchSearch && matchSource && matchStatus
   })
 
+  function exportCSV() {
+    const rows = filtered.map((l: any) => [
+      l.full_name, l.email || '', l.phone || '', l.source, l.status,
+      l.course_interest || '', l.assignee?.full_name || '', formatDateTime(l.created_at)
+    ].map(v => `"${v}"`).join(','))
+    const csv = 'Name,Email,Phone,Source,Status,Course,Assigned To,Date\n' + rows.join('\n')
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.download = `cce-leads-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
+  }
+
   return (
-    <div className="fade-in w-full">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h1 className="text-2xl font-bold text-gray-900">All Leads</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{filtered.length} of {leads.length} leads</p>
-        </div>
-        <div className="flex gap-2">
-          <Link href="/admin/leads/new"
-            className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
-            <Plus size={15} /> Add Lead
-          </Link>
-          <Link href="/admin/leads/import"
-            className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
-            <Upload size={15} /> Import
-          </Link>
-          <button onClick={exportCSV} className="flex items-center gap-2 px-4 py-2 bg-white border border-gray-200 rounded-xl text-sm font-medium text-gray-600 hover:bg-gray-50 transition">
-            <Download size={15} /> Export
-          </button>
-        </div>
-      </div>
+    <div className="fade-in max-w-6xl">
+      <PageHeader
+        eyebrow="CRM"
+        title="Leads"
+        description="Every prospective student, with their source, stage and owner."
+        actions={
+          <>
+            <Button variant="secondary" href="/admin/leads/import" icon={<Upload size={14} />}>Import</Button>
+            <Button variant="secondary" onClick={exportCSV} icon={<Download size={14} />}>Export</Button>
+            <Button href="/admin/leads/new" icon={<Plus size={15} />}>Add lead</Button>
+          </>
+        }
+      />
 
       {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-4">
-        <div className="flex-1 min-w-48 relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, phone..."
-            className="w-full h-10 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+      <div className="flex flex-wrap gap-3 mb-5">
+        <div className="flex-1 min-w-56 relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email or phone"
+            className={inputClass.replace('h-11', 'h-10') + ' pl-9'} />
         </div>
-        <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
-          className="h-10 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
-          <option value="all">All Sources</option>
-          {['facebook','google','linkedin','website','referral','manual'].map(s => <option key={s} value={s} className="capitalize">{s}</option>)}
+        <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className={inputClass.replace('h-11', 'h-10') + ' w-auto'}>
+          <option value="all">All sources</option>
+          {['facebook', 'google', 'linkedin', 'website', 'referral', 'manual'].map(s => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
-          className="h-10 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
-          <option value="all">All Statuses</option>
-          {['new','contacted','interested','follow_up','ready_to_join','registered','not_interested','lost'].map(s => (
-            <option key={s} value={s}>{s.replace(/_/g,' ')}</option>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={inputClass.replace('h-11', 'h-10') + ' w-auto'}>
+          <option value="all">All stages</option>
+          {['new', 'contacted', 'interested', 'follow_up', 'ready_to_join', 'registered', 'not_interested', 'lost'].map(s => (
+            <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
           ))}
         </select>
       </div>
 
-      {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        {loading ? (
-          <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+      <Card className="overflow-hidden">
+        {loading ? <Spinner /> : filtered.length === 0 ? (
+          <div className="py-16">
+            <EmptyState icon={<Search size={20} />} title="No leads match" description="Try adjusting your search or filters, or add a new lead." />
+          </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-100">
-                <tr>
-                  {['Name','Phone','Source','Course','Status','Assigned To','Date'].map(h => (
-                    <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">{h}</th>
+              <thead>
+                <tr className="border-b border-[var(--line)]">
+                  {['Name', 'Phone', 'Source', 'Course', 'Stage', 'Owner', 'Added'].map(h => (
+                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(l => (
-                  <tr key={l.id} className="border-b border-gray-50 hover:bg-gray-50 transition">
+                {filtered.map((l: any) => (
+                  <tr key={l.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
                     <td className="px-4 py-3">
-                      <Link href={`/admin/leads/${l.id}`} className="font-semibold text-sm text-blue-600 hover:underline">{l.full_name}</Link>
-                      <div className="text-xs text-gray-400">{l.email}</div>
+                      <Link href={`/admin/leads/${l.id}`} className="font-medium text-sm text-[var(--ink)] hover:text-[var(--accent)] transition">{l.full_name}</Link>
+                      {l.email && <div className="text-xs text-[var(--ink-faint)]">{l.email}</div>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-700">{l.phone || '—'}</td>
-                    <td className="px-4 py-3"><span className={`text-xs font-semibold px-2.5 py-1 rounded-full capitalize ${SOURCE_COLORS[l.source]}`}>{l.source}</span></td>
-                    <td className="px-4 py-3 text-sm text-gray-600 max-w-32 truncate">{l.course_interest || '—'}</td>
-                    <td className="px-4 py-3"><span className={`text-xs font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[l.status]}`}>{l.status.replace(/_/g,' ')}</span></td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{(l as any).assignee?.full_name || <span className="text-yellow-600 text-xs font-semibold">Unassigned</span>}</td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{formatDateTime(l.created_at)}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{l.phone?.replace(/^233/, '0') || '—'}</td>
+                    <td className="px-4 py-3"><Badge tone="neutral">{l.source}</Badge></td>
+                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)] max-w-32 truncate">{l.course_interest || '—'}</td>
+                    <td className="px-4 py-3"><Badge tone={STATUS_TONE[l.status] || 'neutral'}>{l.status.replace(/_/g, ' ')}</Badge></td>
+                    <td className="px-4 py-3 text-sm">{l.assignee?.full_name || <span className="text-amber-600 text-xs font-medium">Unassigned</span>}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{formatDateTime(l.created_at)}</td>
                   </tr>
                 ))}
-                {filtered.length === 0 && <tr><td colSpan={7} className="text-center py-12 text-gray-400 text-sm">No leads found</td></tr>}
               </tbody>
             </table>
           </div>
         )}
-      </div>
+      </Card>
     </div>
   )
 }
