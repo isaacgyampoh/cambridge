@@ -29,6 +29,22 @@ export default function BroadcastPage() {
   })
   const [modal, setModal] = useState(false)
   const [sending, setSending] = useState(false)
+  const [sendingId, setSendingId] = useState<string | null>(null)
+
+  async function sendNow(broadcastId: string) {
+    setSendingId(broadcastId)
+    try {
+      const res = await fetch('/api/broadcast/send-now', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ broadcastId }),
+      })
+      const d = await res.json()
+      if (d.success) toast.success(`Sent to ${d.sent} recipient${d.sent === 1 ? '' : 's'}${d.failed ? `, ${d.failed} failed` : ''}`)
+      else toast.error(d.error || 'Could not send')
+      load()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setSendingId(null) }
+  }
   const [preview, setPreview] = useState<{ count: number; names: string[] } | null>(null)
   const [form, setForm] = useState({
     title: '', message: '', channels: ['whatsapp'] as string[],
@@ -252,12 +268,18 @@ export default function BroadcastPage() {
                 <span className="flex items-center gap-1 text-green-600"><CheckCircle size={12} /> {b.sent_count} sent</span>
                 {b.failed_count > 0 && <span className="flex items-center gap-1 text-red-500"><XCircle size={12} /> {b.failed_count} failed</span>}
                 <span className="flex items-center gap-1"><Clock size={12} /> {formatDateTime(b.created_at)}</span>
-                <div className="flex gap-1 ml-auto">
+                <div className="flex gap-1 ml-auto items-center">
                   {(b.channels || []).map((ch: string) => (
                     <span key={ch} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ch === 'whatsapp'? 'bg-green-100 text-green-700': 'bg-blue-100 text-blue-700'}`}>
                       {ch}
                     </span>
                   ))}
+                  {(b.status === 'draft' || (b.failed_count > 0 && b.sent_count === 0)) && (
+                    <button onClick={() => sendNow(b.id)} disabled={sendingId === b.id}
+                      className="ml-2 px-3 py-1 rounded-md bg-[var(--accent)] text-white text-[11px] font-semibold hover:brightness-110 disabled:opacity-50 transition">
+                      {sendingId === b.id ? 'Sending…' : 'Send now'}
+                    </button>
+                  )}
                 </div>
               </div>
             </div>

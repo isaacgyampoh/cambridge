@@ -79,44 +79,56 @@ export async function POST(req: NextRequest) {
   }
 
   // Insert recipient records
-  await sb.from('broadcast_recipients').insert(
-    recipients.map(r => ({
-      broadcast_id: broadcast.id,
-      recipient_phone: r.phone,
-      recipient_name: r.name,
-      recipient_type: r.type,
-      recipient_id: r.id,
-      status: 'pending',
-    }))
-  )
+  if (recipients.length) {
+    await sb.from('broadcast_recipients').insert(
+      recipients.map(r => ({
+        broadcast_id: broadcast.id,
+        recipient_phone: r.phone,
+        recipient_name: r.name,
+        recipient_type: r.type,
+        recipient_id: r.id,
+        status: 'pending',
+      }))
+    )
+  }
 
-  // Send in background (don't await all)
+  // Send to each recipient. Track success if ANY selected channel succeeds.
   let sent = 0
   let failed = 0
 
   for (const r of recipients) {
-    const personalizedMsg = message.replace(/\{\{name\}\}/g, r.name.split(' ')[0])
-    const phone = r.phone.replace(/^0/, '233').replace(/^\+/, '')
+    const firstName = (r.name || '').split(' ')[0] || 'there'
+    const personalizedMsg = message.replace(/\{\{name\}\}/g, firstName)
+    const phone = r.phone.replace(/\s+/g, '').replace(/^0/, '233').replace(/^\+/, '')
 
-    try {
-      if (channels.includes('whatsapp')) {
-        const ok = await sendWhatsAppText(phone, personalizedMsg)
-        if (ok) sent++; else failed++
-      }
-      if (channels.includes('sms')) {
+    let anyOk = false
+    const errors: string[] = []
+
+    if (channels.includes('sms')) {
+      try {
         const ok = await sendSMS(phone, personalizedMsg)
-        if (ok && !channels.includes('whatsapp')) sent++
-      }
-      await sb.from('broadcast_recipients').update({ status: 'sent', sent_at: new Date().toISOString() })
-        .eq('broadcast_id', broadcast.id).eq('recipient_phone', phone)
-    } catch {
-      failed++
-      await sb.from('broadcast_recipients').update({ status: 'failed' })
-        .eq('broadcast_id', broadcast.id).eq('recipient_phone', phone)
+        if (ok) anyOk = true; else errors.push('sms failed')
+      } catch (e: any) { errors.push('sms: ' + e.message) }
     }
+    if (channels.includes('whatsapp')) {
+      try {
+        const ok = await sendWhatsAppText(phone, personalizedMsg)
+        if (ok) anyOk = true; else errors.push('whatsapp failed')
+      } catch (e: any) { errors.push('whatsapp: ' + e.message) }
+    }
+
+    if (anyOk) sent++; else failed++
+
+    await sb.from('broadcast_recipients').update({
+      status: anyOk ? 'sent' : 'failed',
+      sent_at: anyOk ? new Date().toISOString() : null,
+      error: anyOk ? null : errors.join('; ').slice(0, 300),
+    }).eq('broadcast_id', broadcast.id).eq('recipient_phone', r.phone)
   }
 
-  await sb.from('broadcasts').update({ status: 'sent', sent_count: sent, failed_count: failed, sent_at: new Date().toISOString() }).eq('id', broadcast.id)
+  await sb.from('broadcasts').update({
+    status: 'sent', sent_count: sent, failed_count: failed, sent_at: new Date().toISOString(),
+  }).eq('id', broadcast.id)
 
   return NextResponse.json({ success: true, count: recipients.length, sent, failed })
 }

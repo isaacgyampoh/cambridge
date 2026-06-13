@@ -31,9 +31,10 @@ export async function sendSMS(
     })
 
     providerResponse = await res.json()
-    status = res.ok ? 'sent' : 'failed'
+    const ok = res.ok && (providerResponse?.status === 'success' || providerResponse?.code === 'ok')
+    status = ok ? 'sent' : 'failed'
     console.log('[Arkesel SMS]', recipients, status, providerResponse)
-    return res.ok
+    return ok
   } catch (e: any) {
     status = 'failed'
     providerResponse = { error: e.message }
