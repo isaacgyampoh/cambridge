@@ -71,7 +71,7 @@ export default function SetupPage() {
           </div>
 
           <ol className="text-sm text-slate-300 space-y-2 mb-4">
-            <li>1. Go to <a href="https://supabase.com/dashboard/project/gejtxkbatldxbbqynpfg/sql/new" target="_blank" className="text-blue-400 underline">Supabase SQL Editor ↗</a></li>
+            <li>1. Go to <a href="https://supabase.com/dashboard/project/gejtxkbatldxbbqynpfg/sql/new"target="_blank"className="text-blue-400 underline">Supabase SQL Editor ↗</a></li>
             <li>2. Copy and paste the SQL below</li>
             <li>3. Click <strong>Run</strong></li>
           </ol>
@@ -117,10 +117,10 @@ export default function SetupPage() {
           </button>
 
           {result && (
-            <div className={`rounded-xl p-4 text-sm ${result.success ? 'bg-green-900/30 border border-green-700' : 'bg-red-900/30 border border-red-700'}`}>
+            <div className={`rounded-xl p-4 text-sm ${result.success ? 'bg-green-900/30 border border-green-700': 'bg-red-900/30 border border-red-700'}`}>
               {result.success ? (
                 <>
-                  <div className="font-bold text-green-400 mb-2">✅ {result.message}</div>
+                  <div className="font-bold text-green-400 mb-2"> {result.message}</div>
                   <div className="text-slate-300 space-y-1">
                     <div>Phone: <strong className="text-white">{result.login?.phone}</strong></div>
                     <div>PIN: <strong className="text-white text-xl tracking-widest">{result.login?.pin}</strong></div>
@@ -129,7 +129,7 @@ export default function SetupPage() {
                 </>
               ) : (
                 <>
-                  <div className="font-bold text-red-400 mb-1">❌ {result.error}</div>
+                  <div className="font-bold text-red-400 mb-1"> {result.error}</div>
                   {result.hint && <div className="text-yellow-300 text-xs">{result.hint}</div>}
                 </>
               )}
@@ -142,8 +142,8 @@ export default function SetupPage() {
           <h2 className="font-bold text-white mb-3">Step 3 — Login</h2>
           <div className="grid grid-cols-2 gap-3 mb-4">
             {[
-              { label: 'Phone Number', value: '0201024000' },
-              { label: 'Initial PIN', value: '1024' },
+              { label: 'Phone Number', value: '0201024000'},
+              { label: 'Initial PIN', value: '1024'},
             ].map(item => (
               <div key={item.label} className="bg-slate-800 rounded-xl p-3">
                 <div className="text-xs text-slate-400 mb-1">{item.label}</div>
@@ -166,11 +166,11 @@ export default function SetupPage() {
         <div className="flex items-center justify-between">
           <button onClick={checkStatus} disabled={checking}
             className="flex items-center gap-2 text-slate-400 hover:text-white text-sm transition">
-            <RefreshCw size={14} className={checking ? 'animate-spin' : ''}/> Refresh status
+            <RefreshCw size={14} className={checking ? 'animate-spin': ''}/> Refresh status
           </button>
           {status && (
             <div className="text-xs text-slate-500">
-              Schema: {status.schema ? '✅' : '❌'} · Admin: {status.admin ? '✅' : '❌'} · Sessions: {status.sessions ? '✅' : '❌'}
+              Schema: {status.schema ? '': ''} · Admin: {status.admin ? '': ''} · Sessions: {status.sessions ? '': ''}
             </div>
           )}
         </div>

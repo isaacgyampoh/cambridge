@@ -75,14 +75,14 @@ export default function FinanceReports() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Revenue', value: formatGHS(data.totalRevenue), icon: DollarSign, color: 'text-green-600 bg-green-50' },
-          { label: 'Transactions', value: data.txCount, icon: TrendingUp, color: 'text-blue-600 bg-blue-50' },
-          { label: 'Avg Transaction', value: formatGHS(data.avgTx), icon: TrendingUp, color: 'text-purple-600 bg-purple-50' },
-          { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-red-600 bg-red-50' },
+          { label: 'Revenue', value: formatGHS(data.totalRevenue), icon: DollarSign, color: 'text-green-600 bg-green-50'},
+          { label: 'Transactions', value: data.txCount, icon: TrendingUp, color: 'text-blue-600 bg-blue-50'},
+          { label: 'Avg Transaction', value: formatGHS(data.avgTx), icon: TrendingUp, color: 'text-purple-600 bg-purple-50'},
+          { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-red-600 bg-red-50'},
         ].map(k => (
           <div key={k.label} className="bg-white rounded-2xl border border-gray-200 p-4">
-            <div className={`w-10 h-10 rounded-xl ${k.color.split(' ')[1]} flex items-center justify-center mb-3`}>
-              <k.icon size={20} className={k.color.split(' ')[0]} />
+            <div className={`w-10 h-10 rounded-xl ${k.color.split('')[1]} flex items-center justify-center mb-3`}>
+              <k.icon size={20} className={k.color.split('')[0]} />
             </div>
             <div className="text-xl font-bold text-gray-900">{k.value}</div>
             <div className="text-sm text-gray-500 mt-0.5">{k.label}</div>
@@ -100,7 +100,7 @@ export default function FinanceReports() {
                 {date.slice(5)}: GHS {amount.toFixed(0)}
               </div>
               <div className="w-full bg-blue-500 rounded-t transition-all hover:bg-blue-600"
-                style={{ height: `${Math.round((amount / maxDaily) * 100)}%`, minHeight: amount > 0 ? '4px' : '0' }} />
+                style={{ height: `${Math.round((amount / maxDaily) * 100)}%`, minHeight: amount > 0 ? '4px': '0'}} />
             </div>
           ))}
         </div>
@@ -118,7 +118,7 @@ export default function FinanceReports() {
             {Object.entries(data.byMethod).sort((a: any, b: any) => b[1] - a[1]).map(([method, amt]: any) => (
               <div key={method}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium capitalize text-gray-700">{method.replace(/_/g,' ')}</span>
+                  <span className="font-medium capitalize text-gray-700">{method.replace(/_/g,'')}</span>
                   <span className="font-bold text-gray-900">{formatGHS(amt)}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
@@ -143,7 +143,7 @@ export default function FinanceReports() {
                 <span className="text-sm font-bold text-red-600">{formatGHS(inv.outstanding)}</span>
               </div>
             ))}
-            {data.outstanding.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No outstanding balances 🎉</p>}
+            {data.outstanding.length === 0 && <p className="text-sm text-gray-400 text-center py-4">No outstanding balances </p>}
           </div>
         </div>
       </div>

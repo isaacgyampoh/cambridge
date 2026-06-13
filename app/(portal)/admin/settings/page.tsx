@@ -9,26 +9,26 @@ export default function SettingsPage() {
 
   async function testSMS() {
     setTesting('sms')
-    const res = await fetch('/api/test/sms', { method: 'POST' })
+    const res = await fetch('/api/test/sms', { method: 'POST'})
     const d = await res.json()
-    d.success ? toast.success('Test SMS sent!') : toast.error('SMS failed: ' + d.error)
+    d.success ? toast.success('Test SMS sent!') : toast.error('SMS failed: '+ d.error)
     setTesting(null)
   }
 
   async function testWhatsApp() {
     setTesting('wa')
-    const res = await fetch('/api/test/whatsapp', { method: 'POST' })
+    const res = await fetch('/api/test/whatsapp', { method: 'POST'})
     const d = await res.json()
-    d.success ? toast.success('Test WhatsApp sent!') : toast.error('WA failed: ' + d.error)
+    d.success ? toast.success('Test WhatsApp sent!') : toast.error('WA failed: '+ d.error)
     setTesting(null)
   }
 
   const webhooks = [
-    { label: 'Facebook Lead Ads', url: '/api/webhooks/facebook', method: 'POST + GET (verification)' },
-    { label: 'Google Lead Forms', url: '/api/webhooks/google', method: 'POST' },
-    { label: 'LinkedIn Lead Gen', url: '/api/webhooks/linkedin', method: 'POST' },
-    { label: 'Website Forms', url: '/api/webhooks/website', method: 'POST' },
-    { label: 'Paystack Payments', url: '/api/webhooks/paystack', method: 'POST' },
+    { label: 'Facebook Lead Ads', url: '/api/webhooks/facebook', method: 'POST + GET (verification)'},
+    { label: 'Google Lead Forms', url: '/api/webhooks/google', method: 'POST'},
+    { label: 'LinkedIn Lead Gen', url: '/api/webhooks/linkedin', method: 'POST'},
+    { label: 'Website Forms', url: '/api/webhooks/website', method: 'POST'},
+    { label: 'Paystack Payments', url: '/api/webhooks/paystack', method: 'POST'},
   ]
 
   return (
@@ -46,17 +46,17 @@ export default function SettingsPage() {
         </div>
         <div className="space-y-3">
           {[
-            { name: 'Supabase', key: 'NEXT_PUBLIC_SUPABASE_URL', status: 'connected' },
-            { name: 'Arkesel SMS', key: 'ARKESEL_API_KEY', status: 'connected' },
-            { name: 'WAWP WhatsApp', key: 'WAWP_INSTANCE_ID', status: 'configure' },
-            { name: 'Paystack', key: 'PAYSTACK_SECRET_KEY', status: 'configure' },
-            { name: 'Resend Email', key: 'RESEND_API_KEY', status: 'configure' },
+            { name: 'Supabase', key: 'NEXT_PUBLIC_SUPABASE_URL', status: 'connected'},
+            { name: 'Arkesel SMS', key: 'ARKESEL_API_KEY', status: 'connected'},
+            { name: 'WAWP WhatsApp', key: 'WAWP_INSTANCE_ID', status: 'configure'},
+            { name: 'Paystack', key: 'PAYSTACK_SECRET_KEY', status: 'configure'},
+            { name: 'Resend Email', key: 'RESEND_API_KEY', status: 'configure'},
           ].map(i => (
             <div key={i.name} className="flex items-center justify-between py-2 border-b border-gray-50 last:border-0">
               <span className="text-sm font-medium text-gray-900">{i.name}</span>
               <div className="flex items-center gap-2">
-                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${i.status === 'connected' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
-                  {i.status === 'connected' ? '✓ Connected' : 'Needs key'}
+                <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${i.status === 'connected'? 'bg-green-100 text-green-700': 'bg-yellow-100 text-yellow-700'}`}>
+                  {i.status === 'connected'? 'Connected': 'Needs key'}
                 </span>
                 <code className="text-[10px] text-gray-400 font-mono">{i.key}</code>
               </div>
@@ -75,11 +75,11 @@ export default function SettingsPage() {
         <div className="flex gap-3">
           <button onClick={testSMS} disabled={testing === 'sms'}
             className="flex-1 h-10 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-blue-700 transition">
-            {testing === 'sms' ? 'Sending...' : 'Test SMS'}
+            {testing === 'sms'? 'Sending...': 'Test SMS'}
           </button>
           <button onClick={testWhatsApp} disabled={testing === 'wa'}
             className="flex-1 h-10 bg-[#25D366] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:opacity-90 transition">
-            {testing === 'wa' ? 'Sending...' : 'Test WhatsApp'}
+            {testing === 'wa'? 'Sending...': 'Test WhatsApp'}
           </button>
         </div>
       </div>

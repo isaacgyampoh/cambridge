@@ -6,11 +6,11 @@ import { UserCheck, RefreshCw, MessageSquare } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 
 const S: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800' },
-  awaiting_forms: { label: 'Awaiting Forms', color: 'bg-blue-100 text-blue-700' },
-  awaiting_payment: { label: 'Awaiting Payment', color: 'bg-orange-100 text-orange-700' },
-  admitted: { label: 'Admitted ✓', color: 'bg-green-100 text-green-700' },
-  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-600' },
+  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800'},
+  awaiting_forms: { label: 'Awaiting Forms', color: 'bg-blue-100 text-blue-700'},
+  awaiting_payment: { label: 'Awaiting Payment', color: 'bg-orange-100 text-orange-700'},
+  admitted: { label: 'Admitted ', color: 'bg-green-100 text-green-700'},
+  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-600'},
 }
 
 export default function AdmissionPage() {
@@ -36,7 +36,7 @@ export default function AdmissionPage() {
     setActing(id)
     try {
       await mutate('PATCH', 'admissions',
-        { status, ...(status==='admitted' ? {offer_letter_sent_at: new Date().toISOString()} : {}) },
+        { status, ...(status==='admitted'? {offer_letter_sent_at: new Date().toISOString()} : {}) },
         [{ col: 'id', val: id }]
       )
       toast.success(`Updated to: ${S[status]?.label || status}`)
@@ -48,7 +48,7 @@ export default function AdmissionPage() {
     }
   }
 
-  const filtered = filter === 'all' ? admissions : admissions.filter(a => a.status === filter)
+  const filtered = filter === 'all'? admissions : admissions.filter(a => a.status === filter)
 
   const stats = {
     total: admissions.length,
@@ -67,20 +67,20 @@ export default function AdmissionPage() {
         </div>
         <button onClick={() => { refetchA(); refetchApp() }}
           className="h-9 w-9 flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
         </button>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total', value: stats.total, color: 'text-blue-600 bg-blue-50' },
-          { label: 'Pending', value: stats.pending, color: 'text-yellow-600 bg-yellow-50' },
-          { label: 'Awaiting Payment', value: stats.awaitingPayment, color: 'text-orange-600 bg-orange-50' },
-          { label: 'Admitted', value: stats.admitted, color: 'text-green-600 bg-green-50' },
+          { label: 'Total', value: stats.total, color: 'text-blue-600 bg-blue-50'},
+          { label: 'Pending', value: stats.pending, color: 'text-yellow-600 bg-yellow-50'},
+          { label: 'Awaiting Payment', value: stats.awaitingPayment, color: 'text-orange-600 bg-orange-50'},
+          { label: 'Admitted', value: stats.admitted, color: 'text-green-600 bg-green-50'},
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100 text-center">
-            <div className={`text-2xl font-bold ${s.color.split(' ')[0]}`}>{s.value}</div>
+            <div className={`text-2xl font-bold ${s.color.split('')[0]}`}>{s.value}</div>
             <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -96,14 +96,14 @@ export default function AdmissionPage() {
         ))}
       </div>
 
-      {tab === 'admissions' && (
+      {tab === 'admissions'&& (
         <>
           {/* Filter pills */}
           <div className="flex flex-wrap gap-1.5 mb-4">
             {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
                 className={`h-8 px-3 rounded-xl text-xs font-semibold transition capitalize ${filter===f?'bg-gray-900 text-white':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
-                {f.replace(/_/g,' ')}
+                {f.replace(/_/g,'')}
               </button>
             ))}
           </div>
@@ -136,7 +136,7 @@ export default function AdmissionPage() {
                         </div>
                         <div className="text-xs text-gray-500">{lead?.phone} {lead?.email ? `· ${lead.email}` : ''}</div>
                         {(a.course?.name || lead?.course_interest) && (
-                          <div className="text-xs text-blue-600 font-medium mt-0.5">📚 {a.course?.name || lead?.course_interest}</div>
+                          <div className="text-xs text-blue-600 font-medium mt-0.5"> {a.course?.name || lead?.course_interest}</div>
                         )}
                         <div className="text-[10px] text-gray-400 mt-1">{formatDateTime(a.created_at)}</div>
                       </div>
@@ -146,7 +146,7 @@ export default function AdmissionPage() {
                     </div>
 
                     <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-50">
-                      {a.status === 'pending' && <>
+                      {a.status === 'pending'&& <>
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'awaiting_forms')}
                           className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
                           Request Forms
@@ -159,7 +159,7 @@ export default function AdmissionPage() {
                       {['awaiting_forms','awaiting_payment'].includes(a.status) && (
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'admitted')}
                           className="px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition">
-                          ✓ Admit Student
+                           Admit Student
                         </button>
                       )}
                       {!['rejected','admitted'].includes(a.status) && (
@@ -170,7 +170,7 @@ export default function AdmissionPage() {
                       )}
                       {lead?.phone && (
                         <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/[^0-9]/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name}, regarding your admission at Cambridge Centre of Excellence...`)}`}
-                          target="_blank" rel="noopener noreferrer"
+                          target="_blank"rel="noopener noreferrer"
                           className="px-3 py-1.5 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition flex items-center gap-1">
                           <MessageSquare size={12} /> WhatsApp
                         </a>
@@ -184,7 +184,7 @@ export default function AdmissionPage() {
         </>
       )}
 
-      {tab === 'applications' && (
+      {tab === 'applications'&& (
         <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
           {loadApp ? (
             <div className="flex justify-center py-16">

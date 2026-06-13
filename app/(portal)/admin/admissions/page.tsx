@@ -9,7 +9,7 @@ const S: Record<string,{label:string;color:string}> = {
   pending:{label:'Pending',color:'bg-yellow-100 text-yellow-800'},
   awaiting_forms:{label:'Awaiting Forms',color:'bg-blue-100 text-blue-700'},
   awaiting_payment:{label:'Awaiting Payment',color:'bg-orange-100 text-orange-700'},
-  admitted:{label:'Admitted ✓',color:'bg-green-100 text-green-700'},
+  admitted:{label:'Admitted ',color:'bg-green-100 text-green-700'},
   rejected:{label:'Rejected',color:'bg-red-100 text-red-600'},
 }
 
@@ -28,7 +28,7 @@ export default function AdminAdmissions() {
     toast.success('Updated'); setActing(null); refetch()
   }
 
-  const filtered = filter === 'all' ? data : data.filter(a => a.status === filter)
+  const filtered = filter === 'all'? data : data.filter(a => a.status === filter)
 
   return (
     <div className="fade-in">
@@ -41,7 +41,7 @@ export default function AdminAdmissions() {
       <div className="flex flex-wrap gap-1.5 mb-4">
         {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
           <button key={f} onClick={() => setFilter(f)} className={`h-8 px-3 rounded-xl text-xs font-semibold capitalize transition ${filter===f?'bg-gray-900 text-white':'bg-white text-gray-500 border border-gray-200'}`}>
-            {f.replace(/_/g,' ')}
+            {f.replace(/_/g,'')}
           </button>
         ))}
       </div>
@@ -61,7 +61,7 @@ export default function AdminAdmissions() {
                 </div>
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-gray-50">
                   {a.status==='pending'&&<><button disabled={acting===a.id} onClick={()=>updateStatus(a.id,'awaiting_forms')} className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 transition">Request Forms</button><button disabled={acting===a.id} onClick={()=>updateStatus(a.id,'awaiting_payment')} className="px-3 py-1.5 bg-orange-500 text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition">Awaiting Payment</button></>}
-                  {['awaiting_forms','awaiting_payment'].includes(a.status)&&<button disabled={acting===a.id} onClick={()=>updateStatus(a.id,'admitted')} className="px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition">✓ Admit</button>}
+                  {['awaiting_forms','awaiting_payment'].includes(a.status)&&<button disabled={acting===a.id} onClick={()=>updateStatus(a.id,'admitted')} className="px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition"> Admit</button>}
                   {!['rejected','admitted'].includes(a.status)&&<button disabled={acting===a.id} onClick={()=>updateStatus(a.id,'rejected')} className="px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-semibold hover:bg-red-100 disabled:opacity-50 transition">Reject</button>}
                 </div>
               </div>

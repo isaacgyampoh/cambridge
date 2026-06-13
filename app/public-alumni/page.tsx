@@ -36,7 +36,7 @@ export default async function PublicAlumniPage() {
             </div>
             <div className="w-px h-10 bg-white/20" />
             <div className="text-center">
-              <div className="text-3xl font-black">5★</div>
+              <div className="text-3xl font-black">5</div>
               <div className="text-blue-300 text-sm">Rating</div>
             </div>
           </div>
@@ -48,7 +48,7 @@ export default async function PublicAlumniPage() {
         {featured.length > 0 && (
           <div className="mb-12">
             <div className="flex items-center gap-2 mb-6">
-              <Star size={18} className="text-yellow-500" fill="currentColor" />
+              <Star size={18} className="text-yellow-500"fill="currentColor" />
               <h2 className="text-xl font-bold text-gray-900">Featured Success Stories</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
@@ -63,7 +63,7 @@ export default async function PublicAlumniPage() {
                       </div>
                     </div>
                     <div className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1.5">
-                      <Star size={14} className="text-yellow-900" fill="currentColor" />
+                      <Star size={14} className="text-yellow-900"fill="currentColor" />
                     </div>
                   </div>
                   <div className="pt-10 px-6 pb-6">
@@ -71,7 +71,7 @@ export default async function PublicAlumniPage() {
                     {(a.current_job_title || a.current_company) && (
                       <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-0.5">
                         <Briefcase size={13} />
-                        {[a.current_job_title, a.current_company].filter(Boolean).join(' at ')}
+                        {[a.current_job_title, a.current_company].filter(Boolean).join('at ')}
                       </div>
                     )}
                     <div className="flex items-center gap-1.5 text-sm text-blue-600 mt-0.5">
@@ -92,7 +92,7 @@ export default async function PublicAlumniPage() {
                     {a.linkedin_url && (
                       <a href={a.linkedin_url} target="_blank"
                         className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
-                        🔗 View LinkedIn Profile
+                         View LinkedIn Profile
                       </a>
                     )}
                   </div>
@@ -124,7 +124,7 @@ export default async function PublicAlumniPage() {
                   {(a.current_job_title || a.current_company) && (
                     <div className="text-xs text-gray-500 flex items-center gap-1 mb-2">
                       <Briefcase size={11} />
-                      {[a.current_job_title, a.current_company].filter(Boolean).join(' at ')}
+                      {[a.current_job_title, a.current_company].filter(Boolean).join('at ')}
                     </div>
                   )}
 

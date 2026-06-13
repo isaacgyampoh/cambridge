@@ -36,20 +36,20 @@ export default function StudentDashboard() {
       {/* Welcome banner */}
       <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-2xl p-5 mb-5 text-white">
         <div className="text-sm opacity-70 mb-0.5">Welcome back,</div>
-        <div className="text-2xl font-black">{myName.split(' ')[0] || 'Student'} 👋</div>
+        <div className="text-2xl font-black">{myName.split('')[0] || 'Student'} </div>
         <div className="text-xs opacity-60 mt-1">Cambridge Centre of Excellence</div>
       </div>
 
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: 'Enrolled', value: enrollments.length, icon: BookOpen, color: 'text-blue-600 bg-blue-50' },
-          { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-purple-600 bg-purple-50' },
-          { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-red-600 bg-red-50' : 'text-green-600 bg-green-50' },
+          { label: 'Enrolled', value: enrollments.length, icon: BookOpen, color: 'text-blue-600 bg-blue-50'},
+          { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-purple-600 bg-purple-50'},
+          { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-red-600 bg-red-50': 'text-green-600 bg-green-50'},
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl border border-gray-100 p-4 text-center">
-            <div className={`w-9 h-9 rounded-xl ${s.color.split(' ')[1]} flex items-center justify-center mb-2 mx-auto`}>
-              <s.icon size={17} className={s.color.split(' ')[0]} />
+            <div className={`w-9 h-9 rounded-xl ${s.color.split('')[1]} flex items-center justify-center mb-2 mx-auto`}>
+              <s.icon size={17} className={s.color.split('')[0]} />
             </div>
             <div className="text-lg font-bold text-gray-900">{s.value}</div>
             <div className="text-xs text-gray-400">{s.label}</div>
@@ -95,7 +95,7 @@ export default function StudentDashboard() {
               {inv.due_date && <div className="text-xs text-gray-400">Due: {formatDate(inv.due_date)}</div>}
             </div>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(inv.outstanding)===0?'bg-green-100 text-green-700':'bg-red-100 text-red-600'}`}>
-              {Number(inv.outstanding)===0 ? 'Paid ✓' : `Owes ${formatGHS(inv.outstanding)}`}
+              {Number(inv.outstanding)===0 ? 'Paid ': `Owes ${formatGHS(inv.outstanding)}`}
             </span>
           </div>
         ))}

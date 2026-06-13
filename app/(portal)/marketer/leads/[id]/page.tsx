@@ -7,21 +7,21 @@ import { ArrowLeft, Phone, MessageSquare, Mail, Calendar, Plus, Clock } from 'lu
 import Link from 'next/link'
 
 const STATUSES = [
-  { key: 'new', label: 'New' },
-  { key: 'contacted', label: 'Contacted' },
-  { key: 'interested', label: 'Interested' },
-  { key: 'follow_up', label: 'Follow Up' },
-  { key: 'ready_to_join', label: 'Ready to Join 🚀' },
-  { key: 'not_interested', label: 'Not Interested' },
-  { key: 'lost', label: 'Lost' },
+  { key: 'new', label: 'New'},
+  { key: 'contacted', label: 'Contacted'},
+  { key: 'interested', label: 'Interested'},
+  { key: 'follow_up', label: 'Follow Up'},
+  { key: 'ready_to_join', label: 'Ready to Join '},
+  { key: 'not_interested', label: 'Not Interested'},
+  { key: 'lost', label: 'Lost'},
 ]
 
 const ACTIVITY_TYPES = [
-  { key: 'call', label: '📞 Call', color: 'bg-green-100 text-green-700' },
-  { key: 'whatsapp', label: '💬 WhatsApp', color: 'bg-emerald-100 text-emerald-700' },
-  { key: 'email', label: '📧 Email', color: 'bg-blue-100 text-blue-700' },
-  { key: 'meeting', label: '🤝 Meeting', color: 'bg-purple-100 text-purple-700' },
-  { key: 'note', label: '📝 Note', color: 'bg-gray-100 text-gray-700' },
+  { key: 'call', label: 'Call', color: 'bg-green-100 text-green-700'},
+  { key: 'whatsapp', label: 'WhatsApp', color: 'bg-emerald-100 text-emerald-700'},
+  { key: 'email', label: 'Email', color: 'bg-blue-100 text-blue-700'},
+  { key: 'meeting', label: 'Meeting', color: 'bg-purple-100 text-purple-700'},
+  { key: 'note', label: 'Note', color: 'bg-gray-100 text-gray-700'},
 ]
 
 
@@ -108,7 +108,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
       if (newStatus === 'ready_to_join') {
         await fetch('/api/admissions', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          headers: { 'Content-Type': 'application/json'},
           body: JSON.stringify({ leadId: id }),
         })
         toast.success('Status updated! Admissions team notified.')
@@ -124,7 +124,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   async function sendQuickWA(template: string) {
     if (!lead?.phone) return
     const phone = lead.phone.replace(/^0/, '233').replace(/^\+/, '')
-    const msg = template.replace('{{name}}', lead.full_name.split(' ')[0])
+    const msg = template.replace('{{name}}', lead.full_name.split('')[0])
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
     // Log the activity
     try {
@@ -140,14 +140,14 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   if (!lead) return <div className="text-center py-20 text-gray-400">Lead not found</div>
 
   const WA_TEMPLATES = [
-    `Hello {{name}}! This is ${profile?.full_name?.split(' ')[0]} from Cambridge Centre of Excellence. I'm reaching out to follow up on your interest in our programs. Are you still interested? 😊`,
-    `Hi {{name}}! Just checking in from Cambridge CE. We have a new intake starting soon. Would you like to know more? 🎓`,
-    `Hello {{name}}! I wanted to share something exciting — we have a special offer this month at Cambridge CE. Can I tell you more? 🚀`,
+    `Hello {{name}}! This is ${profile?.full_name?.split('')[0]} from Cambridge Centre of Excellence. I'm reaching out to follow up on your interest in our programs. Are you still interested? `,
+    `Hi {{name}}! Just checking in from Cambridge CE. We have a new intake starting soon. Would you like to know more? `,
+    `Hello {{name}}! I wanted to share something exciting — we have a special offer this month at Cambridge CE. Can I tell you more? `,
   ]
 
   return (
     <div className="fade-in w-full">
-      <Link href="/marketer" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-5 transition">
+      <Link href="/marketer"className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-5 transition">
         <ArrowLeft size={16} /> Back to my leads
       </Link>
 
@@ -165,7 +165,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <h1 className="text-xl font-bold text-gray-900">{lead.full_name}</h1>
                   <div className="flex gap-2 mt-1 flex-wrap">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, ' ')}</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, '')}</span>
                   </div>
                 </div>
               </div>
@@ -192,7 +192,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
             {lead.course_interest && (
               <div className="bg-blue-50 rounded-xl px-3 py-2 text-sm text-blue-700 mb-4">
-                📚 Interested in: <strong>{lead.course_interest}</strong>
+                 Interested in: <strong>{lead.course_interest}</strong>
               </div>
             )}
 
@@ -227,7 +227,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 {WA_TEMPLATES.map((t, i) => (
                   <button key={i} onClick={() => sendQuickWA(t)}
                     className="w-full text-left p-3 bg-gray-50 rounded-xl text-xs text-gray-600 hover:bg-green-50 hover:text-green-700 hover:border-green-200 border border-transparent transition line-clamp-2">
-                    {t.replace('{{name}}', lead.full_name.split(' ')[0])}
+                    {t.replace('{{name}}', lead.full_name.split('')[0])}
                   </button>
                 ))}
               </div>
@@ -242,7 +242,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div className="flex flex-wrap gap-2 mb-4">
               {ACTIVITY_TYPES.map(t => (
                 <button key={t.key} onClick={() => setActType(t.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-blue-600 bg-blue-50 text-blue-700': 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                   {t.label}
                 </button>
               ))}
@@ -270,7 +270,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <button onClick={logActivity} disabled={savingAct}
                 className="w-full h-11 bg-blue-600 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-blue-700 transition flex items-center justify-center gap-2">
                 <Plus size={16} />
-                {savingAct ? 'Saving...' : 'Log Activity'}
+                {savingAct ? 'Saving...': 'Log Activity'}
               </button>
             </div>
           </div>
@@ -287,7 +287,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   return (
                     <div key={a.id} className="flex gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs ${at?.color || 'bg-gray-100 text-gray-600'}`}>
-                        {at?.label.split(' ')[0]}
+                        {at?.label.split('')[0]}
                       </div>
                       <div className="flex-1 pb-3 border-b border-gray-50 last:border-0">
                         <div className="text-sm font-semibold text-gray-900">{a.subject}</div>
@@ -317,7 +317,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               {STATUSES.map(s => (
                 <button key={s.key} onClick={() => setNewStatus(s.key)}
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold border-2 transition ${
-                    newStatus === s.key ? STATUS_COLORS[s.key] + ' border-current' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    newStatus === s.key ? STATUS_COLORS[s.key] + 'border-current': 'border-gray-200 text-gray-600 hover:border-gray-300'
                   }`}>
                   {s.label}
                 </button>

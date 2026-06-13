@@ -30,7 +30,7 @@ export default function ActivitiesPage() {
 
     const filters: { col: string; op: string; val: any }[] = [
       { col: 'marketer_id', op: 'eq', val: userId },
-      { col: 'status', op: 'eq', val: 'pending' },
+      { col: 'status', op: 'eq', val: 'pending'},
     ]
     if (filter === 'today') filters.push({ col: 'follow_up_at', op: 'lte', val: today.toISOString() })
     else if (filter === 'overdue') filters.push({ col: 'follow_up_at', op: 'lte', val: now.toISOString() })
@@ -64,8 +64,8 @@ export default function ActivitiesPage() {
   async function snooze(id: string, hours: number) {
     try {
       const newTime = new Date(Date.now() + hours * 3600000).toISOString()
-      await mutate('PATCH', 'follow_up_queue', { follow_up_at: newTime, status: 'snoozed' }, [{ col: 'id', val: id }])
-      toast.success(`Snoozed for ${hours} hour${hours > 1 ? 's' : ''}`)
+      await mutate('PATCH', 'follow_up_queue', { follow_up_at: newTime, status: 'snoozed'}, [{ col: 'id', val: id }])
+      toast.success(`Snoozed for ${hours} hour${hours > 1 ? 's': ''}`)
       if (profile) loadQueue(profile.id)
     } catch (e: any) {
       toast.error(e.message || 'Failed to snooze')
@@ -87,7 +87,7 @@ export default function ActivitiesPage() {
         <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 flex items-center gap-3">
           <AlertTriangle size={20} className="text-red-500 flex-shrink-0" />
           <div>
-            <div className="text-sm font-bold text-red-700">{overdue.length} overdue follow-up{overdue.length > 1 ? 's' : ''}!</div>
+            <div className="text-sm font-bold text-red-700">{overdue.length} overdue follow-up{overdue.length > 1 ? 's': ''}!</div>
             <div className="text-xs text-red-600">These should have been done already. Take action now.</div>
           </div>
         </div>
@@ -96,12 +96,12 @@ export default function ActivitiesPage() {
       {/* Filter tabs */}
       <div className="flex gap-2 mb-5">
         {[
-          { key: 'today', label: 'Due Today' },
-          { key: 'overdue', label: 'Overdue' },
-          { key: 'all', label: 'All Pending' },
+          { key: 'today', label: 'Due Today'},
+          { key: 'overdue', label: 'Overdue'},
+          { key: 'all', label: 'All Pending'},
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${filter === f.key ? 'bg-blue-600 text-white' : 'bg-white text-gray-600 border border-gray-200'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${filter === f.key ? 'bg-blue-600 text-white': 'bg-white text-gray-600 border border-gray-200'}`}>
             {f.label}
           </button>
         ))}
@@ -112,7 +112,7 @@ export default function ActivitiesPage() {
       ) : queue.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
           <CheckCircle size={40} className="mx-auto mb-3 opacity-30 text-green-500" />
-          <p className="font-medium">All caught up! 🎉</p>
+          <p className="font-medium">All caught up! </p>
           <p className="text-sm mt-1">No follow-ups due. Keep up the great work!</p>
         </div>
       ) : (
@@ -121,7 +121,7 @@ export default function ActivitiesPage() {
             const lead = item.lead
             const isOverdue = new Date(item.follow_up_at) < new Date()
             return (
-              <div key={item.id} className={`bg-white rounded-2xl border-2 p-4 ${isOverdue ? 'border-red-200' : 'border-gray-200'}`}>
+              <div key={item.id} className={`bg-white rounded-2xl border-2 p-4 ${isOverdue ? 'border-red-200': 'border-gray-200'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -131,11 +131,11 @@ export default function ActivitiesPage() {
                       </Link>
                       {isOverdue && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">OVERDUE</span>}
                     </div>
-                    {lead?.course_interest && <div className="text-xs text-blue-600 mb-1">📚 {lead.course_interest}</div>}
+                    {lead?.course_interest && <div className="text-xs text-blue-600 mb-1"> {lead.course_interest}</div>}
                     {item.reason && <div className="text-xs text-gray-500 mb-2 line-clamp-2">{item.reason}</div>}
                     <div className="flex items-center gap-1 text-xs text-gray-400">
                       <Clock size={11} />
-                      <span className={isOverdue ? 'text-red-500 font-semibold' : ''}>{formatDateTime(item.follow_up_at)}</span>
+                      <span className={isOverdue ? 'text-red-500 font-semibold': ''}>{formatDateTime(item.follow_up_at)}</span>
                     </div>
                   </div>
 

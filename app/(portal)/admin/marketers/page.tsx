@@ -30,7 +30,7 @@ interface MarketerStats {
   applicationsPaid: number
   revenueGenerated: number
   // Status
-  status: 'active' | 'inactive' | 'at_risk' | 'top_performer'
+  status: 'active'| 'inactive'| 'at_risk'| 'top_performer'
 }
 
 
@@ -49,7 +49,7 @@ export default function MarketerPerformancePage() {
   const [selected, setSelected] = useState<MarketerStats | null>(null)
   const [alertMsg, setAlertMsg] = useState('')
   const [sendingAlert, setSendingAlert] = useState(false)
-  const [view, setView] = useState<'table' | 'cards'>('cards')
+  const [view, setView] = useState<'table'| 'cards'>('cards')
   useEffect(() => { load() }, [range])
 
   async function load() {
@@ -57,7 +57,7 @@ export default function MarketerPerformancePage() {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
 
     const profiles = await apiQuery('profiles', '*', [
-      { col: 'role', op: 'eq', val: 'marketing_officer' },
+      { col: 'role', op: 'eq', val: 'marketing_officer'},
       { col: 'is_active', op: 'eq', val: true },
     ])
 
@@ -145,16 +145,16 @@ export default function MarketerPerformancePage() {
     await mutate('POST', 'notifications', {
       user_id: marketer.id,
       type: 'system',
-      title: '📊 Performance Alert from Management',
+      title: 'Performance Alert from Management',
       body: alertMsg,
-      data: { from: 'admin', type: 'performance_alert' },
+      data: { from: 'admin', type: 'performance_alert'},
     })
 
     // SMS if phone available
     if (marketer.phone) {
       await fetch('/api/sms', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify({ phone: marketer.phone, message: `CCE Management: ${alertMsg}` }),
       })
     }
@@ -166,10 +166,10 @@ export default function MarketerPerformancePage() {
   }
 
   const STATUS_CONFIG = {
-    top_performer: { label: '🏆 Top Performer', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', bg: 'border-yellow-300' },
-    active: { label: '✅ Active', color: 'bg-green-100 text-green-700 border-green-200', bg: 'border-green-200' },
-    at_risk: { label: '⚠️ At Risk', color: 'bg-orange-100 text-orange-700 border-orange-200', bg: 'border-orange-300' },
-    inactive: { label: '❌ Inactive', color: 'bg-red-100 text-red-700 border-red-200', bg: 'border-red-300' },
+    top_performer: { label: 'Top Performer', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', bg: 'border-yellow-300'},
+    active: { label: 'Active', color: 'bg-green-100 text-green-700 border-green-200', bg: 'border-green-200'},
+    at_risk: { label: 'At Risk', color: 'bg-orange-100 text-orange-700 border-orange-200', bg: 'border-orange-300'},
+    inactive: { label: 'Inactive', color: 'bg-red-100 text-red-700 border-red-200', bg: 'border-red-300'},
   }
 
   const summary = {
@@ -203,14 +203,14 @@ export default function MarketerPerformancePage() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Top Performers', value: summary.topPerformers, color: 'text-yellow-600 bg-yellow-50', icon: '🏆' },
-          { label: 'Active', value: summary.active, color: 'text-green-600 bg-green-50', icon: '✅' },
-          { label: 'At Risk', value: summary.atRisk, color: 'text-orange-600 bg-orange-50', icon: '⚠️' },
-          { label: 'Inactive', value: summary.inactive, color: 'text-red-600 bg-red-50', icon: '❌' },
+          { label: 'Top Performers', value: summary.topPerformers, color: 'text-yellow-600 bg-yellow-50', icon: ''},
+          { label: 'Active', value: summary.active, color: 'text-green-600 bg-green-50', icon: ''},
+          { label: 'At Risk', value: summary.atRisk, color: 'text-orange-600 bg-orange-50', icon: ''},
+          { label: 'Inactive', value: summary.inactive, color: 'text-red-600 bg-red-50', icon: ''},
         ].map(k => (
           <div key={k.label} className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
             <div className="text-2xl mb-1">{k.icon}</div>
-            <div className={`text-2xl font-bold ${k.color.split(' ')[0]}`}>{k.value}</div>
+            <div className={`text-2xl font-bold ${k.color.split('')[0]}`}>{k.value}</div>
             <div className="text-sm text-gray-500 mt-0.5">{k.label}</div>
           </div>
         ))}
@@ -237,21 +237,21 @@ export default function MarketerPerformancePage() {
       {(
         <Modal open={!!selected} onClose={() => { setSelected(null); setAlertMsg('') }} maxWidth="max-w-sm">
           {selected && <div className="p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Send Alert to {selected.full_name.split('')[0]}</h2>
             <p className="text-sm text-gray-500 mb-4">This will send an in-app notification and SMS.</p>
             <div className="bg-orange-50 rounded-xl p-3 mb-4 text-xs text-orange-700">
               <strong>Performance snapshot:</strong><br />
-              {selected.totalLeads} leads · {selected.convertedLeads} converted ({selected.conversionRate}%) · {selected.uncontactedLeads} uncontacted · Last active: {selected.daysSinceActivity === 999 ? 'Never' : `${selected.daysSinceActivity} days ago`}
+              {selected.totalLeads} leads · {selected.convertedLeads} converted ({selected.conversionRate}%) · {selected.uncontactedLeads} uncontacted · Last active: {selected.daysSinceActivity === 999 ? 'Never': `${selected.daysSinceActivity} days ago`}
             </div>
             <textarea value={alertMsg} onChange={e => setAlertMsg(e.target.value)} rows={4}
-              placeholder={`Hi ${selected.full_name.split(' ')[0]}, we noticed you have ${selected.uncontactedLeads} uncontacted leads...`}
+              placeholder={`Hi ${selected.full_name.split('')[0]}, we noticed you have ${selected.uncontactedLeads} uncontacted leads...`}
               className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl resize-none focus:outline-none focus:border-blue-500 mb-4" />
             {/* Quick templates */}
             <div className="flex flex-wrap gap-1.5 mb-4">
               {[
-                `Hi ${selected.full_name.split(' ')[0]}, you have ${selected.uncontactedLeads} uncontacted leads. Please reach out to them today.`,
-                `Hi ${selected.full_name.split(' ')[0]}, your conversion rate is ${selected.conversionRate}%. Let's discuss how we can improve this.`,
-                `Hi ${selected.full_name.split(' ')[0]}, we haven't seen any activity in ${selected.daysSinceActivity} days. Please update your leads.`,
+                `Hi ${selected.full_name.split('')[0]}, you have ${selected.uncontactedLeads} uncontacted leads. Please reach out to them today.`,
+                `Hi ${selected.full_name.split('')[0]}, your conversion rate is ${selected.conversionRate}%. Let's discuss how we can improve this.`,
+                `Hi ${selected.full_name.split('')[0]}, we haven't seen any activity in ${selected.daysSinceActivity} days. Please update your leads.`,
               ].map((t, i) => (
                 <button key={i} onClick={() => setAlertMsg(t)}
                   className="text-[10px] px-2 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition text-left">
@@ -263,7 +263,7 @@ export default function MarketerPerformancePage() {
               <button onClick={() => sendAlert(selected)} disabled={sendingAlert || !alertMsg.trim()}
                 className="flex-1 h-11 bg-orange-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-orange-600 transition flex items-center justify-center gap-2">
                 <Bell size={16} />
-                {sendingAlert ? 'Sending...' : 'Send Alert'}
+                {sendingAlert ? 'Sending...': 'Send Alert'}
               </button>
               <button onClick={() => { setSelected(null); setAlertMsg('') }}
                 className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
@@ -293,9 +293,9 @@ export default function MarketerPerformancePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    {m.status === 'inactive' && (
+                    {m.status === 'inactive'&& (
                       <div className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
-                        {m.daysSinceActivity === 999 ? 'Never active' : `${m.daysSinceActivity} days idle`}
+                        {m.daysSinceActivity === 999 ? 'Never active': `${m.daysSinceActivity} days idle`}
                       </div>
                     )}
                     <button onClick={() => setSelected(m)}
@@ -315,8 +315,8 @@ export default function MarketerPerformancePage() {
                     { label: 'Calls/wk', value: m.callsThisWeek, icon: Phone },
                     { label: 'WA/wk', value: m.waThisWeek, icon: MessageSquare },
                   ].map(s => (
-                    <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-red-50' : 'bg-gray-50'}`}>
-                      <div className={`text-xl font-bold ${(s as any).alert ? 'text-red-600' : 'text-gray-900'}`}>{s.value}</div>
+                    <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-red-50': 'bg-gray-50'}`}>
+                      <div className={`text-xl font-bold ${(s as any).alert ? 'text-red-600': 'text-gray-900'}`}>{s.value}</div>
                       <div className="text-[10px] text-gray-500 mt-0.5">{s.label}</div>
                     </div>
                   ))}
@@ -331,18 +331,18 @@ export default function MarketerPerformancePage() {
                     </div>
                     <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex">
                       {m.totalLeads > 0 && <>
-                        <div className="h-full bg-green-500" style={{ width: `${m.convertedLeads/m.totalLeads*100}%` }} title="Converted" />
-                        <div className="h-full bg-blue-400" style={{ width: `${m.interestedLeads/m.totalLeads*100}%` }} title="Interested" />
-                        <div className="h-full bg-yellow-400" style={{ width: `${m.contactedLeads/m.totalLeads*100}%` }} title="Contacted" />
-                        <div className="h-full bg-gray-200" style={{ width: `${m.uncontactedLeads/m.totalLeads*100}%` }} title="New/Uncontacted" />
+                        <div className="h-full bg-green-500"style={{ width: `${m.convertedLeads/m.totalLeads*100}%` }} title="Converted" />
+                        <div className="h-full bg-blue-400"style={{ width: `${m.interestedLeads/m.totalLeads*100}%` }} title="Interested" />
+                        <div className="h-full bg-yellow-400"style={{ width: `${m.contactedLeads/m.totalLeads*100}%` }} title="Contacted" />
+                        <div className="h-full bg-gray-200"style={{ width: `${m.uncontactedLeads/m.totalLeads*100}%` }} title="New/Uncontacted" />
                       </>}
                     </div>
                     <div className="flex gap-3 mt-1">
                       {[
-                        { color: 'bg-green-500', label: 'Converted' },
-                        { color: 'bg-blue-400', label: 'Interested' },
-                        { color: 'bg-yellow-400', label: 'Contacted' },
-                        { color: 'bg-gray-200', label: 'New' },
+                        { color: 'bg-green-500', label: 'Converted'},
+                        { color: 'bg-blue-400', label: 'Interested'},
+                        { color: 'bg-yellow-400', label: 'Contacted'},
+                        { color: 'bg-gray-200', label: 'New'},
                       ].map(l => (
                         <div key={l.label} className="flex items-center gap-1 text-[9px] text-gray-400">
                           <div className={`w-2 h-2 rounded-full ${l.color}`} />
@@ -366,7 +366,7 @@ export default function MarketerPerformancePage() {
                     </div>
                     {m.lastActivityDate && (
                       <div>
-                        <div className="font-bold text-gray-700">{m.daysSinceActivity === 0 ? 'Today' : `${m.daysSinceActivity}d ago`}</div>
+                        <div className="font-bold text-gray-700">{m.daysSinceActivity === 0 ? 'Today': `${m.daysSinceActivity}d ago`}</div>
                         <div>Last Active</div>
                       </div>
                     )}

@@ -17,7 +17,7 @@ const METHOD_COLOR: Record<string, string> = {
 export default function FinancePage() {
   const [tab, setTab] = useState<'payments'|'invoices'>('payments')
   const [showModal, setShowModal] = useState(false)
-  const [form, setForm] = useState({ student_id:'', amount:'', method:'cash', notes:'' })
+  const [form, setForm] = useState({ student_id:'', amount:'', method:'cash', notes:''})
   const [saving, setSaving] = useState(false)
 
   const { data: payments, loading: loadP, refetch: refetchP } = useData({
@@ -35,7 +35,7 @@ export default function FinancePage() {
   const { data: students } = useData({
     table: 'profiles',
     select: 'id, full_name, phone',
-    filters: [{ col: 'role', op: 'eq', val: 'student' }, { col: 'is_active', op: 'eq', val: true }],
+    filters: [{ col: 'role', op: 'eq', val: 'student'}, { col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', orderAsc: true,
   })
 
@@ -43,7 +43,7 @@ export default function FinancePage() {
   const totalRevenue = payments.filter(p => p.status === 'paid').reduce((a,p) => a + Number(p.amount), 0)
   const outstanding = invoices.reduce((a,i) => a + Number(i.outstanding || 0), 0)
   const todayRev = payments
-    .filter(p => p.status==='paid' && p.paid_at?.startsWith(new Date().toISOString().slice(0,10)))
+    .filter(p => p.status==='paid'&& p.paid_at?.startsWith(new Date().toISOString().slice(0,10)))
     .reduce((a,p) => a + Number(p.amount), 0)
 
   async function recordPayment() {
@@ -58,9 +58,9 @@ export default function FinancePage() {
         notes: form.notes || null,
         paid_at: new Date().toISOString(),
       })
-      toast.success('✅ Payment recorded!')
+      toast.success('Payment recorded!')
       setShowModal(false)
-      setForm({ student_id:'', amount:'', method:'cash', notes:'' })
+      setForm({ student_id:'', amount:'', method:'cash', notes:''})
       refetchP()
     } catch (e: any) {
       toast.error(e.message)
@@ -92,7 +92,7 @@ export default function FinancePage() {
           </Link>
           <button onClick={() => { refetchP(); refetchI() }}
             className="h-9 w-9 flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
           </button>
         </div>
       </div>
@@ -100,14 +100,14 @@ export default function FinancePage() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total Revenue', value: formatGHS(totalRevenue), icon: TrendingUp, c: 'text-green-600 bg-green-50 border-green-100' },
-          { label: "Today", value: formatGHS(todayRev), icon: DollarSign, c: 'text-blue-600 bg-blue-50 border-blue-100' },
-          { label: 'Transactions', value: payments.filter(p=>p.status==='paid').length, icon: DollarSign, c: 'text-purple-600 bg-purple-50 border-purple-100' },
-          { label: 'Outstanding', value: formatGHS(outstanding), icon: AlertCircle, c: outstanding>0?'text-red-600 bg-red-50 border-red-100':'text-green-600 bg-green-50 border-green-100' },
+          { label: 'Total Revenue', value: formatGHS(totalRevenue), icon: TrendingUp, c: 'text-green-600 bg-green-50 border-green-100'},
+          { label: "Today", value: formatGHS(todayRev), icon: DollarSign, c: 'text-blue-600 bg-blue-50 border-blue-100'},
+          { label: 'Transactions', value: payments.filter(p=>p.status==='paid').length, icon: DollarSign, c: 'text-purple-600 bg-purple-50 border-purple-100'},
+          { label: 'Outstanding', value: formatGHS(outstanding), icon: AlertCircle, c: outstanding>0?'text-red-600 bg-red-50 border-red-100':'text-green-600 bg-green-50 border-green-100'},
         ].map(s => (
-          <div key={s.label} className={`bg-white rounded-2xl p-4 border ${s.c.split(' ')[2]}`}>
-            <div className={`w-9 h-9 rounded-xl ${s.c.split(' ')[1]} flex items-center justify-center mb-2`}>
-              <s.icon size={17} className={s.c.split(' ')[0]} />
+          <div key={s.label} className={`bg-white rounded-2xl p-4 border ${s.c.split('')[2]}`}>
+            <div className={`w-9 h-9 rounded-xl ${s.c.split('')[1]} flex items-center justify-center mb-2`}>
+              <s.icon size={17} className={s.c.split('')[0]} />
             </div>
             <div className="text-lg font-bold text-gray-900">{s.value}</div>
             <div className="text-xs text-gray-400">{s.label}</div>
@@ -135,12 +135,12 @@ export default function FinancePage() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Amount (GHS)</label>
                 <input type="number" value={form.amount} onChange={e => setForm(f=>({...f,amount:e.target.value}))}
-                  placeholder="0.00" className="w-full h-11 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                  placeholder="0.00"className="w-full h-11 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
               </div>
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Method</label>
                 <div className="grid grid-cols-2 gap-2">
-                  {[{v:'cash',l:'💵 Cash'},{v:'mobile_money',l:'📱 MoMo'},{v:'bank_transfer',l:'🏦 Bank'},{v:'paystack',l:'💳 Card'}].map(m => (
+                  {[{v:'cash',l:'Cash'},{v:'mobile_money',l:'MoMo'},{v:'bank_transfer',l:'Bank'},{v:'paystack',l:'Card'}].map(m => (
                     <button key={m.v} type="button" onClick={() => setForm(f=>({...f,method:m.v}))}
                       className={`h-10 rounded-xl text-sm font-semibold border-2 transition ${form.method===m.v?'border-blue-600 bg-blue-50 text-blue-700':'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
                       {m.l}
@@ -151,13 +151,13 @@ export default function FinancePage() {
               <div>
                 <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1 block">Notes</label>
                 <input value={form.notes} onChange={e => setForm(f=>({...f,notes:e.target.value}))}
-                  placeholder="Optional" className="w-full h-11 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                  placeholder="Optional"className="w-full h-11 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
               </div>
             </div>
             <div className="flex gap-2 mt-5">
               <button onClick={recordPayment} disabled={saving}
                 className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition">
-                {saving ? 'Saving...' : 'Record Payment'}
+                {saving ? 'Saving...': 'Record Payment'}
               </button>
               <button onClick={() => setShowModal(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">Cancel</button>
             </div>
@@ -181,7 +181,7 @@ export default function FinancePage() {
           <div className="flex items-center justify-center py-20">
             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
-        ) : tab === 'payments' ? (
+        ) : tab === 'payments'? (
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead className="bg-gray-50 border-b border-gray-100">
@@ -207,7 +207,7 @@ export default function FinancePage() {
                     <td className="px-4 py-3 text-sm font-bold text-gray-900">{formatGHS(p.amount)}</td>
                     <td className="px-4 py-3">
                       <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${METHOD_COLOR[p.method]||'bg-gray-100 text-gray-600'}`}>
-                        {p.method?.replace(/_/g,' ') || '—'}
+                        {p.method?.replace(/_/g,'') || '—'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -235,7 +235,7 @@ export default function FinancePage() {
                 {invoices.length === 0 ? (
                   <tr><td colSpan={6} className="text-center py-16 text-gray-300">
                     <p>No invoices yet.</p>
-                    <Link href="/finance/invoices/new" className="text-blue-500 hover:underline text-sm">Create first invoice →</Link>
+                    <Link href="/finance/invoices/new"className="text-blue-500 hover:underline text-sm">Create first invoice →</Link>
                   </td></tr>
                 ) : invoices.map(inv => (
                   <tr key={inv.id} className="border-t border-gray-50 hover:bg-gray-50">

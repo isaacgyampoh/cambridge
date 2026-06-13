@@ -6,33 +6,33 @@ import { toast } from 'sonner'
 import { Plus, X, Check, Copy, Eye, EyeOff, Shield, Phone, Mail, User, Briefcase, Hash } from 'lucide-react'
 
 const ROLES = [
-  { value: 'project_manager',   label: 'Project Manager',    color: 'bg-blue-100 text-blue-700' },
-  { value: 'marketing_officer', label: 'Marketing Officer',  color: 'bg-green-100 text-green-700' },
-  { value: 'admissions_officer',label: 'Admissions Officer', color: 'bg-indigo-100 text-indigo-700' },
-  { value: 'accountant',        label: 'Accountant',         color: 'bg-amber-100 text-amber-700' },
-  { value: 'receptionist',      label: 'Receptionist',       color: 'bg-pink-100 text-pink-700' },
-  { value: 'trainer',           label: 'Trainer',            color: 'bg-orange-100 text-orange-700' },
-  { value: 'super_admin',       label: 'Super Admin',        color: 'bg-purple-100 text-purple-700' },
+  { value: 'project_manager', label: 'Project Manager', color: 'bg-blue-100 text-blue-700'},
+  { value: 'marketing_officer', label: 'Marketing Officer', color: 'bg-green-100 text-green-700'},
+  { value: 'admissions_officer',label: 'Admissions Officer', color: 'bg-indigo-100 text-indigo-700'},
+  { value: 'accountant', label: 'Accountant', color: 'bg-amber-100 text-amber-700'},
+  { value: 'receptionist', label: 'Receptionist', color: 'bg-pink-100 text-pink-700'},
+  { value: 'trainer', label: 'Trainer', color: 'bg-orange-100 text-orange-700'},
+  { value: 'super_admin', label: 'Super Admin', color: 'bg-purple-100 text-purple-700'},
 ]
 
 const ROLE_COLOR: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.color]))
 const ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.label]))
 
-const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '' }
+const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: ''}
 
 export default function StaffPage() {
-  const [showModal, setShowModal]   = useState(false)
-  const [form,      setForm]        = useState({ ...EMPTY })
-  const [saving,    setSaving]      = useState(false)
-  const [creds,     setCreds]       = useState<any>(null)
-  const [showPin,   setShowPin]     = useState(false)
-  const [search,    setSearch]      = useState('')
+  const [showModal, setShowModal] = useState(false)
+  const [form, setForm] = useState({ ...EMPTY })
+  const [saving, setSaving] = useState(false)
+  const [creds, setCreds] = useState<any>(null)
+  const [showPin, setShowPin] = useState(false)
+  const [search, setSearch] = useState('')
 
   const { data: staff, loading, refetch } = useData({
     table: 'profiles',
     select: '*',
     orderBy: 'full_name', orderAsc: true,
-    filters: [{ col: 'role', op: 'neq', val: 'student' }],
+    filters: [{ col: 'role', op: 'neq', val: 'student'}],
   })
 
   function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
@@ -48,12 +48,12 @@ export default function StaffPage() {
     try {
       const res = await fetch('/api/admin/create-staff', {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json'},
         body: JSON.stringify(form),
       })
       const d = await res.json()
       if (!d.success) throw new Error(d.error || 'Failed to create staff')
-      toast.success(`✅ ${form.full_name} created!`)
+      toast.success(` ${form.full_name} created!`)
       setCreds(d.credentials)
       setForm({ ...EMPTY })
       refetch()
@@ -67,10 +67,10 @@ export default function StaffPage() {
   async function toggleActive(id: string, current: boolean) {
     await fetch('/api/data', {
       method: 'PATCH',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json'},
       body: JSON.stringify({ table: 'profiles', data: { is_active: !current }, filters: [{ col: 'id', val: id }] }),
     })
-    toast.success(current ? 'Deactivated' : 'Activated')
+    toast.success(current ? 'Deactivated': 'Activated')
     refetch()
   }
 
@@ -171,7 +171,7 @@ export default function StaffPage() {
                     <div className="relative">
                       <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input value={form.full_name} onChange={e => set('full_name', e.target.value)}
-                        placeholder="e.g. Ama Owusu" type="text"
+                        placeholder="e.g. Ama Owusu"type="text"
                         className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition" />
                     </div>
                   </div>
@@ -184,7 +184,7 @@ export default function StaffPage() {
                     <div className="relative">
                       <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input value={form.email} onChange={e => set('email', e.target.value)}
-                        placeholder="ama@cambridge.edu.gh" type="email"
+                        placeholder="ama@cambridge.edu.gh"type="email"
                         className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition" />
                     </div>
                   </div>
@@ -197,7 +197,7 @@ export default function StaffPage() {
                     <div className="relative">
                       <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                       <input value={form.phone} onChange={e => set('phone', e.target.value)}
-                        placeholder="0241234567" type="tel"
+                        placeholder="0241234567"type="tel"
                         className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition" />
                     </div>
                   </div>
@@ -209,7 +209,7 @@ export default function StaffPage() {
                       <div className="relative">
                         <Briefcase size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input value={form.department} onChange={e => set('department', e.target.value)}
-                          placeholder="Marketing" type="text"
+                          placeholder="Marketing"type="text"
                           className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition" />
                       </div>
                     </div>
@@ -220,7 +220,7 @@ export default function StaffPage() {
                       <div className="relative">
                         <Hash size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
                         <input value={form.initial_pin} onChange={e => set('initial_pin', e.target.value.replace(/\D/g, '').slice(0, 6))}
-                          placeholder="1234" type={showPin ? 'text' : 'password'}
+                          placeholder="1234" type={showPin ? 'text': 'password'}
                           className="w-full h-11 pl-9 pr-10 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition" />
                         <button type="button" onClick={() => setShowPin(!showPin)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
@@ -250,7 +250,7 @@ export default function StaffPage() {
                             ? 'border-purple-600 bg-purple-50 text-purple-700'
                             : 'border-gray-200 text-gray-600 hover:border-gray-300'
                         }`}>
-                        🔐 Super Admin (full access)
+                         Super Admin (full access)
                       </button>
                     </div>
                   </div>
@@ -310,7 +310,7 @@ export default function StaffPage() {
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-gray-300">
             <User size={36} className="mx-auto mb-3 opacity-50" />
-            <p className="font-medium text-sm">{search ? 'No staff match your search' : 'No staff yet — add your first team member'}</p>
+            <p className="font-medium text-sm">{search ? 'No staff match your search': 'No staff yet — add your first team member'}</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
@@ -346,8 +346,8 @@ export default function StaffPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-gray-500">{(s as any).department || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-100 text-green-700' : 'bg-red-100 text-red-600'}`}>
-                        {s.is_active ? '● Active' : '○ Inactive'}
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-100 text-green-700': 'bg-red-100 text-red-600'}`}>
+                        {s.is_active ? '● Active': '○ Inactive'}
                       </span>
                     </td>
                     <td className="px-4 py-3">
@@ -362,7 +362,7 @@ export default function StaffPage() {
                               ? 'text-red-600 bg-red-50 hover:bg-red-100'
                               : 'text-green-600 bg-green-50 hover:bg-green-100'
                           }`}>
-                          {s.is_active ? 'Deactivate' : 'Activate'}
+                          {s.is_active ? 'Deactivate': 'Activate'}
                         </button>
                       </div>
                     </td>

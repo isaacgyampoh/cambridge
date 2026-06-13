@@ -8,11 +8,11 @@ import { toast } from 'sonner'
 import Modal from '@/components/shared/Modal'
 
 export default function AttendanceDashboard() {
-  const [selected, setSelected]   = useState<any>(null)
-  const [creating, setCreating]   = useState(false)
+  const [selected, setSelected] = useState<any>(null)
+  const [creating, setCreating] = useState(false)
   const [submitting, setSubmitting] = useState(false)
-  const [userId, setUserId]       = useState<string | null>(null)
-  const [newSession, setNewSession] = useState({ batch_id: '', class_code: '' })
+  const [userId, setUserId] = useState<string | null>(null)
+  const [newSession, setNewSession] = useState({ batch_id: '', class_code: ''})
 
   const { data: sessions, loading, refetch: refetchSessions } = useData<any>({
     table: 'class_sessions',
@@ -72,7 +72,7 @@ export default function AttendanceDashboard() {
       })
       toast.success('Session created! Share the sign-in link.')
       setCreating(false)
-      setNewSession({ batch_id: '', class_code: '' })
+      setNewSession({ batch_id: '', class_code: ''})
       await refetchSessions()
       const created = Array.isArray(result) ? result[0] : result
       if (created) setSelected(created)
@@ -86,7 +86,7 @@ export default function AttendanceDashboard() {
   async function toggleSession(id: string, open: boolean) {
     try {
       await mutate('PATCH', 'class_sessions', { signin_open: !open }, [{ col: 'id', val: id }])
-      toast.success(open ? 'Sign-in closed' : 'Sign-in reopened')
+      toast.success(open ? 'Sign-in closed': 'Sign-in reopened')
       await refetchSessions()
       if (selected?.id === id) setSelected({ ...selected, signin_open: !open })
     } catch (e: any) {
@@ -107,14 +107,14 @@ export default function AttendanceDashboard() {
   function exportCSV() {
     if (!signins.length) return
     const rows = signins.map((s: any) => [
-      s.full_name, s.phone || '', s.attendance_type, s.code_verified ? 'Verified' : 'Not verified',
+      s.full_name, s.phone || '', s.attendance_type, s.code_verified ? 'Verified': 'Not verified',
       s.payment_status, s.payment_method || '', s.amount_paid || 0,
       s.marketer?.full_name || 'Direct',
       formatDateTime(s.created_at)
     ].map(v => `"${v}"`).join(','))
-    const csv = 'Name,Phone,Type,Code,Payment,Method,Amount,Marketer,Time\n' + rows.join('\n')
+    const csv = 'Name,Phone,Type,Code,Payment,Method,Amount,Marketer,Time\n'+ rows.join('\n')
     const a = document.createElement('a')
-    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
+    a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv'}))
     a.download = `attendance-${selected?.session_date || 'export'}.csv`
     a.click()
   }
@@ -129,7 +129,7 @@ export default function AttendanceDashboard() {
   }
 
   const verified = signins.filter((s: any) => s.code_verified)
-  const paid     = signins.filter((s: any) => s.payment_status === 'paid')
+  const paid = signins.filter((s: any) => s.payment_status === 'paid')
   const inPerson = signins.filter((s: any) => s.attendance_type === 'in_person')
 
   return (
@@ -184,7 +184,7 @@ export default function AttendanceDashboard() {
             <div className="flex gap-2">
               <button onClick={createSession} disabled={submitting || batches.length === 0}
                 className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
-                {submitting ? 'Creating…' : 'Create'}
+                {submitting ? 'Creating…': 'Create'}
               </button>
               <button onClick={() => setCreating(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">Cancel</button>
             </div>
@@ -199,11 +199,11 @@ export default function AttendanceDashboard() {
           <div className="space-y-2">
             {sessions.map((s: any) => (
               <button key={s.id} onClick={() => selectSession(s)}
-                className={`w-full text-left bg-white rounded-2xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600' : 'border-gray-200 hover:border-gray-300'}`}>
+                className={`w-full text-left bg-white rounded-2xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600': 'border-gray-200 hover:border-gray-300'}`}>
                 <div className="flex items-start justify-between mb-1">
                   <div className="text-sm font-bold text-gray-900 truncate">{s.batches?.name}</div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
-                    {s.signin_open ? 'OPEN' : 'CLOSED'}
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-green-100 text-green-700': 'bg-gray-100 text-gray-500'}`}>
+                    {s.signin_open ? 'OPEN': 'CLOSED'}
                   </span>
                 </div>
                 <div className="text-xs text-gray-500">{s.batches?.courses?.name}</div>
@@ -212,8 +212,8 @@ export default function AttendanceDashboard() {
                   <span className="text-gray-400">{s.session_date}</span>
                 </div>
                 <div className="flex gap-3 mt-2 text-xs text-gray-500">
-                  <span>✅ {s.total_signed_in} signed in</span>
-                  <span>💰 {s.total_paid} paid</span>
+                  <span> {s.total_signed_in} signed in</span>
+                  <span> {s.total_paid} paid</span>
                 </div>
               </button>
             ))}
@@ -243,8 +243,8 @@ export default function AttendanceDashboard() {
                     <p className="text-sm font-mono text-blue-600 mt-1">Code: <strong>{selected.class_code}</strong></p>
                   </div>
                   <button onClick={() => toggleSession(selected.id, selected.signin_open)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${selected.signin_open ? 'bg-red-100 text-red-700 hover:bg-red-200' : 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
-                    {selected.signin_open ? 'Close Sign-in' : 'Reopen Sign-in'}
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${selected.signin_open ? 'bg-red-100 text-red-700 hover:bg-red-200': 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                    {selected.signin_open ? 'Close Sign-in': 'Reopen Sign-in'}
                   </button>
                 </div>
 
@@ -260,10 +260,10 @@ export default function AttendanceDashboard() {
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { label: 'Total', value: signins.length, color: 'text-gray-900' },
-                    { label: 'Verified', value: verified.length, color: 'text-green-600' },
-                    { label: 'In Person', value: inPerson.length, color: 'text-blue-600' },
-                    { label: 'Paid', value: paid.length, color: 'text-emerald-600' },
+                    { label: 'Total', value: signins.length, color: 'text-gray-900'},
+                    { label: 'Verified', value: verified.length, color: 'text-green-600'},
+                    { label: 'In Person', value: inPerson.length, color: 'text-blue-600'},
+                    { label: 'Paid', value: paid.length, color: 'text-emerald-600'},
                   ].map(s => (
                     <div key={s.label} className="bg-gray-50 rounded-xl p-2.5 text-center">
                       <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
@@ -302,8 +302,8 @@ export default function AttendanceDashboard() {
                           <td className="px-3 py-2.5 text-sm font-semibold text-gray-900">{s.full_name}</td>
                           <td className="px-3 py-2.5 text-xs text-gray-600">{s.phone?.replace(/^233/, '0') || '—'}</td>
                           <td className="px-3 py-2.5">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online' ? 'bg-purple-100 text-purple-700' : 'bg-blue-100 text-blue-700'}`}>
-                              {s.attendance_type === 'online' ? 'Online' : 'In Person'}
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online'? 'bg-purple-100 text-purple-700': 'bg-blue-100 text-blue-700'}`}>
+                              {s.attendance_type === 'online'? 'Online': 'In Person'}
                             </span>
                           </td>
                           <td className="px-3 py-2.5">
@@ -312,9 +312,9 @@ export default function AttendanceDashboard() {
                               : <XCircle size={16} className="text-red-400" />}
                           </td>
                           <td className="px-3 py-2.5">
-                            {s.payment_status === 'paid' ? (
+                            {s.payment_status === 'paid'? (
                               <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Paid</span>
-                            ) : s.payment_method === 'cash' ? (
+                            ) : s.payment_method === 'cash'? (
                               <button onClick={() => markPaid(s.id)} className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full hover:bg-orange-200 transition">
                                 Cash — Mark Paid
                               </button>
@@ -322,8 +322,8 @@ export default function AttendanceDashboard() {
                               <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Pending</span>
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-gray-500">{s.marketer?.full_name?.split(' ')[0] || '—'}</td>
-                          <td className="px-3 py-2.5 text-[10px] text-gray-400">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit' })}</td>
+                          <td className="px-3 py-2.5 text-xs text-gray-500">{s.marketer?.full_name?.split('')[0] || '—'}</td>
+                          <td className="px-3 py-2.5 text-[10px] text-gray-400">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit'})}</td>
                         </tr>
                       ))}
                       {signins.length === 0 && (

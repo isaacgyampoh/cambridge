@@ -6,12 +6,12 @@ import { SOURCE_COLORS } from '@/lib/utils'
 import { Phone, MessageSquare, RefreshCw } from 'lucide-react'
 
 const STAGES = [
-  { key: 'new', label: 'New Leads', dot: 'bg-yellow-400', bg: 'bg-yellow-50 border-yellow-200' },
-  { key: 'contacted', label: 'Contacted', dot: 'bg-blue-500', bg: 'bg-blue-50 border-blue-200' },
-  { key: 'interested', label: 'Interested', dot: 'bg-indigo-500', bg: 'bg-indigo-50 border-indigo-200' },
-  { key: 'follow_up', label: 'Follow Up', dot: 'bg-orange-500', bg: 'bg-orange-50 border-orange-200' },
-  { key: 'ready_to_join', label: 'Ready to Join', dot: 'bg-green-500', bg: 'bg-green-50 border-green-200' },
-  { key: 'registered', label: 'Registered', dot: 'bg-emerald-600', bg: 'bg-emerald-50 border-emerald-200' },
+  { key: 'new', label: 'New Leads', dot: 'bg-yellow-400', bg: 'bg-yellow-50 border-yellow-200'},
+  { key: 'contacted', label: 'Contacted', dot: 'bg-blue-500', bg: 'bg-blue-50 border-blue-200'},
+  { key: 'interested', label: 'Interested', dot: 'bg-indigo-500', bg: 'bg-indigo-50 border-indigo-200'},
+  { key: 'follow_up', label: 'Follow Up', dot: 'bg-orange-500', bg: 'bg-orange-50 border-orange-200'},
+  { key: 'ready_to_join', label: 'Ready to Join', dot: 'bg-green-500', bg: 'bg-green-50 border-green-200'},
+  { key: 'registered', label: 'Registered', dot: 'bg-emerald-600', bg: 'bg-emerald-50 border-emerald-200'},
 ]
 
 export default function PipelinePage() {
@@ -26,7 +26,7 @@ export default function PipelinePage() {
   })
 
   const allStages = showLost
-    ? [...STAGES, { key:'not_interested', label:'Not Interested', dot:'bg-red-400', bg:'bg-red-50 border-red-200' }, { key:'lost', label:'Lost', dot:'bg-gray-400', bg:'bg-gray-50 border-gray-200' }]
+    ? [...STAGES, { key:'not_interested', label:'Not Interested', dot:'bg-red-400', bg:'bg-red-50 border-red-200'}, { key:'lost', label:'Lost', dot:'bg-gray-400', bg:'bg-gray-50 border-gray-200'}]
     : STAGES
 
   async function moveLead(leadId: string, newStatus: string) {
@@ -35,7 +35,7 @@ export default function PipelinePage() {
     try {
       await mutate('PATCH', 'leads', { status: newStatus }, [{ col: 'id', val: leadId }])
       if (newStatus === 'ready_to_join') {
-        await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadId }) })
+        await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify({ leadId }) })
         toast.success(`${lead.full_name} → Ready to Join! Admissions notified.`)
       }
       refetch()
@@ -54,10 +54,10 @@ export default function PipelinePage() {
         <div className="flex gap-2">
           <button onClick={() => setShowLost(!showLost)}
             className={`h-9 px-3 rounded-xl text-xs font-semibold border transition ${showLost?'bg-red-100 text-red-700 border-red-200':'bg-white text-gray-600 border-gray-200'}`}>
-            {showLost ? 'Hide Lost' : 'Show Lost'}
+            {showLost ? 'Hide Lost': 'Show Lost'}
           </button>
           <button onClick={refetch} className="h-9 w-9 flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
           </button>
         </div>
       </div>
@@ -65,7 +65,7 @@ export default function PipelinePage() {
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
       ) : (
-        <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '70vh' }}>
+        <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '70vh'}}>
           {allStages.map(stage => (
             <div key={stage.key} className="flex-shrink-0 w-64"
               onDragOver={e => { e.preventDefault(); setOver(stage.key) }}
@@ -73,7 +73,7 @@ export default function PipelinePage() {
               onDragLeave={() => setOver(null)}>
 
               {/* Column header */}
-              <div className={`flex items-center justify-between px-3 py-2.5 rounded-xl mb-2 border transition-all ${over===stage.key ? stage.bg+' scale-[1.01] shadow-md' : stage.bg}`}>
+              <div className={`flex items-center justify-between px-3 py-2.5 rounded-xl mb-2 border transition-all ${over===stage.key ? stage.bg+'scale-[1.01] shadow-md': stage.bg}`}>
                 <div className="flex items-center gap-2">
                   <div className={`w-2.5 h-2.5 rounded-full ${stage.dot}`} />
                   <span className="text-xs font-bold text-gray-800">{stage.label}</span>
@@ -92,7 +92,7 @@ export default function PipelinePage() {
               <div className="space-y-2">
                 {byStage(stage.key).map(lead => (
                   <div key={lead.id} draggable
-                    onDragStart={e => { setDragging(lead.id); e.dataTransfer.effectAllowed = 'move' }}
+                    onDragStart={e => { setDragging(lead.id); e.dataTransfer.effectAllowed = 'move'}}
                     onDragEnd={() => { setDragging(null); setOver(null) }}
                     className={`bg-white rounded-xl border border-gray-200 p-3 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all select-none ${dragging===lead.id?'opacity-40 scale-95':''}`}>
 
@@ -110,7 +110,7 @@ export default function PipelinePage() {
                     </div>
 
                     {lead.course_interest && (
-                      <div className="text-[10px] text-blue-600 font-medium mb-1.5 truncate">📚 {lead.course_interest}</div>
+                      <div className="text-[10px] text-blue-600 font-medium mb-1.5 truncate"> {lead.course_interest}</div>
                     )}
 
                     <div className="flex items-center justify-between pt-1.5 border-t border-gray-50">

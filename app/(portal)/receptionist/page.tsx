@@ -17,20 +17,20 @@ export default function ReceptionistDashboard() {
   async function sendReminders(batchId: string, type: string) {
     setSending(batchId + type)
     const res = await fetch('/api/reminders/personalized', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      method: 'POST', headers: { 'Content-Type': 'application/json'},
       body: JSON.stringify({ batchId, type }),
     })
     const d = await res.json()
-    if (d.success) toast.success(`✅ Personalized reminders sent to ${d.count} students — in their marketer's name!`)
+    if (d.success) toast.success(` Personalized reminders sent to ${d.count} students — in their marketer's name!`)
     else toast.error('Failed to send reminders')
     setSending(null)
   }
 
   const REMINDER_TYPES = [
-    { type: '1_week', label: '1 Week Before', color: 'bg-blue-600 hover:bg-blue-700' },
-    { type: '2_days', label: '2 Days Before', color: 'bg-orange-500 hover:bg-orange-600' },
-    { type: 'day', label: 'Day Before', color: 'bg-purple-600 hover:bg-purple-700' },
-    { type: 'class_day', label: 'Class Day 🔔', color: 'bg-red-500 hover:bg-red-600' },
+    { type: '1_week', label: '1 Week Before', color: 'bg-blue-600 hover:bg-blue-700'},
+    { type: '2_days', label: '2 Days Before', color: 'bg-orange-500 hover:bg-orange-600'},
+    { type: 'day', label: 'Day Before', color: 'bg-purple-600 hover:bg-purple-700'},
+    { type: 'class_day', label: 'Class Day ', color: 'bg-red-500 hover:bg-red-600'},
   ]
 
   return (
@@ -41,12 +41,12 @@ export default function ReceptionistDashboard() {
           <p className="text-gray-400 text-sm">Send personalized reminders in each marketer's name</p>
         </div>
         <button onClick={refetch} className="h-9 w-9 flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
-          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+          <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
         </button>
       </div>
 
       <div className="bg-blue-50 border border-blue-200 rounded-2xl p-4 mb-5 text-sm text-blue-700">
-        💬 Messages go out as: <strong>"Hi Kofi, it's Ama from Cambridge CE — your class is on Friday..."</strong>
+         Messages go out as: <strong>"Hi Kofi, it's Ama from Cambridge CE — your class is on Friday..."</strong>
         Each student gets their own assigned marketer's name. Feels personal, not automated.
       </div>
 
@@ -70,10 +70,10 @@ export default function ReceptionistDashboard() {
                     <h3 className="font-bold text-gray-900">{batch.name}</h3>
                     <p className="text-sm text-gray-500">{course?.name}</p>
                     <div className="flex flex-wrap gap-3 mt-1.5 text-xs text-gray-400">
-                      {batch.start_date && <span>📅 {formatDate(batch.start_date)}</span>}
-                      {batch.schedule && <span>🕐 {batch.schedule}</span>}
-                      {trainer && <span>👤 {trainer.full_name}</span>}
-                      {batch.venue && <span>📍 {batch.venue}</span>}
+                      {batch.start_date && <span> {formatDate(batch.start_date)}</span>}
+                      {batch.schedule && <span> {batch.schedule}</span>}
+                      {trainer && <span> {trainer.full_name}</span>}
+                      {batch.venue && <span> {batch.venue}</span>}
                     </div>
                   </div>
                   <div className="text-right">
@@ -82,7 +82,7 @@ export default function ReceptionistDashboard() {
                     </span>
                     {days !== null && days >= 0 && (
                       <div className={`text-xs font-semibold mt-1 ${days<=1?'text-red-500':days<=7?'text-orange-500':'text-gray-400'}`}>
-                        {days === 0 ? 'Today!' : `${days}d away`}
+                        {days === 0 ? 'Today!': `${days}d away`}
                       </div>
                     )}
                   </div>
@@ -97,7 +97,7 @@ export default function ReceptionistDashboard() {
                         onClick={() => sendReminders(batch.id, r.type)}
                         className={`flex items-center gap-1.5 px-4 py-2 ${r.color} text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition`}>
                         <Send size={12} />
-                        {sending === batch.id + r.type ? 'Sending...' : r.label}
+                        {sending === batch.id + r.type ? 'Sending...': r.label}
                       </button>
                     ))}
                   </div>

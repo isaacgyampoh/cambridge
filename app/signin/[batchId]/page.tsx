@@ -5,7 +5,7 @@ import { useState, useEffect, use } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import Script from 'next/script'
 
-type Step = 'name' | 'code' | 'fee' | 'payment' | 'done'
+type Step = 'name'| 'code'| 'fee'| 'payment'| 'done'
 
 interface Session {
   id: string
@@ -20,7 +20,7 @@ interface FormState {
   full_name: string
   phone: string
   email: string
-  attendance_type: 'in_person' | 'online'
+  attendance_type: 'in_person'| 'online'
   class_code: string
   payment_method: string
 }
@@ -125,10 +125,10 @@ export default function SignInPage({ params, searchParams }: {
     setForm(f => ({ ...f, payment_method: method }))
     await sb.from('class_signins').update({ payment_method: method }).eq('id', signinId!)
 
-    if (method === 'cash' || method === 'bank') {
+    if (method === 'cash'|| method === 'bank') {
       await sb.from('class_signins').update({
         payment_status: 'pending',
-        payment_note: method === 'cash' ? 'Please proceed to the front desk to make your cash payment.' : 'Please make your bank transfer and present receipt at the front desk.',
+        payment_note: method === 'cash'? 'Please proceed to the front desk to make your cash payment.': 'Please make your bank transfer and present receipt at the front desk.',
       }).eq('id', signinId!)
       setStep('payment')
     } else if (method === 'momo') {
@@ -184,7 +184,7 @@ export default function SignInPage({ params, searchParams }: {
   if (!session) return (
     <div className="min-h-screen bg-gray-50 flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl p-8 max-w-sm w-full text-center shadow-lg">
-        <div className="text-4xl mb-4">📋</div>
+        <div className="text-4xl mb-4"></div>
         <h2 className="text-lg font-bold text-gray-900 mb-2">No Active Session</h2>
         <p className="text-gray-500 text-sm">There is no open sign-in session for today. Please check with your trainer.</p>
       </div>
@@ -193,7 +193,7 @@ export default function SignInPage({ params, searchParams }: {
 
   return (
     <>
-      <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
+      <Script src="https://js.paystack.co/v2/inline.js"strategy="lazyOnload" />
       <div className="min-h-screen bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 flex items-center justify-center p-4 py-8">
         <div className="w-full max-w-sm">
 
@@ -204,7 +204,7 @@ export default function SignInPage({ params, searchParams }: {
             </div>
             <h1 className="text-white font-bold text-lg">Cambridge Centre of Excellence</h1>
             <p className="text-blue-200 text-sm mt-0.5">{batchName} — {course?.name}</p>
-            <p className="text-blue-300 text-xs mt-1">{new Date().toLocaleDateString('en-GH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}</p>
+            <p className="text-blue-300 text-xs mt-1">{new Date().toLocaleDateString('en-GH', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric'})}</p>
           </div>
 
           {/* Step indicator */}
@@ -216,7 +216,7 @@ export default function SignInPage({ params, searchParams }: {
                     ? 'bg-white text-blue-700'
                     : 'bg-white/20 text-white/50'
                 }`}>{i + 1}</div>
-                {i < 3 && <div className={`w-8 h-0.5 ${['name','code','fee','payment','done'].indexOf(step) > i ? 'bg-white' : 'bg-white/20'}`} />}
+                {i < 3 && <div className={`w-8 h-0.5 ${['name','code','fee','payment','done'].indexOf(step) > i ? 'bg-white': 'bg-white/20'}`} />}
               </div>
             ))}
           </div>
@@ -224,7 +224,7 @@ export default function SignInPage({ params, searchParams }: {
           <div className="bg-white rounded-3xl p-6 shadow-2xl">
 
             {/* ── STEP 1: Name ── */}
-            {step === 'name' && (
+            {step === 'name'&& (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-1">Welcome! Sign In</h2>
                 <p className="text-gray-500 text-sm mb-5">Enter your name to check in for today's class.</p>
@@ -263,7 +263,7 @@ export default function SignInPage({ params, searchParams }: {
                   <div>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Phone Number</label>
                     <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))}
-                      placeholder="024 000 0000" type="tel" inputMode="numeric"
+                      placeholder="024 000 0000"type="tel"inputMode="numeric"
                       className="w-full h-12 px-4 rounded-xl border-2 border-gray-200 text-[15px] focus:outline-none focus:border-blue-500 transition" />
                   </div>
 
@@ -272,12 +272,12 @@ export default function SignInPage({ params, searchParams }: {
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Attendance Type</label>
                     <div className="grid grid-cols-2 gap-2">
                       {[
-                        { key: 'in_person', label: '🏫 In Person' },
-                        { key: 'online', label: '💻 Online' },
+                        { key: 'in_person', label: 'In Person'},
+                        { key: 'online', label: 'Online'},
                       ].map(t => (
                         <button key={t.key} type="button" onClick={() => setForm(f => ({ ...f, attendance_type: t.key as any }))}
                           className={`h-11 rounded-xl text-sm font-semibold border-2 transition ${
-                            form.attendance_type === t.key ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            form.attendance_type === t.key ? 'border-blue-600 bg-blue-50 text-blue-700': 'border-gray-200 text-gray-600 hover:border-gray-300'
                           }`}>
                           {t.label}
                         </button>
@@ -296,7 +296,7 @@ export default function SignInPage({ params, searchParams }: {
             )}
 
             {/* ── STEP 2: Class Code ── */}
-            {step === 'code' && (
+            {step === 'code'&& (
               <div>
                 <h2 className="text-lg font-bold text-gray-900 mb-1">Enter Class Code</h2>
                 <p className="text-gray-500 text-sm mb-5">Look at the board or screen in the classroom and enter the code shown.</p>
@@ -322,14 +322,14 @@ export default function SignInPage({ params, searchParams }: {
             )}
 
             {/* ── STEP 3: Fee ── */}
-            {step === 'fee' && (
+            {step === 'fee'&& (
               <div>
                 <div className="text-center mb-5">
                   <div className="w-14 h-14 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-3">
-                    <svg width="28" height="28" viewBox="0 0 28 28" fill="none"><path d="M5 14L11 20L23 8" stroke="#16a34a" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"/></svg>
+                    <svg width="28"height="28"viewBox="0 0 28 28"fill="none"><path d="M5 14L11 20L23 8"stroke="#16a34a"strokeWidth="2.5"strokeLinecap="round"strokeLinejoin="round"/></svg>
                   </div>
-                  <h2 className="text-lg font-bold text-gray-900">Attendance Confirmed! ✅</h2>
-                  <p className="text-gray-500 text-sm mt-1">Hi <strong>{form.full_name.split(' ')[0]}</strong>, you're signed in for today.</p>
+                  <h2 className="text-lg font-bold text-gray-900">Attendance Confirmed! </h2>
+                  <p className="text-gray-500 text-sm mt-1">Hi <strong>{form.full_name.split('')[0]}</strong>, you're signed in for today.</p>
                 </div>
 
                 {fee > 0 && (
@@ -346,7 +346,7 @@ export default function SignInPage({ params, searchParams }: {
                       <button onClick={() => selectPayment('momo')}
                         className="w-full h-13 px-4 py-3 rounded-xl border-2 border-yellow-400 bg-yellow-50 text-left hover:bg-yellow-100 transition flex items-center justify-between">
                         <div>
-                          <div className="font-bold text-gray-900 text-sm">📱 Mobile Money (MoMo)</div>
+                          <div className="font-bold text-gray-900 text-sm"> Mobile Money (MoMo)</div>
                           <div className="text-xs text-gray-500">Pay instantly with MTN, Telecel, or AirtelTigo</div>
                         </div>
                         <span className="text-yellow-600 font-bold text-sm">→</span>
@@ -355,7 +355,7 @@ export default function SignInPage({ params, searchParams }: {
                       <button onClick={() => selectPayment('cash')}
                         className="w-full h-13 px-4 py-3 rounded-xl border-2 border-green-200 bg-green-50 text-left hover:bg-green-100 transition flex items-center justify-between">
                         <div>
-                          <div className="font-bold text-gray-900 text-sm">💵 Pay Cash</div>
+                          <div className="font-bold text-gray-900 text-sm"> Pay Cash</div>
                           <div className="text-xs text-gray-500">You will be directed to the front desk</div>
                         </div>
                         <span className="text-green-600 font-bold text-sm">→</span>
@@ -364,7 +364,7 @@ export default function SignInPage({ params, searchParams }: {
                       <button onClick={() => selectPayment('bank')}
                         className="w-full h-13 px-4 py-3 rounded-xl border-2 border-blue-200 bg-blue-50 text-left hover:bg-blue-100 transition flex items-center justify-between">
                         <div>
-                          <div className="font-bold text-gray-900 text-sm">🏦 Bank Transfer</div>
+                          <div className="font-bold text-gray-900 text-sm"> Bank Transfer</div>
                           <div className="text-xs text-gray-500">Transfer and present receipt at front desk</div>
                         </div>
                         <span className="text-blue-600 font-bold text-sm">→</span>
@@ -388,9 +388,9 @@ export default function SignInPage({ params, searchParams }: {
             )}
 
             {/* ── STEP 4: Payment ── */}
-            {step === 'payment' && (
+            {step === 'payment'&& (
               <div>
-                {form.payment_method === 'momo' && (
+                {form.payment_method === 'momo'&& (
                   <>
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Pay with MoMo</h2>
                     <div className="bg-yellow-50 rounded-2xl p-4 mb-5 text-center">
@@ -404,10 +404,10 @@ export default function SignInPage({ params, searchParams }: {
                   </>
                 )}
 
-                {form.payment_method === 'cash' && (
+                {form.payment_method === 'cash'&& (
                   <>
                     <div className="text-center mb-5">
-                      <div className="text-5xl mb-3">🏦</div>
+                      <div className="text-5xl mb-3"></div>
                       <h2 className="text-lg font-bold text-gray-900 mb-2">Please Visit the Front Desk</h2>
                       <p className="text-gray-500 text-sm">Please proceed to the front desk to make your cash payment of <strong>GHS {fee.toFixed(2)}</strong>.</p>
                       <div className="bg-orange-50 rounded-xl p-3 mt-4">
@@ -419,12 +419,12 @@ export default function SignInPage({ params, searchParams }: {
                     </div>
                     <button onClick={confirmCashPayment}
                       className="w-full h-12 bg-green-600 text-white rounded-xl font-bold text-[15px] hover:bg-green-700 transition">
-                      I've made my payment ✓
+                      I've made my payment
                     </button>
                   </>
                 )}
 
-                {form.payment_method === 'bank' && (
+                {form.payment_method === 'bank'&& (
                   <>
                     <h2 className="text-lg font-bold text-gray-900 mb-2">Bank Transfer</h2>
                     <div className="bg-blue-50 rounded-2xl p-4 mb-5">
@@ -434,12 +434,12 @@ export default function SignInPage({ params, searchParams }: {
                         <div className="flex justify-between"><span>Account Name:</span><strong>Cambridge CE</strong></div>
                         <div className="flex justify-between"><span>Account No:</span><strong>1234567890</strong></div>
                         <div className="flex justify-between"><span>Amount:</span><strong>GHS {fee.toFixed(2)}</strong></div>
-                        <div className="flex justify-between"><span>Reference:</span><strong>{form.full_name.split(' ')[0]}-CCE</strong></div>
+                        <div className="flex justify-between"><span>Reference:</span><strong>{form.full_name.split('')[0]}-CCE</strong></div>
                       </div>
                     </div>
                     <button onClick={confirmCashPayment}
                       className="w-full h-12 bg-blue-600 text-white rounded-xl font-bold text-[15px] hover:bg-blue-700 transition">
-                      I've made the transfer ✓
+                      I've made the transfer
                     </button>
                   </>
                 )}
@@ -447,20 +447,20 @@ export default function SignInPage({ params, searchParams }: {
             )}
 
             {/* ── STEP 5: Done ── */}
-            {step === 'done' && (
+            {step === 'done'&& (
               <div className="text-center py-4">
                 <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
-                  <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-                    <path d="M8 20L16 28L32 12" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+                  <svg width="40"height="40"viewBox="0 0 40 40"fill="none">
+                    <path d="M8 20L16 28L32 12"stroke="#16a34a"strokeWidth="3"strokeLinecap="round"strokeLinejoin="round"/>
                   </svg>
                 </div>
-                <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome! 🎓</h2>
-                <p className="text-gray-600 mb-1">Hi <strong>{form.full_name.split(' ')[0]}</strong>,</p>
+                <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome! </h2>
+                <p className="text-gray-600 mb-1">Hi <strong>{form.full_name.split('')[0]}</strong>,</p>
                 <p className="text-gray-500 text-sm mb-2">You are signed in for today's class.</p>
                 <p className="text-blue-600 font-bold text-sm mb-6">{course?.name}</p>
                 <div className="bg-gray-50 rounded-2xl p-4">
                   <p className="text-sm text-gray-600">Thank you for being in class today.</p>
-                  <p className="text-sm text-gray-600 mt-1 font-semibold">Have a productive session! 📚</p>
+                  <p className="text-sm text-gray-600 mt-1 font-semibold">Have a productive session! </p>
                 </div>
                 <p className="text-xs text-gray-400 mt-5">Cambridge Centre of Excellence</p>
               </div>
