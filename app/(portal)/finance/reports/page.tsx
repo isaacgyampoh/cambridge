@@ -81,8 +81,8 @@ export default function FinanceReports() {
           { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-red-600 bg-red-50'},
         ].map(k => (
           <div key={k.label} className="bg-white rounded-2xl border border-gray-200 p-4">
-            <div className={`w-10 h-10 rounded-xl ${k.color.split('')[1]} flex items-center justify-center mb-3`}>
-              <k.icon size={20} className={k.color.split('')[0]} />
+            <div className={`w-10 h-10 rounded-xl ${k.color.split(' ')[1]} flex items-center justify-center mb-3`}>
+              <k.icon size={20} className={k.color.split(' ')[0]} />
             </div>
             <div className="text-xl font-bold text-gray-900">{k.value}</div>
             <div className="text-sm text-gray-500 mt-0.5">{k.label}</div>
@@ -118,7 +118,7 @@ export default function FinanceReports() {
             {Object.entries(data.byMethod).sort((a: any, b: any) => b[1] - a[1]).map(([method, amt]: any) => (
               <div key={method}>
                 <div className="flex justify-between text-sm mb-1">
-                  <span className="font-medium capitalize text-gray-700">{method.replace(/_/g,'')}</span>
+                  <span className="font-medium capitalize text-gray-700">{method.replace(/_/g, ' ')}</span>
                   <span className="font-bold text-gray-900">{formatGHS(amt)}</span>
                 </div>
                 <div className="h-2 bg-gray-100 rounded-full overflow-hidden">

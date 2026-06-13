@@ -322,7 +322,7 @@ export default function AttendanceDashboard() {
                               <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Pending</span>
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-gray-500">{s.marketer?.full_name?.split('')[0] || '—'}</td>
+                          <td className="px-3 py-2.5 text-xs text-gray-500">{s.marketer?.full_name?.split(' ')[0] || '—'}</td>
                           <td className="px-3 py-2.5 text-[10px] text-gray-400">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit'})}</td>
                         </tr>
                       ))}

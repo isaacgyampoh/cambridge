@@ -185,51 +185,51 @@ export default function MarketerPerformancePage() {
 
   return (
     <div className="fade-in w-full">
-      <div className="flex items-center justify-between mb-6">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Marketer Performance</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Who's working hard — and who needs a push</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Team</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Marketer performance</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Conversion, activity and revenue attributed to each marketer.</p>
         </div>
-        <div className="flex items-center gap-2">
-          <select value={range} onChange={e => setRange(e.target.value)}
-            className="h-10 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
-            <option value="7">Last 7 days</option>
-            <option value="30">Last 30 days</option>
-            <option value="90">Last 90 days</option>
-          </select>
+        <div className="flex gap-1 bg-[var(--line-soft)] rounded-lg p-1">
+          {[{v:'7',l:'7d'},{v:'30',l:'30d'},{v:'90',l:'90d'}].map(r => (
+            <button key={r.v} onClick={() => setRange(r.v)}
+              className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition ${range === r.v ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+              {r.l}
+            </button>
+          ))}
         </div>
       </div>
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Top Performers', value: summary.topPerformers, color: 'text-yellow-600 bg-yellow-50', icon: ''},
-          { label: 'Active', value: summary.active, color: 'text-green-600 bg-green-50', icon: ''},
-          { label: 'At Risk', value: summary.atRisk, color: 'text-orange-600 bg-orange-50', icon: ''},
-          { label: 'Inactive', value: summary.inactive, color: 'text-red-600 bg-red-50', icon: ''},
+          { label: 'Top performers', value: summary.topPerformers, tone: 'text-emerald-600' },
+          { label: 'Active', value: summary.active, tone: 'text-[var(--ink)]' },
+          { label: 'At risk', value: summary.atRisk, tone: 'text-amber-600' },
+          { label: 'Inactive', value: summary.inactive, tone: 'text-red-600' },
         ].map(k => (
-          <div key={k.label} className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-            <div className="text-2xl mb-1">{k.icon}</div>
-            <div className={`text-2xl font-bold ${k.color.split('')[0]}`}>{k.value}</div>
-            <div className="text-sm text-gray-500 mt-0.5">{k.label}</div>
+          <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{k.label}</div>
+            <div className={`font-display text-[30px] leading-none font-semibold mt-3 ${k.tone}`}>{k.value}</div>
           </div>
         ))}
       </div>
 
       {/* Overall stats */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-blue-600">{summary.totalLeads}</div>
-          <div className="text-sm text-gray-500">Total Leads</div>
+      <div className="grid grid-cols-3 gap-4 mb-8">
+        <div className="bg-[var(--accent)] rounded-xl p-5 text-white">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/70">Total leads</div>
+          <div className="font-display text-[30px] leading-none font-semibold mt-3">{summary.totalLeads}</div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-green-600">{summary.totalConverted}</div>
-          <div className="text-sm text-gray-500">Converted</div>
-          <div className="text-xs text-gray-400">{summary.totalLeads ? Math.round(summary.totalConverted/summary.totalLeads*100) : 0}% rate</div>
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Converted</div>
+          <div className="font-display text-[30px] leading-none font-semibold mt-3 text-[var(--ink)]">{summary.totalConverted}</div>
+          <div className="text-xs text-[var(--ink-faint)] mt-1.5">{summary.totalLeads ? Math.round(summary.totalConverted/summary.totalLeads*100) : 0}% conversion</div>
         </div>
-        <div className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-          <div className="text-2xl font-bold text-emerald-600">{formatGHS(summary.totalRevenue)}</div>
-          <div className="text-sm text-gray-500">Revenue Attributed</div>
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Revenue attributed</div>
+          <div className="font-display text-[30px] leading-none font-semibold mt-3 text-[var(--ink)]">{formatGHS(summary.totalRevenue)}</div>
         </div>
       </div>
 
@@ -237,21 +237,21 @@ export default function MarketerPerformancePage() {
       {(
         <Modal open={!!selected} onClose={() => { setSelected(null); setAlertMsg('') }} maxWidth="max-w-sm">
           {selected && <div className="p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Send Alert to {selected.full_name.split('')[0]}</h2>
+            <h2 className="text-lg font-bold text-gray-900 mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
             <p className="text-sm text-gray-500 mb-4">This will send an in-app notification and SMS.</p>
             <div className="bg-orange-50 rounded-xl p-3 mb-4 text-xs text-orange-700">
               <strong>Performance snapshot:</strong><br />
               {selected.totalLeads} leads · {selected.convertedLeads} converted ({selected.conversionRate}%) · {selected.uncontactedLeads} uncontacted · Last active: {selected.daysSinceActivity === 999 ? 'Never': `${selected.daysSinceActivity} days ago`}
             </div>
             <textarea value={alertMsg} onChange={e => setAlertMsg(e.target.value)} rows={4}
-              placeholder={`Hi ${selected.full_name.split('')[0]}, we noticed you have ${selected.uncontactedLeads} uncontacted leads...`}
+              placeholder={`Hi ${selected.full_name.split(' ')[0]}, we noticed you have ${selected.uncontactedLeads} uncontacted leads...`}
               className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl resize-none focus:outline-none focus:border-blue-500 mb-4" />
             {/* Quick templates */}
             <div className="flex flex-wrap gap-1.5 mb-4">
               {[
-                `Hi ${selected.full_name.split('')[0]}, you have ${selected.uncontactedLeads} uncontacted leads. Please reach out to them today.`,
-                `Hi ${selected.full_name.split('')[0]}, your conversion rate is ${selected.conversionRate}%. Let's discuss how we can improve this.`,
-                `Hi ${selected.full_name.split('')[0]}, we haven't seen any activity in ${selected.daysSinceActivity} days. Please update your leads.`,
+                `Hi ${selected.full_name.split(' ')[0]}, you have ${selected.uncontactedLeads} uncontacted leads. Please reach out to them today.`,
+                `Hi ${selected.full_name.split(' ')[0]}, your conversion rate is ${selected.conversionRate}%. Let's discuss how we can improve this.`,
+                `Hi ${selected.full_name.split(' ')[0]}, we haven't seen any activity in ${selected.daysSinceActivity} days. Please update your leads.`,
               ].map((t, i) => (
                 <button key={i} onClick={() => setAlertMsg(t)}
                   className="text-[10px] px-2 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition text-left">

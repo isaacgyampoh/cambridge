@@ -41,7 +41,7 @@ export default function MarketerDashboard() {
         await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify({ leadId }) })
         toast.success('Moved to Ready to Join — Admissions team notified!')
       } else {
-        toast.success(`Status → ${newStatus.replace(/_/g,'')}`)
+        toast.success(`Status → ${newStatus.replace(/_/g, ' ')}`)
       }
       if (note.trim() && myId) {
         await mutate('POST', 'lead_activities', {
@@ -94,7 +94,7 @@ export default function MarketerDashboard() {
         {statusOrder.filter(s => byStatus[s]?.length > 0).map(s => (
           <div key={s} className={`rounded-xl p-2 text-center ${COLORS[s]}`}>
             <div className="text-lg font-black">{byStatus[s]?.length}</div>
-            <div className="text-[9px] font-semibold capitalize leading-tight mt-0.5">{s.replace(/_/g,'')}</div>
+            <div className="text-[9px] font-semibold capitalize leading-tight mt-0.5">{s.replace(/_/g, ' ')}</div>
           </div>
         ))}
       </div>
@@ -126,7 +126,7 @@ export default function MarketerDashboard() {
                     <div className="text-[11px] text-gray-400">{lead.phone} {lead.course_interest ? `· ${lead.course_interest}` : ''}</div>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mx-2 flex-shrink-0 ${COLORS[lead.status]||'bg-gray-100 text-gray-600'}`}>
-                    {lead.status?.replace(/_/g,'')}
+                    {lead.status?.replace(/_/g, ' ')}
                   </span>
                   {isExpanded ? <ChevronUp size={15} className="text-gray-400"/> : <ChevronDown size={15} className="text-gray-400" />}
                 </div>
@@ -141,7 +141,7 @@ export default function MarketerDashboard() {
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 transition">
                           <Phone size={12} /> Call
                         </a>
-                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split('')[0]}, this is from Cambridge Centre of Excellence...`)}`}
+                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split(' ')[0]}, this is from Cambridge Centre of Excellence...`)}`}
                           target="_blank"rel="noopener noreferrer"
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition">
                           <MessageSquare size={12} /> WhatsApp

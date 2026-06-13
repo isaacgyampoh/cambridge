@@ -160,7 +160,7 @@ export default function BroadcastPage() {
                   <select value={form.target_filters.status || ''} onChange={e => setForm(f => ({ ...f, target_filters: { status: e.target.value } }))}
                     className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
                     <option value="">Select status...</option>
-                    {STATUS_OPTS.map(s => <option key={s} value={s}>{s.replace(/_/g, '')}</option>)}
+                    {STATUS_OPTS.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                   </select>
                 )}
                 {form.target_type === 'leads_by_source'&& (

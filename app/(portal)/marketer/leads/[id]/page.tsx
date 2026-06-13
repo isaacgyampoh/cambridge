@@ -124,7 +124,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   async function sendQuickWA(template: string) {
     if (!lead?.phone) return
     const phone = lead.phone.replace(/^0/, '233').replace(/^\+/, '')
-    const msg = template.replace('{{name}}', lead.full_name.split('')[0])
+    const msg = template.replace('{{name}}', lead.full_name.split(' ')[0])
     window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
     // Log the activity
     try {
@@ -140,7 +140,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   if (!lead) return <div className="text-center py-20 text-gray-400">Lead not found</div>
 
   const WA_TEMPLATES = [
-    `Hello {{name}}! This is ${profile?.full_name?.split('')[0]} from Cambridge Centre of Excellence. I'm reaching out to follow up on your interest in our programs. Are you still interested? `,
+    `Hello {{name}}! This is ${profile?.full_name?.split(' ')[0]} from Cambridge Centre of Excellence. I'm reaching out to follow up on your interest in our programs. Are you still interested? `,
     `Hi {{name}}! Just checking in from Cambridge CE. We have a new intake starting soon. Would you like to know more? `,
     `Hello {{name}}! I wanted to share something exciting — we have a special offer this month at Cambridge CE. Can I tell you more? `,
   ]
@@ -165,7 +165,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <h1 className="text-xl font-bold text-gray-900">{lead.full_name}</h1>
                   <div className="flex gap-2 mt-1 flex-wrap">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, '')}</span>
+                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, ' ')}</span>
                   </div>
                 </div>
               </div>
@@ -227,7 +227,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 {WA_TEMPLATES.map((t, i) => (
                   <button key={i} onClick={() => sendQuickWA(t)}
                     className="w-full text-left p-3 bg-gray-50 rounded-xl text-xs text-gray-600 hover:bg-green-50 hover:text-green-700 hover:border-green-200 border border-transparent transition line-clamp-2">
-                    {t.replace('{{name}}', lead.full_name.split('')[0])}
+                    {t.replace('{{name}}', lead.full_name.split(' ')[0])}
                   </button>
                 ))}
               </div>
@@ -287,7 +287,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   return (
                     <div key={a.id} className="flex gap-3">
                       <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs ${at?.color || 'bg-gray-100 text-gray-600'}`}>
-                        {at?.label.split('')[0]}
+                        {at?.label.split(' ')[0]}
                       </div>
                       <div className="flex-1 pb-3 border-b border-gray-50 last:border-0">
                         <div className="text-sm font-semibold text-gray-900">{a.subject}</div>

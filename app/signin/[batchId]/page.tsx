@@ -329,7 +329,7 @@ export default function SignInPage({ params, searchParams }: {
                     <svg width="28"height="28"viewBox="0 0 28 28"fill="none"><path d="M5 14L11 20L23 8"stroke="#16a34a"strokeWidth="2.5"strokeLinecap="round"strokeLinejoin="round"/></svg>
                   </div>
                   <h2 className="text-lg font-bold text-gray-900">Attendance Confirmed! </h2>
-                  <p className="text-gray-500 text-sm mt-1">Hi <strong>{form.full_name.split('')[0]}</strong>, you're signed in for today.</p>
+                  <p className="text-gray-500 text-sm mt-1">Hi <strong>{form.full_name.split(' ')[0]}</strong>, you're signed in for today.</p>
                 </div>
 
                 {fee > 0 && (
@@ -434,7 +434,7 @@ export default function SignInPage({ params, searchParams }: {
                         <div className="flex justify-between"><span>Account Name:</span><strong>Cambridge CE</strong></div>
                         <div className="flex justify-between"><span>Account No:</span><strong>1234567890</strong></div>
                         <div className="flex justify-between"><span>Amount:</span><strong>GHS {fee.toFixed(2)}</strong></div>
-                        <div className="flex justify-between"><span>Reference:</span><strong>{form.full_name.split('')[0]}-CCE</strong></div>
+                        <div className="flex justify-between"><span>Reference:</span><strong>{form.full_name.split(' ')[0]}-CCE</strong></div>
                       </div>
                     </div>
                     <button onClick={confirmCashPayment}
@@ -455,7 +455,7 @@ export default function SignInPage({ params, searchParams }: {
                   </svg>
                 </div>
                 <h2 className="text-2xl font-black text-gray-900 mb-2">Welcome! </h2>
-                <p className="text-gray-600 mb-1">Hi <strong>{form.full_name.split('')[0]}</strong>,</p>
+                <p className="text-gray-600 mb-1">Hi <strong>{form.full_name.split(' ')[0]}</strong>,</p>
                 <p className="text-gray-500 text-sm mb-2">You are signed in for today's class.</p>
                 <p className="text-blue-600 font-bold text-sm mb-6">{course?.name}</p>
                 <div className="bg-gray-50 rounded-2xl p-4">

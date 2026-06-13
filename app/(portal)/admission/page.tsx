@@ -80,7 +80,7 @@ export default function AdmissionPage() {
           { label: 'Admitted', value: stats.admitted, color: 'text-green-600 bg-green-50'},
         ].map(s => (
           <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100 text-center">
-            <div className={`text-2xl font-bold ${s.color.split('')[0]}`}>{s.value}</div>
+            <div className={`text-2xl font-bold ${s.color.split(' ')[0]}`}>{s.value}</div>
             <div className="text-xs text-gray-400 mt-0.5">{s.label}</div>
           </div>
         ))}
@@ -103,7 +103,7 @@ export default function AdmissionPage() {
             {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
                 className={`h-8 px-3 rounded-xl text-xs font-semibold transition capitalize ${filter===f?'bg-gray-900 text-white':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
-                {f.replace(/_/g,'')}
+                {f.replace(/_/g, ' ')}
               </button>
             ))}
           </div>
