@@ -39,7 +39,10 @@ export default function BroadcastPage() {
         body: JSON.stringify({ broadcastId }),
       })
       const d = await res.json()
-      if (d.success) toast.success(`Sent to ${d.sent} recipient${d.sent === 1 ? '' : 's'}${d.failed ? `, ${d.failed} failed` : ''}`)
+      if (d.success) {
+        if (d.sent > 0) toast.success(`Sent to ${d.sent} recipient${d.sent === 1 ? '' : 's'}${d.failed ? `, ${d.failed} failed` : ''}`)
+        else toast.error(d.note || 'Nothing delivered. Check Settings → Test delivery.')
+      }
       else toast.error(d.error || 'Could not send')
       load()
     } catch (e: any) { toast.error(e.message) }
