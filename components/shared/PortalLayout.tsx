@@ -62,6 +62,8 @@ export const ALL_PORTALS = [
   { id: 'my_classes',  label: 'My Classes',   icon: BookOpen,        href: '/trainer' },
   { id: 'my_payments', label: 'My Payments',  icon: DollarSign,      href: '/student' },
   { id: 'reminders',   label: 'Reminders',    icon: Bell,            href: '/receptionist' },
+  { id: 'workforce',   label: 'Workforce',    icon: CalendarCheck,   href: '/admin/workforce' },
+  { id: 'wa_lines',    label: 'WhatsApp Lines', icon: Radio,         href: '/admin/whatsapp' },
   { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
   { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings' },
 ]
@@ -73,7 +75,7 @@ const ROLE_HOME: Record<string, string> = {
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','clock_in','settings'],
+  super_admin:       ['dashboard','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','leads','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],
