@@ -63,18 +63,19 @@ export default function PMDashboard() {
 
   return (
     <div className="fade-in w-full">
-      <div className="flex items-center justify-between mb-5">
+      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Lead Inbox</h1>
-          <p className="text-gray-400 text-sm">Manage and assign incoming leads</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Pipeline</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Lead inbox</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Manage and assign incoming leads.</p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex gap-2 flex-shrink-0">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
             <input value={search} onChange={e => setSearch(e.target.value)}
-              placeholder="Search..." className="h-9 pl-8 pr-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 w-40" />
+              placeholder="Search" className="h-10 pl-8 pr-3 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] w-44" />
           </div>
-          <button onClick={refetch} className="h-9 w-9 flex items-center justify-center bg-white border border-gray-200 text-gray-500 rounded-xl hover:bg-gray-50 transition">
+          <button onClick={refetch} className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
           </button>
         </div>
@@ -83,30 +84,30 @@ export default function PMDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
-          { label: 'Total Leads', value: stats.total, icon: Users, color: 'text-blue-600 bg-blue-50' },
-          { label: 'Unassigned', value: stats.unassigned, icon: Clock, color: 'text-yellow-600 bg-yellow-50' },
-          { label: 'Today', value: stats.today, icon: TrendingUp, color: 'text-green-600 bg-green-50' },
-          { label: 'Ready to Join', value: stats.readyToJoin, icon: UserCheck, color: 'text-purple-600 bg-purple-50' },
+          { label: 'Total leads', value: stats.total, icon: Users, accent: false },
+          { label: 'Unassigned', value: stats.unassigned, icon: Clock, accent: true },
+          { label: 'Today', value: stats.today, icon: TrendingUp, accent: false },
+          { label: 'Ready to join', value: stats.readyToJoin, icon: UserCheck, accent: false },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl p-4 border border-gray-100">
-            <div className={`w-9 h-9 rounded-xl ${s.color.split(' ')[1]} flex items-center justify-center mb-2`}>
-              <s.icon size={17} className={s.color.split(' ')[0]} />
+          <div key={s.label} className={`rounded-xl p-5 border ${s.accent ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--paper)] border-[var(--line)]'}`}>
+            <div className="flex items-start justify-between">
+              <div className={`text-[11px] font-semibold uppercase tracking-[0.1em] ${s.accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>{s.label}</div>
+              <s.icon size={17} className={s.accent ? 'text-white/50' : 'text-[var(--ink-faint)]'} />
             </div>
-            <div className="text-xl font-bold text-gray-900">{s.value}</div>
-            <div className="text-xs text-gray-400">{s.label}</div>
+            <div className={`font-display text-[28px] font-semibold mt-3 leading-none ${s.accent ? 'text-white' : 'text-[var(--ink)]'}`}>{s.value}</div>
           </div>
         ))}
       </div>
 
       {/* Filter tabs */}
-      <div className="flex gap-1.5 mb-4">
+      <div className="flex gap-1 mb-4 bg-[var(--line-soft)] rounded-lg p-1 w-fit">
         {[
           { key: 'unassigned', label: `Unassigned (${stats.unassigned})` },
           { key: 'today', label: `Today (${stats.today})` },
           { key: 'all', label: `All (${stats.total})` },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key as any)}
-            className={`px-4 h-9 rounded-xl text-sm font-semibold transition ${filter===f.key?'bg-gray-900 text-white':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
+            className={`px-4 h-8 rounded-md text-[13px] font-medium transition ${filter===f.key?'bg-white text-[var(--ink)] shadow-sm':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {f.label}
           </button>
         ))}

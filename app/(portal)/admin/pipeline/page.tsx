@@ -48,8 +48,9 @@ export default function PipelinePage() {
     <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Lead Pipeline</h1>
-          <p className="text-gray-400 text-sm">Drag & drop to move leads between stages</p>
+          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Pipeline</div>
+          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Lead pipeline</h1>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Drag and drop to move leads between stages.</p>
         </div>
         <div className="flex gap-2">
           <button onClick={() => setShowLost(!showLost)}
@@ -63,7 +64,7 @@ export default function PipelinePage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>
       ) : (
         <div className="flex gap-3 overflow-x-auto pb-4" style={{ minHeight: '70vh'}}>
           {allStages.map(stage => (
@@ -97,11 +98,11 @@ export default function PipelinePage() {
                     className={`bg-white rounded-xl border border-gray-200 p-3 cursor-grab active:cursor-grabbing shadow-sm hover:shadow-md transition-all select-none ${dragging===lead.id?'opacity-40 scale-95':''}`}>
 
                     <div className="flex items-start gap-2 mb-2">
-                      <div className="w-7 h-7 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
+                      <div className="w-7 h-7 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-xs flex-shrink-0">
                         {lead.full_name?.charAt(0)}
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className="text-xs font-bold text-gray-900 truncate leading-tight">{lead.full_name}</div>
+                        <div className="text-xs font-semibold text-[var(--ink)] truncate leading-tight">{lead.full_name}</div>
                         {lead.phone && <div className="text-[10px] text-gray-400">{lead.phone}</div>}
                       </div>
                       <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded-full flex-shrink-0 ${SOURCE_COLORS[lead.source]||'bg-gray-100 text-gray-600'}`}>
