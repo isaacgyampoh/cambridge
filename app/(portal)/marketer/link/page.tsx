@@ -10,11 +10,30 @@ export default function MarketerLink() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState({ total: 0, paid: 0, converted: 0 })
   const [applications, setApplications] = useState<Application[]>([])
+  const [loading, setLoading] = useState(true)
+  const [generating, setGenerating] = useState(false)
+
+  async function generateLink() {
+    setGenerating(true)
+    try {
+      const ec = await fetch('/api/marketer/ensure-code', { method: 'POST' }).then(r => r.json())
+      if (ec?.marketer_code) {
+        setProfile(p => p ? { ...p, marketer_code: ec.marketer_code } : p)
+        toast.success('Your link is ready')
+      } else {
+        toast.error(ec?.error || 'Could not generate link')
+      }
+    } catch (e: any) {
+      toast.error('Could not generate link. Please try again.')
+    } finally {
+      setGenerating(false)
+    }
+  }
 
   useEffect(() => {
     async function load() {
       const s = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
-      if (!s?.valid) return
+      if (!s?.valid) { setLoading(false); return }
 
       const params = new URLSearchParams({
         table: 'profiles', select: '*',
@@ -26,10 +45,13 @@ export default function MarketerLink() {
 
       // If the marketer has no registration link code yet, generate one
       if (p && !p.marketer_code) {
-        const ec = await fetch('/api/marketer/ensure-code', { method: 'POST' }).then(r => r.ok ? r.json() : null)
-        if (ec?.marketer_code) p = { ...p, marketer_code: ec.marketer_code }
+        try {
+          const ec = await fetch('/api/marketer/ensure-code', { method: 'POST' }).then(r => r.ok ? r.json() : null)
+          if (ec?.marketer_code) p = { ...p, marketer_code: ec.marketer_code }
+        } catch {}
       }
       setProfile(p)
+      setLoading(false)
 
       if (p) {
         const appParams = new URLSearchParams({
@@ -72,19 +94,34 @@ export default function MarketerLink() {
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">
         <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.1em] mb-2">Your unique application URL</p>
         {appUrl ? (
-          <div className="flex items-center gap-2">
-            <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-4 py-3 text-sm text-[var(--ink-soft)] font-mono break-all">
-              {appUrl}
+          <div>
+            <div className="flex items-center gap-2">
+              <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-4 py-3 text-sm text-[var(--ink-soft)] font-mono break-all">
+                {appUrl}
+              </div>
+              <button onClick={copy} className="flex-shrink-0 p-3 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition">
+                <Copy size={18} />
+              </button>
+              <a href={appUrl} target="_blank" className="flex-shrink-0 p-3 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
+                <ExternalLink size={18} />
+              </a>
             </div>
-            <button onClick={copy} className="flex-shrink-0 p-3 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition">
-              <Copy size={18} />
-            </button>
-            <a href={appUrl} target="_blank" className="flex-shrink-0 p-3 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
-              <ExternalLink size={18} />
+            <a href={`https://wa.me/?text=${encodeURIComponent(`Hello, here is your registration link for Cambridge Centre of Excellence:\n\n${appUrl}\n\nClick it to fill in your details and pay your registration fee. Once that's done you're registered and we'll take it from there.`)}`}
+              target="_blank" rel="noopener noreferrer"
+              className="inline-flex items-center gap-2 mt-3 h-10 px-4 bg-[#25D366] text-white rounded-lg text-sm font-medium hover:opacity-90 transition">
+              Share on WhatsApp
             </a>
           </div>
+        ) : loading ? (
+          <p className="text-sm text-[var(--ink-faint)]">Loading your link…</p>
         ) : (
-          <p className="text-sm text-[var(--ink-faint)]">Your link is being generated…</p>
+          <div>
+            <p className="text-sm text-[var(--ink-soft)] mb-3">You don't have a registration link yet. Generate one now — it's unique to you, and every payment made through it is tracked to your name.</p>
+            <button onClick={generateLink} disabled={generating}
+              className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 disabled:opacity-50 transition">
+              {generating ? 'Generating…' : 'Generate my link'}
+            </button>
+          </div>
         )}
         <p className="text-xs text-[var(--ink-faint)] mt-3">
           Share this link on WhatsApp, social media, or via email. All applications submitted through your link are tracked to you.

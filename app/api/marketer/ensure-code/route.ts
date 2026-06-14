@@ -31,5 +31,11 @@ export async function POST(req: NextRequest) {
   if (!code) code = `mkt-${Date.now().toString(36)}`
 
   await sb.from('profiles').update({ marketer_code: code }).eq('id', me.id)
-  return NextResponse.json({ marketer_code: code })
+
+  // Verify it saved
+  const { data: check } = await sb.from('profiles').select('marketer_code').eq('id', me.id).maybeSingle()
+  if (!check?.marketer_code) {
+    return NextResponse.json({ error: 'Could not save link code. The marketer_code column may be missing — run the latest schema.' }, { status: 500 })
+  }
+  return NextResponse.json({ marketer_code: check.marketer_code })
 }
