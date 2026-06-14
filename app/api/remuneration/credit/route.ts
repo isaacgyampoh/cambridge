@@ -3,11 +3,15 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 
 /**
+ * [DEPRECATED for normal flow] Manual points-credit endpoint.
+ *
+ * The canonical path is now POST /api/leads/status with status:'registered',
+ * which credits points for EVERY registration regardless of source or screen.
+ * This endpoint is kept only for ad-hoc/manual admin crediting and is not
+ * called by the UI. Prefer /api/leads/status.
+ *
  * Credit a points-earning enrollment to a marketer when a lead registers.
  * Body: { leadId, programCode, delivery, marketerId?, corporateValue?, isPipeline? }
- * - Sets the lead status to 'registered'
- * - Records a marketer_enrollments row with the program's point value
- * - GHS 200 registration commission is recorded as the marketer's
  */
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value
