@@ -8,6 +8,7 @@ interface AssistantContext {
   marketerName?: string | null
   marketerIntro?: string | null
   courseInterest?: string | null
+  registrationLink?: string | null
 }
 
 /**
@@ -54,7 +55,7 @@ RULES:
 - If the answer is not in the knowledge provided, do NOT invent details (no made-up fees, dates, or policies). Instead say you'll confirm and get back to them, or that ${marketer} will call them shortly with the details.
 - Never say "as an AI" or reveal you are automated. You are ${marketer}.
 - Don't over-promise. Be helpful and human.
-- If they seem ready to enrol or have a complex question, reassure them that you'll call them personally very soon.
+- If they seem ready to enrol or have a complex question, reassure them that you'll call them personally very soon.${ctx.registrationLink ? `\n- If they say they want to register, enrol, or ask for the registration link/form, share this exact registration link: ${ctx.registrationLink} — tell them to click it to fill in their details and pay the registration fee.` : ''}
 
 ${knowledge || 'No specific knowledge base entries are configured yet. Be warm, acknowledge the message, and say you will call them shortly with full details.'}`
 

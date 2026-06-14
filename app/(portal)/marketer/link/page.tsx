@@ -56,30 +56,31 @@ export default function MarketerLink() {
 
   return (
     <div className="fade-in w-full">
-      <div className="mb-6">
-        <h1 className="text-2xl font-bold text-gray-900">My Application Link</h1>
-        <p className="text-gray-500 text-sm mt-0.5">Share this unique link to track your referrals</p>
+      <div className="mb-8">
+        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">My work</div>
+        <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My registration link</h1>
+        <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send this to a lead who's ready to register. Everything they pay is tracked to you.</p>
       </div>
 
       {/* Link card */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 mb-5">
-        <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Your unique application URL</p>
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">
+        <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.1em] mb-2">Your unique application URL</p>
         {appUrl ? (
           <div className="flex items-center gap-2">
-            <div className="flex-1 bg-gray-50 border border-gray-200 rounded-xl px-4 py-3 text-sm text-gray-700 font-mono break-all">
+            <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-4 py-3 text-sm text-[var(--ink-soft)] font-mono break-all">
               {appUrl}
             </div>
-            <button onClick={copy} className="flex-shrink-0 p-3 bg-blue-600 text-white rounded-xl hover:bg-blue-700 transition">
+            <button onClick={copy} className="flex-shrink-0 p-3 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition">
               <Copy size={18} />
             </button>
-            <a href={appUrl} target="_blank" className="flex-shrink-0 p-3 bg-gray-100 text-gray-700 rounded-xl hover:bg-gray-200 transition">
+            <a href={appUrl} target="_blank" className="flex-shrink-0 p-3 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
               <ExternalLink size={18} />
             </a>
           </div>
         ) : (
-          <p className="text-sm text-gray-400">Your application link is being generated...</p>
+          <p className="text-sm text-[var(--ink-faint)]">Your link is being generated…</p>
         )}
-        <p className="text-xs text-gray-400 mt-3">
+        <p className="text-xs text-[var(--ink-faint)] mt-3">
           Share this link on WhatsApp, social media, or via email. All applications submitted through your link are tracked to you.
         </p>
       </div>
@@ -87,49 +88,49 @@ export default function MarketerLink() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
-          { label: 'Applications', value: stats.total, color: 'text-blue-600' },
-          { label: 'Paid', value: stats.paid, color: 'text-green-600' },
-          { label: 'Submitted', value: stats.converted, color: 'text-purple-600' },
+          { label: 'Applications', value: stats.total },
+          { label: 'Paid', value: stats.paid },
+          { label: 'Submitted', value: stats.converted },
         ].map(s => (
-          <div key={s.label} className="bg-white rounded-2xl border border-gray-200 p-4 text-center">
-            <div className={`text-2xl font-bold ${s.color}`}>{s.value}</div>
-            <div className="text-xs text-gray-500 mt-0.5">{s.label}</div>
+          <div key={s.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{s.label}</div>
+            <div className="font-display text-[26px] font-semibold text-[var(--ink)] mt-2 leading-none">{s.value}</div>
           </div>
         ))}
       </div>
 
       {/* Applications table */}
-      <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
-          <h3 className="text-sm font-bold text-gray-900">Applications via your link</h3>
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] overflow-hidden">
+        <div className="px-5 py-4 border-b border-[var(--line)]">
+          <h3 className="text-sm font-semibold text-[var(--ink)]">Registrations via your link</h3>
         </div>
         {applications.length === 0 ? (
-          <div className="text-center py-12 text-gray-400">
+          <div className="text-center py-12 text-[var(--ink-faint)]">
             <TrendingUp size={32} className="mx-auto mb-2 opacity-30" />
-            <p className="text-sm">No applications yet. Share your link!</p>
+            <p className="text-sm">No registrations yet. Share your link with a ready lead.</p>
           </div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50">
+              <thead className="bg-[var(--line-soft)]">
                 <tr>
                   {['Name','Email','Course','Payment','Date'].map(h => (
-                    <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {applications.map(a => (
-                  <tr key={a.id} className="border-t border-gray-50 hover:bg-gray-50">
-                    <td className="px-4 py-3 text-sm font-semibold text-gray-900">{a.full_name}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{a.email}</td>
-                    <td className="px-4 py-3 text-sm text-gray-600">{(a as any).course?.name || '—'}</td>
+                  <tr key={a.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)]">
+                    <td className="px-4 py-3 text-sm font-medium text-[var(--ink)]">{a.full_name}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.email}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{(a as any).course?.name || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.payment_status === 'paid' ? 'bg-green-100 text-green-700' : 'bg-yellow-100 text-yellow-700'}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
                         {a.payment_status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-400">{new Date(a.created_at).toLocaleDateString('en-GH')}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{new Date(a.created_at).toLocaleDateString('en-GH')}</td>
                   </tr>
                 ))}
               </tbody>
