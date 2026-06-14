@@ -5,6 +5,7 @@ import { formatDateTime, formatPhone, STATUS_COLORS, SOURCE_COLORS } from '@/lib
 import { toast } from 'sonner'
 import { ArrowLeft, Phone, MessageSquare, Mail, Calendar, Plus, Clock } from 'lucide-react'
 import Link from 'next/link'
+import Modal from '@/components/shared/Modal'
 
 const STATUSES = [
   { key: 'new', label: 'New'},
@@ -45,15 +46,42 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const [followUpDate, setFollowUpDate] = useState('')
   const [savingAct, setSavingAct] = useState(false)
   const [newStatus, setNewStatus] = useState('')
+  const [regOpen, setRegOpen] = useState(false)
+  const [programs, setPrograms] = useState<any[]>([])
+  const [regForm, setRegForm] = useState({ programCode: '', delivery: 'in_person', corporateValue: '' })
+  const [registering, setRegistering] = useState(false)
 
   useEffect(() => {
     async function init() {
       const s = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
       if (s?.valid) setProfile({ id: s.userId, full_name: s.fullName })
+      // Load programmes for the register modal
+      const params = new URLSearchParams({ table: 'program_points', select: '*', filters: JSON.stringify([{ col: 'is_active', op: 'eq', val: true }]), orderBy: 'sort_order', limit: '50' })
+      fetch(`/api/data?${params}`).then(r => r.ok ? r.json() : { data: [] }).then(d => setPrograms(d.data || [])).catch(() => {})
       load()
     }
     init()
   }, [id])
+
+  async function registerStudent() {
+    if (!regForm.programCode) { toast.error('Select a programme'); return }
+    setRegistering(true)
+    try {
+      const res = await fetch('/api/remuneration/credit', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: id, programCode: regForm.programCode, delivery: regForm.delivery,
+          corporateValue: regForm.corporateValue ? parseFloat(regForm.corporateValue) : undefined,
+        }),
+      })
+      const d = await res.json()
+      if (!res.ok) { toast.error(d.error || 'Could not register'); return }
+      toast.success(`Registered! +${d.points} points credited for ${d.program}`)
+      setRegOpen(false)
+      load()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setRegistering(false) }
+  }
 
   async function load() {
     const [leads, acts] = await Promise.all([
@@ -310,6 +338,27 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
         {/* Right col */}
         <div className="space-y-4">
+          {/* Register & earn points */}
+          {lead.status !== 'registered' && (
+            <div className="rounded-2xl bg-[var(--accent)] text-white p-5">
+              <div className="flex items-center gap-2 text-white/70 text-[11px] uppercase tracking-[0.12em] mb-1.5">
+                Convert this lead
+              </div>
+              <h3 className="font-display text-lg font-semibold mb-1">Register student</h3>
+              <p className="text-white/70 text-sm mb-4">Mark as enrolled to earn points and your GHS 200 registration commission.</p>
+              <button onClick={() => setRegOpen(true)}
+                className="w-full h-10 bg-white text-[var(--accent)] rounded-lg text-sm font-semibold hover:bg-white/90 transition">
+                Register &amp; earn points
+              </button>
+            </div>
+          )}
+          {lead.status === 'registered' && (
+            <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center">
+              <div className="text-sm font-semibold text-emerald-700">Registered</div>
+              <div className="text-xs text-emerald-600 mt-1">Points have been credited to your annual total.</div>
+            </div>
+          )}
+
           {/* Update status */}
           <div className="bg-white rounded-2xl border border-gray-200 p-5">
             <h3 className="text-sm font-bold text-gray-900 mb-3">Update Status</h3>
@@ -338,6 +387,64 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           )}
         </div>
       </div>
+
+      {/* Register student modal */}
+      <Modal open={regOpen} onClose={() => setRegOpen(false)} maxWidth="max-w-sm">
+        <div className="p-6">
+          <div className="flex items-center justify-between mb-1">
+            <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Register student</h2>
+            <button onClick={() => setRegOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><Plus size={20} className="rotate-45" /></button>
+          </div>
+          <p className="text-sm text-[var(--ink-soft)] mb-5">{lead?.full_name}</p>
+
+          <div className="space-y-4">
+            <div>
+              <label className="block text-xs font-semibold text-[var(--ink-soft)] mb-1.5">Programme</label>
+              <select value={regForm.programCode} onChange={e => setRegForm({ ...regForm, programCode: e.target.value })}
+                className="w-full h-11 px-3 rounded-lg border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                <option value="">Select programme</option>
+                {programs.map((p: any) => (
+                  <option key={p.code} value={p.code}>{p.name} {p.is_corporate ? '(40–200 pts)' : `(${p.points} pts)`}</option>
+                ))}
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-xs font-semibold text-[var(--ink-soft)] mb-1.5">Delivery</label>
+              <div className="grid grid-cols-2 gap-2">
+                {[{ v: 'in_person', l: 'In person' }, { v: 'online', l: 'Online' }].map(d => (
+                  <button key={d.v} type="button" onClick={() => setRegForm({ ...regForm, delivery: d.v })}
+                    className={`h-10 rounded-lg text-sm font-medium border transition ${regForm.delivery === d.v ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--ink-faint)]'}`}>
+                    {d.l}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            {programs.find((p: any) => p.code === regForm.programCode)?.is_corporate && (
+              <div>
+                <label className="block text-xs font-semibold text-[var(--ink-soft)] mb-1.5">Corporate value (points, 40–200)</label>
+                <input type="number" min={40} max={200} value={regForm.corporateValue}
+                  onChange={e => setRegForm({ ...regForm, corporateValue: e.target.value })}
+                  placeholder="e.g. 120"
+                  className="w-full h-11 px-3 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+              </div>
+            )}
+
+            <div className="bg-[var(--accent-soft)] rounded-lg p-3 text-sm text-[var(--accent)]">
+              This credits the points to your annual total plus GHS 200 registration commission, and marks the lead as registered.
+            </div>
+          </div>
+
+          <div className="flex gap-2 mt-6">
+            <button onClick={registerStudent} disabled={registering}
+              className="flex-1 h-11 bg-[var(--accent)] text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:brightness-110 transition">
+              {registering ? 'Registering…' : 'Confirm registration'}
+            </button>
+            <button onClick={() => setRegOpen(false)} className="px-4 h-11 rounded-lg border border-[var(--line)] text-sm font-medium text-[var(--ink-soft)]">Cancel</button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
