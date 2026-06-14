@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
-import { STATUS_COLORS } from '@/lib/utils'
+import { STATUS_COLORS, formatGHS } from '@/lib/utils'
 import { Phone, MessageSquare, ChevronDown, ChevronUp, Plus, Clock } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
@@ -19,6 +19,11 @@ const STATUSES = [
 
 export default function MarketerDashboard() {
   const router = useRouter()
+  const [remun, setRemun] = useState<any>(null)
+
+  useEffect(() => {
+    fetch('/api/remuneration?scope=me').then(r => r.ok ? r.json() : null).then(d => setRemun(d)).catch(() => {})
+  }, [])
   const [myId, setMyId] = useState<string|null>(null)
   const [expanded, setExpanded] = useState<string|null>(null)
   const [updating, setUpdating] = useState<string|null>(null)
@@ -72,6 +77,9 @@ export default function MarketerDashboard() {
   const byStatus: Record<string, any[]> = {}
   leads.forEach(l => { byStatus[l.status] = [...(byStatus[l.status]||[]), l] })
 
+  const convertedCount = leads.filter(l => ['ready_to_join', 'registered'].includes(l.status)).length
+  const convRate = leads.length ? Math.round((convertedCount / leads.length) * 100) : 0
+
   const statusOrder = ['new','contacted','interested','follow_up','ready_to_join','not_interested','lost','registered']
   const COLORS: Record<string,string> = {
     new:'bg-yellow-100 text-yellow-800', contacted:'bg-blue-100 text-blue-700',
@@ -99,6 +107,41 @@ export default function MarketerDashboard() {
           </Link>
         </div>
       </div>
+
+      {/* Rank & earnings summary */}
+      {remun && (
+        <Link href="/marketer/earnings" className="block mb-6 group">
+          <div className="rounded-2xl bg-[var(--accent)] text-white p-5 sm:p-6 relative overflow-hidden">
+            <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -mr-14 -mt-14" />
+            <div className="relative flex flex-wrap items-center justify-between gap-4">
+              <div>
+                <div className="text-[11px] uppercase tracking-[0.14em] text-white/55 mb-1">Your rank · {remun.year}</div>
+                <div className="font-display text-[26px] leading-none font-semibold">{remun.currentRank?.name || 'Unranked'}</div>
+                <div className="text-white/70 text-sm mt-1.5">{remun.totalPoints} points{remun.nextRank ? ` · ${remun.pointsToNext} to ${remun.nextRank.name}` : ''}</div>
+              </div>
+              <div className="flex gap-6">
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.1em] text-white/55">Salary</div>
+                  <div className="font-display text-xl font-semibold mt-1">{formatGHS(remun.grossSalary)}</div>
+                </div>
+                <div>
+                  <div className="text-[11px] uppercase tracking-[0.1em] text-white/55">Registration</div>
+                  <div className="font-display text-xl font-semibold mt-1">{formatGHS(remun.registrationCommission)}</div>
+                </div>
+                <div className="hidden sm:block">
+                  <div className="text-[11px] uppercase tracking-[0.1em] text-white/55">Conversion</div>
+                  <div className="font-display text-xl font-semibold mt-1">{convRate}%</div>
+                </div>
+              </div>
+            </div>
+            {remun.nextRank && (
+              <div className="relative mt-4 h-1.5 bg-white/15 rounded-full overflow-hidden">
+                <div className="h-full bg-white/80 rounded-full transition-all" style={{ width: `${remun.progressPct}%` }} />
+              </div>
+            )}
+          </div>
+        </Link>
+      )}
 
       {/* Mini pipeline */}
       <div className="grid grid-cols-4 lg:grid-cols-7 gap-1.5 mb-5">
