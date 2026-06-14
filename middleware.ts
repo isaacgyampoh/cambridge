@@ -17,7 +17,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   leads:       ['/admin/leads', '/admin/pipeline'],
   my_leads:    ['/marketer'],
   pm_leads:    ['/pm'],
-  admissions:  ['/admin/admissions', '/admission', '/admin/applications'],
+  admissions:  ['/admin/admissions', '/admission'],
   finance:     ['/admin/finance', '/finance'],
   broadcast:   ['/admin/broadcast'],
   attendance:  ['/admin/attendance'],
