@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Badge, Spinner, EmptyState, StatCard, inputClass } from '@/components/ui'
-import { MessageSquare, Bot, User, Search, Sparkles } from 'lucide-react'
+import { MessageSquare, User, Search } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 
 export default function ConversationsPage() {
@@ -42,7 +42,7 @@ export default function ConversationsPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
         <StatCard label="Conversations today" value={todayCount} icon={<MessageSquare size={18} />} accent />
         <StatCard label="Total exchanges" value={convos.length} />
-        <StatCard label="AI answered" value={aiAnswered} sub={`${convos.length ? Math.round(aiAnswered / convos.length * 100) : 0}% handled`} icon={<Bot size={18} />} />
+        <StatCard label="AI answered" value={aiAnswered} sub={`${convos.length ? Math.round(aiAnswered / convos.length * 100) : 0}% handled`} icon={<MessageSquare size={18} />} />
         <StatCard label="Active threads" value={Object.keys(threads).length} />
       </div>
 
@@ -76,7 +76,7 @@ export default function ConversationsPage() {
         <div className="lg:col-span-2">
           {!activeThread ? (
             <Card className="p-16 text-center">
-              <Sparkles size={28} className="mx-auto text-[var(--ink-faint)] opacity-40 mb-3" />
+              <MessageSquare size={26} className="mx-auto text-[var(--ink-faint)] opacity-40 mb-3" />
               <p className="text-sm text-[var(--ink-faint)]">Select a conversation to read the exchange</p>
             </Card>
           ) : (
@@ -103,11 +103,11 @@ export default function ConversationsPage() {
                     {/* Reply */}
                     {m.reply_text && (
                       <div className="flex gap-2.5 flex-row-reverse">
-                        <div className="w-7 h-7 rounded-full bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0"><Bot size={13} className="text-[var(--accent)]" /></div>
+                        <div className="w-7 h-7 rounded-full bg-[var(--accent)] flex items-center justify-center flex-shrink-0 text-white text-[10px] font-semibold">CCE</div>
                         <div className="bg-[var(--accent)] text-white rounded-2xl rounded-tr-sm px-3.5 py-2 max-w-[80%]">
                           <div className="text-sm whitespace-pre-line">{m.reply_text}</div>
-                          <div className="text-[10px] text-white/60 mt-1 flex items-center gap-1">
-                            <Sparkles size={9} /> {m.answered_by === 'ai' ? 'AI assistant' : m.answered_by}
+                          <div className="text-[10px] text-white/55 mt-1">
+                            {m.answered_by === 'ai' ? 'Auto-reply' : m.answered_by}
                           </div>
                         </div>
                       </div>
