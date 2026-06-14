@@ -139,41 +139,41 @@ export default function ImportLeadsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/leads"
-          className="flex items-center gap-1.5 h-9 px-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+          className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
           <ArrowLeft size={15} /> Leads
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Import Leads</h1>
-          <p className="text-gray-400 text-sm">Upload a CSV file or paste data to import multiple leads at once</p>
+          <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Import Leads</h1>
+          <p className="text-[var(--ink-faint)] text-sm">Upload a CSV file or paste data to import multiple leads at once</p>
         </div>
       </div>
 
       {done ? (
         /* ── Success state ── */
-        <div className="bg-white rounded-2xl border border-gray-100 p-10 text-center max-w-md mx-auto shadow-sm">
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-10 text-center max-w-md mx-auto shadow-sm">
           <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
             <CheckCircle size={32} className="text-green-600" />
           </div>
-          <h2 className="text-xl font-bold text-gray-900 mb-2">Import Complete!</h2>
+          <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-2">Import Complete!</h2>
           <div className="flex justify-center gap-6 mb-6 text-sm">
             <div className="text-center">
               <div className="text-2xl font-black text-green-600">{done.success}</div>
-              <div className="text-gray-400">Imported</div>
+              <div className="text-[var(--ink-faint)]">Imported</div>
             </div>
             {done.failed > 0 && (
               <div className="text-center">
                 <div className="text-2xl font-black text-red-500">{done.failed}</div>
-                <div className="text-gray-400">Failed</div>
+                <div className="text-[var(--ink-faint)]">Failed</div>
               </div>
             )}
           </div>
           <div className="flex gap-3">
             <Link href="/admin/leads"
-              className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition flex items-center justify-center">
+              className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 transition flex items-center justify-center">
               View Leads →
             </Link>
             <button onClick={() => { setDone(null); setParsed([]); setRaw('') }}
-              className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
+              className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
               Import More
             </button>
           </div>
@@ -183,14 +183,14 @@ export default function ImportLeadsPage() {
           {/* Left — input */}
           <div className="space-y-4">
             {/* Template download */}
-            <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
-              <FileText size={20} className="text-blue-600 flex-shrink-0" />
+            <div className="bg-[var(--accent-soft)] border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+              <FileText size={20} className="text-[var(--accent)] flex-shrink-0" />
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-blue-900">Need a template?</div>
-                <div className="text-xs text-blue-600">Columns: full_name, phone, email, course_interest, source, city, notes</div>
+                <div className="text-xs text-[var(--accent)]">Columns: full_name, phone, email, course_interest, source, city, notes</div>
               </div>
               <button onClick={downloadTemplate}
-                className="flex items-center gap-1.5 px-3 py-2 bg-blue-600 text-white rounded-xl text-xs font-bold hover:bg-blue-700 transition flex-shrink-0">
+                className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-bold hover:brightness-110 transition flex-shrink-0">
                 <Download size={13} /> Template
               </button>
             </div>
@@ -200,7 +200,7 @@ export default function ImportLeadsPage() {
               <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
               <button onClick={() => fileRef.current?.click()}
-                className="w-full h-28 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-gray-400 hover:border-blue-400 hover:text-blue-500 hover:bg-blue-50 transition-all">
+                className="w-full h-28 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-[var(--ink-faint)] hover:border-blue-400 hover:text-blue-500 hover:bg-[var(--accent-soft)] transition-all">
                 <Upload size={24} />
                 <span className="text-sm font-semibold">Click to upload CSV file</span>
                 <span className="text-xs">or drag & drop</span>
@@ -209,7 +209,7 @@ export default function ImportLeadsPage() {
 
             {/* Paste area */}
             <div>
-              <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">
+              <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">
                 Or paste CSV data directly
               </label>
               <textarea
@@ -217,7 +217,7 @@ export default function ImportLeadsPage() {
                 onChange={e => handleText(e.target.value)}
                 rows={12}
                 placeholder={`full_name,phone,email,course_interest,source,city,notes\nKwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes\nAbena Owusu,0551234567,,Data Analytics,google,Kumasi,`}
-                className="w-full px-4 py-3 rounded-2xl border border-gray-200 text-sm font-mono resize-none focus:outline-none focus:border-blue-500 bg-gray-50 focus:bg-white transition"
+                className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm font-mono resize-none focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-white transition"
               />
             </div>
           </div>
@@ -225,7 +225,7 @@ export default function ImportLeadsPage() {
           {/* Right — preview */}
           <div className="space-y-4">
             {parsed.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-12 text-center text-gray-300 shadow-sm">
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-12 text-center text-[var(--ink-faint)] shadow-sm">
                 <FileText size={36} className="mx-auto mb-3 opacity-50" />
                 <p className="font-medium">Preview will appear here</p>
                 <p className="text-sm mt-1">Upload or paste your CSV data</p>
@@ -244,41 +244,41 @@ export default function ImportLeadsPage() {
                       <div className="text-xs text-red-500 font-semibold">Will be skipped</div>
                     </div>
                   )}
-                  <div className="flex-1 bg-gray-50 border border-gray-100 rounded-xl p-3 text-center">
-                    <div className="text-xl font-black text-gray-700">{parsed.length}</div>
-                    <div className="text-xs text-gray-500 font-semibold">Total rows</div>
+                  <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line-soft)] rounded-xl p-3 text-center">
+                    <div className="text-xl font-black text-[var(--ink-soft)]">{parsed.length}</div>
+                    <div className="text-xs text-[var(--ink-faint)] font-semibold">Total rows</div>
                   </div>
                 </div>
 
                 {/* Preview table */}
-                <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-                  <div className="px-4 py-3 border-b border-gray-50 flex items-center justify-between">
-                    <span className="text-sm font-bold text-gray-900">Preview</span>
-                    <span className="text-xs text-gray-400">Showing first 20 rows</span>
+                <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
+                  <div className="px-4 py-3 border-b border-[var(--line-soft)] flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[var(--ink)]">Preview</span>
+                    <span className="text-xs text-[var(--ink-faint)]">Showing first 20 rows</span>
                   </div>
                   <div className="overflow-x-auto max-h-80 overflow-y-auto">
                     <table className="w-full">
-                      <thead className="bg-gray-50 sticky top-0">
+                      <thead className="bg-[var(--line-soft)] sticky top-0">
                         <tr>
                           {['', 'Name', 'Phone', 'Email', 'Course', 'Source'].map(h => (
-                            <th key={h} className="text-left text-[10px] font-bold text-gray-400 uppercase tracking-wide px-3 py-2">{h}</th>
+                            <th key={h} className="text-left text-[10px] font-bold text-[var(--ink-faint)] uppercase tracking-wide px-3 py-2">{h}</th>
                           ))}
                         </tr>
                       </thead>
                       <tbody>
                         {parsed.slice(0, 20).map((row, i) => (
-                          <tr key={i} className={`border-t border-gray-50 ${row.status === 'error' ? 'bg-red-50' : 'hover:bg-gray-50'}`}>
+                          <tr key={i} className={`border-t border-[var(--line-soft)] ${row.status === 'error' ? 'bg-red-50' : 'hover:bg-[var(--line-soft)]'}`}>
                             <td className="px-3 py-2">
                               {row.status === 'valid'
                                 ? <CheckCircle size={13} className="text-green-500" />
                                 : <XCircle size={13} className="text-red-500" />}
                             </td>
-                            <td className="px-3 py-2 text-xs font-semibold text-gray-900 max-w-32 truncate">{row.full_name || <span className="text-red-400 italic">missing</span>}</td>
-                            <td className="px-3 py-2 text-xs text-gray-500">{row.phone || '—'}</td>
-                            <td className="px-3 py-2 text-xs text-gray-500 max-w-32 truncate">{row.email || '—'}</td>
-                            <td className="px-3 py-2 text-xs text-gray-500 max-w-28 truncate">{row.course_interest || '—'}</td>
+                            <td className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-red-400 italic">missing</span>}</td>
+                            <td className="px-3 py-2 text-xs text-[var(--ink-faint)]">{row.phone || '—'}</td>
+                            <td className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-32 truncate">{row.email || '—'}</td>
+                            <td className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-28 truncate">{row.course_interest || '—'}</td>
                             <td className="px-3 py-2">
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full capitalize bg-gray-100 text-gray-600">{row.source}</span>
+                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full capitalize bg-[var(--line-soft)] text-[var(--ink-soft)]">{row.source}</span>
                             </td>
                           </tr>
                         ))}
@@ -301,7 +301,7 @@ export default function ImportLeadsPage() {
 
                 {/* Import button */}
                 <button onClick={importLeads} disabled={importing || validCount === 0}
-                  className="w-full h-12 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                  className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
                   {importing
                     ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Importing {validCount} leads...</>
                     : <><Upload size={16} /> Import {validCount} Lead{validCount !== 1 ? 's' : ''}</>}

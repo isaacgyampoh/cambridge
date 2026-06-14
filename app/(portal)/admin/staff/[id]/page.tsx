@@ -90,10 +90,10 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"/></div>
-  if (!staff) return <div className="text-center py-20 text-gray-400">Staff member not found</div>
+  if (!staff) return <div className="text-center py-20 text-[var(--ink-faint)]">Staff member not found</div>
 
   const ROLE_COLOR: Record<string, string> = {
-    super_admin:'bg-purple-100 text-purple-700', project_manager:'bg-blue-100 text-blue-700',
+    super_admin:'bg-purple-100 text-purple-700', project_manager:'bg-[var(--accent-soft)] text-[var(--accent)]',
     marketing_officer:'bg-green-100 text-green-700', admissions_officer:'bg-indigo-100 text-indigo-700',
     accountant:'bg-amber-100 text-amber-700', receptionist:'bg-pink-100 text-pink-700',
     trainer:'bg-orange-100 text-orange-700',
@@ -114,37 +114,37 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   return (
     <div className="w-full max-w-3xl fade-in">
       <div className="flex items-center gap-3 mb-6">
-        <Link href="/admin/staff" className="flex items-center gap-1.5 h-9 px-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+        <Link href="/admin/staff" className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
           <ArrowLeft size={15}/> Staff
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Portal Access — {staff.full_name}</h1>
-          <p className="text-gray-400 text-sm">Choose which portals this person can access</p>
+          <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Portal Access — {staff.full_name}</h1>
+          <p className="text-[var(--ink-faint)] text-sm">Choose which portals this person can access</p>
         </div>
       </div>
 
       {/* Staff card */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-4 mb-5 flex items-center gap-4 shadow-sm">
-        <div className="w-12 h-12 rounded-full bg-blue-600 flex items-center justify-center text-white text-lg font-black flex-shrink-0">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-4 mb-5 flex items-center gap-4 shadow-sm">
+        <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-lg font-black flex-shrink-0">
           {staff.full_name?.charAt(0)}
         </div>
         <div className="flex-1 min-w-0">
-          <div className="font-bold text-gray-900">{staff.full_name}</div>
-          <div className="text-sm text-gray-400">{staff.phone?.replace(/^233/,'0')}</div>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${ROLE_COLOR[staff.role]||'bg-gray-100 text-gray-600'}`}>
+          <div className="font-semibold text-[var(--ink)]">{staff.full_name}</div>
+          <div className="text-sm text-[var(--ink-faint)]">{staff.phone?.replace(/^233/,'0')}</div>
+          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${ROLE_COLOR[staff.role]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
             {staff.role?.replace(/_/g,' ')}
           </span>
         </div>
         <div className="text-right">
-          <div className="text-2xl font-black text-blue-600">{selected.size}</div>
-          <div className="text-xs text-gray-400">portals selected</div>
+          <div className="text-2xl font-black text-[var(--accent)]">{selected.size}</div>
+          <div className="text-xs text-[var(--ink-faint)]">portals selected</div>
         </div>
       </div>
 
       {/* Info banner */}
-      <div className="bg-blue-50 border border-blue-100 rounded-2xl p-4 mb-5 flex gap-3">
-        <Shield size={18} className="text-blue-600 flex-shrink-0 mt-0.5"/>
-        <div className="text-sm text-blue-700">
+      <div className="bg-[var(--accent-soft)] border border-blue-100 rounded-2xl p-4 mb-5 flex gap-3">
+        <Shield size={18} className="text-[var(--accent)] flex-shrink-0 mt-0.5"/>
+        <div className="text-sm text-[var(--accent)]">
           <strong>Note:</strong> You can give any staff member access to any portal, regardless of their role.
           For example, a finance officer can also be given the Leads portal to input and manage leads.
           The <strong>Dashboard</strong> is always included.
@@ -156,9 +156,9 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         {groups.map(group => {
           const portalsInGroup = group.ids.map(id => ALL_PORTALS.find(p => p.id === id)).filter(Boolean)
           return (
-            <div key={group.label} className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
-              <div className="px-4 py-3 border-b border-gray-50 bg-gray-50">
-                <span className="text-xs font-bold text-gray-500 uppercase tracking-wide">{group.label}</span>
+            <div key={group.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
+              <div className="px-4 py-3 border-b border-[var(--line-soft)] bg-[var(--line-soft)]">
+                <span className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide">{group.label}</span>
               </div>
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {portalsInGroup.map((portal: any) => {
@@ -168,16 +168,16 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                   return (
                     <button key={portal.id} onClick={() => toggle(portal.id)} disabled={locked}
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all
-                        ${on ? 'border-blue-500 bg-blue-50' : 'border-gray-200 bg-white hover:border-gray-300'}
+                        ${on ? 'border-blue-500 bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-white hover:border-gray-300'}
                         ${locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${on ? 'bg-blue-600' : 'bg-gray-100'}`}>
-                        <Icon size={17} className={on ? 'text-white' : 'text-gray-500'} />
+                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)]' : 'bg-[var(--line-soft)]'}`}>
+                        <Icon size={17} className={on ? 'text-white' : 'text-[var(--ink-faint)]'} />
                       </div>
                       <div className="min-w-0 flex-1">
-                        <div className={`text-sm font-bold truncate ${on ? 'text-blue-700' : 'text-gray-700'}`}>{portal.label}</div>
-                        <div className="text-[11px] text-gray-400 truncate">{PORTAL_DESC[portal.id] || ''}</div>
+                        <div className={`text-sm font-bold truncate ${on ? 'text-[var(--accent)]' : 'text-[var(--ink-soft)]'}`}>{portal.label}</div>
+                        <div className="text-[11px] text-[var(--ink-faint)] truncate">{PORTAL_DESC[portal.id] || ''}</div>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${on ? 'border-blue-600 bg-blue-600' : 'border-gray-300'}`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${on ? 'border-blue-600 bg-[var(--accent)]' : 'border-gray-300'}`}>
                         {on && <div className="w-2 h-2 bg-white rounded-full"/>}
                       </div>
                     </button>
@@ -192,14 +192,14 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
       {/* Actions */}
       <div className="flex gap-3">
         <button onClick={save} disabled={saving}
-          className="flex-1 h-12 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
+          className="flex-1 h-12 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
           <Save size={16}/> {saving ? 'Saving…' : 'Save Permissions'}
         </button>
         <button onClick={resetToDefaults}
-          className="h-12 px-5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
+          className="h-12 px-5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
           Reset to Defaults
         </button>
-        <Link href="/admin/staff" className="h-12 px-5 bg-gray-100 text-gray-600 rounded-xl text-sm font-semibold hover:bg-gray-200 transition flex items-center">
+        <Link href="/admin/staff" className="h-12 px-5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition flex items-center">
           Cancel
         </Link>
       </div>

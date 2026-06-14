@@ -104,8 +104,8 @@ export default function BroadcastPage() {
   ]
 
   const STATUS_CONFIG: Record<string, string> = {
-    draft: 'bg-gray-100 text-gray-600',
-    sending: 'bg-blue-100 text-blue-700',
+    draft: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+    sending: 'bg-[var(--accent-soft)] text-[var(--accent)]',
     sent: 'bg-green-100 text-green-700',
     failed: 'bg-red-100 text-red-600',
   }
@@ -129,28 +129,28 @@ export default function BroadcastPage() {
         <Modal open={modal} onClose={() => setModal(false)} maxWidth="max-w-2xl">
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">New Broadcast</h2>
-              <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="font-semibold text-[var(--ink)]">New Broadcast</h2>
+              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"><X size={20} /></button>
             </div>
 
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Campaign Title</label>
+                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Campaign Title</label>
                 <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. PMP June Intake Announcement"
-                  className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
               </div>
 
               {/* Target */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Target Audience</label>
+                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Target Audience</label>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {TARGET_TYPES.map(t => (
                     <button key={t.value} onClick={() => setForm(f => ({ ...f, target_type: t.value, target_filters: {} }))}
-                      className={`text-left p-3 rounded-xl border-2 transition ${form.target_type === t.value ? 'border-blue-600 bg-blue-50': 'border-gray-200 hover:border-gray-300'}`}>
-                      <div className="text-sm font-bold text-gray-900">{t.label}</div>
-                      <div className="text-xs text-gray-500">{t.desc}</div>
+                      className={`text-left p-3 rounded-xl border-2 transition ${form.target_type === t.value ? 'border-blue-600 bg-[var(--accent-soft)]': 'border-[var(--line)] hover:border-gray-300'}`}>
+                      <div className="text-sm font-semibold text-[var(--ink)]">{t.label}</div>
+                      <div className="text-xs text-[var(--ink-faint)]">{t.desc}</div>
                     </button>
                   ))}
                 </div>
@@ -158,33 +158,33 @@ export default function BroadcastPage() {
                 {/* Sub-filters */}
                 {form.target_type === 'leads_by_status'&& (
                   <select value={form.target_filters.status || ''} onChange={e => setForm(f => ({ ...f, target_filters: { status: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
                     <option value="">Select status...</option>
                     {STATUS_OPTS.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                   </select>
                 )}
                 {form.target_type === 'leads_by_source'&& (
                   <select value={form.target_filters.source || ''} onChange={e => setForm(f => ({ ...f, target_filters: { source: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
                     <option value="">Select source...</option>
                     {SOURCE_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 )}
                 {form.target_type === 'batch_students'&& (
                   <select value={form.target_filters.batch_id || ''} onChange={e => setForm(f => ({ ...f, target_filters: { batch_id: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
                     <option value="">Select batch...</option>
                     {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
                 )}
 
                 {/* Preview */}
-                <button onClick={getPreview} className="mt-2 text-xs text-blue-600 hover:text-blue-800 font-semibold">
+                <button onClick={getPreview} className="mt-2 text-xs text-[var(--accent)] hover:text-blue-800 font-semibold">
                   Preview audience →
                 </button>
                 {preview && (
-                  <div className="mt-2 p-3 bg-blue-50 rounded-xl text-sm">
-                    <span className="font-bold text-blue-700">{preview.count} recipients</span>
+                  <div className="mt-2 p-3 bg-[var(--accent-soft)] rounded-xl text-sm">
+                    <span className="font-bold text-[var(--accent)]">{preview.count} recipients</span>
                     {preview.names?.length > 0 && (
                       <span className="text-blue-500 ml-2">({preview.names.slice(0, 3).join(', ')}{preview.count > 3 ? ` +${preview.count - 3} more` : ''})</span>
                     )}
@@ -194,14 +194,14 @@ export default function BroadcastPage() {
 
               {/* Channels */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">Send via</label>
+                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Send via</label>
                 <div className="flex gap-2">
                   {[
                     { key: 'whatsapp', label: 'WhatsApp', color: 'border-green-400 bg-green-50 text-green-700'},
-                    { key: 'sms', label: 'SMS', color: 'border-blue-400 bg-blue-50 text-blue-700'},
+                    { key: 'sms', label: 'SMS', color: 'border-blue-400 bg-[var(--accent-soft)] text-[var(--accent)]'},
                   ].map(ch => (
                     <button key={ch.key} onClick={() => toggleChannel(ch.key)}
-                      className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition ${form.channels.includes(ch.key) ? ch.color : 'border-gray-200 text-gray-500'}`}>
+                      className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition ${form.channels.includes(ch.key) ? ch.color : 'border-[var(--line)] text-[var(--ink-faint)]'}`}>
                       {ch.label}
                     </button>
                   ))}
@@ -211,17 +211,17 @@ export default function BroadcastPage() {
               {/* Message */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-gray-500 uppercase tracking-wide">Message</label>
-                  <span className="text-xs text-gray-400">{form.message.length} chars · Use {'{{name}}'} for personalization</span>
+                  <label className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Message</label>
+                  <span className="text-xs text-[var(--ink-faint)]">{form.message.length} chars · Use {'{{name}}'} for personalization</span>
                 </div>
                 <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                   rows={5} placeholder="Hello {{name}}! ..."
-                  className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:border-blue-500 mb-2" />
+                  className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)] mb-2" />
                 {/* Templates */}
                 <div className="flex flex-wrap gap-1.5">
                   {TEMPLATES.map(t => (
                     <button key={t.label} onClick={() => setForm(f => ({ ...f, message: t.text }))}
-                      className="text-[11px] px-2 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition">
+                      className="text-[11px] px-2 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
                       {t.label}
                     </button>
                   ))}
@@ -230,12 +230,12 @@ export default function BroadcastPage() {
 
               {/* Schedule */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">
+                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
                   Schedule (leave blank to send now)
                 </label>
                 <input type="datetime-local" value={form.scheduled_at}
                   onChange={e => setForm(f => ({ ...f, scheduled_at: e.target.value }))}
-                  className="h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                  className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
               </div>
             </div>
 
@@ -245,7 +245,7 @@ export default function BroadcastPage() {
                 <Send size={16} />
                 {sending ? 'Sending...': form.scheduled_at ? 'Schedule Broadcast': 'Send Now'}
               </button>
-              <button onClick={() => setModal(false)} className="flex-1 h-12 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
+              <button onClick={() => setModal(false)} className="flex-1 h-12 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>
         </Modal>
@@ -267,14 +267,14 @@ export default function BroadcastPage() {
                   {b.status}
                 </span>
               </div>
-              <div className="flex items-center gap-4 text-xs text-gray-500">
+              <div className="flex items-center gap-4 text-xs text-[var(--ink-faint)]">
                 <span className="flex items-center gap-1"><Users size={12} /> {b.target_count} targeted</span>
                 <span className="flex items-center gap-1 text-green-600"><CheckCircle size={12} /> {b.sent_count} sent</span>
                 {b.failed_count > 0 && <span className="flex items-center gap-1 text-red-500"><XCircle size={12} /> {b.failed_count} failed</span>}
                 <span className="flex items-center gap-1"><Clock size={12} /> {formatDateTime(b.created_at)}</span>
                 <div className="flex gap-1 ml-auto items-center">
                   {(b.channels || []).map((ch: string) => (
-                    <span key={ch} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ch === 'whatsapp'? 'bg-green-100 text-green-700': 'bg-blue-100 text-blue-700'}`}>
+                    <span key={ch} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ch === 'whatsapp'? 'bg-green-100 text-green-700': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                       {ch}
                     </span>
                   ))}
@@ -289,7 +289,7 @@ export default function BroadcastPage() {
             </div>
           ))}
           {broadcasts.length === 0 && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
+            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
               <Send size={40} className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">No broadcasts yet</p>
               <p className="text-sm mt-1">Create your first bulk message campaign</p>

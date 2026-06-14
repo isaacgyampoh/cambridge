@@ -78,8 +78,8 @@ export default function ActivitiesPage() {
     <div className="fade-in">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Follow-up Queue</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{queue.length} tasks · {overdue.length} overdue</p>
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Follow-up Queue</h1>
+          <p className="text-[var(--ink-faint)] text-sm mt-0.5">{queue.length} tasks · {overdue.length} overdue</p>
         </div>
       </div>
 
@@ -101,7 +101,7 @@ export default function ActivitiesPage() {
           { key: 'all', label: 'All Pending'},
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${filter === f.key ? 'bg-blue-600 text-white': 'bg-white text-gray-600 border border-gray-200'}`}>
+            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${filter === f.key ? 'bg-[var(--accent)] text-white': 'bg-white text-[var(--ink-soft)] border border-[var(--line)]'}`}>
             {f.label}
           </button>
         ))}
@@ -110,7 +110,7 @@ export default function ActivitiesPage() {
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
       ) : queue.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
           <CheckCircle size={40} className="mx-auto mb-3 opacity-30 text-green-500" />
           <p className="font-medium">All caught up! </p>
           <p className="text-sm mt-1">No follow-ups due. Keep up the great work!</p>
@@ -121,19 +121,19 @@ export default function ActivitiesPage() {
             const lead = item.lead
             const isOverdue = new Date(item.follow_up_at) < new Date()
             return (
-              <div key={item.id} className={`bg-white rounded-2xl border-2 p-4 ${isOverdue ? 'border-red-200': 'border-gray-200'}`}>
+              <div key={item.id} className={`bg-[var(--paper)] rounded-xl border-2 p-4 ${isOverdue ? 'border-red-200': 'border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
                       <Link href={`/marketer/leads/${lead?.id}`}
-                        className="font-bold text-gray-900 hover:text-blue-600 transition">
+                        className="font-semibold text-[var(--ink)] hover:text-[var(--accent)] transition">
                         {lead?.full_name}
                       </Link>
                       {isOverdue && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">OVERDUE</span>}
                     </div>
-                    {lead?.course_interest && <div className="text-xs text-blue-600 mb-1"> {lead.course_interest}</div>}
-                    {item.reason && <div className="text-xs text-gray-500 mb-2 line-clamp-2">{item.reason}</div>}
-                    <div className="flex items-center gap-1 text-xs text-gray-400">
+                    {lead?.course_interest && <div className="text-xs text-[var(--accent)] mb-1"> {lead.course_interest}</div>}
+                    {item.reason && <div className="text-xs text-[var(--ink-faint)] mb-2 line-clamp-2">{item.reason}</div>}
+                    <div className="flex items-center gap-1 text-xs text-[var(--ink-faint)]">
                       <Clock size={11} />
                       <span className={isOverdue ? 'text-red-500 font-semibold': ''}>{formatDateTime(item.follow_up_at)}</span>
                     </div>
@@ -153,13 +153,13 @@ export default function ActivitiesPage() {
                       </div>
                     )}
                     <button onClick={() => markDone(item.id)}
-                      className="flex items-center gap-1 px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition">
+                      className="flex items-center gap-1 px-3 py-1.5 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
                       <CheckCircle size={12} /> Done
                     </button>
                     <div className="flex gap-1">
                       {[1, 4, 24].map(h => (
                         <button key={h} onClick={() => snooze(item.id, h)}
-                          className="flex-1 px-1.5 py-1 bg-gray-100 text-gray-600 rounded-lg text-[10px] font-semibold hover:bg-gray-200 transition">
+                          className="flex-1 px-1.5 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg text-[10px] font-semibold hover:bg-[var(--line)] transition">
                           +{h}h
                         </button>
                       ))}

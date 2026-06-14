@@ -101,12 +101,12 @@ export default function NewLeadPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/leads"
-          className="flex items-center gap-1.5 h-9 px-3 bg-white border border-gray-200 text-gray-600 rounded-xl text-sm font-medium hover:bg-gray-50 transition">
+          className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
           <ArrowLeft size={15} /> Leads
         </Link>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Add New Lead</h1>
-          <p className="text-gray-400 text-sm">Manually enter a lead into the system</p>
+          <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Add New Lead</h1>
+          <p className="text-[var(--ink-faint)] text-sm">Manually enter a lead into the system</p>
         </div>
       </div>
 
@@ -115,20 +115,20 @@ export default function NewLeadPage() {
         <div className="xl:col-span-2 space-y-5">
 
           {/* Personal info */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Personal Information</h2>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-4">Personal Information</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {FIELDS.map(f => (
                 <div key={f.key} className={f.half ? '' : 'sm:col-span-2'}>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">{f.label}</label>
                   <div className="relative">
-                    <f.icon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                    <f.icon size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                     <input
                       type={f.type}
                       value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       placeholder={f.placeholder}
-                      className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition"
+                      className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition"
                     />
                   </div>
                 </div>
@@ -136,9 +136,9 @@ export default function NewLeadPage() {
 
               {/* Gender */}
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Gender</label>
+                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Gender</label>
                 <select value={form.gender} onChange={e => set('gender', e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500 transition">
+                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] transition">
                   <option value="">Select...</option>
                   <option>Male</option><option>Female</option><option>Other</option>
                 </select>
@@ -147,16 +147,16 @@ export default function NewLeadPage() {
           </div>
 
           {/* Course interest */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Course Interest</h2>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-4">Course Interest</h2>
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
               {COURSES.map(c => (
                 <button key={c} type="button"
                   onClick={() => set('course_interest', c)}
                   className={`h-10 px-3 rounded-xl text-sm font-medium border-2 transition text-left truncate ${
                     form.course_interest === c
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                      ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
+                      : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300 hover:bg-[var(--line-soft)]'
                   }`}>
                   {c}
                 </button>
@@ -164,15 +164,15 @@ export default function NewLeadPage() {
             </div>
             <input value={form.course_interest} onChange={e => set('course_interest', e.target.value)}
               placeholder="Or type custom course..."
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition mt-3" />
+              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition mt-3" />
           </div>
 
           {/* Notes */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Notes</h2>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-4">Notes</h2>
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={4}
               placeholder="Any additional info about this lead..."
-              className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:border-blue-500 transition" />
+              className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)] transition" />
           </div>
         </div>
 
@@ -180,16 +180,16 @@ export default function NewLeadPage() {
         <div className="space-y-5">
 
           {/* Source */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Lead Source</h2>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-4">Lead Source</h2>
             <div className="space-y-2">
               {SOURCES.map(s => (
                 <button key={s} type="button"
                   onClick={() => set('source', s)}
                   className={`w-full flex items-center gap-3 h-11 px-4 rounded-xl text-sm font-semibold border-2 transition capitalize ${
                     form.source === s
-                      ? 'border-blue-600 bg-blue-50 text-blue-700'
-                      : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                      ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
+                      : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'
                   }`}>
                   <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
                     s==='facebook'?'bg-blue-500':s==='google'?'bg-red-500':s==='linkedin'?'bg-blue-800':
@@ -201,11 +201,11 @@ export default function NewLeadPage() {
           </div>
 
           {/* Assign to marketer */}
-          <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-            <h2 className="text-sm font-bold text-gray-700 uppercase tracking-wide mb-4">Assign To (optional)</h2>
-            <p className="text-xs text-gray-400 mb-3">If assigned now, marketer gets notified via SMS & WhatsApp</p>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+            <h2 className="text-sm font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-4">Assign To (optional)</h2>
+            <p className="text-xs text-[var(--ink-faint)] mb-3">If assigned now, marketer gets notified via SMS & WhatsApp</p>
             <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}
-              className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500 transition">
+              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] transition">
               <option value="">Leave unassigned</option>
               {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>
@@ -214,13 +214,13 @@ export default function NewLeadPage() {
           {/* Submit */}
           <div className="space-y-2">
             <button type="submit" disabled={saving}
-              className="w-full h-12 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
+              className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
               {saving
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
                 : <><UserPlus size={16} /> Add Lead</>}
             </button>
             <Link href="/admin/leads"
-              className="w-full h-11 flex items-center justify-center bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
+              className="w-full h-11 flex items-center justify-center bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
               Cancel
             </Link>
           </div>

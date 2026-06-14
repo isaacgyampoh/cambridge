@@ -114,7 +114,7 @@ export default function PMDashboard() {
       </div>
 
       {/* Table */}
-      <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -122,59 +122,59 @@ export default function PMDashboard() {
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
-              <thead className="bg-gray-50 border-b border-gray-100">
+              <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
                 <tr>
                   {['Lead','Contact','Source','Course','Status','Assign To','Date'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-16 text-gray-300">
+                  <tr><td colSpan={7} className="text-center py-16 text-[var(--ink-faint)]">
                     <Users size={32} className="mx-auto mb-2 opacity-50" />
                     <p>No leads in this view</p>
                   </td></tr>
                 ) : filtered.map(lead => (
-                  <tr key={lead.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
+                  <tr key={lead.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
                     <td className="px-4 py-3">
-                      <Link href={`/pm/leads/${lead.id}`} className="font-semibold text-sm text-blue-600 hover:underline">
+                      <Link href={`/pm/leads/${lead.id}`} className="font-semibold text-sm text-[var(--accent)] hover:underline">
                         {lead.full_name}
                       </Link>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-xs text-gray-600">{lead.phone || '—'}</div>
-                      <div className="text-[11px] text-gray-400">{lead.email}</div>
+                      <div className="text-xs text-[var(--ink-soft)]">{lead.phone || '—'}</div>
+                      <div className="text-[11px] text-[var(--ink-faint)]">{lead.email}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_COLORS[lead.source]||'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_COLORS[lead.source]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {lead.source}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-gray-600 max-w-32 truncate">{lead.course_interest || '—'}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--ink-soft)] max-w-32 truncate">{lead.course_interest || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]||'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {lead.status?.replace(/_/g,' ')}
                       </span>
                     </td>
                     <td className="px-4 py-3">
                       {(lead as any).assignee ? (
                         <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-blue-600 flex items-center justify-center text-white text-[9px] font-bold">
+                          <div className="w-5 h-5 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-[9px] font-bold">
                             {(lead as any).assignee.full_name?.charAt(0)}
                           </div>
-                          <span className="text-xs text-gray-700">{(lead as any).assignee.full_name?.split(' ')[0]}</span>
+                          <span className="text-xs text-[var(--ink-soft)]">{(lead as any).assignee.full_name?.split(' ')[0]}</span>
                         </div>
                       ) : (
                         <select onChange={e => { if(e.target.value) assignLead(lead.id, e.target.value) }}
                           disabled={assigning === lead.id} defaultValue=""
-                          className="text-xs px-2 py-1.5 border border-gray-200 rounded-lg bg-white focus:outline-none focus:border-blue-500 disabled:opacity-50 max-w-36">
+                          className="text-xs px-2 py-1.5 border border-[var(--line)] rounded-lg bg-white focus:outline-none focus:border-[var(--accent)] disabled:opacity-50 max-w-36">
                           <option value="" disabled>Assign to...</option>
                           {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
                         </select>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-gray-400">
+                    <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">
                       {new Date(lead.created_at).toLocaleDateString('en-GH', { day:'numeric', month:'short' })}
                     </td>
                   </tr>

@@ -9,12 +9,12 @@ import { useRouter } from 'next/navigation'
 import { changeLeadStatus } from '@/lib/leadStatus'
 
 const STATUSES = [
-  { key: 'contacted', label: 'Contacted', color: 'bg-blue-100 text-blue-700'},
+  { key: 'contacted', label: 'Contacted', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
   { key: 'interested', label: 'Interested', color: 'bg-indigo-100 text-indigo-700'},
   { key: 'follow_up', label: 'Follow Up', color: 'bg-orange-100 text-orange-700'},
   { key: 'ready_to_join', label: 'Ready to Join', color: 'bg-green-100 text-green-700'},
   { key: 'not_interested', label: 'Not Interested', color: 'bg-red-100 text-red-600'},
-  { key: 'lost', label: 'Lost', color: 'bg-gray-100 text-gray-600'},
+  { key: 'lost', label: 'Lost', color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]'},
 ]
 
 export default function MarketerDashboard() {
@@ -82,10 +82,10 @@ export default function MarketerDashboard() {
 
   const statusOrder = ['new','contacted','interested','follow_up','ready_to_join','not_interested','lost','registered']
   const COLORS: Record<string,string> = {
-    new:'bg-yellow-100 text-yellow-800', contacted:'bg-blue-100 text-blue-700',
+    new:'bg-yellow-100 text-yellow-800', contacted:'bg-[var(--accent-soft)] text-[var(--accent)]',
     interested:'bg-indigo-100 text-indigo-700', follow_up:'bg-orange-100 text-orange-700',
     ready_to_join:'bg-green-100 text-green-700', registered:'bg-emerald-100 text-emerald-700',
-    not_interested:'bg-red-100 text-red-600', lost:'bg-gray-100 text-gray-600',
+    not_interested:'bg-red-100 text-red-600', lost:'bg-[var(--line-soft)] text-[var(--ink-soft)]',
   }
 
   return (
@@ -179,10 +179,10 @@ export default function MarketerDashboard() {
                     <div className="font-medium text-sm text-[var(--ink)] truncate">{lead.full_name}</div>
                     <div className="text-[11px] text-[var(--ink-faint)]">{lead.phone} {lead.course_interest ? `· ${lead.course_interest}` : ''}</div>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mx-2 flex-shrink-0 ${COLORS[lead.status]||'bg-gray-100 text-gray-600'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mx-2 flex-shrink-0 ${COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                     {lead.status?.replace(/_/g, ' ')}
                   </span>
-                  {isExpanded ? <ChevronUp size={15} className="text-gray-400"/> : <ChevronDown size={15} className="text-gray-400" />}
+                  {isExpanded ? <ChevronUp size={15} className="text-[var(--ink-faint)]"/> : <ChevronDown size={15} className="text-[var(--ink-faint)]" />}
                 </div>
 
                 {/* Expanded actions */}
@@ -201,7 +201,7 @@ export default function MarketerDashboard() {
                           <MessageSquare size={12} /> WhatsApp
                         </a>
                         <Link href={`/marketer/leads/${lead.id}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-gray-200 text-gray-600 rounded-xl text-xs font-semibold hover:bg-gray-100 transition">
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line-soft)] transition">
                           Full View →
                         </Link>
                       </div>
@@ -210,11 +210,11 @@ export default function MarketerDashboard() {
                     {/* Note */}
                     <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
                       placeholder="Note about this interaction..."
-                      className="w-full text-xs px-3 py-2 border border-gray-200 rounded-xl resize-none focus:outline-none focus:border-blue-500 bg-white mb-2" />
+                      className="w-full text-xs px-3 py-2 border border-[var(--line)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)] bg-white mb-2" />
 
                     {/* Status buttons */}
                     <div className="flex flex-wrap gap-1.5">
-                      <span className="text-[10px] font-bold text-gray-400 uppercase self-center mr-1">Move to:</span>
+                      <span className="text-[10px] font-bold text-[var(--ink-faint)] uppercase self-center mr-1">Move to:</span>
                       {STATUSES.filter(s => s.key !== lead.status).map(s => (
                         <button key={s.key} disabled={updating === lead.id}
                           onClick={() => updateStatus(lead.id, s.key)}

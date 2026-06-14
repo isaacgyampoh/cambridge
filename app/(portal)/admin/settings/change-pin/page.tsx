@@ -44,7 +44,7 @@ export default function ChangePINPage() {
 
   const PinRow = ({ label, value, onChange, refs, onKeyDown }: any) => (
     <div>
-      <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-2">{label}</label>
+      <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">{label}</label>
       <div className="flex gap-3">
         {value.map((digit: string, i: number) => (
           <input key={i} ref={refs[i]}
@@ -52,8 +52,8 @@ export default function ChangePINPage() {
             onChange={e => onChange(e.target.value, i)}
             onKeyDown={e => onKeyDown(e, i)}
             className={`w-14 h-14 text-center text-xl font-black rounded-xl border-2 focus:outline-none transition
-              ${digit ? 'border-blue-600 bg-blue-50 text-blue-700' : 'border-gray-200 bg-gray-50'}
-              focus:border-blue-500 focus:bg-white`} />
+              ${digit ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--line)] bg-[var(--line-soft)]'}
+              focus:border-[var(--accent)] focus:bg-white`} />
         ))}
       </div>
     </div>
@@ -62,16 +62,16 @@ export default function ChangePINPage() {
   return (
     <div className="fade-in w-full">
       <div className="flex items-center gap-3 mb-6">
-        <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-          <Shield size={20} className="text-blue-600" />
+        <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
+          <Shield size={20} className="text-[var(--accent)]" />
         </div>
         <div>
-          <h1 className="text-xl font-bold text-gray-900">Change PIN</h1>
-          <p className="text-gray-500 text-sm">Update your security PIN</p>
+          <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Change PIN</h1>
+          <p className="text-[var(--ink-faint)] text-sm">Update your security PIN</p>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl border border-gray-200 p-6 space-y-5">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 space-y-5">
         <PinRow label="Current PIN" value={currentPin}
           onChange={(v: string, i: number) => handleInput(v, i, currentPin, setCurrentPin, currentRefs)}
           onKeyDown={(e: any, i: number) => handleKeyDown(e, i, currentPin, currentRefs)}
@@ -86,7 +86,7 @@ export default function ChangePINPage() {
           refs={confirmRefs} />
 
         <button onClick={() => setShowPin(!showPin)}
-          className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition">
+          className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
           {showPin ? <EyeOff size={12} /> : <Eye size={12} />}
           {showPin ? 'Hide PINs' : 'Show PINs'}
         </button>
@@ -95,11 +95,11 @@ export default function ChangePINPage() {
 
         <div className="flex gap-3 pt-2">
           <button onClick={save} disabled={saving}
-            className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-blue-700 transition">
+            className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:brightness-110 transition">
             {saving ? 'Saving...' : 'Change PIN'}
           </button>
           <button onClick={() => router.back()}
-            className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
+            className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
             Cancel
           </button>
         </div>

@@ -237,15 +237,15 @@ export default function MarketerPerformancePage() {
       {(
         <Modal open={!!selected} onClose={() => { setSelected(null); setAlertMsg('') }} maxWidth="max-w-sm">
           {selected && <div className="p-6">
-            <h2 className="text-lg font-bold text-gray-900 mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
-            <p className="text-sm text-gray-500 mb-4">This will send an in-app notification and SMS.</p>
+            <h2 className="font-semibold text-[var(--ink)] mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
+            <p className="text-sm text-[var(--ink-faint)] mb-4">This will send an in-app notification and SMS.</p>
             <div className="bg-orange-50 rounded-xl p-3 mb-4 text-xs text-orange-700">
               <strong>Performance snapshot:</strong><br />
               {selected.totalLeads} leads · {selected.convertedLeads} converted ({selected.conversionRate}%) · {selected.uncontactedLeads} uncontacted · Last active: {selected.daysSinceActivity === 999 ? 'Never': `${selected.daysSinceActivity} days ago`}
             </div>
             <textarea value={alertMsg} onChange={e => setAlertMsg(e.target.value)} rows={4}
               placeholder={`Hi ${selected.full_name.split(' ')[0]}, we noticed you have ${selected.uncontactedLeads} uncontacted leads...`}
-              className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl resize-none focus:outline-none focus:border-blue-500 mb-4" />
+              className="w-full text-sm px-3 py-2.5 border border-[var(--line)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)] mb-4" />
             {/* Quick templates */}
             <div className="flex flex-wrap gap-1.5 mb-4">
               {[
@@ -254,7 +254,7 @@ export default function MarketerPerformancePage() {
                 `Hi ${selected.full_name.split(' ')[0]}, we haven't seen any activity in ${selected.daysSinceActivity} days. Please update your leads.`,
               ].map((t, i) => (
                 <button key={i} onClick={() => setAlertMsg(t)}
-                  className="text-[10px] px-2 py-1 bg-gray-100 text-gray-600 rounded-lg hover:bg-gray-200 transition text-left">
+                  className="text-[10px] px-2 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition text-left">
                   Template {i + 1}
                 </button>
               ))}
@@ -266,7 +266,7 @@ export default function MarketerPerformancePage() {
                 {sendingAlert ? 'Sending...': 'Send Alert'}
               </button>
               <button onClick={() => { setSelected(null); setAlertMsg('') }}
-                className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
+                className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>}
         </Modal>
@@ -280,15 +280,15 @@ export default function MarketerPerformancePage() {
           {marketers.map(m => {
             const sc = STATUS_CONFIG[m.status]
             return (
-              <div key={m.id} className={`bg-white rounded-2xl border-2 p-5 transition ${sc.bg}`}>
+              <div key={m.id} className={`bg-[var(--paper)] rounded-xl border-2 p-5 transition ${sc.bg}`}>
                 <div className="flex items-start justify-between mb-4">
                   <div className="flex items-center gap-3">
-                    <div className="w-11 h-11 rounded-full bg-blue-600 flex items-center justify-center text-white font-bold flex-shrink-0">
+                    <div className="w-11 h-11 rounded-full bg-[var(--accent)] flex items-center justify-center text-white font-bold flex-shrink-0">
                       {m.full_name.charAt(0)}
                     </div>
                     <div>
-                      <div className="font-bold text-gray-900">{m.full_name}</div>
-                      <div className="text-xs text-gray-500">{m.email}</div>
+                      <div className="font-semibold text-[var(--ink)]">{m.full_name}</div>
+                      <div className="text-xs text-[var(--ink-faint)]">{m.email}</div>
                       <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border mt-1 inline-block ${sc.color}`}>{sc.label}</span>
                     </div>
                   </div>
@@ -315,9 +315,9 @@ export default function MarketerPerformancePage() {
                     { label: 'Calls/wk', value: m.callsThisWeek, icon: Phone },
                     { label: 'WA/wk', value: m.waThisWeek, icon: MessageSquare },
                   ].map(s => (
-                    <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-red-50': 'bg-gray-50'}`}>
-                      <div className={`text-xl font-bold ${(s as any).alert ? 'text-red-600': 'text-gray-900'}`}>{s.value}</div>
-                      <div className="text-[10px] text-gray-500 mt-0.5">{s.label}</div>
+                    <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-red-50': 'bg-[var(--line-soft)]'}`}>
+                      <div className={`text-xl font-bold ${(s as any).alert ? 'text-red-600': 'text-[var(--ink)]'}`}>{s.value}</div>
+                      <div className="text-[10px] text-[var(--ink-faint)] mt-0.5">{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -326,10 +326,10 @@ export default function MarketerPerformancePage() {
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
                   <div>
                     <div className="flex justify-between text-xs mb-1">
-                      <span className="text-gray-500">Lead Pipeline</span>
-                      <span className="font-semibold text-gray-700">{m.totalLeads} leads</span>
+                      <span className="text-[var(--ink-faint)]">Lead Pipeline</span>
+                      <span className="font-semibold text-[var(--ink-soft)]">{m.totalLeads} leads</span>
                     </div>
-                    <div className="h-2 bg-gray-100 rounded-full overflow-hidden flex">
+                    <div className="h-2 bg-[var(--line-soft)] rounded-full overflow-hidden flex">
                       {m.totalLeads > 0 && <>
                         <div className="h-full bg-green-500"style={{ width: `${m.convertedLeads/m.totalLeads*100}%` }} title="Converted" />
                         <div className="h-full bg-blue-400"style={{ width: `${m.interestedLeads/m.totalLeads*100}%` }} title="Interested" />
@@ -344,16 +344,16 @@ export default function MarketerPerformancePage() {
                         { color: 'bg-yellow-400', label: 'Contacted'},
                         { color: 'bg-gray-200', label: 'New'},
                       ].map(l => (
-                        <div key={l.label} className="flex items-center gap-1 text-[9px] text-gray-400">
+                        <div key={l.label} className="flex items-center gap-1 text-[9px] text-[var(--ink-faint)]">
                           <div className={`w-2 h-2 rounded-full ${l.color}`} />
                           {l.label}
                         </div>
                       ))}
                     </div>
                   </div>
-                  <div className="text-xs text-gray-500 flex items-center gap-4">
+                  <div className="text-xs text-[var(--ink-faint)] flex items-center gap-4">
                     <div>
-                      <div className="font-bold text-gray-900">{m.applicationsGenerated}</div>
+                      <div className="font-semibold text-[var(--ink)]">{m.applicationsGenerated}</div>
                       <div>Applications</div>
                     </div>
                     <div>
@@ -366,7 +366,7 @@ export default function MarketerPerformancePage() {
                     </div>
                     {m.lastActivityDate && (
                       <div>
-                        <div className="font-bold text-gray-700">{m.daysSinceActivity === 0 ? 'Today': `${m.daysSinceActivity}d ago`}</div>
+                        <div className="font-semibold text-[var(--ink-soft)]">{m.daysSinceActivity === 0 ? 'Today': `${m.daysSinceActivity}d ago`}</div>
                         <div>Last Active</div>
                       </div>
                     )}
@@ -376,7 +376,7 @@ export default function MarketerPerformancePage() {
             )
           })}
           {marketers.length === 0 && !loading && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
+            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
               <Users size={40} className="mx-auto mb-3 opacity-30" />
               <p>No marketing officers found</p>
             </div>

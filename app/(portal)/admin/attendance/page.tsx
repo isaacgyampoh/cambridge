@@ -136,11 +136,11 @@ export default function AttendanceDashboard() {
     <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Attendance Dashboard</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Live class sign-in monitoring</p>
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Attendance Dashboard</h1>
+          <p className="text-[var(--ink-faint)] text-sm mt-0.5">Live class sign-in monitoring</p>
         </div>
         <button onClick={() => setCreating(true)}
-          className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+          className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
           <Plus size={16} /> Create Session
         </button>
       </div>
@@ -157,15 +157,15 @@ export default function AttendanceDashboard() {
       {(
         <Modal open={creating} onClose={() => setCreating(false)} maxWidth="max-w-sm">
           <div className="p-6 relative">
-            <button onClick={() => setCreating(false)} className="absolute top-4 right-4 text-gray-400 hover:text-gray-700 transition">
+            <button onClick={() => setCreating(false)} className="absolute top-4 right-4 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
               <X size={18} />
             </button>
-            <h2 className="text-lg font-bold text-gray-900 mb-4">Create Sign-in Session</h2>
+            <h2 className="font-semibold text-[var(--ink)] mb-4">Create Sign-in Session</h2>
             <div className="space-y-3 mb-5">
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Batch</label>
+                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Batch</label>
                 <select value={newSession.batch_id} onChange={e => setNewSession(s => ({ ...s, batch_id: e.target.value }))}
-                  className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500">
+                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
                   <option value="">Select batch...</option>
                   {batches.map((b: any) => <option key={b.id} value={b.id}>{b.name} — {b.courses?.name}</option>)}
                 </select>
@@ -174,19 +174,19 @@ export default function AttendanceDashboard() {
                 )}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Class Code (write this on the board)</label>
+                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Class Code (write this on the board)</label>
                 <input value={newSession.class_code} onChange={e => setNewSession(s => ({ ...s, class_code: e.target.value.toUpperCase() }))}
                   placeholder="e.g. CCE-AB25" maxLength={12}
-                  className="w-full h-14 px-4 rounded-xl border border-gray-200 text-xl font-bold text-center tracking-widest uppercase focus:outline-none focus:border-blue-500" />
-                <p className="text-xs text-gray-400 mt-1 text-center">Write this on your board before sharing the link</p>
+                  className="w-full h-14 px-4 rounded-xl border border-[var(--line)] text-xl font-bold text-center tracking-widest uppercase focus:outline-none focus:border-[var(--accent)]" />
+                <p className="text-xs text-[var(--ink-faint)] mt-1 text-center">Write this on your board before sharing the link</p>
               </div>
             </div>
             <div className="flex gap-2">
               <button onClick={createSession} disabled={submitting || batches.length === 0}
-                className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
+                className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
                 {submitting ? 'Creating…': 'Create'}
               </button>
-              <button onClick={() => setCreating(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">Cancel</button>
+              <button onClick={() => setCreating(false)} className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">Cancel</button>
             </div>
           </div>
         </Modal>
@@ -195,30 +195,30 @@ export default function AttendanceDashboard() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Sessions list */}
         <div>
-          <h2 className="text-sm font-bold text-gray-700 mb-3">Recent Sessions</h2>
+          <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-3">Recent Sessions</h2>
           <div className="space-y-2">
             {sessions.map((s: any) => (
               <button key={s.id} onClick={() => selectSession(s)}
-                className={`w-full text-left bg-white rounded-2xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600': 'border-gray-200 hover:border-gray-300'}`}>
+                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600': 'border-[var(--line)] hover:border-gray-300'}`}>
                 <div className="flex items-start justify-between mb-1">
-                  <div className="text-sm font-bold text-gray-900 truncate">{s.batches?.name}</div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-green-100 text-green-700': 'bg-gray-100 text-gray-500'}`}>
+                  <div className="text-sm font-semibold text-[var(--ink)] truncate">{s.batches?.name}</div>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-green-100 text-green-700': 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
                     {s.signin_open ? 'OPEN': 'CLOSED'}
                   </span>
                 </div>
-                <div className="text-xs text-gray-500">{s.batches?.courses?.name}</div>
+                <div className="text-xs text-[var(--ink-faint)]">{s.batches?.courses?.name}</div>
                 <div className="flex items-center gap-3 mt-2 text-xs">
-                  <span className="font-mono bg-blue-50 text-blue-700 px-2 py-0.5 rounded font-bold">{s.class_code}</span>
-                  <span className="text-gray-400">{s.session_date}</span>
+                  <span className="font-mono bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded font-bold">{s.class_code}</span>
+                  <span className="text-[var(--ink-faint)]">{s.session_date}</span>
                 </div>
-                <div className="flex gap-3 mt-2 text-xs text-gray-500">
+                <div className="flex gap-3 mt-2 text-xs text-[var(--ink-faint)]">
                   <span> {s.total_signed_in} signed in</span>
                   <span> {s.total_paid} paid</span>
                 </div>
               </button>
             ))}
             {sessions.length === 0 && !loading && (
-              <div className="bg-white rounded-2xl border border-gray-200 p-8 text-center text-gray-400">
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-8 text-center text-[var(--ink-faint)]">
                 <p className="text-sm">No sessions yet. Create one to get started.</p>
               </div>
             )}
@@ -228,19 +228,19 @@ export default function AttendanceDashboard() {
         {/* Sign-in detail */}
         <div className="lg:col-span-2">
           {!selected ? (
-            <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
+            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
               <Users size={40} className="mx-auto mb-3 opacity-30" />
               <p>Select a session to view attendance</p>
             </div>
           ) : (
             <div>
               {/* Session header */}
-              <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-4">
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-4">
                 <div className="flex items-start justify-between mb-3">
                   <div>
-                    <h2 className="font-bold text-gray-900">{selected.batches?.name}</h2>
-                    <p className="text-sm text-gray-500">{selected.batches?.courses?.name} · {selected.session_date}</p>
-                    <p className="text-sm font-mono text-blue-600 mt-1">Code: <strong>{selected.class_code}</strong></p>
+                    <h2 className="font-semibold text-[var(--ink)]">{selected.batches?.name}</h2>
+                    <p className="text-sm text-[var(--ink-faint)]">{selected.batches?.courses?.name} · {selected.session_date}</p>
+                    <p className="text-sm font-mono text-[var(--accent)] mt-1">Code: <strong>{selected.class_code}</strong></p>
                   </div>
                   <button onClick={() => toggleSession(selected.id, selected.signin_open)}
                     className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${selected.signin_open ? 'bg-red-100 text-red-700 hover:bg-red-200': 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
@@ -249,39 +249,39 @@ export default function AttendanceDashboard() {
                 </div>
 
                 {/* Sign-in link */}
-                <div className="bg-blue-50 rounded-xl p-3 mb-3">
-                  <p className="text-xs font-semibold text-blue-700 mb-1">Share this sign-in link with students:</p>
+                <div className="bg-[var(--accent-soft)] rounded-xl p-3 mb-3">
+                  <p className="text-xs font-semibold text-[var(--accent)] mb-1">Share this sign-in link with students:</p>
                   <div className="flex items-center gap-2">
-                    <code className="text-xs text-blue-600 flex-1 break-all">{getSigninUrl(selected)}</code>
-                    <button onClick={() => copyLink(selected)} className="flex-shrink-0 px-3 py-1.5 bg-blue-600 text-white rounded-lg text-xs font-semibold hover:bg-blue-700 transition">Copy</button>
+                    <code className="text-xs text-[var(--accent)] flex-1 break-all">{getSigninUrl(selected)}</code>
+                    <button onClick={() => copyLink(selected)} className="flex-shrink-0 px-3 py-1.5 bg-[var(--accent)] text-white rounded-lg text-xs font-semibold hover:brightness-110 transition">Copy</button>
                   </div>
                 </div>
 
                 {/* Stats */}
                 <div className="grid grid-cols-4 gap-2">
                   {[
-                    { label: 'Total', value: signins.length, color: 'text-gray-900'},
+                    { label: 'Total', value: signins.length, color: 'text-[var(--ink)]'},
                     { label: 'Verified', value: verified.length, color: 'text-green-600'},
-                    { label: 'In Person', value: inPerson.length, color: 'text-blue-600'},
+                    { label: 'In Person', value: inPerson.length, color: 'text-[var(--accent)]'},
                     { label: 'Paid', value: paid.length, color: 'text-emerald-600'},
                   ].map(s => (
-                    <div key={s.label} className="bg-gray-50 rounded-xl p-2.5 text-center">
+                    <div key={s.label} className="bg-[var(--line-soft)] rounded-xl p-2.5 text-center">
                       <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
-                      <div className="text-xs text-gray-500">{s.label}</div>
+                      <div className="text-xs text-[var(--ink-faint)]">{s.label}</div>
                     </div>
                   ))}
                 </div>
               </div>
 
               {/* Sign-in list */}
-              <div className="bg-white rounded-2xl border border-gray-200 overflow-hidden">
-                <div className="flex items-center justify-between px-4 py-3 border-b border-gray-100">
-                  <span className="text-sm font-bold text-gray-900">{signins.length} sign-ins</span>
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] overflow-hidden">
+                <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line-soft)]">
+                  <span className="text-sm font-semibold text-[var(--ink)]">{signins.length} sign-ins</span>
                   <div className="flex gap-2">
-                    <button onClick={() => refetchSignins()} className="p-2 text-gray-400 hover:text-gray-700 transition">
+                    <button onClick={() => refetchSignins()} className="p-2 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
                       <RefreshCw size={15} />
                     </button>
-                    <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 bg-gray-100 text-gray-600 rounded-lg text-xs font-semibold hover:bg-gray-200 transition">
+                    <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg text-xs font-semibold hover:bg-[var(--line)] transition">
                       <Download size={13} /> Export
                     </button>
                   </div>
@@ -289,20 +289,20 @@ export default function AttendanceDashboard() {
 
                 <div className="overflow-x-auto">
                   <table className="w-full">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-[var(--line-soft)]">
                       <tr>
                         {['Name', 'Phone', 'Type', 'Code', 'Payment', 'Marketer', 'Time'].map(h => (
-                          <th key={h} className="text-left text-xs font-semibold text-gray-500 uppercase tracking-wide px-3 py-2.5">{h}</th>
+                          <th key={h} className="text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-3 py-2.5">{h}</th>
                         ))}
                       </tr>
                     </thead>
                     <tbody>
                       {signins.map((s: any) => (
-                        <tr key={s.id} className="border-t border-gray-50 hover:bg-gray-50">
-                          <td className="px-3 py-2.5 text-sm font-semibold text-gray-900">{s.full_name}</td>
-                          <td className="px-3 py-2.5 text-xs text-gray-600">{s.phone?.replace(/^233/, '0') || '—'}</td>
+                        <tr key={s.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)]">
+                          <td className="px-3 py-2.5 text-sm font-semibold text-[var(--ink)]">{s.full_name}</td>
+                          <td className="px-3 py-2.5 text-xs text-[var(--ink-soft)]">{s.phone?.replace(/^233/, '0') || '—'}</td>
                           <td className="px-3 py-2.5">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online'? 'bg-purple-100 text-purple-700': 'bg-blue-100 text-blue-700'}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online'? 'bg-purple-100 text-purple-700': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                               {s.attendance_type === 'online'? 'Online': 'In Person'}
                             </span>
                           </td>
@@ -319,15 +319,15 @@ export default function AttendanceDashboard() {
                                 Cash — Mark Paid
                               </button>
                             ) : (
-                              <span className="text-[10px] font-bold bg-gray-100 text-gray-600 px-2 py-0.5 rounded-full">Pending</span>
+                              <span className="text-[10px] font-bold bg-[var(--line-soft)] text-[var(--ink-soft)] px-2 py-0.5 rounded-full">Pending</span>
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-gray-500">{s.marketer?.full_name?.split(' ')[0] || '—'}</td>
-                          <td className="px-3 py-2.5 text-[10px] text-gray-400">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit'})}</td>
+                          <td className="px-3 py-2.5 text-xs text-[var(--ink-faint)]">{s.marketer?.full_name?.split(' ')[0] || '—'}</td>
+                          <td className="px-3 py-2.5 text-[10px] text-[var(--ink-faint)]">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit'})}</td>
                         </tr>
                       ))}
                       {signins.length === 0 && (
-                        <tr><td colSpan={7} className="text-center py-10 text-gray-400 text-sm">No sign-ins yet. Waiting for students...</td></tr>
+                        <tr><td colSpan={7} className="text-center py-10 text-[var(--ink-faint)] text-sm">No sign-ins yet. Waiting for students...</td></tr>
                       )}
                     </tbody>
                   </table>

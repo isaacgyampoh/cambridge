@@ -7,7 +7,7 @@ import { formatDateTime } from '@/lib/utils'
 
 const S: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800'},
-  awaiting_forms: { label: 'Awaiting Forms', color: 'bg-blue-100 text-blue-700'},
+  awaiting_forms: { label: 'Awaiting Forms', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
   awaiting_payment: { label: 'Awaiting Payment', color: 'bg-orange-100 text-orange-700'},
   admitted: { label: 'Admitted ', color: 'bg-green-100 text-green-700'},
   rejected: { label: 'Rejected', color: 'bg-red-100 text-red-600'},
@@ -103,7 +103,7 @@ export default function AdmissionPage() {
           <div className="flex flex-wrap gap-1.5 mb-4">
             {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`h-8 px-3 rounded-xl text-xs font-semibold transition capitalize ${filter===f?'bg-gray-900 text-white':'bg-white text-gray-500 border border-gray-200 hover:bg-gray-50'}`}>
+                className={`h-8 px-3 rounded-xl text-xs font-semibold transition capitalize ${filter===f?'bg-gray-900 text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
                 {f.replace(/_/g, ' ')}
               </button>
             ))}
@@ -114,10 +114,10 @@ export default function AdmissionPage() {
               <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center">
+            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center">
               <UserCheck size={36} className="mx-auto mb-3 text-gray-200" />
-              <p className="text-gray-400 text-sm font-medium">No admissions here</p>
-              <p className="text-gray-300 text-xs mt-1">Admissions are created when leads are marked "Ready to Join"</p>
+              <p className="text-[var(--ink-faint)] text-sm font-medium">No admissions here</p>
+              <p className="text-[var(--ink-faint)] text-xs mt-1">Admissions are created when leads are marked "Ready to Join"</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -126,30 +126,30 @@ export default function AdmissionPage() {
                 const sc = S[a.status] || S.pending
                 const isActing = acting === a.id
                 return (
-                  <div key={a.id} className="bg-white rounded-2xl border border-gray-100 p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={a.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-4 shadow-sm hover:shadow-md transition-shadow">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
-                          <span className="font-bold text-gray-900 text-sm">{lead?.full_name || 'Unknown'}</span>
+                          <span className="font-semibold text-[var(--ink)] text-sm">{lead?.full_name || 'Unknown'}</span>
                           {a.admission_number && (
-                            <span className="text-[10px] font-mono bg-gray-100 text-gray-500 px-1.5 py-0.5 rounded">{a.admission_number}</span>
+                            <span className="text-[10px] font-mono bg-[var(--line-soft)] text-[var(--ink-faint)] px-1.5 py-0.5 rounded">{a.admission_number}</span>
                           )}
                         </div>
-                        <div className="text-xs text-gray-500">{lead?.phone} {lead?.email ? `· ${lead.email}` : ''}</div>
+                        <div className="text-xs text-[var(--ink-faint)]">{lead?.phone} {lead?.email ? `· ${lead.email}` : ''}</div>
                         {(a.course?.name || lead?.course_interest) && (
-                          <div className="text-xs text-blue-600 font-medium mt-0.5"> {a.course?.name || lead?.course_interest}</div>
+                          <div className="text-xs text-[var(--accent)] font-medium mt-0.5"> {a.course?.name || lead?.course_interest}</div>
                         )}
-                        <div className="text-[10px] text-gray-400 mt-1">{formatDateTime(a.created_at)}</div>
+                        <div className="text-[10px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)}</div>
                       </div>
                       <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ml-3 flex-shrink-0 ${sc.color}`}>
                         {sc.label}
                       </span>
                     </div>
 
-                    <div className="flex flex-wrap gap-2 pt-3 border-t border-gray-50">
+                    <div className="flex flex-wrap gap-2 pt-3 border-t border-[var(--line-soft)]">
                       {a.status === 'pending'&& <>
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'awaiting_forms')}
-                          className="px-3 py-1.5 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 disabled:opacity-50 transition">
+                          className="px-3 py-1.5 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 disabled:opacity-50 transition">
                           Request Forms
                         </button>
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'awaiting_payment')}
@@ -186,7 +186,7 @@ export default function AdmissionPage() {
       )}
 
       {tab === 'applications'&& (
-        <div className="bg-white rounded-2xl border border-gray-100 overflow-hidden shadow-sm">
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
           {loadApp ? (
             <div className="flex justify-center py-16">
               <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
@@ -194,29 +194,29 @@ export default function AdmissionPage() {
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
-                <thead className="bg-gray-50 border-b border-gray-100">
+                <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
                   <tr>
                     {['Name','Email','Phone','Course','Payment','Marketer','Date'].map(h => (
-                      <th key={h} className="text-left text-[11px] font-semibold text-gray-400 uppercase tracking-wide px-4 py-3">{h}</th>
+                      <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {applications.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-12 text-gray-300 text-sm">No applications yet</td></tr>
+                    <tr><td colSpan={7} className="text-center py-12 text-[var(--ink-faint)] text-sm">No applications yet</td></tr>
                   ) : applications.map(app => (
-                    <tr key={app.id} className="border-t border-gray-50 hover:bg-gray-50 transition-colors">
-                      <td className="px-4 py-3 text-sm font-semibold text-gray-900">{app.full_name}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{app.email}</td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{app.phone}</td>
-                      <td className="px-4 py-3 text-xs text-gray-600">{app.course?.name || '—'}</td>
+                    <tr key={app.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
+                      <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{app.full_name}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.email}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.phone}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{app.course?.name || '—'}</td>
                       <td className="px-4 py-3">
                         <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${app.payment_status==='paid'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>
                           {app.payment_status}
                         </span>
                       </td>
-                      <td className="px-4 py-3 text-xs text-gray-500">{app.marketer?.full_name || 'Direct'}</td>
-                      <td className="px-4 py-3 text-[11px] text-gray-400">{new Date(app.created_at).toLocaleDateString('en-GH')}</td>
+                      <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.marketer?.full_name || 'Direct'}</td>
+                      <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">{new Date(app.created_at).toLocaleDateString('en-GH')}</td>
                     </tr>
                   ))}
                 </tbody>

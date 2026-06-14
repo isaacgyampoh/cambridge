@@ -84,20 +84,20 @@ export default function TrainerDashboard() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Batch list */}
           <div className="space-y-2">
-            <h2 className="text-xs font-bold text-gray-500 uppercase tracking-wide">My Classes</h2>
+            <h2 className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide">My Classes</h2>
             {batches.length === 0 ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-8 text-center text-gray-300 text-sm">No classes assigned</div>
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-8 text-center text-[var(--ink-faint)] text-sm">No classes assigned</div>
             ) : batches.map(b => (
               <button key={b.id} onClick={() => setSelected(b.id)}
-                className={`w-full text-left bg-white rounded-2xl border-2 p-4 transition ${selected===b.id?'border-blue-600':'border-gray-100 hover:border-gray-200'}`}>
+                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected===b.id?'border-blue-600':'border-[var(--line-soft)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-center gap-3">
-                  <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center">
-                    <BookOpen size={16} className="text-blue-600" />
+                  <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
+                    <BookOpen size={16} className="text-[var(--accent)]" />
                   </div>
                   <div className="min-w-0">
-                    <div className="text-sm font-bold text-gray-900 truncate">{b.name}</div>
-                    <div className="text-xs text-gray-400">{(b as any).courses?.name}</div>
-                    {b.start_date && <div className="text-xs text-gray-400">{formatDate(b.start_date)}</div>}
+                    <div className="text-sm font-semibold text-[var(--ink)] truncate">{b.name}</div>
+                    <div className="text-xs text-[var(--ink-faint)]">{(b as any).courses?.name}</div>
+                    {b.start_date && <div className="text-xs text-[var(--ink-faint)]">{formatDate(b.start_date)}</div>}
                   </div>
                 </div>
               </button>
@@ -107,19 +107,19 @@ export default function TrainerDashboard() {
           {/* Attendance */}
           <div className="lg:col-span-2">
             {!selected ? (
-              <div className="bg-white rounded-2xl border border-gray-100 p-16 text-center text-gray-300">
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center text-[var(--ink-faint)]">
                 <CheckSquare size={36} className="mx-auto mb-3 opacity-50" />
                 <p>Select a class to take attendance</p>
               </div>
             ) : (
-              <div className="bg-white rounded-2xl border border-gray-100 p-5">
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5">
                 <div className="flex items-center justify-between mb-4">
-                  <h2 className="text-sm font-bold text-gray-900">Attendance — {students.length} students</h2>
+                  <h2 className="text-sm font-semibold text-[var(--ink)]">Attendance — {students.length} students</h2>
                   <input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)}
-                    className="h-9 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                    className="h-9 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
 
-                <div className="flex gap-2 mb-3 text-[10px] font-bold text-gray-400">
+                <div className="flex gap-2 mb-3 text-[10px] font-bold text-[var(--ink-faint)]">
                   {ATT_OPTS.map(o => (
                     <span key={o.key} className="flex items-center gap-1">
                       <span className={`w-3 h-3 rounded-sm ${o.color}`} />{o.key}
@@ -128,26 +128,26 @@ export default function TrainerDashboard() {
                 </div>
 
                 {students.length === 0 ? (
-                  <p className="text-center text-gray-400 py-8 text-sm">No students enrolled</p>
+                  <p className="text-center text-[var(--ink-faint)] py-8 text-sm">No students enrolled</p>
                 ) : (
                   <>
                     <div className="space-y-2 mb-4">
                       {students.map((s: any) => (
-                        <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-gray-50">
+                        <div key={s.id} className="flex items-center justify-between p-3 rounded-xl bg-[var(--line-soft)]">
                           <div className="flex items-center gap-2">
-                            <div className="w-8 h-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs font-bold">
+                            <div className="w-8 h-8 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-xs font-bold">
                               {s.full_name?.charAt(0)}
                             </div>
                             <div>
-                              <div className="text-sm font-semibold text-gray-900">{s.full_name}</div>
-                              {s.phone && <div className="text-[11px] text-gray-400">{s.phone}</div>}
+                              <div className="text-sm font-semibold text-[var(--ink)]">{s.full_name}</div>
+                              {s.phone && <div className="text-[11px] text-[var(--ink-faint)]">{s.phone}</div>}
                             </div>
                           </div>
                           <div className="flex gap-1">
                             {ATT_OPTS.map(opt => (
                               <button key={opt.key}
                                 onClick={() => setAttendance(a => ({...a, [s.id]: opt.key}))}
-                                className={`w-8 h-8 rounded-lg text-xs font-bold text-white transition ${(attendance[s.id]||'present')===opt.key?opt.color:'bg-gray-200 text-gray-500 hover:bg-gray-300'}`}>
+                                className={`w-8 h-8 rounded-lg text-xs font-bold text-white transition ${(attendance[s.id]||'present')===opt.key?opt.color:'bg-gray-200 text-[var(--ink-faint)] hover:bg-gray-300'}`}>
                                 {opt.label}
                               </button>
                             ))}
@@ -156,7 +156,7 @@ export default function TrainerDashboard() {
                       ))}
                     </div>
                     <button onClick={saveAttendance} disabled={saving}
-                      className="w-full h-11 bg-blue-600 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-blue-700 transition">
+                      className="w-full h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:brightness-110 transition">
                       {saving ? 'Saving...' : 'Save Attendance'}
                     </button>
                   </>

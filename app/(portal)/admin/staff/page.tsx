@@ -6,7 +6,7 @@ import { toast } from 'sonner'
 import { Plus, X, Check, Copy, Eye, EyeOff, Shield, Phone, Mail, User, Briefcase, Hash } from 'lucide-react'
 
 const ROLES = [
-  { value: 'project_manager', label: 'Project Manager', color: 'bg-blue-100 text-blue-700'},
+  { value: 'project_manager', label: 'Project Manager', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
   { value: 'marketing_officer', label: 'Marketing Officer', color: 'bg-green-100 text-green-700'},
   { value: 'admissions_officer',label: 'Admissions Officer', color: 'bg-indigo-100 text-indigo-700'},
   { value: 'accountant', label: 'Accountant', color: 'bg-amber-100 text-amber-700'},
@@ -94,13 +94,13 @@ export default function StaffPage() {
       <Modal open={showModal} onClose={() => setShowModal(false)} maxWidth="max-w-lg">
 
             {/* Modal header */}
-            <div className="flex items-center justify-between px-6 py-4 border-b border-gray-100">
+            <div className="flex items-center justify-between px-6 py-4 border-b border-[var(--line-soft)]">
               <div>
-                <h2 className="text-lg font-bold text-gray-900">Add Staff Member</h2>
-                <p className="text-xs text-gray-400 mt-0.5">Create login credentials for a new team member</p>
+                <h2 className="font-semibold text-[var(--ink)]">Add Staff Member</h2>
+                <p className="text-xs text-[var(--ink-faint)] mt-0.5">Create login credentials for a new team member</p>
               </div>
               <button onClick={() => setShowModal(false)}
-                className="w-8 h-8 flex items-center justify-center text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-xl transition-colors">
+                className="w-8 h-8 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
                 <X size={18} />
               </button>
             </div>
@@ -122,22 +122,22 @@ export default function StaffPage() {
                   <div className="space-y-3">
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Phone (Login)</div>
-                        <div className="text-sm font-semibold text-gray-900">{creds.phone}</div>
+                        <div className="text-[10px] font-bold text-[var(--ink-faint)] uppercase tracking-wide">Phone (Login)</div>
+                        <div className="text-sm font-semibold text-[var(--ink)]">{creds.phone}</div>
                       </div>
                       <button onClick={() => copyText(creds.phone, 'Phone')}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors">
                         <Copy size={14} />
                       </button>
                     </div>
 
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] font-bold text-gray-400 uppercase tracking-wide">Initial PIN</div>
-                        <div className="text-2xl font-black tracking-[0.3em] text-blue-700">{creds.initial_pin}</div>
+                        <div className="text-[10px] font-bold text-[var(--ink-faint)] uppercase tracking-wide">Initial PIN</div>
+                        <div className="text-2xl font-black tracking-[0.3em] text-[var(--accent)]">{creds.initial_pin}</div>
                       </div>
                       <button onClick={() => copyText(creds.initial_pin, 'PIN')}
-                        className="p-2 text-gray-400 hover:text-blue-600 hover:bg-blue-50 rounded-lg transition-colors">
+                        className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors">
                         <Copy size={14} />
                       </button>
                     </div>
@@ -151,11 +151,11 @@ export default function StaffPage() {
 
                 <div className="flex gap-2">
                   <button onClick={() => { setCreds(null) }}
-                    className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition">
+                    className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 transition">
                     Add Another Staff
                   </button>
                   <button onClick={() => { setShowModal(false); setCreds(null) }}
-                    className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
+                    className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
                     Done
                   </button>
                 </div>
@@ -165,65 +165,65 @@ export default function StaffPage() {
                 <div className="space-y-4">
                   {/* Name */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
                       Full Name *
                     </label>
                     <div className="relative">
-                      <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                       <input value={form.full_name} onChange={e => set('full_name', e.target.value)}
                         placeholder="e.g. Ama Owusu"type="text"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition" />
                     </div>
                   </div>
 
                   {/* Email */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                      Email <span className="text-[10px] text-gray-400 normal-case font-normal">(optional — for sending documents)</span>
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                      Email <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(optional — for sending documents)</span>
                     </label>
                     <div className="relative">
-                      <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                       <input value={form.email} onChange={e => set('email', e.target.value)}
                         placeholder="ama@cambridge.edu.gh"type="email"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition" />
                     </div>
                   </div>
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                      Phone Number * <span className="text-[10px] text-gray-400 normal-case font-normal">(used for WhatsApp notifications in their name)</span>
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                      Phone Number * <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(used for WhatsApp notifications in their name)</span>
                     </label>
                     <div className="relative">
-                      <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                      <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                       <input value={form.phone} onChange={e => set('phone', e.target.value)}
                         placeholder="0241234567"type="tel"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 focus:ring-2 focus:ring-blue-50 transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition" />
                     </div>
                   </div>
 
                   {/* Department + PIN row */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">Department</label>
+                      <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Department</label>
                       <div className="relative">
-                        <Briefcase size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <Briefcase size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                         <input value={form.department} onChange={e => set('department', e.target.value)}
                           placeholder="Marketing"type="text"
-                          className="w-full h-11 pl-9 pr-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition" />
+                          className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-1.5">
-                        Initial PIN <span className="text-[10px] text-gray-400 normal-case font-normal">(blank = last 4 of phone)</span>
+                      <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                        Initial PIN <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(blank = last 4 of phone)</span>
                       </label>
                       <div className="relative">
-                        <Hash size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400" />
+                        <Hash size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                         <input value={form.initial_pin} onChange={e => set('initial_pin', e.target.value.replace(/\D/g, '').slice(0, 6))}
                           placeholder="1234" type={showPin ? 'text': 'password'}
-                          className="w-full h-11 pl-9 pr-10 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition" />
+                          className="w-full h-11 pl-9 pr-10 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
                         <button type="button" onClick={() => setShowPin(!showPin)}
-                          className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-600">
+                          className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)] hover:text-[var(--ink-soft)]">
                           {showPin ? <EyeOff size={14} /> : <Eye size={14} />}
                         </button>
                       </div>
@@ -232,14 +232,14 @@ export default function StaffPage() {
 
                   {/* Role */}
                   <div>
-                    <label className="block text-xs font-bold text-gray-500 uppercase tracking-wide mb-2">Role *</label>
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Role *</label>
                     <div className="grid grid-cols-2 gap-2">
                       {ROLES.filter(r => r.value !== 'super_admin').map(r => (
                         <button key={r.value} type="button" onClick={() => set('role', r.value)}
                           className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left ${
                             form.role === r.value
-                              ? 'border-blue-600 bg-blue-50 text-blue-700'
-                              : 'border-gray-200 text-gray-600 hover:border-gray-300 hover:bg-gray-50'
+                              ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
+                              : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300 hover:bg-[var(--line-soft)]'
                           }`}>
                           {r.label}
                         </button>
@@ -248,7 +248,7 @@ export default function StaffPage() {
                         className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left col-span-2 ${
                           form.role === 'super_admin'
                             ? 'border-purple-600 bg-purple-50 text-purple-700'
-                            : 'border-gray-200 text-gray-600 hover:border-gray-300'
+                            : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'
                         }`}>
                          Super Admin (full access)
                       </button>
@@ -259,13 +259,13 @@ export default function StaffPage() {
                 {/* Actions */}
                 <div className="flex gap-2 mt-6">
                   <button onClick={createStaff} disabled={saving}
-                    className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                    className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
                     {saving
                       ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating...</>
                       : <><Check size={16} /> Create Account</>}
                   </button>
                   <button onClick={() => setShowModal(false)}
-                    className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
+                    className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
                     Cancel
                   </button>
                 </div>
@@ -309,7 +309,7 @@ export default function StaffPage() {
             <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
-          <div className="text-center py-16 text-gray-300">
+          <div className="text-center py-16 text-[var(--ink-faint)]">
             <User size={36} className="mx-auto mb-3 opacity-50" />
             <p className="font-medium text-sm">{search ? 'No staff match your search': 'No staff yet — add your first team member'}</p>
           </div>
@@ -338,14 +338,14 @@ export default function StaffPage() {
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <div className="text-sm text-gray-600">{s.phone?.replace(/^233/, '0') || '—'}</div>
+                      <div className="text-sm text-[var(--ink-soft)]">{s.phone?.replace(/^233/, '0') || '—'}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${ROLE_COLOR[s.role] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${ROLE_COLOR[s.role] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {ROLE_LABEL[s.role] || s.role}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-gray-500">{(s as any).department || '—'}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--ink-faint)]">{(s as any).department || '—'}</td>
                     <td className="px-4 py-3">
                       <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-100 text-green-700': 'bg-red-100 text-red-600'}`}>
                         {s.is_active ? '● Active': '○ Inactive'}

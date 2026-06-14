@@ -115,54 +115,54 @@ export default function DocumentsPage() {
   }
 
   const TYPE_COLORS: Record<string, string> = {
-    admission_letter: 'bg-blue-100 text-blue-700',
+    admission_letter: 'bg-[var(--accent-soft)] text-[var(--accent)]',
     brochure: 'bg-purple-100 text-purple-700',
     offer_letter: 'bg-green-100 text-green-700',
     receipt: 'bg-yellow-100 text-yellow-700',
     application_form: 'bg-orange-100 text-orange-700',
     certificate: 'bg-pink-100 text-pink-700',
-    other: 'bg-gray-100 text-gray-600',
+    other: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
   }
 
   return (
     <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Document Library</h1>
-          <p className="text-gray-500 text-sm mt-0.5">Manage PDF templates and official documents</p>
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Document Library</h1>
+          <p className="text-[var(--ink-faint)] text-sm mt-0.5">Manage PDF templates and official documents</p>
         </div>
       </div>
 
       {/* Upload section */}
-      <div className="bg-white rounded-2xl border border-gray-200 p-5 mb-6">
-        <h3 className="text-sm font-bold text-gray-900 mb-4">Upload New Document</h3>
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-6">
+        <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Upload New Document</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             placeholder="Document name (e.g. Admission Letter 2025)"
-            className="h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+            className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
           <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-            className="h-11 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500">
+            className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
             {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             placeholder="Description (optional)"
-            className="h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
-          <label className="flex items-center gap-3 px-4 h-11 rounded-xl border border-gray-200 cursor-pointer hover:bg-gray-50">
+            className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+          <label className="flex items-center gap-3 px-4 h-11 rounded-xl border border-[var(--line)] cursor-pointer hover:bg-[var(--line-soft)]">
             <input type="checkbox" checked={form.is_template} onChange={e => setForm(f => ({ ...f, is_template: e.target.checked }))}
               className="w-4 h-4 accent-blue-600" />
             <div>
-              <div className="text-sm font-medium text-gray-900">Personalizable template</div>
-              <div className="text-xs text-gray-400">Can be auto-filled with student data</div>
+              <div className="text-sm font-medium text-[var(--ink)]">Personalizable template</div>
+              <div className="text-xs text-[var(--ink-faint)]">Can be auto-filled with student data</div>
             </div>
           </label>
         </div>
 
         {form.is_template && (
-          <div className="bg-blue-50 rounded-xl p-3 mb-4">
-            <p className="text-xs font-semibold text-blue-700 mb-2">Available template fields (use in your PDF):</p>
+          <div className="bg-[var(--accent-soft)] rounded-xl p-3 mb-4">
+            <p className="text-xs font-semibold text-[var(--accent)] mb-2">Available template fields (use in your PDF):</p>
             <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_FIELDS.map(f => (
-                <code key={f} className="text-[11px] bg-white border border-blue-200 text-blue-600 px-2 py-0.5 rounded font-mono">{f}</code>
+                <code key={f} className="text-[11px] bg-white border border-blue-200 text-[var(--accent)] px-2 py-0.5 rounded font-mono">{f}</code>
               ))}
             </div>
           </div>
@@ -171,7 +171,7 @@ export default function DocumentsPage() {
         <input ref={fileRef} type="file" accept=".pdf" className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) upload(f) }} />
         <button onClick={() => fileRef.current?.click()} disabled={uploading || !form.name}
-          className="flex items-center gap-2 px-5 py-2.5 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-blue-700 transition">
+          className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition">
           <Upload size={16} />
           {uploading ? 'Uploading...' : 'Choose PDF & Upload'}
         </button>
@@ -182,33 +182,33 @@ export default function DocumentsPage() {
         <Modal open={!!sendModal} onClose={() => setSendModal(null)} maxWidth="max-w-md">
           <div className="p-6 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-bold text-gray-900">Send to Students</h2>
-              <button onClick={() => setSendModal(null)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="font-semibold text-[var(--ink)]">Send to Students</h2>
+              <button onClick={() => setSendModal(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"><X size={20} /></button>
             </div>
-            <p className="text-sm text-gray-500 mb-4">Select students to send <strong>{sendModal?.name}</strong> via email.</p>
+            <p className="text-sm text-[var(--ink-faint)] mb-4">Select students to send <strong>{sendModal?.name}</strong> via email.</p>
 
             {/* Select all */}
-            <label className="flex items-center gap-2 mb-3 pb-3 border-b border-gray-100 cursor-pointer">
+            <label className="flex items-center gap-2 mb-3 pb-3 border-b border-[var(--line-soft)] cursor-pointer">
               <input type="checkbox"
                 checked={selectedStudents.length === students.length && students.length > 0}
                 onChange={e => setSelectedStudents(e.target.checked ? students.map(s => s.id) : [])}
                 className="w-4 h-4 accent-blue-600" />
-              <span className="text-sm font-semibold text-gray-700">Select All ({students.length})</span>
+              <span className="text-sm font-semibold text-[var(--ink-soft)]">Select All ({students.length})</span>
             </label>
 
             <div className="overflow-y-auto flex-1 space-y-1 mb-4">
               {students.map(s => (
-                <label key={s.id} className="flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-gray-50 cursor-pointer">
+                <label key={s.id} className="flex items-center gap-3 py-2 px-2 rounded-xl hover:bg-[var(--line-soft)] cursor-pointer">
                   <input type="checkbox"
                     checked={selectedStudents.includes(s.id)}
                     onChange={e => setSelectedStudents(prev => e.target.checked ? [...prev, s.id] : prev.filter(id => id !== s.id))}
                     className="w-4 h-4 accent-blue-600" />
-                  <div className="w-8 h-8 rounded-full bg-blue-100 flex items-center justify-center text-blue-600 font-bold text-xs flex-shrink-0">
+                  <div className="w-8 h-8 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-bold text-xs flex-shrink-0">
                     {s.full_name.charAt(0)}
                   </div>
                   <div>
-                    <div className="text-sm font-medium text-gray-900">{s.full_name}</div>
-                    <div className="text-xs text-gray-400">{s.email}</div>
+                    <div className="text-sm font-medium text-[var(--ink)]">{s.full_name}</div>
+                    <div className="text-xs text-[var(--ink-faint)]">{s.email}</div>
                   </div>
                 </label>
               ))}
@@ -216,11 +216,11 @@ export default function DocumentsPage() {
 
             <div className="flex gap-2">
               <button onClick={sendToStudents} disabled={sending || !selectedStudents.length}
-                className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
                 <Send size={16} />
                 {sending ? 'Sending...' : `Send to ${selectedStudents.length} student${selectedStudents.length !== 1 ? 's' : ''}`}
               </button>
-              <button onClick={() => setSendModal(null)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
+              <button onClick={() => setSendModal(null)} className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>
         </Modal>
@@ -230,21 +230,21 @@ export default function DocumentsPage() {
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
       ) : docs.length === 0 ? (
-        <div className="bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
           <FileText size={40} className="mx-auto mb-3 opacity-30" />
           <p>No documents yet. Upload your first PDF above.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {docs.map(doc => (
-            <div key={doc.id} className="bg-white rounded-2xl border border-gray-200 p-5">
+            <div key={doc.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
                   <FileText size={20} className="text-red-600" />
                 </div>
                 <div className="flex gap-1 ml-2">
                   {doc.is_template && (
-                    <span className="text-[10px] font-bold bg-blue-100 text-blue-700 px-2 py-0.5 rounded-full">Template</span>
+                    <span className="text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded-full">Template</span>
                   )}
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLORS[doc.type] || TYPE_COLORS.other}`}>
                     {DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type}
@@ -252,17 +252,17 @@ export default function DocumentsPage() {
                 </div>
               </div>
 
-              <h3 className="font-bold text-gray-900 mb-0.5 text-sm">{doc.name}</h3>
-              {doc.description && <p className="text-xs text-gray-500 mb-2 line-clamp-2">{doc.description}</p>}
-              <p className="text-[10px] text-gray-400 mb-4">{formatDateTime(doc.created_at)} · {doc.file_name}</p>
+              <h3 className="font-semibold text-[var(--ink)] mb-0.5 text-sm">{doc.name}</h3>
+              {doc.description && <p className="text-xs text-[var(--ink-faint)] mb-2 line-clamp-2">{doc.description}</p>}
+              <p className="text-[10px] text-[var(--ink-faint)] mb-4">{formatDateTime(doc.created_at)} · {doc.file_name}</p>
 
               <div className="flex gap-2">
                 <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-200 transition">
+                  className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">
                   <Download size={13} /> View
                 </a>
                 <button onClick={() => openSendModal(doc)}
-                  className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-blue-600 text-white rounded-xl text-xs font-semibold hover:bg-blue-700 transition">
+                  className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
                   <Send size={13} /> Send
                 </button>
                 <button onClick={() => deleteDoc(doc.id, doc.file_url)}

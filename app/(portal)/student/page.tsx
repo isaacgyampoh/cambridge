@@ -43,7 +43,7 @@ export default function StudentDashboard() {
       {/* Stats */}
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
-          { label: 'Enrolled', value: enrollments.length, icon: BookOpen, color: 'text-blue-600 bg-blue-50'},
+          { label: 'Enrolled', value: enrollments.length, icon: BookOpen, color: 'text-[var(--accent)] bg-[var(--accent-soft)]'},
           { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-purple-600 bg-purple-50'},
           { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-red-600 bg-red-50': 'text-green-600 bg-green-50'},
         ].map(s => (
@@ -58,23 +58,23 @@ export default function StudentDashboard() {
       </div>
 
       {/* Classes */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 mb-4 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-900 mb-3">My Classes</h3>
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 mb-4 shadow-sm">
+        <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">My Classes</h3>
         {enrollments.length === 0 ? (
-          <p className="text-sm text-gray-300 text-center py-6">Not enrolled in any classes yet</p>
+          <p className="text-sm text-[var(--ink-faint)] text-center py-6">Not enrolled in any classes yet</p>
         ) : enrollments.map((e: any) => {
           const batch = e.batch
           return (
-            <div key={e.id} className="flex items-center gap-3 py-3 border-b border-gray-50 last:border-0">
-              <div className="w-9 h-9 rounded-xl bg-blue-100 flex items-center justify-center flex-shrink-0">
-                <BookOpen size={16} className="text-blue-600" />
+            <div key={e.id} className="flex items-center gap-3 py-3 border-b border-[var(--line-soft)] last:border-0">
+              <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0">
+                <BookOpen size={16} className="text-[var(--accent)]" />
               </div>
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-semibold text-gray-900">{batch?.courses?.name}</div>
-                <div className="text-xs text-gray-400">{batch?.name} · {batch?.schedule || 'Schedule TBD'}</div>
-                {batch?.start_date && <div className="text-xs text-gray-400">{formatDate(batch.start_date)}</div>}
+                <div className="text-sm font-semibold text-[var(--ink)]">{batch?.courses?.name}</div>
+                <div className="text-xs text-[var(--ink-faint)]">{batch?.name} · {batch?.schedule || 'Schedule TBD'}</div>
+                {batch?.start_date && <div className="text-xs text-[var(--ink-faint)]">{formatDate(batch.start_date)}</div>}
               </div>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${batch?.status==='ongoing'?'bg-green-100 text-green-700':'bg-blue-100 text-blue-700'}`}>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${batch?.status==='ongoing'?'bg-green-100 text-green-700':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                 {batch?.status || 'upcoming'}
               </span>
             </div>
@@ -83,16 +83,16 @@ export default function StudentDashboard() {
       </div>
 
       {/* Invoices */}
-      <div className="bg-white rounded-2xl border border-gray-100 p-5 shadow-sm">
-        <h3 className="text-sm font-bold text-gray-900 mb-3">My Invoices</h3>
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+        <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">My Invoices</h3>
         {invoices.length === 0 ? (
-          <p className="text-sm text-gray-300 text-center py-6">No invoices yet</p>
+          <p className="text-sm text-[var(--ink-faint)] text-center py-6">No invoices yet</p>
         ) : invoices.map(inv => (
-          <div key={inv.id} className="flex items-center justify-between py-3 border-b border-gray-50 last:border-0">
+          <div key={inv.id} className="flex items-center justify-between py-3 border-b border-[var(--line-soft)] last:border-0">
             <div>
-              <div className="text-xs font-mono text-gray-400">{inv.invoice_number || '—'}</div>
-              <div className="text-sm font-bold text-gray-900">{formatGHS(inv.total_amount)}</div>
-              {inv.due_date && <div className="text-xs text-gray-400">Due: {formatDate(inv.due_date)}</div>}
+              <div className="text-xs font-mono text-[var(--ink-faint)]">{inv.invoice_number || '—'}</div>
+              <div className="text-sm font-semibold text-[var(--ink)]">{formatGHS(inv.total_amount)}</div>
+              {inv.due_date && <div className="text-xs text-[var(--ink-faint)]">Due: {formatDate(inv.due_date)}</div>}
             </div>
             <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(inv.outstanding)===0?'bg-green-100 text-green-700':'bg-red-100 text-red-600'}`}>
               {Number(inv.outstanding)===0 ? 'Paid ': `Owes ${formatGHS(inv.outstanding)}`}

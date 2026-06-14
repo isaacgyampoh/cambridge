@@ -21,9 +21,9 @@ const STATUSES = [
 const ACTIVITY_TYPES = [
   { key: 'call', label: 'Call', color: 'bg-green-100 text-green-700'},
   { key: 'whatsapp', label: 'WhatsApp', color: 'bg-emerald-100 text-emerald-700'},
-  { key: 'email', label: 'Email', color: 'bg-blue-100 text-blue-700'},
+  { key: 'email', label: 'Email', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
   { key: 'meeting', label: 'Meeting', color: 'bg-purple-100 text-purple-700'},
-  { key: 'note', label: 'Note', color: 'bg-gray-100 text-gray-700'},
+  { key: 'note', label: 'Note', color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]'},
 ]
 
 
@@ -169,7 +169,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   }
 
   if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
-  if (!lead) return <div className="text-center py-20 text-gray-400">Lead not found</div>
+  if (!lead) return <div className="text-center py-20 text-[var(--ink-faint)]">Lead not found</div>
 
   const WA_TEMPLATES = [
     `Hello {{name}}! This is ${profile?.full_name?.split(' ')[0]} from Cambridge Centre of Excellence. I'm reaching out to follow up on your interest in our programs. Are you still interested? `,
@@ -179,7 +179,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
   return (
     <div className="fade-in w-full">
-      <Link href="/marketer"className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-5 transition">
+      <Link href="/marketer"className="inline-flex items-center gap-2 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
         <ArrowLeft size={16} /> Back to my leads
       </Link>
 
@@ -187,14 +187,14 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
         {/* Left col */}
         <div className="lg:col-span-2 space-y-4">
           {/* Lead card */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5">
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-400 to-blue-600 flex items-center justify-center text-white text-xl font-bold">
+                <div className="w-14 h-14 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-xl font-bold">
                   {lead.full_name.charAt(0)}
                 </div>
                 <div>
-                  <h1 className="text-xl font-bold text-gray-900">{lead.full_name}</h1>
+                  <h1 className="font-display text-xl font-semibold text-[var(--ink)]">{lead.full_name}</h1>
                   <div className="flex gap-2 mt-1 flex-wrap">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, ' ')}</span>
@@ -211,25 +211,25 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 { icon: Clock, label: 'Last Update', value: formatDateTime(lead.updated_at) },
               ].map(item => (
                 <div key={item.label} className="flex items-start gap-2">
-                  <item.icon size={14} className="text-gray-400 mt-0.5 flex-shrink-0" />
+                  <item.icon size={14} className="text-[var(--ink-faint)] mt-0.5 flex-shrink-0" />
                   <div>
-                    <div className="text-xs text-gray-400">{item.label}</div>
+                    <div className="text-xs text-[var(--ink-faint)]">{item.label}</div>
                     {item.href
-                      ? <a href={item.href} className="font-medium text-blue-600 hover:underline">{item.value}</a>
-                      : <div className="font-medium text-gray-900">{item.value}</div>}
+                      ? <a href={item.href} className="font-medium text-[var(--accent)] hover:underline">{item.value}</a>
+                      : <div className="font-medium text-[var(--ink)]">{item.value}</div>}
                   </div>
                 </div>
               ))}
             </div>
 
             {lead.course_interest && (
-              <div className="bg-blue-50 rounded-xl px-3 py-2 text-sm text-blue-700 mb-4">
+              <div className="bg-[var(--accent-soft)] rounded-xl px-3 py-2 text-sm text-[var(--accent)] mb-4">
                  Interested in: <strong>{lead.course_interest}</strong>
               </div>
             )}
 
             {/* Quick actions */}
-            <div className="flex flex-wrap gap-2 pt-4 border-t border-gray-100">
+            <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--line-soft)]">
               {lead.phone && (
                 <>
                   <a href={`tel:${lead.phone}`}
@@ -244,7 +244,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               )}
               {lead.email && (
                 <a href={`mailto:${lead.email}`}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+                  className="flex items-center gap-1.5 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
                   <Mail size={14} /> Email
                 </a>
               )}
@@ -253,12 +253,12 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
           {/* Quick WhatsApp templates */}
           {lead.phone && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-sm font-bold text-gray-900 mb-3">Quick WhatsApp Messages</h3>
+            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+              <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Quick WhatsApp Messages</h3>
               <div className="space-y-2">
                 {WA_TEMPLATES.map((t, i) => (
                   <button key={i} onClick={() => sendQuickWA(t)}
-                    className="w-full text-left p-3 bg-gray-50 rounded-xl text-xs text-gray-600 hover:bg-green-50 hover:text-green-700 hover:border-green-200 border border-transparent transition line-clamp-2">
+                    className="w-full text-left p-3 bg-[var(--line-soft)] rounded-xl text-xs text-[var(--ink-soft)] hover:bg-green-50 hover:text-green-700 hover:border-green-200 border border-transparent transition line-clamp-2">
                     {t.replace('{{name}}', lead.full_name.split(' ')[0])}
                   </button>
                 ))}
@@ -267,14 +267,14 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           )}
 
           {/* Log activity */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">Log Activity</h3>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Log Activity</h3>
 
             {/* Activity type */}
             <div className="flex flex-wrap gap-2 mb-4">
               {ACTIVITY_TYPES.map(t => (
                 <button key={t.key} onClick={() => setActType(t.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-blue-600 bg-blue-50 text-blue-700': 'border-gray-200 text-gray-600 hover:border-gray-300'}`}>
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'}`}>
                   {t.label}
                 </button>
               ))}
@@ -283,24 +283,24 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div className="space-y-3">
               <textarea value={actNote} onChange={e => setActNote(e.target.value)} rows={3}
                 placeholder="What happened? What did you discuss?"
-                className="w-full text-sm px-3 py-2.5 border border-gray-200 rounded-xl resize-none focus:outline-none focus:border-blue-500" />
+                className="w-full text-sm px-3 py-2.5 border border-[var(--line)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)]" />
 
               <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Outcome</label>
+                  <label className="text-xs font-semibold text-[var(--ink-faint)] mb-1 block">Outcome</label>
                   <input value={actOutcome} onChange={e => setActOutcome(e.target.value)}
                     placeholder="e.g. Showed interest in PMP"
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
                 <div>
-                  <label className="text-xs font-semibold text-gray-500 mb-1 block">Follow-up Date</label>
+                  <label className="text-xs font-semibold text-[var(--ink-faint)] mb-1 block">Follow-up Date</label>
                   <input type="datetime-local" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
               </div>
 
               <button onClick={logActivity} disabled={savingAct}
-                className="w-full h-11 bg-blue-600 text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:bg-blue-700 transition flex items-center justify-center gap-2">
+                className="w-full h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
                 <Plus size={16} />
                 {savingAct ? 'Saving...': 'Log Activity'}
               </button>
@@ -308,29 +308,29 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           </div>
 
           {/* Activity timeline */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-4">Activity Timeline ({activities.length})</h3>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Activity Timeline ({activities.length})</h3>
             {activities.length === 0 ? (
-              <p className="text-sm text-gray-400 text-center py-6">No activities yet. Log your first interaction.</p>
+              <p className="text-sm text-[var(--ink-faint)] text-center py-6">No activities yet. Log your first interaction.</p>
             ) : (
               <div className="space-y-3">
                 {activities.map(a => {
                   const at = ACTIVITY_TYPES.find(t => t.key === a.activity_type)
                   return (
                     <div key={a.id} className="flex gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs ${at?.color || 'bg-gray-100 text-gray-600'}`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs ${at?.color || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {at?.label.split(' ')[0]}
                       </div>
-                      <div className="flex-1 pb-3 border-b border-gray-50 last:border-0">
-                        <div className="text-sm font-semibold text-gray-900">{a.subject}</div>
-                        {a.description && <div className="text-xs text-gray-600 mt-0.5">{a.description}</div>}
-                        {a.outcome && <div className="text-xs text-blue-600 mt-1 font-medium">Result: {a.outcome}</div>}
+                      <div className="flex-1 pb-3 border-b border-[var(--line-soft)] last:border-0">
+                        <div className="text-sm font-semibold text-[var(--ink)]">{a.subject}</div>
+                        {a.description && <div className="text-xs text-[var(--ink-soft)] mt-0.5">{a.description}</div>}
+                        {a.outcome && <div className="text-xs text-[var(--accent)] mt-1 font-medium">Result: {a.outcome}</div>}
                         {a.next_follow_up && (
                           <div className="text-xs text-orange-600 mt-1 flex items-center gap-1">
                             <Clock size={10} /> Follow up: {formatDateTime(a.next_follow_up)}
                           </div>
                         )}
-                        <div className="text-[10px] text-gray-400 mt-1">{formatDateTime(a.created_at)} · {(a as any).creator?.full_name || 'You'}</div>
+                        <div className="text-[10px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)} · {(a as any).creator?.full_name || 'You'}</div>
                       </div>
                     </div>
                   )
@@ -364,29 +364,29 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           )}
 
           {/* Update status */}
-          <div className="bg-white rounded-2xl border border-gray-200 p-5">
-            <h3 className="text-sm font-bold text-gray-900 mb-3">Update Status</h3>
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Update Status</h3>
             <div className="space-y-2 mb-4">
               {STATUSES.map(s => (
                 <button key={s.key} onClick={() => setNewStatus(s.key)}
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold border-2 transition ${
-                    newStatus === s.key ? STATUS_COLORS[s.key] + 'border-current': 'border-gray-200 text-gray-600 hover:border-gray-300'
+                    newStatus === s.key ? STATUS_COLORS[s.key] + 'border-current': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'
                   }`}>
                   {s.label}
                 </button>
               ))}
             </div>
             <button onClick={updateStatus} disabled={newStatus === lead?.status}
-              className="w-full h-10 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:bg-blue-700 transition">
+              className="w-full h-10 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:brightness-110 transition">
               Update Status
             </button>
           </div>
 
           {/* Lead notes */}
           {lead.notes && (
-            <div className="bg-white rounded-2xl border border-gray-200 p-5">
-              <h3 className="text-sm font-bold text-gray-900 mb-2">Notes</h3>
-              <p className="text-sm text-gray-600">{lead.notes}</p>
+            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+              <h3 className="text-sm font-semibold text-[var(--ink)] mb-2">Notes</h3>
+              <p className="text-sm text-[var(--ink-soft)]">{lead.notes}</p>
             </div>
           )}
         </div>

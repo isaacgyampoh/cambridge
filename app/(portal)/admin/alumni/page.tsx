@@ -116,10 +116,10 @@ export default function AlumniPage() {
     <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Alumni & Success Stories</h1>
-          <p className="text-gray-500 text-sm mt-0.5">{alumni.length} alumni · {alumni.filter(a => a.is_featured).length} featured</p>
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Alumni & Success Stories</h1>
+          <p className="text-[var(--ink-faint)] text-sm mt-0.5">{alumni.length} alumni · {alumni.filter(a => a.is_featured).length} featured</p>
         </div>
-        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-blue-600 text-white rounded-xl text-sm font-semibold hover:bg-blue-700 transition">
+        <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
           <Plus size={16} /> Add Alumni
         </button>
       </div>
@@ -129,41 +129,41 @@ export default function AlumniPage() {
         <Modal open={modal} onClose={() => { setModal(false) }} maxWidth="max-w-2xl">
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
-              <h2 className="text-lg font-bold text-gray-900">{editId ? 'Edit': 'Add'} Alumni</h2>
-              <button onClick={() => setModal(false)} className="text-gray-400 hover:text-gray-600"><X size={20} /></button>
+              <h2 className="font-semibold text-[var(--ink)]">{editId ? 'Edit': 'Add'} Alumni</h2>
+              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"><X size={20} /></button>
             </div>
 
             {/* Photo */}
-            <div className="flex items-center gap-4 mb-5 pb-5 border-b border-gray-100">
-              <div className="w-20 h-20 rounded-full bg-gray-100 flex items-center justify-center overflow-hidden flex-shrink-0">
+            <div className="flex items-center gap-4 mb-5 pb-5 border-b border-[var(--line-soft)]">
+              <div className="w-20 h-20 rounded-full bg-[var(--line-soft)] flex items-center justify-center overflow-hidden flex-shrink-0">
                 {form.photo_url
                   ? <img src={form.photo_url} alt=""className="w-full h-full object-cover" />
-                  : <GraduationCap size={32} className="text-gray-400" />}
+                  : <GraduationCap size={32} className="text-[var(--ink-faint)]" />}
               </div>
               <div>
                 <input ref={photoRef} type="file"accept="image/*"className="hidden"
                   onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f) }} />
                 <button onClick={() => photoRef.current?.click()} disabled={uploading}
-                  className="px-4 py-2 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition">
+                  className="px-4 py-2 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
                   {uploading ? 'Uploading...': 'Upload Photo'}
                 </button>
-                <p className="text-xs text-gray-400 mt-1">Or paste URL below</p>
+                <p className="text-xs text-[var(--ink-faint)] mt-1">Or paste URL below</p>
                 <input value={form.photo_url} onChange={e => setForm(f => ({ ...f, photo_url: e.target.value }))}
-                  placeholder="https://..."className="mt-1 h-8 px-3 rounded-lg border border-gray-200 text-xs w-full focus:outline-none" />
+                  placeholder="https://..."className="mt-1 h-8 px-3 rounded-lg border border-[var(--line)] text-xs w-full focus:outline-none" />
               </div>
             </div>
 
             {/* Field groups */}
             {FIELD_GROUPS.map(group => (
               <div key={group.title} className="mb-5">
-                <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">{group.title}</h3>
+                <h3 className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-widest mb-3">{group.title}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {group.fields.map(f => (
                     <div key={f.key} className={f.half ? '': 'col-span-2'}>
-                      <label className="block text-xs font-semibold text-gray-500 mb-1">{f.label}</label>
+                      <label className="block text-xs font-semibold text-[var(--ink-faint)] mb-1">{f.label}</label>
                       <input type={f.type} value={(form as any)[f.key] || ''} placeholder={f.placeholder}
                         onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                        className="w-full h-10 px-3 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500" />
+                        className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                     </div>
                   ))}
                 </div>
@@ -172,25 +172,25 @@ export default function AlumniPage() {
 
             {/* Story & Testimonial */}
             <div className="mb-5">
-              <h3 className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3">Story & Testimonial</h3>
+              <h3 className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-widest mb-3">Story & Testimonial</h3>
               <div className="space-y-3">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Success Story</label>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] mb-1">Success Story</label>
                   <textarea value={form.success_story} onChange={e => setForm(f => ({ ...f, success_story: e.target.value }))}
                     rows={3} placeholder="How did Cambridge change their career path? What did they achieve?"
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:border-blue-500" />
+                    className="w-full px-3 py-2.5 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 mb-1">Testimonial (their words)</label>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] mb-1">Testimonial (their words)</label>
                   <textarea value={form.testimonial} onChange={e => setForm(f => ({ ...f, testimonial: e.target.value }))}
                     rows={2} placeholder={`"Cambridge CE transformed my career..."`}
-                    className="w-full px-3 py-2.5 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:border-blue-500" />
+                    className="w-full px-3 py-2.5 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
                 </div>
               </div>
             </div>
 
             {/* Visibility */}
-            <div className="flex gap-4 mb-5 p-4 bg-gray-50 rounded-xl">
+            <div className="flex gap-4 mb-5 p-4 bg-[var(--line-soft)] rounded-xl">
               {[
                 { key: 'is_published', label: 'Published', sub: 'Visible to students'},
                 { key: 'is_featured', label: 'Featured', sub: 'Shown prominently'},
@@ -200,8 +200,8 @@ export default function AlumniPage() {
                     onChange={e => setForm(f => ({ ...f, [opt.key]: e.target.checked }))}
                     className="w-4 h-4 accent-blue-600" />
                   <div>
-                    <div className="text-sm font-semibold text-gray-900">{opt.label}</div>
-                    <div className="text-xs text-gray-400">{opt.sub}</div>
+                    <div className="text-sm font-semibold text-[var(--ink)]">{opt.label}</div>
+                    <div className="text-xs text-[var(--ink-faint)]">{opt.sub}</div>
                   </div>
                 </label>
               ))}
@@ -209,10 +209,10 @@ export default function AlumniPage() {
 
             <div className="flex gap-2">
               <button onClick={save} disabled={saving}
-                className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-blue-700 transition">
+                className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition">
                 {saving ? 'Saving...': editId ? 'Update Alumni': 'Add Alumni'}
               </button>
-              <button onClick={() => setModal(false)} className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold">Cancel</button>
+              <button onClick={() => setModal(false)} className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
             </div>
           </div>
         </Modal>
@@ -224,9 +224,9 @@ export default function AlumniPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {alumni.map(a => (
-            <div key={a.id} className={`bg-white rounded-2xl border-2 overflow-hidden transition ${a.is_featured ? 'border-yellow-300': 'border-gray-200'}`}>
+            <div key={a.id} className={`bg-[var(--paper)] rounded-xl border-2 overflow-hidden transition ${a.is_featured ? 'border-yellow-300': 'border-[var(--line)]'}`}>
               {/* Cover / photo */}
-              <div className="h-24 bg-gradient-to-br from-blue-600 to-blue-800 relative flex items-end px-4 pb-3">
+              <div className="h-24 bg-[var(--accent)] relative flex items-end px-4 pb-3">
                 {a.is_featured && (
                   <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1">
                     <Star size={14} className="text-yellow-900"fill="currentColor" />
@@ -235,38 +235,38 @@ export default function AlumniPage() {
                 <div className="w-14 h-14 rounded-full border-3 border-white overflow-hidden bg-blue-200 flex-shrink-0 absolute -bottom-7 left-4">
                   {a.photo_url
                     ? <img src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
-                    : <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold text-xl">{a.full_name.charAt(0)}</div>}
+                    : <div className="w-full h-full flex items-center justify-center text-[var(--accent)] font-bold text-xl">{a.full_name.charAt(0)}</div>}
                 </div>
               </div>
 
               <div className="pt-9 px-4 pb-4">
-                <h3 className="font-bold text-gray-900">{a.full_name}</h3>
+                <h3 className="font-semibold text-[var(--ink)]">{a.full_name}</h3>
                 {(a.current_job_title || a.current_company) && (
-                  <div className="flex items-center gap-1 text-xs text-gray-500 mt-0.5">
+                  <div className="flex items-center gap-1 text-xs text-[var(--ink-faint)] mt-0.5">
                     <Briefcase size={11} />
                     <span>{[a.current_job_title, a.current_company].filter(Boolean).join('at ')}</span>
                   </div>
                 )}
-                <div className="flex items-center gap-1 text-xs text-blue-600 mt-0.5">
+                <div className="flex items-center gap-1 text-xs text-[var(--accent)] mt-0.5">
                   <GraduationCap size={11} />
                   <span>{a.course_completed} · {formatDate(a.graduation_date)}</span>
                 </div>
 
                 {a.testimonial && (
-                  <blockquote className="text-xs text-gray-500 italic mt-3 line-clamp-2 border-l-2 border-blue-200 pl-2">
+                  <blockquote className="text-xs text-[var(--ink-faint)] italic mt-3 line-clamp-2 border-l-2 border-blue-200 pl-2">
                     "{a.testimonial}"
                   </blockquote>
                 )}
 
                 <div className="flex gap-2 mt-4">
                   <button onClick={() => openEdit(a)}
-                    className="flex-1 h-9 bg-gray-100 text-gray-700 rounded-xl text-xs font-semibold hover:bg-gray-200 transition">Edit</button>
+                    className="flex-1 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">Edit</button>
                   <button onClick={() => toggleFeatured(a.id, a.is_featured)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200': 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                     <Star size={15} fill={a.is_featured ? 'currentColor': 'none'} />
                   </button>
                   <button onClick={() => togglePublish(a.id, a.is_published)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-green-100 text-green-600 hover:bg-green-200': 'bg-gray-100 text-gray-400 hover:bg-gray-200'}`}>
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-green-100 text-green-600 hover:bg-green-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                     {a.is_published ? <Eye size={15} /> : <EyeOff size={15} />}
                   </button>
                   <button onClick={() => del(a.id)}
@@ -276,7 +276,7 @@ export default function AlumniPage() {
             </div>
           ))}
           {alumni.length === 0 && (
-            <div className="col-span-3 bg-white rounded-2xl border border-gray-200 p-16 text-center text-gray-400">
+            <div className="col-span-3 bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
               <GraduationCap size={40} className="mx-auto mb-3 opacity-30" />
               <p className="font-medium">No alumni yet</p>
               <p className="text-sm mt-1">Add your first success story to inspire prospective students</p>
