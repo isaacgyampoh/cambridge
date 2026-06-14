@@ -37,16 +37,17 @@ const PORTAL_PATHS: Record<string, string[]> = {
   hotleads:    ['/admin/hotleads'],
   remuneration: ['/admin/remuneration'],
   my_earnings: ['/marketer/earnings'],
+  registrations: ['/finance/registrations'],
   clock_in:    ['/clock-in'],
   settings:    ['/admin/settings'],
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','remuneration','clock_in','settings'],
+  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','remuneration','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','leads','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],
-  accountant:        ['dashboard','finance','leads','clock_in'],
+  accountant:        ['dashboard','finance','registrations','leads','clock_in'],
   receptionist:      ['dashboard','reminders','attendance','clock_in'],
   trainer:           ['dashboard','my_classes','attendance','clock_in'],
   student:           ['dashboard','my_payments'],
@@ -104,7 +105,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 

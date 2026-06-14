@@ -19,7 +19,7 @@ export default function AdminAdmissions() {
   const [acting, setActing] = useState<string | null>(null)
   const { data, loading, refetch } = useData<any>({
     table: 'admissions',
-    select: '*, lead:lead_id(full_name,phone,email,course_interest), course:course_id(name)',
+    select: '*, lead:lead_id(full_name,phone,email,course_interest,assigned_to,assignee:assigned_to(full_name)), course:course_id(name)',
     orderBy: 'created_at', orderAsc: false, limit: 300,
   })
 
@@ -74,6 +74,7 @@ export default function AdminAdmissions() {
                         {lead?.phone && <span className="flex items-center gap-1.5"><Phone size={12} />{lead.phone.replace(/^233/, '0')}</span>}
                         {lead?.email && <span className="flex items-center gap-1.5"><Mail size={12} />{lead.email}</span>}
                         <span>{formatDateTime(a.created_at)}</span>
+                        {lead?.assignee?.full_name && <span className="flex items-center gap-1.5 text-[var(--accent)] font-medium">Registered by {lead.assignee.full_name.split(' ')[0]}</span>}
                       </div>
                     </div>
                   </div>

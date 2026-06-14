@@ -83,11 +83,11 @@ const ROLE_HOME: Record<string, string> = {
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','remuneration','clock_in','settings'],
+  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','remuneration','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','leads','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],
-  accountant:        ['dashboard','finance','leads','clock_in'],
+  accountant:        ['dashboard','finance','registrations','leads','clock_in'],
   receptionist:      ['dashboard','reminders','attendance','clock_in'],
   trainer:           ['dashboard','my_classes','attendance','clock_in'],
   student:           ['dashboard','my_payments'],
