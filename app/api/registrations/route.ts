@@ -20,6 +20,11 @@ export async function GET(req: NextRequest) {
   const session = await verifySession(token)
   if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
+  // Only finance, marketers, PMs and super admin see registration money.
+  // Academics/admissions/reception have no business with the amounts.
+  const canSeeMoney = ['super_admin', 'accountant', 'marketing_officer', 'project_manager'].includes(session.role || '')
+  if (!canSeeMoney) return NextResponse.json({ error: 'Not allowed' }, { status: 403 })
+
   const url = new URL(req.url)
   const year = parseInt(url.searchParams.get('year') || String(new Date().getFullYear()))
 

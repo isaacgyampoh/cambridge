@@ -26,7 +26,7 @@ export async function GET(req: NextRequest) {
     super_admin: ['*'],
     project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','marketer_enrollments','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
+    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
     accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     trainer: ['batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
@@ -61,7 +61,21 @@ export async function GET(req: NextRequest) {
 
   const { data, error, count } = await query
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data: data || [], count })
+
+  // Field-level privacy: academics/admissions/reception/trainer must not
+  // see money amounts. Only finance, marketers, PMs and super admin do.
+  const MONEY_FIELDS = ['amount', 'amount_paid', 'registration_fee', 'gross_salary', 'total_amount', 'outstanding', 'paystack_response']
+  const canSeeMoney = ['super_admin', 'accountant', 'marketing_officer', 'project_manager'].includes(session.role || '')
+  let result = data || []
+  if (!canSeeMoney && result.length) {
+    result = result.map((row: any) => {
+      const clean = { ...row }
+      for (const f of MONEY_FIELDS) if (f in clean) delete clean[f]
+      return clean
+    })
+  }
+
+  return NextResponse.json({ data: result, count })
 }
 
 export async function POST(req: NextRequest) {
@@ -112,7 +126,7 @@ export async function DELETE(req: NextRequest) {
     super_admin: ['*'],
     project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','marketer_enrollments','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
+    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
     accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     trainer: ['batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
