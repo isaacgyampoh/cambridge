@@ -22,7 +22,13 @@ export default function MarketerLink() {
         limit: '1',
       })
       const profRes = await fetch(`/api/data?${params}`).then(r => r.json())
-      const p = profRes.data?.[0] || null
+      let p = profRes.data?.[0] || null
+
+      // If the marketer has no registration link code yet, generate one
+      if (p && !p.marketer_code) {
+        const ec = await fetch('/api/marketer/ensure-code', { method: 'POST' }).then(r => r.ok ? r.json() : null)
+        if (ec?.marketer_code) p = { ...p, marketer_code: ec.marketer_code }
+      }
       setProfile(p)
 
       if (p) {

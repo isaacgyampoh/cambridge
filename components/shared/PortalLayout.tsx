@@ -28,8 +28,8 @@ export const ALL_PORTALS = [
     children: [
       { label: 'My Leads',   href: '/marketer' },
       { label: 'Follow-ups', href: '/marketer/activities' },
-      { label: 'My Link',    href: '/marketer/link' },
     ]},
+  { id: 'my_link',     label: 'My Link',      icon: Radio,           href: '/marketer/link' },
   { id: 'pm_leads',    label: 'Lead Inbox',   icon: TrendingUp,      href: '/pm',
     children: [
       { label: 'Lead Inbox', href: '/pm' },
@@ -128,7 +128,7 @@ const ROLE_HOME: Record<string, string> = {
 const ROLE_DEFAULTS: Record<string, string[]> = {
   super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','leads','clock_in'],
+  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],
   accountant:        ['dashboard','finance','registrations','leads','clock_in'],
   receptionist:      ['dashboard','reminders','attendance','clock_in'],
@@ -247,30 +247,29 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         if (hasKids) {
           return (
             <div key={item.id}>
-              <Link
-                href={item.href}
+              <button
                 onClick={() => setOpenGroup(isOpen ? null : item.id)}
                 title={!wide ? item.label : undefined}
-                className={`flex items-center rounded-xl transition-colors mb-0.5
+                className={`w-full flex items-center rounded-xl transition-colors mb-0.5
                   ${wide ? 'gap-3 px-3 py-2.5' : 'justify-center py-3'}
-                  ${active ? 'text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
+                  ${active ? 'text-white' : 'text-[var(--ink-faint)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`}
                 style={active ? { backgroundColor: roleColor } : {}}>
                 <Icon size={18} className="flex-shrink-0" />
                 {wide && <>
-                  <span className="flex-1 text-[13px] font-medium truncate">{item.label}</span>
+                  <span className="flex-1 text-left text-[13px] font-medium truncate">{item.label}</span>
                   <ChevronDown size={14} className={`opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </>}
-              </Link>
+              </button>
               {wide && isOpen && (
-                <div className="ml-4 pl-3 border-l border-gray-200 mb-1 space-y-0.5">
+                <div className="ml-4 pl-3 border-l border-[var(--line)] mb-1 space-y-0.5">
                   {item.children!.map((child: any) => {
                     const ca = pathname === child.href || pathname.startsWith(child.href + '/')
                     return (
-                      <Link key={child.href} href={child.href}
-                        className={`flex items-center justify-between px-3 py-2 rounded-xl text-[12px] font-medium transition-colors
-                          ${ca ? 'bg-gray-100 text-gray-900 font-semibold' : 'text-gray-400 hover:text-gray-800 hover:bg-gray-50'}`}>
+                      <Link key={child.href} href={child.href} onClick={() => setMobileOpen(false)}
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-medium transition-colors
+                          ${ca ? 'bg-[var(--line-soft)] text-[var(--ink)] font-semibold' : 'text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]'}`}>
                         {child.label}
-                        {ca && <ChevronRight size={11} className="text-gray-400" />}
+                        {ca && <ChevronRight size={11} className="text-[var(--ink-faint)]" />}
                       </Link>
                     )
                   })}

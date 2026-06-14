@@ -9,12 +9,13 @@ import { useRouter } from 'next/navigation'
 import { changeLeadStatus } from '@/lib/leadStatus'
 
 const STATUSES = [
-  { key: 'contacted', label: 'Contacted', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
-  { key: 'interested', label: 'Interested', color: 'bg-indigo-100 text-indigo-700'},
-  { key: 'follow_up', label: 'Follow Up', color: 'bg-orange-100 text-orange-700'},
-  { key: 'ready_to_join', label: 'Ready to Join', color: 'bg-green-100 text-green-700'},
-  { key: 'not_interested', label: 'Not Interested', color: 'bg-red-100 text-red-600'},
-  { key: 'lost', label: 'Lost', color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]'},
+  { key: 'contacted',     label: 'Contacted',      color: 'bg-[var(--accent-soft)] text-[var(--accent)]', needsComment: false },
+  { key: 'qualified',     label: 'Qualified',      color: 'bg-teal-100 text-teal-700',      needsComment: true },
+  { key: 'interested',    label: 'Interested',     color: 'bg-indigo-100 text-indigo-700',  needsComment: false, sendsLink: true },
+  { key: 'follow_up',     label: 'Follow Up',      color: 'bg-orange-100 text-orange-700',  needsComment: true },
+  { key: 'next_session',  label: 'Next Session',   color: 'bg-amber-100 text-amber-700',    needsComment: true },
+  { key: 'not_interested',label: 'Not Interested', color: 'bg-red-100 text-red-600',        needsComment: true },
+  { key: 'lost',          label: 'Lost',           color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]', needsComment: true },
 ]
 
 export default function MarketerDashboard() {
@@ -27,7 +28,8 @@ export default function MarketerDashboard() {
   const [myId, setMyId] = useState<string|null>(null)
   const [expanded, setExpanded] = useState<string|null>(null)
   const [updating, setUpdating] = useState<string|null>(null)
-  const [note, setNote] = useState('')
+  const [pendingStatus, setPendingStatus] = useState<{ leadId: string; status: string } | null>(null)
+  const [comment, setComment] = useState('')
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setMyId(s.userId) })
@@ -41,30 +43,61 @@ export default function MarketerDashboard() {
     enabled: !!myId,
   })
 
-  async function updateStatus(leadId: string, newStatus: string) {
+  // Step 1: marketer taps a status button
+  function pickStatus(leadId: string, newStatus: string) {
     // Registration must go through the register flow (programme + points).
     if (newStatus === 'registered') {
-      toast.info('Open the lead to register and earn points')
       router.push(`/marketer/leads/${leadId}`)
+      return
+    }
+    const def = STATUSES.find(s => s.key === newStatus)
+    // Statuses that need a comment open a comment box first
+    if (def?.needsComment) {
+      setPendingStatus({ leadId, status: newStatus })
+      setComment('')
+      return
+    }
+    // Otherwise apply immediately
+    applyStatus(leadId, newStatus, '')
+  }
+
+  // Step 2: apply the status (with comment if one was required/given)
+  async function applyStatus(leadId: string, newStatus: string, commentText: string) {
+    const def = STATUSES.find(s => s.key === newStatus)
+    if (def?.needsComment && !commentText.trim()) {
+      toast.error('Please add a comment so the PM understands why')
       return
     }
     setUpdating(leadId)
     try {
       const result = await changeLeadStatus(leadId, newStatus)
       if (result.error) { toast.error(result.error); return }
-      if (newStatus === 'ready_to_join') {
-        await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify({ leadId }) })
-        toast.success('Moved to Ready to Join — Admissions team notified!')
-      } else {
-        toast.success(`Status → ${newStatus.replace(/_/g, ' ')}`)
-      }
-      if (note.trim() && myId) {
+
+      // Log the comment so PM/admin can see the reason
+      if (commentText.trim() && myId) {
         await mutate('POST', 'lead_activities', {
           lead_id: leadId, activity_type: 'note',
-          subject: `Status → ${newStatus}`, description: note, created_by: myId,
+          subject: `${def?.label || newStatus}`, description: commentText, created_by: myId,
         })
-        setNote('')
       }
+
+      // Interested -> auto-send the registration link via WhatsApp
+      if (def?.sendsLink) {
+        const r = await fetch('/api/leads/send-link', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leadId }),
+        }).then(r => r.json()).catch(() => null)
+        if (r?.success) toast.success('Marked Interested — registration link sent on WhatsApp')
+        else toast.success('Marked Interested — open the lead to send the link')
+      } else if (newStatus === 'ready_to_join') {
+        await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify({ leadId }) })
+        toast.success('Moved to Ready to Join — Admissions notified')
+      } else {
+        toast.success(`Moved to ${def?.label || newStatus.replace(/_/g, ' ')}`)
+      }
+
+      setPendingStatus(null)
+      setComment('')
       setExpanded(null)
       refetch()
     } catch (e: any) {
@@ -192,37 +225,69 @@ export default function MarketerDashboard() {
                     {lead.phone && (
                       <div className="flex gap-2 mb-3">
                         <a href={`tel:${lead.phone}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 transition">
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition">
                           <Phone size={12} /> Call
                         </a>
                         <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split(' ')[0]}, this is from Cambridge Centre of Excellence...`)}`}
-                          target="_blank"rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition">
+                          target="_blank" rel="noopener noreferrer"
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] text-white rounded-lg text-xs font-semibold hover:opacity-90 transition">
                           <MessageSquare size={12} /> WhatsApp
                         </a>
                         <Link href={`/marketer/leads/${lead.id}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line-soft)] transition">
-                          Full View →
+                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-xs font-semibold hover:bg-[var(--line-soft)] transition">
+                          Full view
                         </Link>
                       </div>
                     )}
 
-                    {/* Note */}
-                    <textarea value={note} onChange={e => setNote(e.target.value)} rows={2}
-                      placeholder="Note about this interaction..."
-                      className="w-full text-xs px-3 py-2 border border-[var(--line)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)] bg-white mb-2" />
-
-                    {/* Status buttons */}
-                    <div className="flex flex-wrap gap-1.5">
-                      <span className="text-[10px] font-bold text-[var(--ink-faint)] uppercase self-center mr-1">Move to:</span>
-                      {STATUSES.filter(s => s.key !== lead.status).map(s => (
-                        <button key={s.key} disabled={updating === lead.id}
-                          onClick={() => updateStatus(lead.id, s.key)}
-                          className={`text-[11px] font-semibold px-2.5 py-1 rounded-xl border transition hover:opacity-80 disabled:opacity-40 ${s.color}`}>
-                          {s.label}
+                    {/* Comment box appears when a comment-required status is pending */}
+                    {pendingStatus && pendingStatus.leadId === lead.id ? (
+                      (() => {
+                        const ps = pendingStatus
+                        return (
+                      <div className="bg-white border border-[var(--accent)] rounded-lg p-3">
+                        <div className="text-xs font-semibold text-[var(--ink)] mb-1.5">
+                          {STATUSES.find(s => s.key === ps.status)?.label} — add a comment
+                        </div>
+                        <p className="text-[11px] text-[var(--ink-faint)] mb-2">Explain the reason so the PM and admin understand.</p>
+                        <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} autoFocus
+                          placeholder={
+                            ps.status === 'not_interested' ? 'Why is the lead not interested?' :
+                            ps.status === 'next_session' ? 'Which session will they join, and why the wait?' :
+                            ps.status === 'follow_up' ? 'What needs following up, and when?' :
+                            ps.status === 'qualified' ? 'Why is this lead qualified?' :
+                            'Add your comment...'
+                          }
+                          className="w-full text-xs px-3 py-2 border border-[var(--line)] rounded-lg resize-none focus:outline-none focus:border-[var(--accent)] bg-white mb-2" />
+                        <div className="flex gap-2">
+                          <button disabled={updating === lead.id}
+                            onClick={() => applyStatus(lead.id, ps.status, comment)}
+                            className="flex-1 h-9 bg-[var(--accent)] text-white rounded-lg text-xs font-semibold hover:brightness-110 disabled:opacity-50 transition">
+                            {updating === lead.id ? 'Saving…' : 'Save & update'}
+                          </button>
+                          <button onClick={() => { setPendingStatus(null); setComment('') }}
+                            className="px-4 h-9 rounded-lg border border-[var(--line)] text-xs font-medium text-[var(--ink-soft)]">Cancel</button>
+                        </div>
+                      </div>
+                        )
+                      })()
+                    ) : (
+                      <div className="flex flex-wrap gap-1.5">
+                        <span className="text-[10px] font-bold text-[var(--ink-faint)] uppercase self-center mr-1">Move to:</span>
+                        {STATUSES.filter(s => s.key !== lead.status).map(s => (
+                          <button key={s.key} disabled={updating === lead.id}
+                            onClick={() => pickStatus(lead.id, s.key)}
+                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-transparent transition hover:opacity-80 disabled:opacity-40 ${s.color}`}>
+                            {s.label}
+                          </button>
+                        ))}
+                        {/* Register shortcut */}
+                        <button onClick={() => router.push(`/marketer/leads/${lead.id}`)}
+                          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[var(--accent)] text-white transition hover:brightness-110">
+                          Register
                         </button>
-                      ))}
-                    </div>
+                      </div>
+                    )}
                   </div>
                 )}
               </div>

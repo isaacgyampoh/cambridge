@@ -16,6 +16,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   insights:    ['/admin/insights'],
   leads:       ['/admin/leads', '/admin/pipeline'],
   my_leads:    ['/marketer'],
+  my_link:     ['/marketer/link'],
   pm_leads:    ['/pm'],
   admissions:  ['/admin/admissions', '/admission'],
   finance:     ['/admin/finance', '/finance'],
@@ -45,7 +46,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
 const ROLE_DEFAULTS: Record<string, string[]> = {
   super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','remuneration','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','leads','clock_in'],
+  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],
   accountant:        ['dashboard','finance','registrations','leads','clock_in'],
   receptionist:      ['dashboard','reminders','attendance','clock_in'],
@@ -105,7 +106,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 
