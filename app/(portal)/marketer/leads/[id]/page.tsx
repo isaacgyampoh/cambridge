@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Phone, MessageSquare, Mail, Calendar, Plus, Clock } from 'lucide-react'
 import Link from 'next/link'
 import Modal from '@/components/shared/Modal'
+import { changeLeadStatus } from '@/lib/leadStatus'
 
 const STATUSES = [
   { key: 'new', label: 'New'},
@@ -67,16 +68,12 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     if (!regForm.programCode) { toast.error('Select a programme'); return }
     setRegistering(true)
     try {
-      const res = await fetch('/api/remuneration/credit', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          leadId: id, programCode: regForm.programCode, delivery: regForm.delivery,
-          corporateValue: regForm.corporateValue ? parseFloat(regForm.corporateValue) : undefined,
-        }),
+      const result = await changeLeadStatus(id, 'registered', {
+        programCode: regForm.programCode, delivery: regForm.delivery,
+        corporateValue: regForm.corporateValue ? parseFloat(regForm.corporateValue) : undefined,
       })
-      const d = await res.json()
-      if (!res.ok) { toast.error(d.error || 'Could not register'); return }
-      toast.success(`Registered! +${d.points} points credited for ${d.program}`)
+      if (result.error) { toast.error(result.error); return }
+      toast.success('Registered — points credited to your annual total')
       setRegOpen(false)
       load()
     } catch (e: any) { toast.error(e.message) }
@@ -131,8 +128,15 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
   async function updateStatus() {
     if (!newStatus || newStatus === lead?.status) return
+    // Registration must use the Register button (programme + points).
+    if (newStatus === 'registered') {
+      toast.info('Use "Register & earn points" to register this student')
+      setRegOpen(true)
+      return
+    }
     try {
-      await mutate('PATCH', 'leads', { status: newStatus }, [{ col: 'id', val: id }])
+      const result = await changeLeadStatus(id, newStatus)
+      if (result.error) { toast.error(result.error); return }
       if (newStatus === 'ready_to_join') {
         await fetch('/api/admissions', {
           method: 'POST',

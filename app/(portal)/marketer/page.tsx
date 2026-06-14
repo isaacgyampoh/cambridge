@@ -5,6 +5,8 @@ import { toast } from 'sonner'
 import { STATUS_COLORS } from '@/lib/utils'
 import { Phone, MessageSquare, ChevronDown, ChevronUp, Plus, Clock } from 'lucide-react'
 import Link from 'next/link'
+import { useRouter } from 'next/navigation'
+import { changeLeadStatus } from '@/lib/leadStatus'
 
 const STATUSES = [
   { key: 'contacted', label: 'Contacted', color: 'bg-blue-100 text-blue-700'},
@@ -16,6 +18,7 @@ const STATUSES = [
 ]
 
 export default function MarketerDashboard() {
+  const router = useRouter()
   const [myId, setMyId] = useState<string|null>(null)
   const [expanded, setExpanded] = useState<string|null>(null)
   const [updating, setUpdating] = useState<string|null>(null)
@@ -34,9 +37,16 @@ export default function MarketerDashboard() {
   })
 
   async function updateStatus(leadId: string, newStatus: string) {
+    // Registration must go through the register flow (programme + points).
+    if (newStatus === 'registered') {
+      toast.info('Open the lead to register and earn points')
+      router.push(`/marketer/leads/${leadId}`)
+      return
+    }
     setUpdating(leadId)
     try {
-      await mutate('PATCH', 'leads', { status: newStatus }, [{ col: 'id', val: leadId }])
+      const result = await changeLeadStatus(leadId, newStatus)
+      if (result.error) { toast.error(result.error); return }
       if (newStatus === 'ready_to_join') {
         await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify({ leadId }) })
         toast.success('Moved to Ready to Join — Admissions team notified!')

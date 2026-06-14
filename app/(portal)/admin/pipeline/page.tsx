@@ -4,6 +4,9 @@ import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { SOURCE_COLORS } from '@/lib/utils'
 import { Phone, MessageSquare, RefreshCw } from 'lucide-react'
+import { changeLeadStatus } from '@/lib/leadStatus'
+import Modal from '@/components/shared/Modal'
+import { Button, Field, inputClass } from '@/components/ui'
 
 const STAGES = [
   { key: 'new', label: 'New Leads', dot: 'bg-yellow-400', bg: 'bg-yellow-50 border-yellow-200'},
@@ -18,6 +21,9 @@ export default function PipelinePage() {
   const [dragging, setDragging] = useState<string|null>(null)
   const [over, setOver] = useState<string|null>(null)
   const [showLost, setShowLost] = useState(false)
+  const [regLead, setRegLead] = useState<{ id: string; name: string; programs: any[] } | null>(null)
+  const [regForm, setRegForm] = useState({ programCode: '', delivery: 'in_person', corporateValue: '' })
+  const [registering, setRegistering] = useState(false)
 
   const { data: leads, loading, refetch } = useData({
     table: 'leads',
@@ -33,13 +39,38 @@ export default function PipelinePage() {
     const lead = leads.find(l => l.id === leadId)
     if (!lead || lead.status === newStatus) return
     try {
-      await mutate('PATCH', 'leads', { status: newStatus }, [{ col: 'id', val: leadId }])
+      const result = await changeLeadStatus(leadId, newStatus)
+      // Registration needs a programme to credit points
+      if (result.needsProgram) {
+        setRegLead({ id: leadId, name: lead.full_name, programs: result.programs || [] })
+        setRegForm({ programCode: '', delivery: 'in_person', corporateValue: '' })
+        return
+      }
+      if (result.error) { toast.error(result.error); return }
       if (newStatus === 'ready_to_join') {
         await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify({ leadId }) })
         toast.success(`${lead.full_name} → Ready to Join! Admissions notified.`)
+      } else if (result.credited) {
+        toast.success(`${lead.full_name} registered — points credited.`)
       }
       refetch()
     } catch (e: any) { toast.error(e.message) }
+  }
+
+  async function confirmRegistration() {
+    if (!regLead) return
+    if (!regForm.programCode) { toast.error('Select a programme'); return }
+    setRegistering(true)
+    try {
+      const result = await changeLeadStatus(regLead.id, 'registered', {
+        programCode: regForm.programCode, delivery: regForm.delivery,
+        corporateValue: regForm.corporateValue ? parseFloat(regForm.corporateValue) : undefined,
+      })
+      if (result.error) { toast.error(result.error); return }
+      toast.success(`${regLead.name} registered — points credited.`)
+      setRegLead(null); refetch()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setRegistering(false) }
   }
 
   const byStage = (key: string) => leads.filter(l => l.status === key)
@@ -142,6 +173,45 @@ export default function PipelinePage() {
           ))}
         </div>
       )}
+
+      {/* Registration programme prompt (when dragging to Registered) */}
+      <Modal open={!!regLead} onClose={() => setRegLead(null)} maxWidth="max-w-sm">
+        {regLead && (
+          <div className="p-6">
+            <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-1">Register student</h2>
+            <p className="text-sm text-[var(--ink-soft)] mb-5">{regLead.name} — select the programme to credit points and the GHS 200 commission.</p>
+            <div className="space-y-4">
+              <Field label="Programme" required>
+                <select value={regForm.programCode} onChange={e => setRegForm({ ...regForm, programCode: e.target.value })} className={inputClass}>
+                  <option value="">Select programme</option>
+                  {regLead.programs.map((p: any) => (
+                    <option key={p.code} value={p.code}>{p.name} {p.is_corporate ? '(40–200 pts)' : `(${p.points} pts)`}</option>
+                  ))}
+                </select>
+              </Field>
+              <Field label="Delivery">
+                <div className="grid grid-cols-2 gap-2">
+                  {[{ v: 'in_person', l: 'In person' }, { v: 'online', l: 'Online' }].map(d => (
+                    <button key={d.v} type="button" onClick={() => setRegForm({ ...regForm, delivery: d.v })}
+                      className={`h-10 rounded-lg text-sm font-medium border transition ${regForm.delivery === d.v ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--ink-faint)]'}`}>
+                      {d.l}
+                    </button>
+                  ))}
+                </div>
+              </Field>
+              {regLead.programs.find((p: any) => p.code === regForm.programCode)?.is_corporate && (
+                <Field label="Corporate value (points, 40–200)">
+                  <input type="number" min={40} max={200} value={regForm.corporateValue} onChange={e => setRegForm({ ...regForm, corporateValue: e.target.value })} placeholder="e.g. 120" className={inputClass} />
+                </Field>
+              )}
+            </div>
+            <div className="flex gap-2 mt-6">
+              <Button onClick={confirmRegistration} disabled={registering} className="flex-1">{registering ? 'Registering…' : 'Confirm registration'}</Button>
+              <Button variant="secondary" onClick={() => setRegLead(null)}>Cancel</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
     </div>
   )
 }
