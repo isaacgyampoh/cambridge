@@ -48,33 +48,6 @@ export default function AdminDashboard() {
   const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening'
   const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
 
-  const sections = [
-    {
-      label: 'Admissions & enrolment',
-      links: [
-        { label: 'Lead pipeline', href: '/admin/pipeline', desc: 'Track leads through every stage', icon: Kanban },
-        { label: 'All leads', href: '/admin/leads', desc: `${s.unassigned} awaiting assignment`, icon: TrendingUp },
-        { label: 'Admissions', href: '/admin/admissions', desc: `${s.totalAdmissions - s.admitted} pending review`, icon: UserCheck },
-      ],
-    },
-    {
-      label: 'Operations',
-      links: [
-        { label: 'Finance', href: '/admin/finance', desc: `${formatGHS(s.revenue)} collected`, icon: DollarSign },
-        { label: 'Attendance', href: '/admin/attendance', desc: 'Live class sign-ins', icon: CalendarCheck },
-        { label: 'Broadcast', href: '/admin/broadcast', desc: 'WhatsApp & SMS campaigns', icon: Radio },
-      ],
-    },
-    {
-      label: 'People & content',
-      links: [
-        { label: 'Marketers', href: '/admin/marketers', desc: 'Team performance', icon: BarChart3 },
-        { label: 'Staff', href: '/admin/staff', desc: `${s.activeStaff} active`, icon: Users },
-        { label: 'Documents', href: '/admin/documents', desc: 'Letters & templates', icon: FolderOpen },
-      ],
-    },
-  ]
-
   return (
     <div className="fade-in w-full">
       {/* Header */}
@@ -97,69 +70,40 @@ export default function AdminDashboard() {
       </div>
 
       {/* Navigation sections */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-        {/* Navigation sections */}
-        <div className="lg:col-span-2">
-          {sections.map(section => (
-            <div key={section.label} className="mb-8">
-              <SectionLabel>{section.label}</SectionLabel>
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                {section.links.map(l => (
-                  <Link key={l.href} href={l.href} className="group">
-                    <Card hover className="p-4 flex items-center gap-3.5">
-                      <div className="w-10 h-10 rounded-lg bg-[var(--line-soft)] group-hover:bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0 transition-colors">
-                        <l.icon size={18} className="text-[var(--ink-soft)] group-hover:text-[var(--accent)] transition-colors" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-sm font-semibold text-[var(--ink)]">{l.label}</div>
-                        <div className="text-xs text-[var(--ink-faint)] mt-0.5 truncate">{l.desc}</div>
-                      </div>
-                      <ArrowUpRight size={15} className="text-[var(--ink-faint)] opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0" />
-                    </Card>
-                  </Link>
-                ))}
-              </div>
-            </div>
-          ))}
-        </div>
-
-        {/* Activity feed */}
-        <div>
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Live activity</span>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
-            </span>
-          </div>
-          <Card className="p-2">
-            {feed.length === 0 ? (
-              <div className="py-12 text-center">
-                <Activity size={22} className="mx-auto text-[var(--ink-faint)] opacity-40 mb-2" />
-                <p className="text-sm text-[var(--ink-faint)]">No activity yet</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-[var(--line-soft)] max-h-[520px] overflow-y-auto">
-                {feed.map((e, i) => {
-                  const Icon = FEED_ICON[e.icon] || Activity
-                  return (
-                    <div key={i} className="flex items-start gap-3 px-3 py-3">
-                      <div className="w-8 h-8 rounded-full bg-[var(--line-soft)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                        <Icon size={14} className="text-[var(--ink-soft)]" />
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <div className="text-[13px] font-medium text-[var(--ink)] leading-snug">{e.title}</div>
-                        {e.sub && <div className="text-xs text-[var(--ink-faint)] truncate">{e.sub}</div>}
-                      </div>
-                      <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0">{timeAgo(e.at)}</span>
-                    </div>
-                  )
-                })}
-              </div>
-            )}
-          </Card>
-        </div>
+      {/* Activity feed — full width, clean */}
+      <div className="flex items-center gap-2 mb-4">
+        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Recent activity</span>
+        <span className="relative flex h-2 w-2">
+          <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-60" />
+          <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
+        </span>
       </div>
+      <Card className="p-1.5">
+        {feed.length === 0 ? (
+          <div className="py-14 text-center">
+            <Activity size={22} className="mx-auto text-[var(--ink-faint)] opacity-40 mb-2" />
+            <p className="text-sm text-[var(--ink-faint)]">No activity yet today</p>
+          </div>
+        ) : (
+          <div className="divide-y divide-[var(--line-soft)]">
+            {feed.map((e, i) => {
+              const Icon = FEED_ICON[e.icon] || Activity
+              return (
+                <div key={i} className="flex items-start gap-3 px-3 py-3.5">
+                  <div className="w-9 h-9 rounded-full bg-[var(--line-soft)] flex items-center justify-center flex-shrink-0">
+                    <Icon size={15} className="text-[var(--ink-soft)]" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-medium text-[var(--ink)] leading-snug">{e.title}</div>
+                    {e.sub && <div className="text-xs text-[var(--ink-faint)] truncate mt-0.5">{e.sub}</div>}
+                  </div>
+                  <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0 mt-0.5">{timeAgo(e.at)}</span>
+                </div>
+              )
+            })}
+          </div>
+        )}
+      </Card>
     </div>
   )
 }
