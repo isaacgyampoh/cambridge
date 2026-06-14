@@ -74,6 +74,49 @@ export const ALL_PORTALS = [
   { id: 'remuneration', label: 'Remuneration', icon: Trophy,          href: '/admin/remuneration' },
   { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
   { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings' },
+
+  // ── Category groups (used by super_admin for a tidy, organised sidebar) ──
+  { id: 'grp_growth', label: 'Growth', icon: TrendingUp, href: '/admin/leads', children: [
+    { label: 'All Leads',  href: '/admin/leads' },
+    { label: 'Pipeline',   href: '/admin/pipeline' },
+    { label: 'Hot Leads',  href: '/admin/hotleads' },
+    { label: 'Add Lead',   href: '/admin/leads/new' },
+    { label: 'Import',     href: '/admin/leads/import' },
+    { label: 'Marketers',  href: '/admin/marketers' },
+    { label: 'Remuneration', href: '/admin/remuneration' },
+  ]},
+  { id: 'grp_enrolment', label: 'Enrolment', icon: UserCheck, href: '/admin/admissions', children: [
+    { label: 'Admissions',       href: '/admin/admissions' },
+    { label: 'Registrations',    href: '/finance/registrations' },
+    { label: 'Walk-in Sign-ins', href: '/admin/signins' },
+  ]},
+  { id: 'grp_finance', label: 'Finance', icon: DollarSign, href: '/finance', children: [
+    { label: 'Payments & Invoices', href: '/finance' },
+    { label: 'Registrations',       href: '/finance/registrations' },
+    { label: 'Reports',             href: '/finance/reports' },
+  ]},
+  { id: 'grp_academics', label: 'Academics', icon: BookOpen, href: '/admin/academics', children: [
+    { label: 'Overview',   href: '/admin/academics' },
+    { label: 'Courses',    href: '/admin/courses' },
+    { label: 'Classes',    href: '/admin/classes' },
+    { label: 'Attendance', href: '/admin/attendance' },
+    { label: 'Alumni',     href: '/admin/alumni' },
+  ]},
+  { id: 'grp_messaging', label: 'Messaging & AI', icon: MessageSquare, href: '/admin/broadcast', children: [
+    { label: 'Broadcast',        href: '/admin/broadcast' },
+    { label: 'WhatsApp Lines',   href: '/admin/whatsapp' },
+    { label: 'AI Knowledge',     href: '/admin/knowledge' },
+    { label: 'AI Conversations', href: '/admin/conversations' },
+  ]},
+  { id: 'grp_team', label: 'Team', icon: Users, href: '/admin/staff', children: [
+    { label: 'Staff',     href: '/admin/staff' },
+    { label: 'Workforce', href: '/admin/workforce' },
+    { label: 'Clock In',  href: '/clock-in' },
+  ]},
+  { id: 'grp_content', label: 'Content & System', icon: FolderOpen, href: '/admin/documents', children: [
+    { label: 'Documents', href: '/admin/documents' },
+    { label: 'Settings',  href: '/admin/settings' },
+  ]},
 ]
 
 const ROLE_HOME: Record<string, string> = {
@@ -83,7 +126,7 @@ const ROLE_HOME: Record<string, string> = {
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','remuneration','clock_in','settings'],
+  super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','leads','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],

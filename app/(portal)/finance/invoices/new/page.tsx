@@ -36,7 +36,7 @@ export default function NewInvoice() {
         created_by: userId,
       })
       toast.success('Invoice created!')
-      router.push('/finance/invoices')
+      router.push('/finance')
     } catch (e: any) {
       toast.error(e.message || 'Failed to create invoice')
       setSaving(false)
@@ -45,7 +45,7 @@ export default function NewInvoice() {
 
   return (
     <div className="fade-in w-full">
-      <Link href="/finance/invoices" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-5 transition">
+      <Link href="/finance" className="inline-flex items-center gap-2 text-sm text-gray-500 hover:text-gray-900 mb-5 transition">
         <ArrowLeft size={16} /> Back to invoices
       </Link>
       <div className="bg-white rounded-2xl border border-gray-200 p-6">
@@ -91,7 +91,7 @@ export default function NewInvoice() {
             className="flex-1 h-11 bg-blue-600 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-blue-700 transition">
             {saving ? 'Creating...' : 'Create Invoice'}
           </button>
-          <Link href="/finance/invoices" className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition flex items-center justify-center">
+          <Link href="/finance" className="flex-1 h-11 bg-gray-100 text-gray-700 rounded-xl text-sm font-semibold hover:bg-gray-200 transition flex items-center justify-center">
             Cancel
           </Link>
         </div>
