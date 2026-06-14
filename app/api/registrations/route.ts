@@ -55,17 +55,23 @@ export async function GET(req: NextRequest) {
       marketerId: e.marketer_id,
       marketerName: e.marketer?.full_name || 'Unassigned',
       registeredAt: e.created_at,
+      commissionPaid: !!e.commission_paid,
     }
   })
 
   // Per-marketer commission summary (whose money is whose)
-  const byMarketer: Record<string, { name: string; count: number; commission: number; points: number }> = {}
-  registrations.forEach(r => {
-    const k = r.marketerId || 'unassigned'
-    if (!byMarketer[k]) byMarketer[k] = { name: r.marketerName, count: 0, commission: 0, points: 0 }
+  const byMarketer: Record<string, { name: string; count: number; commission: number; points: number; unpaidCommission: number; unpaidCount: number }> = {}
+  ;(enrollments || []).forEach((e: any) => {
+    const k = e.marketer_id || 'unassigned'
+    if (!byMarketer[k]) byMarketer[k] = { name: e.marketer?.full_name || 'Unassigned', count: 0, commission: 0, points: 0, unpaidCommission: 0, unpaidCount: 0 }
+    const fee = Number(e.registration_fee || 0)
     byMarketer[k].count++
-    byMarketer[k].commission += r.registrationFee
-    byMarketer[k].points += r.points
+    byMarketer[k].commission += fee
+    byMarketer[k].points += Number(e.points || 0)
+    if (!e.commission_paid) {
+      byMarketer[k].unpaidCommission += fee
+      byMarketer[k].unpaidCount++
+    }
   })
 
   const totals = {

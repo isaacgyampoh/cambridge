@@ -2,18 +2,38 @@
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, EmptyState, inputClass } from '@/components/ui'
 import { formatGHS, formatDateTime } from '@/lib/utils'
-import { Wallet, Users, GraduationCap, Search, Download } from 'lucide-react'
+import { Wallet, Users, GraduationCap, Search, Download, Check } from 'lucide-react'
 import { exportToExcel } from '@/lib/utils/export'
+import { toast } from 'sonner'
 
 export default function FinanceRegistrations() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
   const [marketerFilter, setMarketerFilter] = useState('all')
+  const [payingId, setPayingId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/registrations').then(r => r.json()).then(d => { setData(d); setLoading(false) })
-  }, [])
+  async function load() {
+    const d = await fetch('/api/registrations').then(r => r.json())
+    setData(d); setLoading(false)
+  }
+  useEffect(() => { load() }, [])
+
+  async function markPaid(marketerId: string, name: string, amount: number) {
+    if (!confirm(`Confirm you have paid ${name} their registration commission of ${formatGHS(amount)}? This marks all their outstanding registrations as paid.`)) return
+    setPayingId(marketerId)
+    try {
+      const res = await fetch('/api/registrations/payout', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marketerId }),
+      })
+      const r = await res.json()
+      if (!res.ok) { toast.error(r.error || 'Could not mark paid'); return }
+      toast.success(`Marked ${formatGHS(r.amount)} paid to ${name.split(' ')[0]}`)
+      load()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setPayingId(null) }
+  }
 
   if (loading || !data) return <Spinner />
 
@@ -51,15 +71,33 @@ export default function FinanceRegistrations() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
           {data.byMarketer.map((m: any) => (
-            <button key={m.id} onClick={() => setMarketerFilter(marketerFilter === m.id ? 'all' : m.id)}
-              className={`text-left rounded-xl border p-4 transition ${marketerFilter === m.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--paper)] hover:border-[var(--ink-faint)]'}`}>
-              <div className="flex items-center justify-between">
-                <div className="font-medium text-[var(--ink)]">{m.name}</div>
-                <Badge tone="success">{m.count} student{m.count === 1 ? '' : 's'}</Badge>
+            <div key={m.id}
+              className={`rounded-xl border p-4 transition ${marketerFilter === m.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--paper)]'}`}>
+              <button onClick={() => setMarketerFilter(marketerFilter === m.id ? 'all' : m.id)} className="w-full text-left">
+                <div className="flex items-center justify-between">
+                  <div className="font-medium text-[var(--ink)]">{m.name}</div>
+                  <Badge tone="success">{m.count} student{m.count === 1 ? '' : 's'}</Badge>
+                </div>
+                <div className="font-display text-2xl font-semibold text-[var(--ink)] mt-2">{formatGHS(m.commission)}</div>
+                <div className="text-xs text-[var(--ink-faint)] mt-0.5">{m.points} points earned</div>
+              </button>
+              <div className="mt-3 pt-3 border-t border-[var(--line-soft)] flex items-center justify-between">
+                {m.unpaidCommission > 0 ? (
+                  <>
+                    <div className="text-xs">
+                      <span className="text-[var(--ink-faint)]">Outstanding: </span>
+                      <span className="font-semibold text-[var(--ink)]">{formatGHS(m.unpaidCommission)}</span>
+                    </div>
+                    <button onClick={() => markPaid(m.id, m.name, m.unpaidCommission)} disabled={payingId === m.id}
+                      className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md bg-[var(--accent)] text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition">
+                      <Check size={12} /> {payingId === m.id ? 'Saving…' : 'Mark paid'}
+                    </button>
+                  </>
+                ) : (
+                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium"><Check size={12} /> All paid out</div>
+                )}
               </div>
-              <div className="font-display text-2xl font-semibold text-[var(--ink)] mt-2">{formatGHS(m.commission)}</div>
-              <div className="text-xs text-[var(--ink-faint)] mt-0.5">to pay this marketer · {m.points} points earned</div>
-            </button>
+            </div>
           ))}
         </div>
       )}
@@ -85,7 +123,7 @@ export default function FinanceRegistrations() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead><tr className="border-b border-[var(--line)]">
-                {['Student', 'Programme', 'Delivery', 'Fee', 'Assigned to', 'Registered'].map(h => (
+                {['Student', 'Programme', 'Delivery', 'Fee', 'Assigned to', 'Commission', 'Registered'].map(h => (
                   <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                 ))}
               </tr></thead>
@@ -100,6 +138,7 @@ export default function FinanceRegistrations() {
                     <td className="px-4 py-3"><Badge tone="neutral">{r.delivery?.replace('_', ' ')}</Badge></td>
                     <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(r.registrationFee)}</td>
                     <td className="px-4 py-3"><Badge tone="accent">{r.marketerName}</Badge></td>
+                    <td className="px-4 py-3">{r.commissionPaid ? <Badge tone="success">Paid</Badge> : <Badge tone="warning">Owing</Badge>}</td>
                     <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">{formatDateTime(r.registeredAt)}</td>
                   </tr>
                 ))}
