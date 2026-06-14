@@ -55,11 +55,14 @@ export async function POST(req: NextRequest) {
       paid_at: new Date().toISOString(),
     }).select().single()
 
-    // Create admission case
-    await fetch(`${CONFIG.appUrl}/api/admissions`, {
+    // Complete registration — credits the marketer points + GHS 200
+    // commission, marks the lead registered, creates the admission.
+    // This is the reliable server-side path (fires even if the student
+    // closed their browser before the client callback ran).
+    await fetch(`${CONFIG.appUrl}/api/applications/complete`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ leadId: app.lead_id, applicationId }),
+      body: JSON.stringify({ applicationId }),
     })
 
     // Notify student

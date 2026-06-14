@@ -131,16 +131,16 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   }
 
   if (step === 3) return (
-    <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 flex items-center justify-center p-4">
-      <div className="bg-white rounded-3xl p-8 max-w-md w-full text-center">
-        <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-5">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--canvas)" }}>
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-8 max-w-md w-full text-center">
+        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: "var(--accent-soft)" }}>
           <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <path d="M8 20L16 28L32 12" stroke="#16a34a" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
+            <path d="M8 20L16 28L32 12" stroke="#1d4d44" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
           </svg>
         </div>
-        <h1 className="text-2xl font-bold text-gray-900 mb-2">Application Submitted!</h1>
-        <p className="text-gray-500 mb-2">Welcome to Cambridge Centre of Excellence, {form.full_name.split(' ')[0]}!</p>
-        <p className="text-sm text-gray-400">Our admissions team will review your application and contact you within 24 hours.</p>
+        <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-2">Application received</h1>
+        <p className="text-[var(--ink-soft)] mb-2">Welcome to Cambridge Centre of Excellence, {form.full_name.split(' ')[0]}.</p>
+        <p className="text-sm text-[var(--ink-faint)]">Our admissions team will review your application and contact you within 24 hours.</p>
       </div>
     </div>
   )
@@ -148,22 +148,22 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   return (
     <>
       <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
-      <div className="min-h-screen bg-gradient-to-br from-slate-900 via-blue-950 to-slate-900 py-8 px-4">
+      <div className="min-h-screen py-10 px-4" style={{ background: "var(--canvas)" }}>
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-blue-600 mb-4">
-              <span className="text-white text-xl font-black">CC</span>
+            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4" style={{ background: "var(--accent)" }}>
+              <span className="text-white text-lg font-semibold">CCE</span>
             </div>
-            <h1 className="text-white text-2xl font-bold">Cambridge Centre of Excellence</h1>
-            <p className="text-blue-300 text-sm mt-1">Student Application Form</p>
+            <h1 className="font-display text-[var(--ink)] text-2xl font-semibold">Cambridge Centre of Excellence</h1>
+            <p className="text-[var(--ink-soft)] text-sm mt-1">Student registration</p>
             {marketer && (
-              <p className="text-blue-400 text-xs mt-2">Referred by {marketer.full_name}</p>
+              <p className="text-[var(--ink-faint)] text-xs mt-2">Referred by {marketer.full_name}</p>
             )}
           </div>
 
           {step === 1 && (
-            <div className="bg-white rounded-3xl p-6 lg:p-8">
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 lg:p-8">
               <h2 className="text-lg font-bold text-gray-900 mb-6">Personal Information</h2>
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
@@ -182,7 +182,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <input type={f.type} placeholder={f.placeholder}
                       value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 transition" />
+                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
                   </div>
                 ))}
 
@@ -190,7 +190,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Gender</label>
                   <select value={form.gender} onChange={e => set('gender', e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                    className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
                     <option value="">Select...</option>
                     <option>Male</option><option>Female</option><option>Other</option>
                   </select>
@@ -200,7 +200,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Program *</label>
                   <select value={form.course_id} onChange={e => set('course_id', e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm focus:outline-none focus:border-blue-500 bg-white">
+                    className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
                     <option value="">Select program...</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -212,13 +212,13 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <label className="flex items-center gap-3 cursor-pointer">
                   <input type="checkbox" checked={form.scholarship_requested}
                     onChange={e => set('scholarship_requested', e.target.checked)}
-                    className="w-4 h-4 rounded accent-blue-600" />
+                    className="w-4 h-4 rounded accent-[var(--accent)]" />
                   <span className="text-sm font-semibold text-gray-700">I am requesting a scholarship</span>
                 </label>
                 {form.scholarship_requested && (
                   <div className="mt-4 space-y-3">
                     <select value={form.scholarship_type} onChange={e => set('scholarship_type', e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-gray-200 text-sm bg-white focus:outline-none focus:border-blue-500">
+                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
                       <option value="">Scholarship type...</option>
                       <option value="full">Full Scholarship</option>
                       <option value="partial">Partial Scholarship</option>
@@ -226,7 +226,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <textarea value={form.scholarship_reason} onChange={e => set('scholarship_reason', e.target.value)}
                       placeholder="Please explain why you are requesting a scholarship..."
                       rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-gray-200 text-sm resize-none focus:outline-none focus:border-blue-500" />
+                      className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
                   </div>
                 )}
               </div>
@@ -241,7 +241,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                   ].map(m => (
                     <button key={m.value} type="button" onClick={() => set('payment_method', m.value)}
                       className={`p-3 rounded-xl border-2 text-left transition ${
-                        form.payment_method === m.value ? 'border-blue-600 bg-blue-50' : 'border-gray-200 hover:border-gray-300'
+                        form.payment_method === m.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
                       }`}>
                       <div className="text-sm font-bold text-gray-900">{m.label}</div>
                       <div className="text-xs text-gray-500">{m.sub}</div>
@@ -251,7 +251,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               </div>
 
               <button onClick={submitForm} disabled={submitting}
-                className="w-full h-12 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-2">
+                className="w-full h-12 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
                 {submitting
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin" />Submitting…</>
                   : form.payment_method === 'paystack' ? 'Continue to Payment →' : 'Submit Application'
@@ -261,8 +261,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
           )}
 
           {step === 2 && (
-            <div className="bg-white rounded-3xl p-8 text-center">
-              <div className="w-16 h-16 bg-blue-100 rounded-full flex items-center justify-center mx-auto mb-5">
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-8 text-center">
+              <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: "var(--accent-soft)" }}>
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
                   <path d="M4 16C4 9.37 9.37 4 16 4s12 5.37 12 12-5.37 12-12 12S4 22.63 4 16z" stroke="#2563eb" strokeWidth="2"/>
                   <path d="M10 16h12M16 10v12" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/>
@@ -272,7 +272,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               <p className="text-gray-500 mb-2">Registration fee: <span className="font-bold text-gray-900">GHS 200</span></p>
               <p className="text-sm text-gray-400 mb-8">Complete payment to submit your application</p>
               <button onClick={payWithPaystack}
-                className="w-full h-12 bg-blue-600 text-white rounded-xl text-sm font-bold hover:bg-blue-700 transition">
+                className="w-full h-12 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
                 Pay GHS 200 via Paystack
               </button>
               <p className="text-xs text-gray-400 mt-4">Secured by Paystack · Mobile Money & Card accepted</p>
