@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useData, mutate } from '@/hooks/useData'
-import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, Button, Field, inputClass, EmptyState } from '@/components/ui'
+import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, Button, Field, inputClass, EmptyState, Sparkline } from '@/components/ui'
 import { formatGHS } from '@/lib/utils'
 import { Trophy, Wallet, Users, Settings2, X, Award } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
@@ -61,7 +61,7 @@ export default function AdminRemuneration() {
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead><tr className="border-b border-[var(--line)]">
-                {['#', 'Marketer', 'Points', 'Rank', 'Gross salary', 'Reg. commission', 'To next rank'].map(h => (
+                {['#', 'Marketer', 'Points', 'Trend', 'Rank', 'Gross salary', 'Reg. commission', 'To next rank'].map(h => (
                   <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                 ))}
               </tr></thead>
@@ -76,6 +76,7 @@ export default function AdminRemuneration() {
                       <div className="text-[11px] text-[var(--ink-faint)]">{m.enrollments} enrollments</div>
                     </td>
                     <td className="px-4 py-3 font-display text-lg font-semibold text-[var(--ink)]">{m.points}</td>
+                    <td className="px-4 py-3">{m.trend && m.trend.some((v:number)=>v>0) ? <Sparkline data={m.trend} /> : <span className="text-[11px] text-[var(--ink-faint)]">—</span>}</td>
                     <td className="px-4 py-3"><Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge></td>
                     <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(m.grossSalary)}</td>
                     <td className="px-4 py-3 text-sm text-emerald-600 font-medium">{formatGHS(m.registrationCommission)}</td>

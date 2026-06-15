@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
   const sb = createServiceClient()
   const [profilesR, enrollR, bandsR] = await Promise.all([
     sb.from('profiles').select('id, full_name, role').eq('is_active', true).in('role', ['marketing_officer', 'project_manager']),
-    sb.from('marketer_enrollments').select('marketer_id, points, registration_fee').eq('year', year),
+    sb.from('marketer_enrollments').select('marketer_id, points, registration_fee, created_at').eq('year', year),
     sb.from('rank_bands').select('*').order('sort_order', { ascending: true }),
   ])
 
@@ -40,11 +40,21 @@ export async function GET(req: NextRequest) {
     const reg = mine.reduce((a: number, e: any) => a + Number(e.registration_fee || 0), 0)
     const rank = resolveRank(points, bands)
     const nxt = nextRank(rank, bands)
+    // last 8 weeks of enrollment counts (oldest -> newest) for a sparkline
+    const weeks = Array.from({ length: 8 }, (_, i) => {
+      const start = Date.now() - (8 - i) * 7 * 86400000
+      const end = start + 7 * 86400000
+      return mine.filter((e: any) => {
+        const t = new Date(e.created_at).getTime()
+        return t >= start && t < end
+      }).length
+    })
     return {
       id: p.id, name: p.full_name, role: p.role,
       points, enrollments: mine.length, registrationCommission: reg,
       rank: rank?.name || 'Unranked', grossSalary: rank?.gross_salary || 0,
       nextRank: nxt?.name || null, pointsToNext: nxt ? Math.max(0, nxt.min_points - points) : 0,
+      trend: weeks,
     }
   }).sort((a, b) => b.points - a.points)
 
