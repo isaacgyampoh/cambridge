@@ -1,6 +1,0 @@
-{
-  "crons": [
-    { "path": "/api/sequences/run?key=cce-setup-2024", "schedule": "*/15 * * * *" },
-    { "path": "/api/reminders/run?key=cce-setup-2024", "schedule": "0 7 * * *" }
-  ]
-}
