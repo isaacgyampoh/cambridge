@@ -179,6 +179,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const [unread,     setUnread]     = useState(0)
   const leaveTimer = useRef<any>(null)
 
+  // The portal manages its own scroll inside <main>; lock the document
+  // height only while the portal is mounted. Public pages scroll normally.
+  useEffect(() => {
+    document.documentElement.classList.add('app-shell')
+    return () => document.documentElement.classList.remove('app-shell')
+  }, [])
+
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => {
       if (!s?.valid) { router.replace('/login'); return }

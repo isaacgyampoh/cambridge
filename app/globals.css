@@ -25,9 +25,15 @@
 
 html, body {
   width: 100%;
-  height: 100%;
   margin: 0;
   padding: 0;
+}
+
+/* Public pages (login, apply, etc.) scroll naturally with the document.
+   The portal shell locks its own height and scrolls inside <main>; it adds
+   the .app-shell class to <html> to opt into the fixed-height behavior. */
+html.app-shell, html.app-shell body {
+  height: 100%;
   overflow: hidden;
 }
 

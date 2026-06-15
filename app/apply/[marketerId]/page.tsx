@@ -127,7 +127,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   }
 
   if (step === 3) return (
-    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: "var(--canvas)" }}>
+    <div className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: "var(--canvas)" }}>
       <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-8 max-w-md w-full text-center">
         <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: "var(--accent-soft)" }}>
           <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
