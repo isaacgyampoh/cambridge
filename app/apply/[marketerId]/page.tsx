@@ -22,7 +22,6 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
     date_of_birth: '', country: 'Ghana', city: '', address: '',
     emergency_contact_name: '', emergency_contact_phone: '',
     course_id: '', batch_preference: '',
-    scholarship_requested: false, scholarship_type: '', scholarship_reason: '',
     passport_photo_url: '',
     payment_method: 'paystack',
   })
@@ -67,9 +66,6 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       emergency_contact_phone: form.emergency_contact_phone || null,
       course_id: form.course_id,
       batch_preference: form.batch_preference || null,
-      scholarship_requested: form.scholarship_requested,
-      scholarship_type: form.scholarship_requested ? form.scholarship_type || null : null,
-      scholarship_reason: form.scholarship_reason || null,
       passport_photo_url: form.passport_photo_url || null,
       payment_method: form.payment_method as any,
       payment_status: 'pending',
@@ -205,30 +201,6 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
-              </div>
-
-              {/* Scholarship */}
-              <div className="border-t border-gray-100 pt-5 mb-6">
-                <label className="flex items-center gap-3 cursor-pointer">
-                  <input type="checkbox" checked={form.scholarship_requested}
-                    onChange={e => set('scholarship_requested', e.target.checked)}
-                    className="w-4 h-4 rounded accent-[var(--accent)]" />
-                  <span className="text-sm font-semibold text-gray-700">I am requesting a scholarship</span>
-                </label>
-                {form.scholarship_requested && (
-                  <div className="mt-4 space-y-3">
-                    <select value={form.scholarship_type} onChange={e => set('scholarship_type', e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
-                      <option value="">Scholarship type...</option>
-                      <option value="full">Full Scholarship</option>
-                      <option value="partial">Partial Scholarship</option>
-                    </select>
-                    <textarea value={form.scholarship_reason} onChange={e => set('scholarship_reason', e.target.value)}
-                      placeholder="Please explain why you are requesting a scholarship..."
-                      rows={3}
-                      className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
-                  </div>
-                )}
               </div>
 
               {/* Payment method */}

@@ -27,6 +27,7 @@ export const ALL_PORTALS = [
   { id: 'my_leads',    label: 'My Leads',     icon: TrendingUp,      href: '/marketer',
     children: [
       { label: 'My Leads',   href: '/marketer' },
+      { label: 'Add a Lead', href: '/marketer/leads/new' },
       { label: 'Follow-ups', href: '/marketer/activities' },
     ]},
   { id: 'my_link',     label: 'My Link',      icon: Radio,           href: '/marketer/link' },

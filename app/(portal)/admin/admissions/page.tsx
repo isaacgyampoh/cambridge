@@ -33,6 +33,19 @@ export default function AdminAdmissions() {
     finally { setActing(null) }
   }
 
+  async function setScholarship(id: string, type: string | null) {
+    setActing(id)
+    try {
+      await mutate('PATCH', 'admissions', {
+        scholarship_type: type,
+        scholarship_decided: !!type,
+      }, [{ col: 'id', val: id }])
+      toast.success(type ? `${type === 'full' ? 'Full' : 'Partial'} scholarship granted` : 'Scholarship cleared')
+      refetch()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setActing(null) }
+  }
+
   const counts = data.reduce((acc: any, a: any) => { acc[a.status] = (acc[a.status] || 0) + 1; return acc }, {})
   const filtered = filter === 'all' ? data : data.filter((a: any) => a.status === filter)
   const tabs = [{ k: 'all', l: `All (${data.length})` }, ...Object.keys(S).map(k => ({ k, l: `${S[k].label} (${counts[k] || 0})` }))]
@@ -91,6 +104,22 @@ export default function AdminAdmissions() {
                     )}
                     {!['rejected', 'admitted'].includes(a.status) && (
                       <Button size="sm" variant="danger" disabled={acting === a.id} onClick={() => updateStatus(a.id, 'rejected')}>Reject</Button>
+                    )}
+                    {/* Scholarship decision — admission's call */}
+                    {a.scholarship_type ? (
+                      <span className="inline-flex items-center gap-1.5">
+                        <Badge tone="accent">{a.scholarship_type === 'full' ? 'Full scholarship' : 'Partial scholarship'}</Badge>
+                        <button disabled={acting === a.id} onClick={() => setScholarship(a.id, null)}
+                          className="text-[11px] text-[var(--ink-faint)] hover:text-[var(--ink)] underline">clear</button>
+                      </span>
+                    ) : (
+                      <div className="inline-flex items-center gap-1">
+                        <span className="text-[11px] text-[var(--ink-faint)]">Scholarship:</span>
+                        <button disabled={acting === a.id} onClick={() => setScholarship(a.id, 'full')}
+                          className="text-[11px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Full</button>
+                        <button disabled={acting === a.id} onClick={() => setScholarship(a.id, 'partial')}
+                          className="text-[11px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Partial</button>
+                      </div>
                     )}
                   </div>
                 </div>

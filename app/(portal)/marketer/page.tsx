@@ -130,6 +130,10 @@ export default function MarketerDashboard() {
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{leads.length} assigned to you</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
+          <Link href="/marketer/leads/new"
+            className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
+            <Plus size={15} /> Add lead
+          </Link>
           <Link href="/marketer/activities"
             className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
             <Clock size={14} /> Follow-ups
