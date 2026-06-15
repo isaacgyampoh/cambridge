@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { autoAssignLead } from '@/lib/autoAssign'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 
 export async function POST(req: NextRequest) {
@@ -36,6 +37,12 @@ export async function POST(req: NextRequest) {
   if (error) {
     return NextResponse.json({ error: error.message }, { status: 500 })
   }
+
+  // Auto-assign to a marketer (round-robin by lightest load)
+  try {
+    const assignedTo = await autoAssignLead(lead.id)
+    if (assignedTo) (lead as any).assigned_to = assignedTo
+  } catch (e) { console.error('[Website Webhook] auto-assign failed', e) }
 
   // Notify PMs
   const { data: pms } = await sb.from('profiles')

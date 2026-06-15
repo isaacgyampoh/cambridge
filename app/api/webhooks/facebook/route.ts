@@ -1,6 +1,7 @@
 import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { autoAssignLead } from '@/lib/autoAssign'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 import crypto from 'crypto'
 
@@ -80,6 +81,12 @@ export async function POST(req: NextRequest) {
         console.error('[FB Webhook] Insert error:', error)
         continue
       }
+
+      // Auto-assign to a marketer (round-robin by lightest load)
+      try {
+        const assignedTo = await autoAssignLead(lead.id)
+        if (assignedTo) lead.assigned_to = assignedTo
+      } catch (e) { console.error('[FB Webhook] auto-assign failed', e) }
 
       // Notify all project managers
       await notifyPMs(sb, lead)

@@ -11,6 +11,8 @@ export default function SettingsPage() {
   const [testing, setTesting] = useState<string | null>(null)
   const [testPhone, setTestPhone] = useState('')
   const [result, setResult] = useState<any>(null)
+  const [autoAssign, setAutoAssign] = useState(true)
+  const [savingToggle, setSavingToggle] = useState(false)
 
   async function loadStatus() {
     try {
@@ -19,6 +21,28 @@ export default function SettingsPage() {
     } catch {} finally { setLoading(false) }
   }
   useEffect(() => { loadStatus() }, [])
+
+  useEffect(() => {
+    // Load the auto-assign toggle
+    const params = new URLSearchParams({ table: 'settings', select: '*', filters: JSON.stringify([{ col: 'key', op: 'eq', val: 'auto_assign_leads' }]), limit: '1' })
+    fetch(`/api/data?${params}`).then(r => r.ok ? r.json() : { data: [] }).then(d => {
+      const v = d.data?.[0]?.value
+      if (v != null) setAutoAssign(v !== 'false')
+    }).catch(() => {})
+  }, [])
+
+  async function toggleAutoAssign(next: boolean) {
+    setAutoAssign(next)
+    setSavingToggle(true)
+    try {
+      // upsert the setting
+      await fetch('/api/data', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'settings', data: { key: 'auto_assign_leads', value: next ? 'true' : 'false' }, upsert: true, onConflict: 'key' }),
+      })
+    } catch {}
+    finally { setSavingToggle(false) }
+  }
 
   async function testSMS() {
     if (!testPhone) { toast.error('Enter a phone number to test'); return }
@@ -65,6 +89,23 @@ export default function SettingsPage() {
   return (
     <div className="fade-in w-full max-w-4xl mx-auto">
       <PageHeader eyebrow="System" title="Settings" description="Integrations, delivery tests and webhook endpoints." />
+
+      {/* Lead assignment */}
+      <SectionLabel>Lead assignment</SectionLabel>
+      <Card className="p-5 mb-10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-[var(--ink)]">Auto-assign new leads</div>
+            <p className="text-sm text-[var(--ink-soft)] mt-0.5">When on, leads from Facebook, the website and other sources are automatically shared out to your marketers (round-robin, lightest workload first). When off, new leads stay unassigned for a manager to distribute.</p>
+          </div>
+          <button
+            role="switch" aria-checked={autoAssign} disabled={savingToggle}
+            onClick={() => toggleAutoAssign(!autoAssign)}
+            className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${autoAssign ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'} disabled:opacity-60`}>
+            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${autoAssign ? 'translate-x-5' : ''}`} />
+          </button>
+        </div>
+      </Card>
 
       {/* Integrations */}
       <SectionLabel>Integrations</SectionLabel>
