@@ -18,7 +18,8 @@ export default function MarketerLink() {
     try {
       const ec = await fetch('/api/marketer/ensure-code', { method: 'POST' }).then(r => r.json())
       if (ec?.marketer_code) {
-        setProfile(p => p ? { ...p, marketer_code: ec.marketer_code } : p)
+        // Build/merge the profile so the link renders even if profile was null
+        setProfile(p => ({ ...(p || {}), marketer_code: ec.marketer_code } as any))
         toast.success('Your link is ready')
       } else {
         toast.error(ec?.error || 'Could not generate link')

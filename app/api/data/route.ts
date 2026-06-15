@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
     project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
+    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles','courses'],
     admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
     accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
@@ -40,6 +40,14 @@ export async function GET(req: NextRequest) {
 
   const sb = createServiceClient()
   let query: any = sb.from(table).select(select).limit(limit)
+
+  // Privacy guard: only oversight roles can read other staff's profiles.
+  // Everyone else (marketers, trainers, reception, students) is locked to
+  // their OWN profile row, regardless of the filters they send.
+  const canReadAllProfiles = ['super_admin', 'project_manager', 'accountant', 'admissions_officer'].includes(session.role || '')
+  if (table === 'profiles' && !canReadAllProfiles) {
+    query = query.eq('id', session.userId)
+  }
 
   if (orderBy) query = query.order(orderBy, { ascending: orderAsc })
 
@@ -125,7 +133,7 @@ export async function DELETE(req: NextRequest) {
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
     project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
+    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles','courses'],
     admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
     accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
