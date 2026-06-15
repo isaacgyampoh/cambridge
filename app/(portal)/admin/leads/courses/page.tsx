@@ -11,6 +11,12 @@ import Link from 'next/link'
  * from the leads in scope (own leads for marketers, all for admin/PM).
  */
 export default function CourseLeadsHub() {
+  const [role, setRole] = useState<string>('')
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => { if (s?.valid) setRole(s.role) })
+  }, [])
+  const isAdmin = role === 'super_admin'
+
   const { data: courses, loading } = useData<any>({ table: 'courses', select: 'id, name, code, is_active', orderBy: 'name', orderAsc: true, limit: 200 })
   const { data: leads } = useData<any>({ table: 'leads', select: 'id, course_interest, status', limit: 2000 })
 
@@ -34,8 +40,8 @@ export default function CourseLeadsHub() {
 
       {loading ? <Spinner /> : activeCourses.length === 0 ? (
         <EmptyState icon={<GraduationCap size={20} />} title="No courses yet"
-          description="Create a course first — its lead page appears here automatically."
-          action={<Link href="/admin/courses" className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium"><Plus size={15} /> Add a course</Link>} />
+          description={isAdmin ? "Create a course first — its lead page appears here automatically." : "No course pages are available yet. Your administrator will set these up."}
+          action={isAdmin ? <Link href="/admin/courses" className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium"><Plus size={15} /> Add a course</Link> : undefined} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {activeCourses.map((course: any) => {
