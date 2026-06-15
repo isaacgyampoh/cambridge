@@ -10,12 +10,12 @@ import { changeLeadStatus } from '@/lib/leadStatus'
 
 const STATUSES = [
   { key: 'contacted',     label: 'Contacted',      color: 'bg-[var(--accent-soft)] text-[var(--accent)]', needsComment: false },
-  { key: 'qualified',     label: 'Qualified',      color: 'bg-teal-100 text-teal-700',      needsComment: true },
   { key: 'interested',    label: 'Interested',     color: 'bg-indigo-100 text-indigo-700',  needsComment: false, sendsLink: true },
   { key: 'follow_up',     label: 'Follow Up',      color: 'bg-orange-100 text-orange-700',  needsComment: true },
   { key: 'next_session',  label: 'Next Session',   color: 'bg-amber-100 text-amber-700',    needsComment: true },
-  { key: 'not_interested',label: 'Not Interested', color: 'bg-red-100 text-red-600',        needsComment: true },
-  { key: 'lost',          label: 'Lost',           color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]', needsComment: true },
+  { key: 'zuku',          label: 'Zuku',           color: 'bg-red-100 text-red-600',        needsComment: true, hint: 'Not qualified — give the reason' },
+  { key: 'defiled',       label: 'Defiled',        color: 'bg-purple-100 text-purple-700',  needsComment: true, hint: 'Stopped current class to join the next — why?' },
+  { key: 'done',          label: 'Done',           color: 'bg-emerald-100 text-emerald-700', needsComment: false, hint: 'Completed the class' },
 ]
 
 export default function MarketerDashboard() {
@@ -290,10 +290,10 @@ export default function MarketerDashboard() {
                         <p className="text-[11px] text-[var(--ink-faint)] mb-2">Explain the reason so the PM and admin understand.</p>
                         <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} autoFocus
                           placeholder={
-                            ps.status === 'not_interested' ? 'Why is the lead not interested?' :
+                            ps.status === 'zuku' ? 'Why is this lead not qualified? (Zuku)' :
                             ps.status === 'next_session' ? 'Which session will they join, and why the wait?' :
                             ps.status === 'follow_up' ? 'What needs following up, and when?' :
-                            ps.status === 'qualified' ? 'Why is this lead qualified?' :
+                            ps.status === 'defiled' ? 'Why did they stop the current class to join the next?' :
                             'Add your comment...'
                           }
                           className="w-full text-xs px-3 py-2 border border-[var(--line)] rounded-lg resize-none focus:outline-none focus:border-[var(--accent)] bg-white mb-2" />

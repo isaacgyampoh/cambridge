@@ -48,10 +48,21 @@ export const STATUS_COLORS: Record<string, string> = {
   contacted: 'bg-blue-100 text-blue-700',
   interested: 'bg-indigo-100 text-indigo-700',
   follow_up: 'bg-orange-100 text-orange-700',
+  next_session: 'bg-amber-100 text-amber-700',
+  zuku: 'bg-red-100 text-red-600',
+  defiled: 'bg-purple-100 text-purple-700',
+  done: 'bg-emerald-100 text-emerald-700',
   ready_to_join: 'bg-green-100 text-green-700',
   registered: 'bg-emerald-100 text-emerald-700',
   not_interested: 'bg-red-100 text-red-600',
   lost: 'bg-gray-100 text-gray-600',
+}
+
+export const STATUS_LABELS: Record<string, string> = {
+  new: 'New', contacted: 'Contacted', interested: 'Interested',
+  follow_up: 'Follow Up', next_session: 'Next Session', zuku: 'Zuku',
+  defiled: 'Defiled', done: 'Done', ready_to_join: 'Ready to Join',
+  registered: 'Registered', not_interested: 'Not Interested', lost: 'Lost',
 }
 
 export const ROLE_LABELS: Record<string, string> = {
