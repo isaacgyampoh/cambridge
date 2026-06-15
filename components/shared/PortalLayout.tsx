@@ -305,8 +305,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     <div className="flex flex-col h-full bg-[var(--paper)]">
       {/* Brand */}
       <div className={`flex items-center border-b border-[var(--line)] flex-shrink-0 ${wide ? 'px-4 gap-3' : 'justify-center'}`} style={{ height: 60 }}>
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center text-white flex-shrink-0" style={{ backgroundColor: roleColor }}>
-          <span className="font-display text-[15px] font-semibold leading-none">C</span>
+        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-white border border-[var(--line)] overflow-hidden p-0.5">
+          <img src="/brand/logo.png" alt="CCE" className="w-full h-full object-contain" />
         </div>
         {wide && (
           <div className="min-w-0 flex-1">

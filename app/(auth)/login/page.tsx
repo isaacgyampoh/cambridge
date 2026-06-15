@@ -124,8 +124,8 @@ function LoginForm() {
         {/* top — mark */}
         <div className="relative">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center">
-              <span className="font-display font-semibold text-white text-xl">C</span>
+            <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
+              <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" className="w-full h-full object-contain" />
             </div>
             <div className="text-white/70 text-sm font-medium tracking-wide">Cambridge Centre of Excellence</div>
           </div>
@@ -157,8 +157,8 @@ function LoginForm() {
 
           {/* Mobile logo */}
           <div className="lg:hidden mb-10 flex flex-col items-center">
-            <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center mb-4">
-              <span className="font-display font-semibold text-white text-2xl">C</span>
+            <div className="w-16 h-16 rounded-2xl bg-white border border-[var(--line)] flex items-center justify-center mb-4 overflow-hidden p-1">
+              <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" className="w-full h-full object-contain" />
             </div>
             <h1 className="font-display text-[var(--ink)] text-xl font-semibold">Cambridge Centre of Excellence</h1>
             <p className="text-[var(--ink-faint)] text-sm mt-1">Staff portal</p>

@@ -148,8 +148,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
         <div className="max-w-2xl mx-auto">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-flex items-center justify-center w-14 h-14 rounded-xl mb-4" style={{ background: "var(--accent)" }}>
-              <span className="text-white text-lg font-semibold">CCE</span>
+            <div className="inline-flex items-center justify-center w-20 h-20 rounded-2xl mb-4 bg-white border border-[var(--line)] overflow-hidden p-1.5">
+              <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" className="w-full h-full object-contain" />
             </div>
             <h1 className="font-display text-[var(--ink)] text-2xl font-semibold">Cambridge Centre of Excellence</h1>
             <p className="text-[var(--ink-soft)] text-sm mt-1">Student registration</p>
