@@ -5,17 +5,17 @@
    A restrained institutional system.
    ───────────────────────────────────────────── */
 :root {
-  --ink:        #1f1d1a;   /* warm near-black, primary text */
-  --ink-soft:   #57534e;   /* warm secondary text */
-  --ink-faint:  #a8a29e;   /* warm tertiary / captions */
-  --line:       #e7e3dd;   /* warm hairline borders */
-  --line-soft:  #f2efe9;   /* subtle warm dividers */
-  --paper:      #fffefb;   /* cards, faint warmth */
-  --canvas:     #f7f4ee;   /* page background (warm paper) */
-  --accent:     #1d4d44;   /* deep pine — the single accent */
+  --ink:        #1a2230;   /* cool near-black, primary text */
+  --ink-soft:   #4a5568;   /* cool secondary text */
+  --ink-faint:  #94a3b8;   /* cool tertiary / captions */
+  --line:       #e6eaf0;   /* cool hairline borders */
+  --line-soft:  #f1f4f8;   /* subtle cool dividers */
+  --paper:      #ffffff;   /* cards, clean white */
+  --canvas:     #f5f8fc;   /* page background (soft cool gray-blue) */
+  --accent:     #2f80d6;   /* sky blue — the single accent */
   --accent-ink: #ffffff;
-  --accent-soft:#e9f0ed;   /* accent tint backgrounds */
-  --gold:       #9c7c4a;   /* secondary metallic accent, used sparingly */
+  --accent-soft:#e8f1fb;   /* accent tint backgrounds (light sky) */
+  --gold:       #d4a23a;   /* gold — for top-rank medals and highlights */
 }
 
 *, *::before, *::after {

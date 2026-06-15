@@ -104,7 +104,7 @@ export function StatCard({
   return (
     <div className={`relative rounded-2xl border p-5 overflow-hidden transition-all duration-200
       ${accent
-        ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-[0_4px_20px_rgba(29,77,68,0.18)]'
+        ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-[0_4px_20px_rgba(47,128,214,0.20)]'
         : 'bg-[var(--paper)] border-[var(--line)] shadow-[0_1px_2px_rgba(31,29,26,0.04)]'}`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`text-[11px] font-semibold uppercase tracking-[0.1em] ${accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>

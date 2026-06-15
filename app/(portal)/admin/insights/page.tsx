@@ -8,8 +8,8 @@ import { PageHeader, Card, StatCard, SectionLabel, Spinner } from '@/components/
 import { formatGHS } from '@/lib/utils'
 import { TrendingUp, DollarSign, Target, Users } from 'lucide-react'
 
-const ACCENT = '#1c4a45'
-const SOURCE_COLORS = ['#1c4a45', '#9a7b4f', '#3d6b64', '#b89968', '#5a8a82', '#6b7280']
+const ACCENT = '#2f80d6'
+const SOURCE_COLORS = ['#2f80d6', '#5b9ee0', '#1a5fae', '#86bdf0', '#3d6b9e', '#94a3b8']
 
 export default function InsightsPage() {
   const [data, setData] = useState<any>(null)
@@ -22,11 +22,11 @@ export default function InsightsPage() {
   }, [days])
 
   const funnelStages = data ? [
-    { label: 'New', value: data.funnel.new, color: '#9a7b4f' },
+    { label: 'New', value: data.funnel.new, color: '#86bdf0' },
     { label: 'Contacted', value: data.funnel.contacted, color: '#7a8b6f' },
     { label: 'Interested', value: data.funnel.interested, color: '#5a8a82' },
     { label: 'Ready to join', value: data.funnel.ready, color: '#3d6b64' },
-    { label: 'Registered', value: data.funnel.registered, color: '#1c4a45' },
+    { label: 'Registered', value: data.funnel.registered, color: '#2f80d6' },
   ] : []
   const maxFunnel = Math.max(1, ...funnelStages.map(s => s.value))
 

@@ -235,7 +235,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   )
 
   const navItems  = profile ? getNavItems(profile) : []
-  const roleColor = '#1c4a45'  // pine accent — unified across roles
+  const roleColor = '#2f80d6'  // sky blue — unified across roles
   const segments  = pathname.split('/').filter(Boolean)
   const canGoBack = segments.length > 1
   const expanded  = hovered || mobileOpen
