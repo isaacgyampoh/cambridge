@@ -33,6 +33,23 @@ export default function AdminDashboard() {
   }, [])
 
   const today = new Date().toISOString().slice(0, 10)
+
+  // 7-day lead trend (oldest -> newest) for sparklines
+  const last7 = Array.from({ length: 7 }, (_, i) => {
+    const d = new Date(); d.setDate(d.getDate() - (6 - i))
+    return d.toISOString().slice(0, 10)
+  })
+  const leadsByDay = last7.map(day => leads.filter((l: any) => l.created_at?.startsWith(day)).length)
+  const admByDay = last7.map(day => admissions.filter((a: any) => a.created_at?.startsWith(day)).length)
+  // week-over-week delta
+  const thisWeek = leadsByDay.reduce((a, b) => a + b, 0)
+  const prevWeekLeads = leads.filter((l: any) => {
+    if (!l.created_at) return false
+    const d = new Date(l.created_at); const days = (Date.now() - d.getTime()) / 86400000
+    return days >= 7 && days < 14
+  }).length
+  const leadDelta = prevWeekLeads > 0 ? Math.round(((thisWeek - prevWeekLeads) / prevWeekLeads) * 100) : (thisWeek > 0 ? 100 : 0)
+
   const s = {
     totalLeads: leads.length,
     todayLeads: leads.filter((l: any) => l.created_at?.startsWith(today)).length,
@@ -59,9 +76,9 @@ export default function AdminDashboard() {
 
       {/* Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
-        <StatCard label="Total leads" value={s.totalLeads} sub={`${s.todayLeads} added today`} icon={<TrendingUp size={18} />} />
+        <StatCard label="Total leads" value={s.totalLeads} sub={`${s.todayLeads} added today`} icon={<TrendingUp size={18} />} trend={{ value: `${Math.abs(leadDelta)}%`, up: leadDelta >= 0 }} spark={leadsByDay} />
         <StatCard label="Unassigned" value={s.unassigned} sub={s.unassigned > 0 ? 'Need attention' : 'All assigned'} icon={<Users size={18} />} />
-        <StatCard label="Ready to join" value={s.readyToJoin} sub="Awaiting admission" icon={<UserCheck size={18} />} />
+        <StatCard label="Ready to join" value={s.readyToJoin} sub="Awaiting admission" icon={<UserCheck size={18} />} spark={admByDay} />
         <StatCard label="Revenue" value={formatGHS(s.revenue)} sub="Collected to date" icon={<DollarSign size={18} />} accent />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">

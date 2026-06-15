@@ -79,8 +79,8 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--paper)] border border-[var(--line)] rounded-xl
-        ${hover ? 'transition-all duration-200 hover:border-[var(--ink-faint)] hover:shadow-[0_2px_16px_rgba(0,0,0,0.04)] cursor-pointer' : ''}
+      className={`bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-[0_1px_2px_rgba(31,29,26,0.04),0_1px_3px_rgba(31,29,26,0.02)]
+        ${hover ? 'transition-all duration-200 hover:border-[var(--line)] hover:shadow-[0_4px_20px_rgba(31,29,26,0.06),0_2px_6px_rgba(31,29,26,0.03)] hover:-translate-y-px cursor-pointer' : ''}
         ${className}`}>
       {children}
     </div>
@@ -91,32 +91,73 @@ export function Card({
    StatCard — metric display
    ───────────────────────────────────────────── */
 export function StatCard({
-  label, value, sub, icon, accent = false,
+  label, value, sub, icon, accent = false, trend, spark,
 }: {
   label: string
   value: React.ReactNode
   sub?: string
   icon?: React.ReactNode
   accent?: boolean
+  trend?: { value: string; up?: boolean }
+  spark?: number[]
 }) {
   return (
-    <div className={`relative rounded-xl border p-5 overflow-hidden
-      ${accent ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--paper)] border-[var(--line)]'}`}>
-      <div className="flex items-start justify-between">
+    <div className={`relative rounded-2xl border p-5 overflow-hidden transition-all duration-200
+      ${accent
+        ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-[0_4px_20px_rgba(29,77,68,0.18)]'
+        : 'bg-[var(--paper)] border-[var(--line)] shadow-[0_1px_2px_rgba(31,29,26,0.04)]'}`}>
+      <div className="flex items-start justify-between mb-3">
         <div className={`text-[11px] font-semibold uppercase tracking-[0.1em] ${accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>
           {label}
         </div>
         {icon && (
-          <div className={accent ? 'text-white/50' : 'text-[var(--ink-faint)]'}>{icon}</div>
+          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 -mr-1 -mt-1
+            ${accent ? 'bg-white/15 text-white' : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+            {icon}
+          </div>
         )}
       </div>
-      <div className={`font-display text-[30px] leading-none font-semibold mt-3 ${accent ? 'text-white' : 'text-[var(--ink)]'}`}>
-        {value}
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <div className={`font-display text-[30px] leading-none font-semibold ${accent ? 'text-white' : 'text-[var(--ink)]'}`}>
+            {value}
+          </div>
+          {(sub || trend) && (
+            <div className="flex items-center gap-2 mt-2">
+              {trend && (
+                <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md
+                  ${accent ? 'bg-white/15 text-white' : trend.up ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
+                  {trend.up ? '↑' : '↓'} {trend.value}
+                </span>
+              )}
+              {sub && <span className={`text-xs ${accent ? 'text-white/60' : 'text-[var(--ink-faint)]'}`}>{sub}</span>}
+            </div>
+          )}
+        </div>
+        {spark && spark.length > 1 && <Sparkline data={spark} accent={accent} />}
       </div>
-      {sub && (
-        <div className={`text-xs mt-1.5 ${accent ? 'text-white/60' : 'text-[var(--ink-faint)]'}`}>{sub}</div>
-      )}
     </div>
+  )
+}
+
+/* ─────────────────────────────────────────────
+   Sparkline — tiny inline trend chart
+   ───────────────────────────────────────────── */
+export function Sparkline({ data, accent = false, width = 64, height = 32 }: { data: number[]; accent?: boolean; width?: number; height?: number }) {
+  const max = Math.max(...data), min = Math.min(...data)
+  const range = max - min || 1
+  const pts = data.map((d, i) => {
+    const x = (i / (data.length - 1)) * width
+    const y = height - ((d - min) / range) * (height - 4) - 2
+    return `${x},${y}`
+  }).join(' ')
+  const stroke = accent ? 'rgba(255,255,255,0.85)' : 'var(--accent)'
+  const fill = accent ? 'rgba(255,255,255,0.12)' : 'var(--accent-soft)'
+  return (
+    <svg width={width} height={height} className="flex-shrink-0" viewBox={`0 0 ${width} ${height}`}>
+      <polyline points={`0,${height} ${pts} ${width},${height}`} fill={fill} stroke="none" opacity={0.6} />
+      <polyline points={pts} fill="none" stroke={stroke} strokeWidth={1.75} strokeLinecap="round" strokeLinejoin="round" />
+    </svg>
   )
 }
 
@@ -155,15 +196,15 @@ export function Badge({
   tone?: 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'muted'
 }) {
   const tones = {
-    neutral: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
-    accent:  'bg-[var(--accent-soft)] text-[var(--accent)]',
-    success: 'bg-emerald-50 text-emerald-700',
-    warning: 'bg-amber-50 text-amber-700',
-    danger:  'bg-red-50 text-red-600',
-    muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)]',
+    neutral: 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]',
+    accent:  'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/15',
+    success: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
+    warning: 'bg-amber-50 text-amber-700 ring-amber-200',
+    danger:  'bg-red-50 text-red-600 ring-red-200',
+    muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)] ring-[var(--line)]',
   }
   return (
-    <span className={`inline-flex items-center text-[11px] font-semibold px-2 py-0.5 rounded-md ${tones[tone]}`}>
+    <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${tones[tone]}`}>
       {children}
     </span>
   )
