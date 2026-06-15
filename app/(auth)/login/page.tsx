@@ -21,23 +21,29 @@ function LoginForm() {
 
   useEffect(() => { setTimeout(() => p[0].current?.focus(), 120) }, [])
 
-  function handleDigit(val: string, i: number, arr: string[], set: (a: string[]) => void, refs: typeof p, onFull?: (s: string) => void) {
+  function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) {
     if (!/^\d*$/.test(val)) return
     const ch = val.slice(-1)
-    const next = [...arr]; next[i] = ch; set(next)
-    if (ch) {
-      if (i < 3) {
-        setTimeout(() => refs[i + 1].current?.focus(), 0)
-      } else {
-        const full = next.join('')
-        if (full.length === 4 && onFull && !busy.current) {
-          setTimeout(() => onFull(full), 0)
+    // Build from the LATEST state via functional updater so fast typing
+    // never reads a stale array (the cause of "incorrect PIN" when fast).
+    set((prev: string[]) => {
+      const next = [...prev]
+      next[i] = ch
+      if (ch) {
+        if (i < 3) {
+          refs[i + 1].current?.focus()
+        } else {
+          const full = next.join('')
+          if (full.length === 4 && onFull && !busy.current) {
+            onFull(full)
+          }
         }
       }
-    }
+      return next
+    })
   }
 
-  function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: (a: string[]) => void, refs: typeof p) {
+  function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p) {
     if (e.key !== 'Backspace') return
     const next = [...arr]
     if (next[i]) { next[i] = ''; set(next) }
@@ -81,18 +87,21 @@ function LoginForm() {
     else setError(d.error || 'Failed')
   }
 
-  const Boxes = ({ vals, setVals, refs, onFull }: { vals: string[], setVals: (a: string[]) => void, refs: typeof p, onFull?: (s: string) => void }) => (
-    <div className="flex gap-3">
+  const Boxes = ({ vals, setVals, refs, onFull }: { vals: string[], setVals: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void }) => (
+    <div className="flex gap-3 justify-center lg:justify-start">
       {vals.map((v, i) => (
         <input key={i} ref={refs[i]}
           type={showPin ? 'text' : 'password'}
           inputMode="numeric" maxLength={1} value={v} autoComplete="off"
           onChange={e => handleDigit(e.target.value, i, vals, setVals, refs, onFull)}
           onKeyDown={e => handleBksp(e, i, vals, setVals, refs)}
-          className={`w-[58px] h-[64px] text-center text-2xl font-display font-semibold rounded-xl border transition-all duration-200 focus:outline-none caret-transparent
-            ${v
-              ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-sm'
-              : 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]'}`}
+          style={{
+            backgroundColor: v ? 'var(--accent)' : 'var(--paper)',
+            borderColor: v ? 'var(--accent)' : 'var(--line)',
+            color: v ? '#fff' : 'var(--ink)',
+            transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+          }}
+          className="w-[58px] h-[64px] text-center text-2xl font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent"
         />
       ))}
     </div>
@@ -141,12 +150,12 @@ function LoginForm() {
       </div>
 
       {/* Right panel — login */}
-      <div className="flex flex-col items-center justify-center flex-1 px-8" style={{ background: 'var(--canvas)' }}>
-        <div className="w-full max-w-[360px]">
+      <div className="flex flex-col items-center justify-center flex-1 px-6 py-10" style={{ background: 'var(--canvas)' }}>
+        <div className="w-full max-w-[360px] text-center lg:text-left">
 
           {/* Mobile logo */}
-          <div className="lg:hidden mb-10">
-            <div className="w-12 h-12 rounded-xl bg-[var(--accent)] flex items-center justify-center mb-4">
+          <div className="lg:hidden mb-10 flex flex-col items-center">
+            <div className="w-14 h-14 rounded-2xl bg-[var(--accent)] flex items-center justify-center mb-4">
               <span className="font-display font-semibold text-white text-2xl">C</span>
             </div>
             <h1 className="font-display text-[var(--ink)] text-xl font-semibold">Cambridge Centre of Excellence</h1>
@@ -162,7 +171,7 @@ function LoginForm() {
 
               <Boxes vals={pin} setVals={setPin} refs={p} onFull={submitPin} />
 
-              <div className="mt-4">
+              <div className="mt-4 flex justify-center lg:justify-start">
                 <button onClick={() => setShowPin(s => !s)}
                   className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
                   {showPin ? <EyeOff size={13} /> : <Eye size={13} />}
@@ -171,7 +180,7 @@ function LoginForm() {
               </div>
 
               {loading && (
-                <div className="flex items-center gap-2 mt-6 text-[var(--ink-soft)]">
+                <div className="flex items-center justify-center lg:justify-start gap-2 mt-6 text-[var(--ink-soft)]">
                   <span className="w-4 h-4 border-2 border-[var(--ink-faint)] border-t-transparent rounded-full animate-spin" />
                   <span className="text-sm">Verifying…</span>
                 </div>
@@ -198,16 +207,16 @@ function LoginForm() {
 
               <div className="space-y-6">
                 <div>
-                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3">New PIN</p>
+                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">New PIN</p>
                   <Boxes vals={newPin} setVals={setNewPin} refs={n} />
                 </div>
                 <div>
-                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3">Confirm PIN</p>
+                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">Confirm PIN</p>
                   <Boxes vals={confPin} setVals={setConfPin} refs={c} onFull={(full) => submitNewPin(full)} />
                 </div>
               </div>
 
-              <div className="mt-4">
+              <div className="mt-4 flex justify-center lg:justify-start">
                 <button onClick={() => setShowPin(s => !s)}
                   className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
                   {showPin ? <EyeOff size={13} /> : <Eye size={13} />}
