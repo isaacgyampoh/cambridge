@@ -59,5 +59,21 @@ export async function autoAssignLead(leadId: string): Promise<string | null> {
     link: `/marketer/leads/${leadId}`,
   })
 
+  // Auto-enroll into any active "new lead" nurture sequence
+  try {
+    const { data: seqs } = await sb.from('sequences')
+      .select('id').eq('is_active', true).eq('trigger', 'new_lead').limit(1)
+    if (seqs && seqs[0]) {
+      const { data: steps } = await sb.from('sequence_steps')
+        .select('delay_hours').eq('sequence_id', seqs[0].id).order('step_order', { ascending: true }).limit(1)
+      const firstDelay = steps?.[0]?.delay_hours ?? 24
+      await sb.from('sequence_enrollments').upsert({
+        sequence_id: seqs[0].id, lead_id: leadId,
+        current_step: 0, next_run_at: new Date(Date.now() + firstDelay * 3600000).toISOString(),
+        status: 'active',
+      }, { onConflict: 'sequence_id,lead_id' })
+    }
+  } catch { /* sequences optional */ }
+
   return chosen.id
 }
