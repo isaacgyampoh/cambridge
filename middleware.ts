@@ -14,8 +14,8 @@ const PUBLIC = [
 const PORTAL_PATHS: Record<string, string[]> = {
   dashboard:   ['/admin', '/pm', '/marketer', '/admission', '/finance', '/receptionist', '/trainer', '/student'],
   insights:    ['/admin/insights'],
-  leads:       ['/admin/leads', '/admin/pipeline'],
-  my_leads:    ['/marketer', '/marketer/leads'],
+  leads:       ['/admin/leads', '/admin/pipeline', '/admin/conversions'],
+  my_leads:    ['/marketer', '/marketer/leads', '/admin/conversions', '/admin/leads/course'],
   my_link:     ['/marketer/link'],
   pm_leads:    ['/pm'],
   admissions:  ['/admin/admissions', '/admission'],

@@ -21,14 +21,16 @@ export const ALL_PORTALS = [
     children: [
       { label: 'All Leads',     href: '/admin/leads' },
       { label: 'Pipeline',      href: '/admin/pipeline' },
+      { label: 'Conversions',   href: '/admin/conversions' },
       { label: 'Add Lead',      href: '/admin/leads/new' },
       { label: 'Import Leads',  href: '/admin/leads/import' },
     ]},
   { id: 'my_leads',    label: 'My Leads',     icon: TrendingUp,      href: '/marketer',
     children: [
-      { label: 'My Leads',   href: '/marketer' },
-      { label: 'Add a Lead', href: '/marketer/leads/new' },
-      { label: 'Follow-ups', href: '/marketer/activities' },
+      { label: 'My Leads',     href: '/marketer' },
+      { label: 'My Conversions', href: '/admin/conversions' },
+      { label: 'Add a Lead',   href: '/marketer/leads/new' },
+      { label: 'Follow-ups',   href: '/marketer/activities' },
     ]},
   { id: 'my_link',     label: 'My Link',      icon: Radio,           href: '/marketer/link' },
   { id: 'pm_leads',    label: 'Lead Inbox',   icon: TrendingUp,      href: '/pm',
@@ -208,10 +210,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => { setMobileOpen(false); setHovered(false) }, [pathname])
 
-  // Load active courses to build per-course lead nav entries (admin/PM)
+  // Load active courses to build per-course lead nav entries (admin/PM/marketer)
   useEffect(() => {
     if (!profile) return
-    if (!['super_admin', 'project_manager'].includes(profile.role)) return
+    if (!['super_admin', 'project_manager', 'marketing_officer'].includes(profile.role)) return
     const params = new URLSearchParams({
       table: 'courses', select: 'id, name, code, is_active',
       filters: JSON.stringify([{ col: 'is_active', op: 'eq', val: true }]),
@@ -251,9 +253,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const baseNavItems = profile ? getNavItems(profile) : []
 
-  // Inject a "Leads by Course" group (admin/PM) — one child per active course
+  // Inject a "Leads by Course" group — one child per active course
   const navItems = (() => {
-    if (!profile || !['super_admin', 'project_manager'].includes(profile.role) || courses.length === 0) return baseNavItems
+    if (!profile || !['super_admin', 'project_manager', 'marketing_officer'].includes(profile.role) || courses.length === 0) return baseNavItems
     const courseGroup: any = {
       id: 'leads_by_course', label: 'Leads by Course', icon: GraduationCap, href: '#',
       children: courses.map((c: any) => ({
@@ -261,8 +263,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         href: `/admin/leads/course/${encodeURIComponent(c.code || c.name)}`,
       })),
     }
-    // place it right after the leads group if present, else at the front
-    const idx = baseNavItems.findIndex((n: any) => n.id === 'leads')
+    // place it right after the leads/my_leads group if present, else at the front
+    const idx = baseNavItems.findIndex((n: any) => n.id === 'leads' || n.id === 'my_leads')
     if (idx === -1) return [...baseNavItems, courseGroup]
     const copy = [...baseNavItems]
     copy.splice(idx + 1, 0, courseGroup)

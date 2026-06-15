@@ -49,6 +49,12 @@ export async function GET(req: NextRequest) {
     query = query.eq('id', session.userId)
   }
 
+  // Marketers only ever see their OWN leads (and own lead activities),
+  // never the whole CRM, regardless of filters they send.
+  if (session.role === 'marketing_officer' && table === 'leads') {
+    query = query.eq('assigned_to', session.userId)
+  }
+
   if (orderBy) query = query.order(orderBy, { ascending: orderAsc })
 
   // Apply filters: [{col, op, val}]
