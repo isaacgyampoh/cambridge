@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { SOURCE_COLORS, STATUS_COLORS } from '@/lib/utils'
 import { Users, TrendingUp, UserCheck, Clock, RefreshCw, Search } from 'lucide-react'
 import Link from 'next/link'
+import { Card, Badge, SectionLabel } from '@/components/ui'
 
 export default function PMDashboard() {
   const [filter, setFilter] = useState<'unassigned'|'all'|'today'>('unassigned')
@@ -22,6 +23,14 @@ export default function PMDashboard() {
     select: 'id, full_name, email, phone',
     filters: [{ col: 'role', op: 'eq', val: 'marketing_officer' }, { col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', orderAsc: true,
+  })
+
+  // Recent marketer notes/status-comments — the "why" behind each move
+  const { data: activities } = useData<any>({
+    table: 'lead_activities',
+    select: '*, lead:lead_id(full_name), author:created_by(full_name)',
+    filters: [{ col: 'activity_type', op: 'eq', val: 'note' }],
+    orderBy: 'created_at', orderAsc: false, limit: 25,
   })
 
   async function assignLead(leadId: string, marketerId: string) {
@@ -184,6 +193,34 @@ export default function PMDashboard() {
           </div>
         )}
       </div>
+
+      {/* Marketer activity — the reasons behind status moves */}
+      {activities && activities.length > 0 && (
+        <div className="mt-8">
+          <SectionLabel>Marketer notes &amp; reasons</SectionLabel>
+          <Card className="p-2">
+            <div className="divide-y divide-[var(--line-soft)]">
+              {activities.map((a: any) => (
+                <div key={a.id} className="flex items-start gap-3 px-3 py-3">
+                  <div className="w-9 h-9 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 text-xs font-semibold">
+                    {(a.author?.full_name || '?').charAt(0)}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="flex items-center gap-2 flex-wrap">
+                      <span className="text-sm font-medium text-[var(--ink)]">{a.lead?.full_name || 'Lead'}</span>
+                      {a.subject && <Badge tone="neutral">{a.subject}</Badge>}
+                    </div>
+                    {a.description && <p className="text-sm text-[var(--ink-soft)] mt-1 leading-snug">{a.description}</p>}
+                    <div className="text-[11px] text-[var(--ink-faint)] mt-1">
+                      {a.author?.full_name || 'Unknown'} · {new Date(a.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })} {new Date(a.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit' })}
+                    </div>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
+      )}
     </div>
   )
 }
