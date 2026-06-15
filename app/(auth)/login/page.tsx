@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff, Shield } from 'lucide-react'
+import { Eye, EyeOff } from 'lucide-react'
 
 function LoginForm() {
   const router = useRouter()
@@ -82,143 +82,156 @@ function LoginForm() {
   }
 
   const Boxes = ({ vals, setVals, refs, onFull }: { vals: string[], setVals: (a: string[]) => void, refs: typeof p, onFull?: (s: string) => void }) => (
-    <div className="flex gap-3 justify-center">
+    <div className="flex gap-3">
       {vals.map((v, i) => (
         <input key={i} ref={refs[i]}
           type={showPin ? 'text' : 'password'}
           inputMode="numeric" maxLength={1} value={v} autoComplete="off"
           onChange={e => handleDigit(e.target.value, i, vals, setVals, refs, onFull)}
           onKeyDown={e => handleBksp(e, i, vals, setVals, refs)}
-          className={`w-14 h-14 text-center text-xl font-bold rounded-xl border-2 transition-all focus:outline-none caret-transparent
-            ${v ? 'border-blue-600 bg-blue-600 text-white' : 'border-gray-200 bg-white text-gray-900 focus:border-blue-500'}`}
+          className={`w-[58px] h-[64px] text-center text-2xl font-display font-semibold rounded-xl border transition-all duration-200 focus:outline-none caret-transparent
+            ${v
+              ? 'border-[var(--accent)] bg-[var(--accent)] text-white shadow-sm'
+              : 'border-[var(--line)] bg-[var(--paper)] text-[var(--ink)] focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)]'}`}
         />
       ))}
     </div>
   )
 
+
   return (
-    <div className="min-h-screen w-screen bg-white flex">
+    <div className="min-h-screen w-screen flex" style={{ background: 'var(--paper)' }}>
 
       {/* Left panel — branding */}
-      <div className="hidden lg:flex flex-col items-center justify-center flex-1 bg-gray-950 px-12">
-        <div className="max-w-sm text-center">
-          <div className="w-16 h-16 rounded-2xl bg-blue-600 flex items-center justify-center mx-auto mb-6">
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-              <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>
-            </svg>
+      <div className="hidden lg:flex flex-col justify-between flex-1 relative overflow-hidden px-14 py-12"
+        style={{ background: 'var(--accent)' }}>
+        {/* soft texture rings */}
+        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
+        <div className="absolute top-40 -right-10 w-64 h-64 rounded-full" style={{ background: 'rgba(255,255,255,0.03)' }} />
+        <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full" style={{ background: 'rgba(255,255,255,0.03)' }} />
+
+        {/* top — mark */}
+        <div className="relative">
+          <div className="flex items-center gap-3">
+            <div className="w-11 h-11 rounded-xl bg-white/10 flex items-center justify-center">
+              <span className="font-display font-semibold text-white text-xl">C</span>
+            </div>
+            <div className="text-white/70 text-sm font-medium tracking-wide">Cambridge Centre of Excellence</div>
           </div>
-          <h1 className="text-white text-3xl font-black mb-3 leading-tight">Cambridge Centre of Excellence</h1>
-          <p className="text-gray-400 text-base leading-relaxed">Enterprise Resource Planning System for managing leads, admissions, finance and operations.</p>
-          <div className="mt-10 grid grid-cols-3 gap-4 text-center">
-            {[['CRM', 'Lead management'], ['Finance', 'Payments'], ['Admissions', 'Student flow']].map(([t, s]) => (
-              <div key={t} className="bg-white/5 rounded-xl p-3">
-                <div className="text-white text-sm font-bold">{t}</div>
-                <div className="text-gray-500 text-xs mt-0.5">{s}</div>
-              </div>
-            ))}
-          </div>
+        </div>
+
+        {/* middle — statement */}
+        <div className="relative max-w-md">
+          <h1 className="font-display text-white text-[42px] leading-[1.1] font-semibold mb-5">
+            Where every lead becomes a graduate.
+          </h1>
+          <p className="text-white/70 text-[15px] leading-relaxed">
+            One place for your team to nurture leads, register students, track admissions and manage the work — built around how Cambridge actually runs.
+          </p>
+        </div>
+
+        {/* bottom — quiet feature line */}
+        <div className="relative flex items-center gap-8 text-white/60 text-[13px]">
+          <span>CRM &amp; Pipeline</span>
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span>Admissions</span>
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span>Finance</span>
         </div>
       </div>
 
       {/* Right panel — login */}
-      <div className="flex flex-col items-center justify-center flex-1 px-8 bg-white">
-        <div className="w-full max-w-sm">
+      <div className="flex flex-col items-center justify-center flex-1 px-8" style={{ background: 'var(--canvas)' }}>
+        <div className="w-full max-w-[360px]">
 
           {/* Mobile logo */}
-          <div className="lg:hidden text-center mb-8">
-            <div className="w-12 h-12 rounded-xl bg-blue-600 flex items-center justify-center mx-auto mb-4">
-              <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"/><polyline points="9,22 9,12 15,12 15,22"/>
-              </svg>
+          <div className="lg:hidden mb-10">
+            <div className="w-12 h-12 rounded-xl bg-[var(--accent)] flex items-center justify-center mb-4">
+              <span className="font-display font-semibold text-white text-2xl">C</span>
             </div>
-            <h1 className="text-gray-900 text-xl font-black">Cambridge Centre of Excellence</h1>
-            <p className="text-gray-400 text-sm mt-1">Staff Portal</p>
+            <h1 className="font-display text-[var(--ink)] text-xl font-semibold">Cambridge Centre of Excellence</h1>
+            <p className="text-[var(--ink-faint)] text-sm mt-1">Staff portal</p>
           </div>
 
           {step === 'pin' && (
             <>
               <div className="mb-8">
-                <h2 className="text-2xl font-black text-gray-900 mb-1">Enter your PIN</h2>
-                <p className="text-gray-400 text-sm">Type your 4-digit security PIN to continue</p>
+                <h2 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
+                <p className="text-[var(--ink-soft)] text-sm">Enter your 4-digit PIN to continue.</p>
               </div>
 
               <Boxes vals={pin} setVals={setPin} refs={p} onFull={submitPin} />
 
-              <div className="flex justify-center mt-4">
+              <div className="mt-4">
                 <button onClick={() => setShowPin(s => !s)}
-                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                  className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
                   {showPin ? <EyeOff size={13} /> : <Eye size={13} />}
                   {showPin ? 'Hide PIN' : 'Show PIN'}
                 </button>
               </div>
 
               {loading && (
-                <div className="flex items-center justify-center gap-2 mt-6 text-gray-500">
-                  <span className="w-4 h-4 border-2 border-gray-400 border-t-transparent rounded-full animate-spin" />
-                  <span className="text-sm">Verifying</span>
+                <div className="flex items-center gap-2 mt-6 text-[var(--ink-soft)]">
+                  <span className="w-4 h-4 border-2 border-[var(--ink-faint)] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">Verifying…</span>
                 </div>
               )}
 
               {error && !loading && (
-                <div className="mt-6 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 text-center">
+                <div className="mt-6 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
                   {error}
                 </div>
               )}
 
-              <p className="text-center text-xs text-gray-300 mt-8">
-                Forgot your PIN? Contact your administrator
+              <p className="text-xs text-[var(--ink-faint)] mt-8">
+                Forgot your PIN? Contact your administrator.
               </p>
             </>
           )}
 
           {step === 'set-pin' && (
             <>
-              <div className="flex items-center gap-3 mb-8">
-                <div className="w-10 h-10 rounded-xl bg-green-100 flex items-center justify-center flex-shrink-0">
-                  <Shield size={18} className="text-green-600" />
-                </div>
-                <div>
-                  <h2 className="text-lg font-black text-gray-900">Set your personal PIN</h2>
-                  <p className="text-sm text-gray-400">First login — choose a PIN only you know</p>
-                </div>
+              <div className="mb-8">
+                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Set your PIN</h2>
+                <p className="text-[var(--ink-soft)] text-sm">First time here — choose a 4-digit PIN only you know.</p>
               </div>
 
               <div className="space-y-6">
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 text-center">New PIN</p>
+                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3">New PIN</p>
                   <Boxes vals={newPin} setVals={setNewPin} refs={n} />
                 </div>
                 <div>
-                  <p className="text-xs font-bold text-gray-500 uppercase tracking-widest mb-3 text-center">Confirm PIN</p>
+                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3">Confirm PIN</p>
                   <Boxes vals={confPin} setVals={setConfPin} refs={c} onFull={(full) => submitNewPin(full)} />
                 </div>
               </div>
 
-              <div className="flex justify-center mt-4">
+              <div className="mt-4">
                 <button onClick={() => setShowPin(s => !s)}
-                  className="flex items-center gap-1.5 text-xs text-gray-400 hover:text-gray-600 transition-colors">
+                  className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
                   {showPin ? <EyeOff size={13} /> : <Eye size={13} />}
                   {showPin ? 'Hide' : 'Show'}
                 </button>
               </div>
 
               {error && (
-                <div className="mt-5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600 text-center">
+                <div className="mt-5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
                   {error}
                 </div>
               )}
 
               <button onClick={() => submitNewPin()} disabled={loading || newPin.join('').length < 4}
-                className="w-full h-12 bg-blue-600 text-white rounded-xl font-bold text-sm mt-6 hover:bg-blue-700 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
+                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl font-medium text-sm mt-6 hover:brightness-110 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
                 {loading
-                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Setting PIN</>
-                  : <><Shield size={15} /> Set PIN and Enter</>}
+                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Setting PIN…</>
+                  : 'Set PIN and continue'}
               </button>
             </>
           )}
 
-          <p className="text-center text-xs text-gray-200 mt-10">
-            Cambridge Centre of Excellence — {new Date().getFullYear()}
+          <p className="text-[11px] text-[var(--ink-faint)] mt-12">
+            Cambridge Centre of Excellence · {new Date().getFullYear()}
           </p>
         </div>
       </div>
@@ -228,7 +241,7 @@ function LoginForm() {
 
 export default function LoginPage() {
   return (
-    <Suspense fallback={<div className="min-h-screen w-screen bg-white flex items-center justify-center"><div className="w-6 h-6 border-2 border-gray-300 border-t-gray-900 rounded-full animate-spin" /></div>}>
+    <Suspense fallback={<div className="min-h-screen w-screen flex items-center justify-center" style={{ background: 'var(--canvas)' }}><div className="w-6 h-6 border-2 border-[var(--line)] border-t-[var(--accent)] rounded-full animate-spin" /></div>}>
       <LoginForm />
     </Suspense>
   )
