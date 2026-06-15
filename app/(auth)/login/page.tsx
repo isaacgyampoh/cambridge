@@ -24,23 +24,21 @@ function LoginForm() {
   function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) {
     if (!/^\d*$/.test(val)) return
     const ch = val.slice(-1)
-    // Build from the LATEST state via functional updater so fast typing
-    // never reads a stale array (the cause of "incorrect PIN" when fast).
-    set((prev: string[]) => {
-      const next = [...prev]
-      next[i] = ch
-      if (ch) {
-        if (i < 3) {
-          refs[i + 1].current?.focus()
-        } else {
-          const full = next.join('')
-          if (full.length === 4 && onFull && !busy.current) {
-            onFull(full)
-          }
-        }
+    // Compute the next array from the CURRENT props (arr is the live value
+    // for this box passed from render), update state, THEN do side effects
+    // (focus / submit) outside the updater so they always run exactly once.
+    const next = [...arr]
+    next[i] = ch
+    set(next)
+    if (!ch) return
+    if (i < 3) {
+      refs[i + 1].current?.focus()
+    } else {
+      const full = next.join('')
+      if (full.length === 4 && onFull && !busy.current) {
+        onFull(full)
       }
-      return next
-    })
+    }
   }
 
   function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p) {
@@ -87,7 +85,11 @@ function LoginForm() {
     else setError(d.error || 'Failed')
   }
 
-  const Boxes = ({ vals, setVals, refs, onFull }: { vals: string[], setVals: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void }) => (
+  // NOTE: this is a plain render function, NOT a nested component. Rendering
+  // it as <Boxes/> would make React remount the inputs on every keystroke
+  // (losing focus and dropping fast input). Calling renderBoxes(...) inlines
+  // the elements so the inputs stay mounted and auto-advance works.
+  const renderBoxes = (vals: string[], setVals: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) => (
     <div className="flex gap-3 justify-center lg:justify-start">
       {vals.map((v, i) => (
         <input key={i} ref={refs[i]}
@@ -169,7 +171,7 @@ function LoginForm() {
                 <p className="text-[var(--ink-soft)] text-sm">Enter your 4-digit PIN to continue.</p>
               </div>
 
-              <Boxes vals={pin} setVals={setPin} refs={p} onFull={submitPin} />
+              {renderBoxes(pin, setPin, p, submitPin)}
 
               <div className="mt-4 flex justify-center lg:justify-start">
                 <button onClick={() => setShowPin(s => !s)}
@@ -208,11 +210,11 @@ function LoginForm() {
               <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">New PIN</p>
-                  <Boxes vals={newPin} setVals={setNewPin} refs={n} />
+                  {renderBoxes(newPin, setNewPin, n)}
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">Confirm PIN</p>
-                  <Boxes vals={confPin} setVals={setConfPin} refs={c} onFull={(full) => submitNewPin(full)} />
+                  {renderBoxes(confPin, setConfPin, c, (full) => submitNewPin(full))}
                 </div>
               </div>
 
