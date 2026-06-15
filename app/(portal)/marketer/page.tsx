@@ -81,6 +81,13 @@ export default function MarketerDashboard() {
         })
       }
 
+      // Set a follow-up reminder date for follow-up / next-session statuses
+      if (newStatus === 'follow_up' || newStatus === 'next_session') {
+        const days = newStatus === 'next_session' ? 7 : 2
+        const due = new Date(); due.setDate(due.getDate() + days)
+        await mutate('PATCH', 'leads', { next_follow_up: due.toISOString() }, [{ col: 'id', val: leadId }]).catch(() => {})
+      }
+
       // Interested -> auto-send the registration link via WhatsApp
       if (def?.sendsLink) {
         const r = await fetch('/api/leads/send-link', {
@@ -109,6 +116,13 @@ export default function MarketerDashboard() {
 
   const byStatus: Record<string, any[]> = {}
   leads.forEach(l => { byStatus[l.status] = [...(byStatus[l.status]||[]), l] })
+
+  // Follow-ups due today or overdue
+  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
+  const dueFollowUps = leads.filter((l: any) =>
+    l.next_follow_up && new Date(l.next_follow_up) <= todayEnd &&
+    !['registered', 'lost', 'not_interested'].includes(l.status)
+  ).sort((a: any, b: any) => new Date(a.next_follow_up).getTime() - new Date(b.next_follow_up).getTime())
 
   const convertedCount = leads.filter(l => ['ready_to_join', 'registered'].includes(l.status)).length
   const convRate = leads.length ? Math.round((convertedCount / leads.length) * 100) : 0
@@ -178,6 +192,26 @@ export default function MarketerDashboard() {
             )}
           </div>
         </Link>
+      )}
+
+      {/* Due follow-ups today */}
+      {dueFollowUps.length > 0 && (
+        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+          <div className="flex items-center gap-2 mb-3">
+            <Clock size={16} className="text-amber-600" />
+            <span className="text-sm font-semibold text-amber-800">{dueFollowUps.length} follow-up{dueFollowUps.length === 1 ? '' : 's'} due today</span>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            {dueFollowUps.slice(0, 8).map((l: any) => (
+              <Link key={l.id} href={`/marketer/leads/${l.id}`}
+                className="inline-flex items-center gap-1.5 bg-white border border-amber-200 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:border-amber-300 transition">
+                {l.full_name}
+                {l.phone && <span className="text-[var(--ink-faint)]">· {String(l.phone).replace(/^233/, '0')}</span>}
+              </Link>
+            ))}
+            {dueFollowUps.length > 8 && <span className="text-xs text-amber-700 self-center">+{dueFollowUps.length - 8} more</span>}
+          </div>
+        </div>
       )}
 
       {/* Mini pipeline */}
