@@ -178,6 +178,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const [hovered,    setHovered]    = useState(false)
   const [openGroup,  setOpenGroup]  = useState<string | null>(null)
   const [unread,     setUnread]     = useState(0)
+  const [courses,    setCourses]    = useState<any[]>([])
   const leaveTimer = useRef<any>(null)
 
   // The portal manages its own scroll inside <main>; lock the document
@@ -207,6 +208,19 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   useEffect(() => { setMobileOpen(false); setHovered(false) }, [pathname])
 
+  // Load active courses to build per-course lead nav entries (admin/PM)
+  useEffect(() => {
+    if (!profile) return
+    if (!['super_admin', 'project_manager'].includes(profile.role)) return
+    const params = new URLSearchParams({
+      table: 'courses', select: 'id, name, code, is_active',
+      filters: JSON.stringify([{ col: 'is_active', op: 'eq', val: true }]),
+      orderBy: 'name', orderAsc: 'true', limit: '100',
+    })
+    fetch(`/api/data?${params}`).then(r => r.ok ? r.json() : { data: [] })
+      .then(d => setCourses(d.data || [])).catch(() => {})
+  }, [profile])
+
   // Auto-open the group containing the current page
   useEffect(() => {
     if (!profile) return
@@ -235,7 +249,25 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     </div>
   )
 
-  const navItems  = profile ? getNavItems(profile) : []
+  const baseNavItems = profile ? getNavItems(profile) : []
+
+  // Inject a "Leads by Course" group (admin/PM) — one child per active course
+  const navItems = (() => {
+    if (!profile || !['super_admin', 'project_manager'].includes(profile.role) || courses.length === 0) return baseNavItems
+    const courseGroup: any = {
+      id: 'leads_by_course', label: 'Leads by Course', icon: GraduationCap, href: '#',
+      children: courses.map((c: any) => ({
+        label: c.name,
+        href: `/admin/leads/course/${encodeURIComponent(c.code || c.name)}`,
+      })),
+    }
+    // place it right after the leads group if present, else at the front
+    const idx = baseNavItems.findIndex((n: any) => n.id === 'leads')
+    if (idx === -1) return [...baseNavItems, courseGroup]
+    const copy = [...baseNavItems]
+    copy.splice(idx + 1, 0, courseGroup)
+    return copy
+  })()
   const roleColor = '#2f80d6'  // sky blue — unified across roles
   const segments  = pathname.split('/').filter(Boolean)
   const canGoBack = segments.length > 1
