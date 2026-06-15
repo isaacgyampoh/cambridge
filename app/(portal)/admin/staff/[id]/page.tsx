@@ -112,7 +112,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   ]
 
   return (
-    <div className="w-full max-w-3xl fade-in">
+    <div className="w-full max-w-3xl mx-auto fade-in">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/staff" className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
           <ArrowLeft size={15}/> Staff

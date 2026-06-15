@@ -55,7 +55,7 @@ export default function ExternalSigninsPage() {
         <StatCard label="New people" value={signins.length - matched} sub="not yet leads" />
       </div>
 
-      <div className="relative mb-5 max-w-md">
+      <div className="relative mb-5 max-w-md mx-auto">
         <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
         <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, phone, course" className={inputClass.replace('h-11', 'h-10') + ' pl-9'} />
       </div>

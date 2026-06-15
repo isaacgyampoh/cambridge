@@ -18,7 +18,7 @@ export default function MarketerEarnings() {
   const next = data.nextRank
 
   return (
-    <div className="fade-in w-full max-w-5xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow={`${data.year} performance`}
         title="My rank & earnings"

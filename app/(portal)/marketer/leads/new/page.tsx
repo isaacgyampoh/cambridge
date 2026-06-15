@@ -75,7 +75,7 @@ export default function MarketerNewLead() {
   }
 
   return (
-    <div className="fade-in w-full max-w-2xl">
+    <div className="fade-in w-full max-w-2xl mx-auto">
       <PageHeader
         eyebrow="My work"
         title="Add a lead"
