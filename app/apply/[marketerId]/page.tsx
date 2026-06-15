@@ -18,11 +18,16 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   const [applicationId, setApplicationId] = useState<string | null>(null)
 
   const [form, setForm] = useState({
-    full_name: '', email: '', phone: '', gender: '',
-    date_of_birth: '', country: 'Ghana', city: '', address: '',
-    emergency_contact_name: '', emergency_contact_phone: '',
+    // Name
+    first_name: '', middle_name: '', last_name: '',
+    // Personal
+    date_of_birth: '', gender: '', country_of_birth: '', nationality: '',
+    // Contact
+    email: '', phone: '', postal_address: '', residential_address: '',
+    // Education
+    last_school: '', certification_attained: '', course_of_study: '', year_completed: '',
+    // Programme + payment
     course_id: '', batch_preference: '',
-    passport_photo_url: '',
     payment_method: 'paystack',
   })
 
@@ -46,27 +51,35 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   }
 
   async function submitForm() {
-    if (!form.full_name || !form.email || !form.phone || !form.course_id) {
-      toast.error('Please fill in all required fields')
+    if (!form.first_name || !form.last_name || !form.email || !form.phone || !form.course_id) {
+      toast.error('Please fill in your name, email, phone and programme')
       return
     }
     setSubmitting(true)
 
+    const fullName = [form.first_name, form.middle_name, form.last_name].filter(Boolean).join(' ')
+
     const { data: app, error } = await sb.from('applications').insert({
       marketer_id: marketer?.id || null,
-      full_name: form.full_name,
+      full_name: fullName,
+      first_name: form.first_name,
+      middle_name: form.middle_name || null,
+      last_name: form.last_name,
       email: form.email,
       phone: form.phone.replace(/^0/, '233'),
       gender: form.gender || null,
       date_of_birth: form.date_of_birth || null,
-      country: form.country,
-      city: form.city || null,
-      address: form.address || null,
-      emergency_contact_name: form.emergency_contact_name || null,
-      emergency_contact_phone: form.emergency_contact_phone || null,
+      country_of_birth: form.country_of_birth || null,
+      nationality: form.nationality || null,
+      postal_address: form.postal_address || null,
+      residential_address: form.residential_address || null,
+      address: form.residential_address || null,
+      last_school: form.last_school || null,
+      certification_attained: form.certification_attained || null,
+      course_of_study: form.course_of_study || null,
+      year_completed: form.year_completed || null,
       course_id: form.course_id,
       batch_preference: form.batch_preference || null,
-      passport_photo_url: form.passport_photo_url || null,
       payment_method: form.payment_method as any,
       payment_status: 'pending',
     }).select().single()
@@ -135,7 +148,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
           </svg>
         </div>
         <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-2">Application received</h1>
-        <p className="text-[var(--ink-soft)] mb-2">Welcome to Cambridge Centre of Excellence, {form.full_name.split(' ')[0]}.</p>
+        <p className="text-[var(--ink-soft)] mb-2">Welcome to Cambridge Centre of Excellence, {form.first_name}.</p>
         <p className="text-sm text-[var(--ink-faint)]">Our admissions team will review your application and contact you within 24 hours.</p>
       </div>
     </div>
@@ -160,29 +173,34 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
 
           {step === 1 && (
             <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 lg:p-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-6">Personal Information</h2>
+              <h2 className="text-lg font-bold text-gray-900 mb-1">Details to complete your registration</h2>
+              <p className="text-sm text-[var(--ink-soft)] mb-6">Please fill in your information accurately.</p>
 
-              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+              {/* Name */}
+              <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Full name</p>
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
                 {[
-                  { key: 'full_name', label: 'Full Name *', placeholder: 'John Mensah', type: 'text', full: true },
-                  { key: 'email', label: 'Email Address *', placeholder: 'john@example.com', type: 'email' },
-                  { key: 'phone', label: 'Phone Number *', placeholder: '024 000 0000', type: 'tel' },
-                  { key: 'date_of_birth', label: 'Date of Birth', placeholder: '', type: 'date' },
-                  { key: 'city', label: 'City', placeholder: 'Accra', type: 'text' },
-                  { key: 'address', label: 'Address', placeholder: 'Street, Area', type: 'text' },
-                  { key: 'emergency_contact_name', label: 'Emergency Contact Name', placeholder: 'Jane Mensah', type: 'text' },
-                  { key: 'emergency_contact_phone', label: 'Emergency Contact Phone', placeholder: '024 000 0001', type: 'tel' },
+                  { key: 'first_name', label: 'First name *', placeholder: 'John' },
+                  { key: 'middle_name', label: 'Middle name', placeholder: '' },
+                  { key: 'last_name', label: 'Last name *', placeholder: 'Mensah' },
                 ].map(f => (
-                  <div key={f.key} className={f.full ? 'sm:col-span-2' : ''}>
+                  <div key={f.key}>
                     <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
-                    <input type={f.type} placeholder={f.placeholder}
-                      value={(form as any)[f.key]}
+                    <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
                   </div>
                 ))}
+              </div>
 
-                {/* Gender */}
+              {/* Personal */}
+              <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Personal</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date of birth</label>
+                  <input type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)}
+                    className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                </div>
                 <div>
                   <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Gender</label>
                   <select value={form.gender} onChange={e => set('gender', e.target.value)}
@@ -191,13 +209,63 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <option>Male</option><option>Female</option><option>Other</option>
                   </select>
                 </div>
+                {[
+                  { key: 'country_of_birth', label: 'Country of birth', placeholder: 'Ghana' },
+                  { key: 'nationality', label: 'Nationality', placeholder: 'Ghanaian' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                    <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
+                      onChange={e => set(f.key, e.target.value)}
+                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
+                  </div>
+                ))}
+              </div>
 
-                {/* Program */}
+              {/* Contact */}
+              <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Contact</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                {[
+                  { key: 'email', label: 'Email address *', placeholder: 'john@example.com', type: 'email' },
+                  { key: 'phone', label: 'Phone number *', placeholder: '024 000 0000', type: 'tel' },
+                  { key: 'postal_address', label: 'Postal address', placeholder: 'P.O. Box ...', type: 'text' },
+                  { key: 'residential_address', label: 'Residential address', placeholder: 'Street, Area, City', type: 'text' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                    <input type={f.type} placeholder={f.placeholder} value={(form as any)[f.key]}
+                      onChange={e => set(f.key, e.target.value)}
+                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Education */}
+              <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Education background</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
+                {[
+                  { key: 'last_school', label: 'Last school attended', placeholder: 'e.g. University of Ghana' },
+                  { key: 'certification_attained', label: 'Certification attained', placeholder: 'e.g. BSc, Diploma, WASSCE' },
+                  { key: 'course_of_study', label: 'Course of study', placeholder: 'e.g. Business Administration' },
+                  { key: 'year_completed', label: 'Year completed', placeholder: 'e.g. 2020' },
+                ].map(f => (
+                  <div key={f.key}>
+                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                    <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
+                      onChange={e => set(f.key, e.target.value)}
+                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
+                  </div>
+                ))}
+              </div>
+
+              {/* Programme */}
+              <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Programme</p>
+              <div className="grid grid-cols-1 gap-4 mb-6">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Program *</label>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Programme you're registering for *</label>
                   <select value={form.course_id} onChange={e => set('course_id', e.target.value)}
                     className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
-                    <option value="">Select program...</option>
+                    <option value="">Select programme...</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
                 </div>
