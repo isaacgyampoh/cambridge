@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import type { Batch, Course, Profile } from '@/types'
 import { toast } from 'sonner'
-import { Plus, X, GraduationCap, Calendar, Clock, User, MapPin } from 'lucide-react'
+import { Plus, X, GraduationCap, Calendar, Clock, User, MapPin, Send } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
 import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass } from '@/components/ui'
@@ -21,6 +21,56 @@ export default function ClassesPage() {
   })
   const [modal, setModal] = useState(false)
   const [saving, setSaving] = useState(false)
+  const [zoomEdits, setZoomEdits] = useState<Record<string, string>>({})
+  const [zoomSending, setZoomSending] = useState<string | null>(null)
+  const [matOpen, setMatOpen] = useState<string | null>(null)
+  const [matForm, setMatForm] = useState({ title: '', link: '', note: '' })
+  const [matSending, setMatSending] = useState(false)
+
+  async function sendMaterials(batchId: string) {
+    if (!matForm.link.trim() && !matForm.note.trim()) { toast.error('Add a link or a note'); return }
+    setMatSending(true)
+    try {
+      const res = await fetch('/api/classes/materials', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchId, ...matForm }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      toast.success(`Materials sent to ${res.sent} of ${res.total} students`)
+      setMatOpen(null); setMatForm({ title: '', link: '', note: '' })
+    } catch (e: any) { toast.error(e.message) }
+    finally { setMatSending(false) }
+  }
+
+  async function sendZoom(batchId: string, currentLink: string) {
+    const link = zoomEdits[batchId] ?? currentLink ?? ''
+    if (!link.trim()) { toast.error('Enter a Zoom/meeting link first'); return }
+    setZoomSending(batchId)
+    try {
+      const res = await fetch('/api/classes/zoom', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchId, zoomLink: link.trim(), send: true }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      toast.success(`Zoom link sent to ${res.sent} of ${res.total} students`)
+      load()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setZoomSending(null) }
+  }
+
+  async function saveZoomOnly(batchId: string, currentLink: string) {
+    const link = zoomEdits[batchId] ?? currentLink ?? ''
+    setZoomSending(batchId)
+    try {
+      await fetch('/api/classes/zoom', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchId, zoomLink: link.trim(), send: false }),
+      })
+      toast.success('Zoom link saved')
+      load()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setZoomSending(null) }
+  }
   const [form, setForm] = useState<any>({
     name: '', course_id: '', trainer_id: '', class_type: 'physical', status: 'upcoming',
     start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30,
@@ -154,6 +204,52 @@ export default function ClassesPage() {
                     className="text-[12px] font-semibold px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-white text-[var(--ink-soft)] focus:outline-none focus:border-[var(--accent)] cursor-pointer flex-shrink-0">
                     {['upcoming', 'ongoing', 'completed', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
+                </div>
+
+                {/* Zoom link — send to enrolled students */}
+                {b.class_type === 'online' && (
+                  <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
+                    <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Zoom / meeting link</p>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <input
+                        value={zoomEdits[b.id] ?? b.zoom_link ?? ''}
+                        onChange={e => setZoomEdits(z => ({ ...z, [b.id]: e.target.value }))}
+                        placeholder="https://zoom.us/j/..."
+                        className="flex-1 min-w-[200px] h-10 px-3 rounded-lg border border-[var(--line)] text-sm font-mono focus:outline-none focus:border-[var(--accent)]" />
+                      <Button size="sm" variant="secondary" disabled={zoomSending === b.id} onClick={() => saveZoomOnly(b.id, b.zoom_link || '')}>Save</Button>
+                      <Button size="sm" disabled={zoomSending === b.id} onClick={() => sendZoom(b.id, b.zoom_link || '')} icon={<Send size={13} />}>
+                        {zoomSending === b.id ? 'Sending…' : 'Send to students'}
+                      </Button>
+                    </div>
+                    <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Sends the link to every enrolled student by WhatsApp (SMS fallback) and email.</p>
+                  </div>
+                )}
+
+                {/* Course materials — send to enrolled students after a session */}
+                <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
+                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Course materials</p>
+                  {matOpen === b.id ? (
+                    <div className="space-y-2">
+                      <input value={matForm.title} onChange={e => setMatForm(f => ({ ...f, title: e.target.value }))}
+                        placeholder="Title (e.g. Session 3 slides)"
+                        className="w-full h-10 px-3 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                      <input value={matForm.link} onChange={e => setMatForm(f => ({ ...f, link: e.target.value }))}
+                        placeholder="Link to material (Google Drive, PDF, etc.)"
+                        className="w-full h-10 px-3 rounded-lg border border-[var(--line)] text-sm font-mono focus:outline-none focus:border-[var(--accent)]" />
+                      <textarea value={matForm.note} onChange={e => setMatForm(f => ({ ...f, note: e.target.value }))}
+                        placeholder="Optional note to students..." rows={2}
+                        className="w-full px-3 py-2 rounded-lg border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
+                      <div className="flex gap-2">
+                        <Button size="sm" disabled={matSending} onClick={() => sendMaterials(b.id)} icon={<Send size={13} />}>
+                          {matSending ? 'Sending…' : 'Send to students'}
+                        </Button>
+                        <Button size="sm" variant="secondary" onClick={() => { setMatOpen(null); setMatForm({ title: '', link: '', note: '' }) }}>Cancel</Button>
+                      </div>
+                    </div>
+                  ) : (
+                    <Button size="sm" variant="secondary" onClick={() => setMatOpen(b.id)} icon={<Send size={13} />}>Send course materials</Button>
+                  )}
+                  <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Shares materials with every enrolled student by WhatsApp (SMS fallback) and email.</p>
                 </div>
               </Card>
             )

@@ -106,7 +106,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions', '/api/classes',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 

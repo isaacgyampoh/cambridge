@@ -131,3 +131,8 @@ export async function sendClassReminder(to: string, name: string, course: string
  </div>`
  return sendEmail(to,`Class Reminder: ${course} on ${date}`, html)
 }
+
+/** Generic email sender — for ad-hoc messages (Zoom links, materials, etc.) */
+export async function sendEmailGeneric(to: string, subject: string, html: string) {
+  return sendEmail(to, subject, html)
+}
