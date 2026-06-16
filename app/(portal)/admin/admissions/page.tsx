@@ -26,8 +26,18 @@ export default function AdminAdmissions() {
   async function updateStatus(id: string, status: string) {
     setActing(id)
     try {
-      await mutate('PATCH', 'admissions', { status }, [{ col: 'id', val: id }])
-      toast.success('Status updated')
+      if (status === 'admitted') {
+        // Admit + auto-send admission letter
+        const res = await fetch('/api/admissions/admit', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ admissionId: id }),
+        }).then(r => r.json())
+        if (res.error) throw new Error(res.error)
+        toast.success(res.emailed ? 'Admitted — admission letter sent' : 'Admitted (no email on file)')
+      } else {
+        await mutate('PATCH', 'admissions', { status }, [{ col: 'id', val: id }])
+        toast.success('Status updated')
+      }
       refetch()
     } catch (e: any) { toast.error(e.message) }
     finally { setActing(null) }
