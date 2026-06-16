@@ -8,7 +8,7 @@ const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 const PUBLIC = [
   '/certificate/',
   '/login', '/setup', '/apply/', '/signin/', '/public-alumni',
-  '/api/auth/', '/api/setup/', '/api/signin/', '/api/webhooks/', '/_next', '/favicon',
+  '/api/auth/', '/api/setup/', '/api/signin/', '/api/webhooks/', '/api/applications/', '/_next', '/favicon',
 ]
 
 // Portal ID → path prefixes it grants access to
@@ -21,7 +21,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   pm_leads:    ['/pm'],
   admissions:  ['/admin/admissions', '/admission', '/admin/registrations'],
   finance:     ['/admin/finance', '/finance'],
-  broadcast:   ['/admin/broadcast', '/admin/info-session'],
+  broadcast:   ['/admin/broadcast', '/admin/info-session', '/admin/links'],
   attendance:  ['/admin/attendance'],
   academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates'],
   documents:   ['/admin/documents'],
@@ -41,6 +41,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   my_earnings: ['/marketer/earnings'],
   registrations: ['/finance/registrations'],
   clock_in:    ['/clock-in'],
+  my_links:    ['/links'],
   settings:    ['/admin/settings'],
 }
 
@@ -107,7 +108,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions', '/api/classes', '/api/certificates',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions', '/api/classes', '/api/certificates', '/api/links',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 

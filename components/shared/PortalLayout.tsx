@@ -10,7 +10,7 @@ import {
   Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
   ClipboardList, Settings, Building2, ChevronRight,
   Radio, CalendarCheck, FolderOpen, BarChart3, Search, Sparkles, Flame, MessageSquare, Trophy,
-  Shield, ArrowLeft, ChevronDown, UserPlus
+  Shield, ArrowLeft, ChevronDown, UserPlus, Link2
 } from 'lucide-react'
 
 /* ── All portal modules ─────────────────────────────────────── */
@@ -78,17 +78,20 @@ export const ALL_PORTALS = [
   { id: 'hotleads',    label: 'Hot Leads',    icon: Flame,           href: '/admin/hotleads' },
   { id: 'remuneration', label: 'Remuneration', icon: Trophy,          href: '/admin/remuneration' },
   { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
+  { id: 'my_links',    label: 'My Links',     icon: Link2,           href: '/links' },
   { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings' },
 
   // ── Category groups (used by super_admin for a tidy, organised sidebar) ──
   { id: 'grp_growth', label: 'Growth', icon: TrendingUp, href: '/admin/leads', children: [
-    { label: 'All Leads',  href: '/admin/leads' },
-    { label: 'Pipeline',   href: '/admin/pipeline' },
-    { label: 'Hot Leads',  href: '/admin/hotleads' },
-    { label: 'Add Lead',   href: '/admin/leads/new' },
-    { label: 'Import',     href: '/admin/leads/import' },
-    { label: 'Marketers',  href: '/admin/marketers' },
-    { label: 'Remuneration', href: '/admin/remuneration' },
+    { label: 'All Leads',       href: '/admin/leads' },
+    { label: 'Leads by Course', href: '/admin/leads/courses' },
+    { label: 'Pipeline',        href: '/admin/pipeline' },
+    { label: 'Hot Leads',       href: '/admin/hotleads' },
+    { label: 'Conversions',     href: '/admin/conversions' },
+    { label: 'Add Lead',        href: '/admin/leads/new' },
+    { label: 'Import',          href: '/admin/leads/import' },
+    { label: 'Marketers',       href: '/admin/marketers' },
+    { label: 'Remuneration',    href: '/admin/remuneration' },
   ]},
   { id: 'grp_enrolment', label: 'Enrolment', icon: UserCheck, href: '/admin/admissions', children: [
     { label: 'Admissions',       href: '/admin/admissions' },
@@ -101,15 +104,16 @@ export const ALL_PORTALS = [
     { label: 'Reports',             href: '/finance/reports' },
   ]},
   { id: 'grp_academics', label: 'Academics', icon: BookOpen, href: '/admin/academics', children: [
-    { label: 'Certificates',     href: '/admin/certificates' },
-    { label: 'Overview',   href: '/admin/academics' },
-    { label: 'Courses',    href: '/admin/courses' },
-    { label: 'Classes',    href: '/admin/classes' },
-    { label: 'Attendance', href: '/admin/attendance' },
-    { label: 'Alumni',     href: '/admin/alumni' },
+    { label: 'Overview',     href: '/admin/academics' },
+    { label: 'Courses',      href: '/admin/courses' },
+    { label: 'Classes',      href: '/admin/classes' },
+    { label: 'Attendance',   href: '/admin/attendance' },
+    { label: 'Certificates', href: '/admin/certificates' },
+    { label: 'Alumni',       href: '/admin/alumni' },
   ]},
   { id: 'grp_messaging', label: 'Messaging & AI', icon: MessageSquare, href: '/admin/broadcast', children: [
     { label: 'Broadcast',        href: '/admin/broadcast' },
+    { label: 'Post a Link',      href: '/admin/links' },
     { label: 'Info Session',     href: '/admin/info-session' },
     { label: 'Follow-up Sequences', href: '/admin/sequences' },
     { label: 'WhatsApp Lines',   href: '/admin/whatsapp' },
@@ -135,12 +139,12 @@ const ROLE_HOME: Record<string, string> = {
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
   super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content'],
-  project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
+  project_manager:   ['dashboard','pm_leads','leads','admissions','my_links','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','clock_in'],
-  admissions_officer:['dashboard','admissions','leads','clock_in'],
-  accountant:        ['dashboard','finance','registrations','leads','clock_in'],
-  receptionist:      ['dashboard','reminders','attendance','clock_in'],
-  trainer:           ['dashboard','my_classes','attendance','clock_in'],
+  admissions_officer:['dashboard','admissions','leads','my_links','clock_in'],
+  accountant:        ['dashboard','finance','registrations','leads','my_links','clock_in'],
+  receptionist:      ['dashboard','reminders','attendance','my_links','clock_in'],
+  trainer:           ['dashboard','my_classes','attendance','my_links','clock_in'],
   student:           ['dashboard','my_payments'],
 }
 
