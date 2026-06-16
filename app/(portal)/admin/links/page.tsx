@@ -16,6 +16,8 @@ export default function AdminLinks() {
   const [loading, setLoading] = useState(true)
   const [posting, setPosting] = useState(false)
   const [form, setForm] = useState({ title: '', url: '', link_type: 'zoom', description: '', audience: 'all', expires_at: '' })
+  const [sendToLeads, setSendToLeads] = useState(false)
+  const [leadAudience, setLeadAudience] = useState<'active' | 'all'>('active')
 
   async function load() {
     setLoading(true)
@@ -35,7 +37,18 @@ export default function AdminLinks() {
       }).then(r => r.json())
       if (res.error) throw new Error(res.error)
       toast.success(`Link posted — ${res.notified} people notified. It's now in everyone's My Links.`)
+
+      // Optionally blast the link to leads too
+      if (sendToLeads) {
+        const lr = await fetch('/api/links/broadcast', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: form.url, title: form.title, audience: leadAudience }),
+        }).then(r => r.json()).catch(() => null)
+        if (lr?.success) toast.success(`Invite sent to ${lr.sent} of ${lr.total} leads`)
+      }
+
       setForm({ title: '', url: '', link_type: 'zoom', description: '', audience: 'all', expires_at: '' })
+      setSendToLeads(false)
       load()
     } catch (e: any) { toast.error(e.message) }
     finally { setPosting(false) }
@@ -85,7 +98,30 @@ export default function AdminLinks() {
           <Field label="Auto-remove on (optional)">
             <input type="datetime-local" value={form.expires_at} onChange={e => setForm(f => ({ ...f, expires_at: e.target.value }))} className={inputClass} />
           </Field>
-          <Button onClick={post} disabled={posting} icon={<Send size={15} />}>{posting ? 'Posting…' : 'Post link to everyone'}</Button>
+
+          {/* Also invite leads */}
+          <div className="rounded-xl border border-[var(--line)] p-4">
+            <label className="flex items-center gap-3 cursor-pointer">
+              <button type="button" role="switch" aria-checked={sendToLeads} onClick={() => setSendToLeads(s => !s)}
+                className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${sendToLeads ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
+                <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${sendToLeads ? 'translate-x-5' : ''}`} />
+              </button>
+              <div>
+                <div className="text-sm font-medium text-[var(--ink)]">Also send this link to leads</div>
+                <div className="text-xs text-[var(--ink-faint)]">Blast it by WhatsApp/SMS — useful for info-session invites</div>
+              </div>
+            </label>
+            {sendToLeads && (
+              <div className="flex gap-2 mt-3 pl-14">
+                <button type="button" onClick={() => setLeadAudience('active')}
+                  className={`h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'active' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Active leads</button>
+                <button type="button" onClick={() => setLeadAudience('all')}
+                  className={`h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'all' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All leads</button>
+              </div>
+            )}
+          </div>
+
+          <Button onClick={post} disabled={posting} icon={<Send size={15} />}>{posting ? 'Posting…' : 'Post link'}</Button>
         </div>
       </Card>
 

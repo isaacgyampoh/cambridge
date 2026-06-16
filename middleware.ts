@@ -21,7 +21,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   pm_leads:    ['/pm'],
   admissions:  ['/admin/admissions', '/admission', '/admin/registrations'],
   finance:     ['/admin/finance', '/finance'],
-  broadcast:   ['/admin/broadcast', '/admin/info-session', '/admin/links'],
+  broadcast:   ['/admin/broadcast', '/admin/links'],
   attendance:  ['/admin/attendance'],
   academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates'],
   documents:   ['/admin/documents'],
@@ -108,7 +108,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions', '/api/classes', '/api/certificates', '/api/links',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 

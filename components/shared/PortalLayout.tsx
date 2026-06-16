@@ -114,7 +114,6 @@ export const ALL_PORTALS = [
   { id: 'grp_messaging', label: 'Messaging & AI', icon: MessageSquare, href: '/admin/broadcast', children: [
     { label: 'Broadcast',        href: '/admin/broadcast' },
     { label: 'Post a Link',      href: '/admin/links' },
-    { label: 'Info Session',     href: '/admin/info-session' },
     { label: 'Follow-up Sequences', href: '/admin/sequences' },
     { label: 'WhatsApp Lines',   href: '/admin/whatsapp' },
     { label: 'AI Knowledge',     href: '/admin/knowledge' },
