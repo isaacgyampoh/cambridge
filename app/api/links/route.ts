@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
+import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
+import { sendSMS } from '@/lib/integrations/sms'
 
 /**
  * Shared links hub.
@@ -53,11 +55,16 @@ export async function POST(req: NextRequest) {
   if (body.action === 'post') {
     if (!body.title || !body.url) return NextResponse.json({ error: 'Title and URL required' }, { status: 400 })
 
+    const isZoom = (body.link_type || 'general') === 'zoom'
+    // Online-class (Zoom) links go ONLY to marketers — their WhatsApp lines
+    // then fan the link out to their own online-registered students.
+    const audience = isZoom ? 'marketers' : (body.audience || 'all')
+
     const { data: link, error } = await sb.from('shared_links').insert({
       title: body.title, url: body.url,
       link_type: body.link_type || 'general',
       description: body.description || null,
-      audience: body.audience || 'all',
+      audience,
       expires_at: body.expires_at || null,
       batch_id: body.batch_id || null,
       posted_by: session.userId,
@@ -65,11 +72,10 @@ export async function POST(req: NextRequest) {
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
     // Notify the right audience
-    let q = sb.from('profiles').select('id, role').eq('is_active', true).neq('role', 'student')
-    const { data: people } = await q
+    const { data: people } = await sb.from('profiles').select('id, role').eq('is_active', true).neq('role', 'student')
     const targets = (people || []).filter((p: any) => {
-      if (body.audience === 'marketers') return p.role === 'marketing_officer'
-      if (body.audience === 'staff') return p.role !== 'marketing_officer'
+      if (audience === 'marketers') return p.role === 'marketing_officer'
+      if (audience === 'staff') return p.role !== 'marketing_officer'
       return true
     })
     if (targets.length) {
@@ -81,7 +87,27 @@ export async function POST(req: NextRequest) {
       }))).then(() => {}, () => {})
     }
 
-    return NextResponse.json({ success: true, link, notified: targets.length })
+    // AUTO FAN-OUT: for a Zoom link, send it to every online-registered
+    // student through THEIR marketer's WhatsApp line — no manual action.
+    let studentsSent = 0
+    if (isZoom) {
+      const year = new Date().getFullYear()
+      const { data: online } = await sb.from('marketer_enrollments')
+        .select('marketer_id, lead:lead_id(full_name, phone)')
+        .eq('delivery', 'online').eq('year', year)
+
+      for (const e of online || []) {
+        const lead = (e as any).lead
+        if (!lead?.phone) continue
+        const first = (lead.full_name || '').split(' ')[0] || 'there'
+        const msg = `Hello ${first}, here is the link for your online class at Cambridge Centre of Excellence${body.title ? ` (${body.title})` : ''}: ${body.url}`
+        // Send via the student's own marketer's WhatsApp line
+        try { await sendWhatsAppText(lead.phone, msg, e.marketer_id || undefined); studentsSent++ }
+        catch { try { await sendSMS(lead.phone, msg); studentsSent++ } catch {} }
+      }
+    }
+
+    return NextResponse.json({ success: true, link, notified: targets.length, studentsSent })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })

@@ -36,7 +36,11 @@ export default function AdminLinks() {
         body: JSON.stringify({ action: 'post', ...form, expires_at: form.expires_at || null }),
       }).then(r => r.json())
       if (res.error) throw new Error(res.error)
-      toast.success(`Link posted — ${res.notified} people notified. It's now in everyone's My Links.`)
+      toast.success(
+        res.studentsSent > 0
+          ? `Posted to marketers — auto-sent to ${res.studentsSent} online students via their marketers' WhatsApp.`
+          : `Link posted — ${res.notified} people notified. It's now in everyone's My Links.`
+      )
 
       // Optionally blast the link to leads too
       if (sendToLeads) {
@@ -79,13 +83,23 @@ export default function AdminLinks() {
               </select>
             </Field>
             <Field label="Who sees it">
-              <select value={form.audience} onChange={e => setForm(f => ({ ...f, audience: e.target.value }))} className={inputClass}>
-                <option value="all">Everyone</option>
-                <option value="marketers">Marketers only</option>
-                <option value="staff">Staff (non-marketers)</option>
-              </select>
+              {form.link_type === 'zoom' ? (
+                <div className="h-11 px-4 rounded-xl border border-[var(--line)] bg-[var(--line-soft)] text-sm text-[var(--ink-soft)] flex items-center">Marketers (auto)</div>
+              ) : (
+                <select value={form.audience} onChange={e => setForm(f => ({ ...f, audience: e.target.value }))} className={inputClass}>
+                  <option value="all">Everyone</option>
+                  <option value="marketers">Marketers only</option>
+                  <option value="staff">Staff (non-marketers)</option>
+                </select>
+              )}
             </Field>
           </div>
+
+          {form.link_type === 'zoom' && (
+            <div className="rounded-xl bg-[var(--accent-soft)] border border-[var(--accent)]/15 px-4 py-3">
+              <p className="text-sm text-[var(--ink)]">This online-class link goes to all marketers, and is <strong>automatically sent by WhatsApp to every online-registered student</strong> through their own marketer's line — no manual sharing needed.</p>
+            </div>
+          )}
           <Field label="Title" required>
             <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. PMP Class — Saturday Zoom" className={inputClass} />
           </Field>

@@ -27,7 +27,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
     // Education
     last_school: '', certification_attained: '', course_of_study: '', year_completed: '',
     // Programme + payment
-    course_id: '', batch_preference: '',
+    course_id: '', batch_preference: '', delivery: 'in_person',
     payment_method: 'paystack',
   })
 
@@ -80,6 +80,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       year_completed: form.year_completed || null,
       course_id: form.course_id,
       batch_preference: form.batch_preference || null,
+      delivery: form.delivery,
       payment_method: form.payment_method as any,
       payment_status: 'pending',
     }).select().single()
@@ -268,6 +269,21 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <option value="">Select programme...</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
+                </div>
+                <div>
+                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">How will you attend? *</label>
+                  <div className="grid grid-cols-2 gap-3">
+                    {[
+                      { value: 'online', label: 'Online', sub: 'Join classes via Zoom' },
+                      { value: 'in_person', label: 'In-person', sub: 'Attend at the campus' },
+                    ].map(d => (
+                      <button key={d.value} type="button" onClick={() => set('delivery', d.value)}
+                        className={`text-left px-4 py-3 rounded-xl border transition ${form.delivery === d.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'}`}>
+                        <div className="text-sm font-bold text-gray-900">{d.label}</div>
+                        <div className="text-[11px] text-[var(--ink-faint)]">{d.sub}</div>
+                      </button>
+                    ))}
+                  </div>
                 </div>
               </div>
 

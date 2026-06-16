@@ -89,7 +89,7 @@ export async function POST(req: NextRequest) {
         await sb.from('marketer_enrollments').insert({
           marketer_id: creditTo, lead_id: leadId,
           program_code: prog.code, program_name: prog.name,
-          points, registration_fee: 200, delivery: 'in_person',
+          points, registration_fee: 200, delivery: app.delivery || 'in_person',
           is_pipeline: false, year: new Date().getFullYear(),
         })
         await sb.from('notifications').insert({
