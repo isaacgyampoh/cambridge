@@ -92,7 +92,7 @@ export const ALL_PORTALS = [
   ]},
   { id: 'grp_enrolment', label: 'Enrolment', icon: UserCheck, href: '/admin/admissions', children: [
     { label: 'Admissions',       href: '/admin/admissions' },
-    { label: 'Registrations',    href: '/finance/registrations' },
+    { label: 'Student Records',  href: '/admin/registrations' },
     { label: 'Walk-in Sign-ins', href: '/admin/signins' },
   ]},
   { id: 'grp_finance', label: 'Finance', icon: DollarSign, href: '/finance', children: [
