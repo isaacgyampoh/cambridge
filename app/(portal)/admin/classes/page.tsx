@@ -3,7 +3,8 @@ import { useState } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import type { Batch, Course, Profile } from '@/types'
 import { toast } from 'sonner'
-import { Plus, X, GraduationCap, Calendar, Clock, User, MapPin, Send } from 'lucide-react'
+import { Plus, X, GraduationCap, Calendar, Clock, User, MapPin, Send, Users } from 'lucide-react'
+import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
 import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass } from '@/components/ui'
@@ -224,6 +225,14 @@ export default function ClassesPage() {
                     <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Sends the link to every enrolled student by WhatsApp (SMS fallback) and email.</p>
                   </div>
                 )}
+
+                {/* Manage students */}
+                <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
+                  <Link href={`/admin/classes/${b.id}/students`}
+                    className="inline-flex items-center gap-1.5 h-9 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
+                    <Users size={14} /> Manage students
+                  </Link>
+                </div>
 
                 {/* Course materials — send to enrolled students after a session */}
                 <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">

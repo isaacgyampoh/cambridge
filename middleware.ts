@@ -6,6 +6,7 @@ const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 
 // Public paths — no auth needed
 const PUBLIC = [
+  '/certificate/',
   '/login', '/setup', '/apply/', '/signin/', '/public-alumni',
   '/api/auth/', '/api/setup/', '/api/signin/', '/api/webhooks/', '/_next', '/favicon',
 ]
@@ -22,7 +23,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   finance:     ['/admin/finance', '/finance'],
   broadcast:   ['/admin/broadcast', '/admin/info-session'],
   attendance:  ['/admin/attendance'],
-  academics:   ['/admin/academics', '/admin/courses', '/admin/classes'],
+  academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates'],
   documents:   ['/admin/documents'],
   marketers:   ['/admin/marketers'],
   alumni:      ['/admin/alumni'],
@@ -106,7 +107,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions', '/api/classes',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions', '/api/classes', '/api/certificates',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 

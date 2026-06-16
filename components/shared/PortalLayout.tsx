@@ -101,6 +101,7 @@ export const ALL_PORTALS = [
     { label: 'Reports',             href: '/finance/reports' },
   ]},
   { id: 'grp_academics', label: 'Academics', icon: BookOpen, href: '/admin/academics', children: [
+    { label: 'Certificates',     href: '/admin/certificates' },
     { label: 'Overview',   href: '/admin/academics' },
     { label: 'Courses',    href: '/admin/courses' },
     { label: 'Classes',    href: '/admin/classes' },

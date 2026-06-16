@@ -38,11 +38,11 @@ export async function POST(req: NextRequest) {
     .eq('id', batchId).maybeSingle()
   if (!batch) return NextResponse.json({ error: 'Class not found' }, { status: 404 })
 
-  const { data: enrolled } = await sb.from('batch_students')
-    .select('student:student_id(id, full_name, phone, email)')
-    .eq('batch_id', batchId)
+  const { data: enrolled } = await sb.from('class_enrollments')
+    .select('full_name, phone, email')
+    .eq('batch_id', batchId).eq('status', 'active')
 
-  const students = (enrolled || []).map((e: any) => e.student).filter(Boolean)
+  const students = (enrolled || []).filter((s: any) => s.phone || s.email)
   const courseName = (batch as any).course?.name || 'your class'
 
   let sent = 0
