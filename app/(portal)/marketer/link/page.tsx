@@ -9,6 +9,13 @@ import { Copy, ExternalLink, TrendingUp } from 'lucide-react'
 export default function MarketerLink() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState({ total: 0, paid: 0, converted: 0 })
+  const [infoSession, setInfoSession] = useState<{ link: string; title: string; datetime: string } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/info-session').then(r => r.ok ? r.json() : null).then(d => {
+      if (d?.link) setInfoSession(d)
+    }).catch(() => {})
+  }, [])
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -90,6 +97,30 @@ export default function MarketerLink() {
         <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My registration link</h1>
         <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send this to a lead who's ready to register. Everything they pay is tracked to you.</p>
       </div>
+
+      {/* Info session card — set by admin, marketer shares it */}
+      {infoSession?.link && (
+        <div className="bg-[var(--accent-soft)] rounded-xl border border-[var(--accent)]/20 p-6 mb-5">
+          <div className="flex items-center gap-2 mb-2">
+            <span className="text-[11px] font-semibold text-[var(--accent)] uppercase tracking-[0.1em]">Information session</span>
+          </div>
+          {infoSession.title && <div className="font-semibold text-[var(--ink)]">{infoSession.title}</div>}
+          {infoSession.datetime && <div className="text-sm text-[var(--ink-soft)] mb-2">{infoSession.datetime}</div>}
+          <p className="text-sm text-[var(--ink-soft)] mb-3">Share this with your leads so they can join the info session.</p>
+          <div className="flex items-center gap-2">
+            <div className="flex-1 bg-white border border-[var(--line)] rounded-lg px-4 py-2.5 text-sm text-[var(--ink-soft)] font-mono break-all">{infoSession.link}</div>
+            <button onClick={() => { navigator.clipboard.writeText(infoSession.link); toast.success('Info session link copied') }}
+              className="flex-shrink-0 p-2.5 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition">
+              <Copy size={16} />
+            </button>
+          </div>
+          <a href={`https://wa.me/?text=${encodeURIComponent(`You're invited to our information session at Cambridge Centre of Excellence${infoSession.datetime ? ` on ${infoSession.datetime}` : ''}. Join here: ${infoSession.link}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="inline-flex items-center gap-2 mt-3 h-9 px-4 bg-[#25D366] text-white rounded-lg text-sm font-medium hover:opacity-90 transition">
+            Share on WhatsApp
+          </a>
+        </div>
+      )}
 
       {/* Link card */}
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">

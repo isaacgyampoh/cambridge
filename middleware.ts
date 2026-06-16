@@ -20,7 +20,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   pm_leads:    ['/pm'],
   admissions:  ['/admin/admissions', '/admission', '/admin/registrations'],
   finance:     ['/admin/finance', '/finance'],
-  broadcast:   ['/admin/broadcast'],
+  broadcast:   ['/admin/broadcast', '/admin/info-session'],
   attendance:  ['/admin/attendance'],
   academics:   ['/admin/academics', '/admin/courses', '/admin/classes'],
   documents:   ['/admin/documents'],
@@ -106,7 +106,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/info-session', '/api/admissions',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 
