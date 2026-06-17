@@ -7,6 +7,7 @@ const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZ
 // Public paths — no auth needed
 const PUBLIC = [
   '/certificate/',
+  '/testimonial/', '/api/testimonials/',
   '/login', '/setup', '/apply/', '/signin/', '/public-alumni',
   '/api/auth/', '/api/setup/', '/api/signin/', '/api/webhooks/', '/api/applications/', '/_next', '/favicon',
 ]

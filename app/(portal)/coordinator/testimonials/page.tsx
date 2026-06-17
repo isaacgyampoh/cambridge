@@ -1,25 +1,15 @@
 'use client'
 import { useState } from 'react'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, Field } from '@/components/ui'
-import Modal from '@/components/shared/Modal'
-import { Quote, Plus, X, Check, Share2, Trash2 } from 'lucide-react'
+import { PageHeader, Card, Button, Badge, Spinner, EmptyState } from '@/components/ui'
+import { Quote, Copy, Trash2, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { CONFIG } from '@/lib/config'
 
 export default function TestimonialsPage() {
   const { data: items, loading, refetch } = useData<any>({ table: 'testimonials', select: '*', orderBy: 'created_at', orderAsc: false, limit: 500 })
-  const [open, setOpen] = useState(false)
-  const [form, setForm] = useState({ student_name: '', program_name: '', quote: '', image_url: '' })
-  const [saving, setSaving] = useState(false)
 
-  async function save() {
-    if (!form.student_name.trim() || !form.quote.trim()) { toast.error('Add the student name and their testimonial'); return }
-    setSaving(true)
-    try {
-      await mutate('POST', 'testimonials', { ...form })
-      toast.success('Testimonial saved'); setForm({ student_name: '', program_name: '', quote: '', image_url: '' }); setOpen(false); refetch()
-    } catch (e: any) { toast.error(e.message) } finally { setSaving(false) }
-  }
+  const collectionLink = `${CONFIG.appUrl}/testimonial/submit`
 
   async function toggle(t: any, field: string) {
     try { await mutate('PATCH', 'testimonials', { [field]: !t[field] }, [{ col: 'id', val: t.id }]); refetch() }
@@ -32,19 +22,39 @@ export default function TestimonialsPage() {
     catch { toast.error('Failed') }
   }
 
+  function copyText(t: any) {
+    const text = `"${t.quote}"\n— ${t.student_name}${t.role_title ? `, ${t.role_title}` : ''}${t.program_name ? ` (${t.program_name})` : ''}`
+    navigator.clipboard.writeText(text); toast.success('Testimonial copied — ready to share')
+  }
+
   return (
     <div className="fade-in w-full">
       <PageHeader
         eyebrow="Visibility"
         title="Testimonials"
-        description="Collect student testimonials and images to share on the Institute's socials."
-        actions={<Button onClick={() => setOpen(true)} icon={<Plus size={15} />}>Add testimonial</Button>}
+        description="Send the collection link to students who've completed. They fill in their own words and photo, and it appears here automatically."
       />
+
+      {/* Collection link */}
+      <Card className="p-5 mb-6">
+        <div className="flex items-center gap-2 mb-2">
+          <Link2 size={15} className="text-[var(--accent)]" />
+          <span className="text-[11px] font-semibold text-[var(--accent)] uppercase tracking-[0.1em]">Testimonial collection link</span>
+        </div>
+        <p className="text-sm text-[var(--ink-soft)] mb-3">Copy this and send it to any student who has completed. They submit their testimonial themselves — it shows up below.</p>
+        <div className="flex items-center gap-2">
+          <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-4 py-2.5 text-sm text-[var(--ink-soft)] font-mono break-all">{collectionLink}</div>
+          <button onClick={() => { navigator.clipboard.writeText(collectionLink); toast.success('Collection link copied') }}
+            className="flex-shrink-0 p-2.5 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition"><Copy size={16} /></button>
+          <a href={`https://wa.me/?text=${encodeURIComponent(`We'd love your feedback on your programme at Cambridge Centre of Excellence. Share your testimonial here: ${collectionLink}`)}`}
+            target="_blank" rel="noopener noreferrer"
+            className="flex-shrink-0 h-[42px] px-4 bg-[#25D366] text-white rounded-lg text-sm font-medium hover:opacity-90 transition flex items-center">WhatsApp</a>
+        </div>
+      </Card>
 
       {loading ? <Spinner /> : items.length === 0 ? (
         <EmptyState icon={<Quote size={20} />} title="No testimonials yet"
-          description="Gather a student's words and photo to feature on social media."
-          action={<Button onClick={() => setOpen(true)}>Add the first one</Button>} />
+          description="Share the collection link above. When students submit, their testimonials appear here." />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {items.map((t: any) => (
@@ -57,6 +67,7 @@ export default function TestimonialsPage() {
                 )}
                 <div className="min-w-0">
                   <div className="font-medium text-[var(--ink)] truncate">{t.student_name}</div>
+                  {t.role_title && <div className="text-[11px] text-[var(--ink-soft)] truncate">{t.role_title}</div>}
                   {t.program_name && <div className="text-[11px] text-[var(--ink-faint)]">{t.program_name}</div>}
                 </div>
               </div>
@@ -64,41 +75,13 @@ export default function TestimonialsPage() {
               <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => toggle(t, 'approved')} className={`text-[11px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.approved ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.approved ? 'Approved' : 'Approve'}</button>
                 <button onClick={() => toggle(t, 'shared')} className={`text-[11px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.shared ? 'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/20' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.shared ? 'Shared' : 'Mark shared'}</button>
+                <button onClick={() => copyText(t)} title="Copy text" className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={14} /></button>
                 <button onClick={() => remove(t.id)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-red-500"><Trash2 size={14} /></button>
               </div>
             </Card>
           ))}
         </div>
       )}
-
-      <Modal open={open} onClose={() => setOpen(false)} maxWidth="max-w-lg">
-        <div className="p-6">
-          <div className="flex items-center justify-between mb-4">
-            <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Add testimonial</h2>
-            <button onClick={() => setOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
-          </div>
-          <div className="space-y-4">
-            <div className="grid grid-cols-2 gap-4">
-              <Field label="Student name" required>
-                <input value={form.student_name} onChange={e => setForm(f => ({ ...f, student_name: e.target.value }))} className={inputClass} />
-              </Field>
-              <Field label="Programme">
-                <input value={form.program_name} onChange={e => setForm(f => ({ ...f, program_name: e.target.value }))} placeholder="e.g. PMP" className={inputClass} />
-              </Field>
-            </div>
-            <Field label="Testimonial" required>
-              <textarea value={form.quote} onChange={e => setForm(f => ({ ...f, quote: e.target.value }))} rows={3} placeholder="What the student said..." className={inputClass + ' resize-none'} />
-            </Field>
-            <Field label="Image link">
-              <input value={form.image_url} onChange={e => setForm(f => ({ ...f, image_url: e.target.value }))} placeholder="Paste an image URL (Drive, etc.)" className={inputClass} />
-            </Field>
-          </div>
-          <div className="flex gap-2 mt-6">
-            <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : 'Save testimonial'}</Button>
-            <Button variant="secondary" onClick={() => setOpen(false)}>Cancel</Button>
-          </div>
-        </div>
-      </Modal>
     </div>
   )
 }
