@@ -5,6 +5,7 @@ import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Upload, FileText, Download, Trash2, Send, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import { CONFIG } from '@/lib/config'
 import Modal from '@/components/shared/Modal'
 
 const DOC_TYPES = [
@@ -39,17 +40,22 @@ export default function DocumentsPage() {
 
   async function upload(file: File) {
     if (!form.name) { toast.error('Enter a document name first'); return }
+    if (!CONFIG.cloudinaryCloudName || !CONFIG.cloudinaryUploadPreset) {
+      toast.error('File storage not set up yet. Add Cloudinary keys in settings.'); return
+    }
     setUploading(true)
 
-    const path = `documents/${Date.now()}-${file.name.replace(/\s+/g, '-')}`
-
-    const { error: uploadError } = await sb.storage
-      .from('documents')
-      .upload(path, file, { contentType: 'application/pdf' })
-
-    if (uploadError) { toast.error('Upload failed: ' + uploadError.message); setUploading(false); return }
-
-    const { data: { publicUrl } } = sb.storage.from('documents').getPublicUrl(path)
+    let publicUrl = ''
+    try {
+      const isPdf = file.type === 'application/pdf'
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('upload_preset', CONFIG.cloudinaryUploadPreset)
+      fd.append('folder', 'cce/documents')
+      const up = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudinaryCloudName}/${isPdf ? 'raw' : 'image'}/upload`, { method: 'POST', body: fd }).then(r => r.json())
+      if (!up.secure_url) throw new Error(up.error?.message || 'Upload failed')
+      publicUrl = up.secure_url
+    } catch (e: any) { toast.error('Upload failed: ' + e.message); setUploading(false); return }
 
     try {
       await mutate('POST', 'documents', {

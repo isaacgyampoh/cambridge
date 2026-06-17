@@ -2,15 +2,33 @@
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast, Toaster } from 'sonner'
+import { CONFIG } from '@/lib/config'
 
 function SubmitForm() {
   const params = useSearchParams()
   const token = params.get('t') || ''
   const [form, setForm] = useState({ student_name: '', role_title: '', quote: '', image_url: '' })
   const [submitting, setSubmitting] = useState(false)
+  const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(false)
 
   function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
+
+  async function uploadPhoto(file: File) {
+    const cloud = (CONFIG as any).cloudinaryCloudName
+    const preset = (CONFIG as any).cloudinaryUploadPreset
+    if (!cloud || !preset) { toast.error('Photo upload not available right now'); return }
+    if (file.size > 8 * 1024 * 1024) { toast.error('Image too large (max 8MB)'); return }
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file); fd.append('upload_preset', preset); fd.append('folder', 'cce/testimonials')
+      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { method: 'POST', body: fd }).then(r => r.json())
+      if (res.secure_url) { set('image_url', res.secure_url); toast.success('Photo added') }
+      else throw new Error('Upload failed')
+    } catch { toast.error('Could not upload photo') }
+    finally { setUploading(false) }
+  }
 
   async function submit() {
     if (!form.student_name.trim() || !form.quote.trim()) { toast.error('Please add your name and your words'); return }
@@ -55,8 +73,17 @@ function SubmitForm() {
           <textarea value={form.quote} onChange={e => set('quote', e.target.value)} rows={4} placeholder="What did you gain from the programme?" style={{ ...inp, resize: 'none' as const }} />
         </Field>
         <Field label="Your photo (optional)">
-          <input value={form.image_url} onChange={e => set('image_url', e.target.value)} placeholder="Paste an image link" style={inp} />
-          <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 4 }}>You can paste a link to your photo (e.g. from Google Drive or a social profile).</p>
+          {form.image_url ? (
+            <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+              <img src={form.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+              <button type="button" onClick={() => set('image_url', '')} style={{ background: 'none', border: 'none', color: '#d85a30', fontSize: 13, cursor: 'pointer' }}>Remove</button>
+            </div>
+          ) : (
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 10, border: '1px dashed #cbd5e1', fontSize: 14, color: '#4a5568', cursor: 'pointer' }}>
+              {uploading ? 'Uploading…' : 'Tap to add a photo'}
+              <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f) }} />
+            </label>
+          )}
         </Field>
         <button onClick={submit} disabled={submitting}
           style={{ width: '100%', height: 46, background: '#2f80d6', color: '#fff', border: 'none', borderRadius: 12, fontSize: 15, fontWeight: 600, cursor: 'pointer', marginTop: 8, opacity: submitting ? 0.6 : 1 }}>

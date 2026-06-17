@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useData } from '@/hooks/useData'
+import FileUpload from '@/components/shared/FileUpload'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, Field } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
 import { Award, Search, X, Download, Send, Copy } from 'lucide-react'
@@ -149,10 +150,13 @@ export default function CertificatesPage() {
               <Field label="Month completed">
                 <input value={month} onChange={e => setMonth(e.target.value)} placeholder="e.g. June 2026" className={inputClass} />
               </Field>
-              <Field label="Certificate PDF link (soft copy)">
-                <input value={certUrl} onChange={e => setCertUrl(e.target.value)} placeholder="Paste the PDF link (Google Drive, etc.)" className={inputClass} />
+              <Field label="Certificate PDF (soft copy)">
+                <FileUpload onUploaded={url => setCertUrl(url)} value={certUrl} label="Upload certificate PDF" accept="application/pdf,image/*" folder="cce/certificates" />
+                <div className="mt-2">
+                  <input value={certUrl} onChange={e => setCertUrl(e.target.value)} placeholder="…or paste a PDF link" className={inputClass} />
+                </div>
               </Field>
-              <p className="text-xs text-[var(--ink-faint)]">The student gets a page where they can download this PDF. You can add the link now or later.</p>
+              <p className="text-xs text-[var(--ink-faint)]">The student gets a page where they can download this. Upload the file or paste a link.</p>
             </div>
             <div className="flex gap-2 mt-6">
               <Button onClick={() => issue(true)} disabled={issuing} icon={<Send size={15} />}>

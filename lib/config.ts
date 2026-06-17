@@ -44,6 +44,14 @@ export const CONFIG = {
   resendApiKey: '',
   resendFromEmail: 'Cambridge CE <noreply@cambridge.edu.gh>',
 
+  // ── CLOUDINARY (file storage: certificates, receipts, brochures, photos) ──
+  // Get these from cloudinary.com (free tier ~25GB). Steps:
+  //  1. Sign up -> Dashboard shows your "Cloud name"
+  //  2. Settings -> Upload -> add an UNSIGNED upload preset, copy its name
+  // Only these two are needed for browser uploads (no secret exposed).
+  cloudinaryCloudName: '',
+  cloudinaryUploadPreset: '',
+
   // ── PIN AUTH ─────────────────────────────────────────────────
   pinSalt: 'cce-pin-salt-cambridge-2024',
   setupSecret: 'cce-setup-2024',
