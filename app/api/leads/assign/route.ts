@@ -1,9 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText, WA } from '@/lib/integrations/whatsapp'
 
 export async function POST(req: NextRequest) {
+  const token = req.cookies.get('cce_session')?.value
+  const session = token ? await verifySession(token) : { valid: false, role: '' }
+  if (!session.valid || !['super_admin', 'project_manager'].includes(session.role || '')) {
+    return NextResponse.json({ error: 'Not permitted' }, { status: 403 })
+  }
   const { leadId, marketerId } = await req.json()
   if (!leadId || !marketerId) {
     return NextResponse.json({ error: 'Missing leadId or marketerId' }, { status: 400 })

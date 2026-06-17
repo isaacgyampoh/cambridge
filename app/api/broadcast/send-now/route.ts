@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
@@ -44,6 +45,11 @@ async function getRecipients(sb: any, target_type: string, target_filters: any) 
 
 // POST { broadcastId } — (re)send an existing broadcast, recomputing recipients
 export async function POST(req: NextRequest) {
+  const token = req.cookies.get('cce_session')?.value
+  const session = token ? await verifySession(token) : { valid: false, role: '' }
+  if (!session.valid || !['super_admin', 'project_manager'].includes(session.role || '')) {
+    return NextResponse.json({ error: 'Not permitted' }, { status: 403 })
+  }
   const { broadcastId } = await req.json()
   if (!broadcastId) return NextResponse.json({ error: 'Missing broadcastId' }, { status: 400 })
 

@@ -125,7 +125,10 @@ export async function middleware(request: NextRequest) {
 
     return NextResponse.next()
   } catch {
-    return NextResponse.next()
+    // Fail closed: if anything goes wrong during auth, send to login
+    // rather than letting the request through.
+    const url = new URL('/login', request.url)
+    return NextResponse.redirect(url)
   }
 }
 

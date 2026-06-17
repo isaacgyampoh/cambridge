@@ -1,15 +1,20 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySession } from '@/lib/auth/pin'
 import { CONFIG } from '@/lib/config'
 
 const ARKESEL_URL = 'https://sms.arkesel.com/api/v2/sms/send'
-const ARKESEL_KEY = 'VXliSENVQnpsYkhWYlNpZkNRZEc'
 
 // POST { phone?: "0244..." } — sends a test SMS and returns the RAW Arkesel response
 export async function POST(req: NextRequest) {
+  const token = req.cookies.get('cce_session')?.value
+  const session = token ? await verifySession(token) : { valid: false, role: '' }
+  if (!session.valid || session.role !== 'super_admin') {
+    return NextResponse.json({ error: 'Not permitted' }, { status: 403 })
+  }
   let phone = '0201234567'
   try { const body = await req.json(); if (body?.phone) phone = body.phone } catch {}
 
-  const apiKey = CONFIG.arkeselApiKey || ARKESEL_KEY
+  const apiKey = CONFIG.arkeselApiKey
   const senderId = CONFIG.arkeselSenderId || 'CambridgeCE'
   const recipient = phone.replace(/\s+/g, '').replace(/^\+233/, '233').replace(/^\+/, '').replace(/^0/, '233')
 
