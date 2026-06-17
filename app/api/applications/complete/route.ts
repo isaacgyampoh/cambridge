@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { sendWelcomeEmail } from '@/lib/integrations/email'
+import { sendWelcomeEmail, sendAdmissionLetter } from '@/lib/integrations/email'
+import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
+import { sendSMS } from '@/lib/integrations/sms'
 
 /**
  * Called when a student completes the registration link AND pays the
@@ -115,16 +117,45 @@ export async function POST(req: NextRequest) {
   }
 
   // 4. Admission record (idempotent — don't duplicate)
-  const { data: existingAdm } = await sb.from('admissions').select('id').eq('lead_id', leadId).maybeSingle()
+  let admissionNo = ''
+  const { data: existingAdm } = await sb.from('admissions').select('id, admission_number').eq('lead_id', leadId).maybeSingle()
   if (!existingAdm) {
+    admissionNo = `CCE/${new Date().getFullYear()}/${String(Math.floor(1000 + Math.random() * 9000))}`
     const { data: admission } = await sb.from('admissions').insert({
       lead_id: leadId,
       course_id: app.course_id,
+      admission_number: admissionNo,
       status: app.payment_status === 'paid' ? 'awaiting_forms' : 'pending',
     }).select().single()
     if (admission) {
       await sb.from('applications').update({ admission_id: admission.id }).eq('id', applicationId)
     }
+  } else {
+    admissionNo = existingAdm.admission_number || ''
+  }
+
+  // 5. AUTO admission letter — sent automatically on registration via
+  // WhatsApp (SMS + email fallback). No manual admin step.
+  if (app.phone || app.email) {
+    const courseName = (app as any).course?.name || 'your programme'
+    const first = (app.full_name || '').split(' ')[0] || 'there'
+
+    // If an admission-letter document/template has been uploaded, include its link
+    const { data: tmpl } = await sb.from('documents')
+      .select('file_url').eq('type', 'admission_letter').order('created_at', { ascending: false }).limit(1).maybeSingle()
+    const letterLink = tmpl?.file_url ? `\n\nYour admission letter: ${tmpl.file_url}` : ''
+
+    const msg = `Dear ${first}, congratulations! You have been admitted to ${courseName} at Cambridge Centre of Excellence.${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLink}\n\nWelcome aboard.`
+
+    if (app.phone) {
+      try { await sendWhatsAppText(app.phone, msg) }
+      catch { try { await sendSMS(app.phone, msg) } catch {} }
+    }
+    if (app.email) {
+      try { await sendAdmissionLetter(app.email, app.full_name || 'Student', courseName, admissionNo) } catch {}
+    }
+    // Mark the letter as sent on the admission record
+    await sb.from('admissions').update({ admission_letter_sent: true, admitted_at: new Date().toISOString() }).eq('lead_id', leadId).then(() => {}, () => {})
   }
 
   return NextResponse.json({ success: true, credited: app.payment_status === 'paid' })
