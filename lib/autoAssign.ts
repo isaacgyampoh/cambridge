@@ -1,4 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { generateOpeningMessage } from '@/lib/integrations/ai-assistant'
+import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 
 /**
  * Round-robin auto-assignment for system-generated leads (Facebook,
@@ -74,6 +76,30 @@ export async function autoAssignLead(leadId: string): Promise<string | null> {
       }, { onConflict: 'sequence_id,lead_id' })
     }
   } catch { /* sequences optional */ }
+
+  // AI auto-conversation: the system starts the chat with the lead through
+  // the assigned marketer's WhatsApp line, before the marketer even opens
+  // it. The WhatsApp webhook then handles the lead's replies with AI.
+  try {
+    const { data: full } = await sb.from('leads')
+      .select('full_name, phone, course_interest').eq('id', leadId).maybeSingle()
+    if (full?.phone) {
+      const opening = await generateOpeningMessage({
+        leadName: full.full_name,
+        marketerName: chosen.full_name,
+        courseInterest: full.course_interest,
+      })
+      if (opening) {
+        const sent = await sendWhatsAppText(full.phone, opening, chosen.id)
+        if (sent) {
+          await sb.from('ai_conversations').insert({
+            lead_id: leadId, phone: full.phone, marketer_id: chosen.id,
+            incoming_text: null, reply_text: opening, answered_by: 'ai_opening',
+          }).then(() => {}, () => {})
+        }
+      }
+    }
+  } catch { /* AI opening optional — never block assignment */ }
 
   return chosen.id
 }
