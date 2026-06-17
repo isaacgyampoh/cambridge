@@ -2,8 +2,14 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { onClassReminder } from '@/lib/notifications'
 import { formatDate } from '@/lib/utils'
+import { verifySession } from '@/lib/auth/pin'
 
 export async function POST(req: NextRequest) {
+  const token = req.cookies.get('cce_session')?.value
+  const session = token ? await verifySession(token) : { valid: false, role: '' }
+  if (!session.valid || !['super_admin', 'project_manager', 'trainer', 'receptionist'].includes(session.role || '')) {
+    return NextResponse.json({ error: 'Not permitted' }, { status: 403 })
+  }
   const { batchId, type } = await req.json()
   if (!batchId || !type) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
 
