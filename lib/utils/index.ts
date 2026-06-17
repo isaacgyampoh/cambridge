@@ -74,6 +74,7 @@ export const ROLE_LABELS: Record<string, string> = {
   receptionist: 'Receptionist',
   trainer: 'Trainer',
   student: 'Student',
+  exam_coordinator: 'Exam Prep Coordinator',
 }
 
 export const ROLE_COLORS: Record<string, string> = {

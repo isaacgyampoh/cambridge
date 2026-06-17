@@ -24,6 +24,7 @@ export async function GET(req: NextRequest) {
   // Role-based table access control
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
+    exam_coordinator: ['prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
     project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles','courses'],
     admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
@@ -138,6 +139,7 @@ export async function DELETE(req: NextRequest) {
 
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
+    exam_coordinator: ['prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
     project_manager: ['leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles'],
     admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],

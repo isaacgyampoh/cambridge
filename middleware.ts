@@ -13,7 +13,7 @@ const PUBLIC = [
 
 // Portal ID → path prefixes it grants access to
 const PORTAL_PATHS: Record<string, string[]> = {
-  dashboard:   ['/admin', '/pm', '/marketer', '/admission', '/finance', '/receptionist', '/trainer', '/student'],
+  dashboard:   ['/admin', '/pm', '/marketer', '/admission', '/finance', '/receptionist', '/trainer', '/student', '/coordinator'],
   insights:    ['/admin/insights'],
   leads:       ['/admin/leads', '/admin/pipeline', '/admin/conversions'],
   my_leads:    ['/marketer', '/marketer/leads', '/admin/conversions', '/admin/leads/courses', '/admin/leads/course'],
@@ -23,7 +23,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   finance:     ['/admin/finance', '/finance'],
   broadcast:   ['/admin/broadcast', '/admin/links'],
   attendance:  ['/admin/attendance'],
-  academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates'],
+  academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates', '/coordinator'],
   documents:   ['/admin/documents'],
   marketers:   ['/admin/marketers'],
   alumni:      ['/admin/alumni'],
@@ -42,6 +42,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   registrations: ['/finance/registrations'],
   clock_in:    ['/clock-in'],
   my_links:    ['/links'],
+  prep:        ['/coordinator'],
   settings:    ['/admin/settings'],
 }
 
@@ -53,6 +54,7 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   accountant:        ['dashboard','finance','registrations','leads','clock_in'],
   receptionist:      ['dashboard','reminders','attendance','clock_in'],
   trainer:           ['dashboard','my_classes','attendance','clock_in'],
+  exam_coordinator:  ['prep','my_links','clock_in'],
   student:           ['dashboard','my_payments'],
 }
 
@@ -108,7 +110,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links', '/api/prep',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 

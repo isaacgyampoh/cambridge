@@ -79,6 +79,11 @@ export const ALL_PORTALS = [
   { id: 'remuneration', label: 'Remuneration', icon: Trophy,          href: '/admin/remuneration' },
   { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
   { id: 'my_links',    label: 'My Links',     icon: Link2,           href: '/links' },
+  { id: 'prep',        label: 'Exam Prep',    icon: ClipboardList,   href: '/coordinator',
+    children: [
+      { label: 'Prep Tracker',  href: '/coordinator' },
+      { label: 'Testimonials',  href: '/coordinator/testimonials' },
+    ]},
   { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings' },
 
   // ── Category groups (used by super_admin for a tidy, organised sidebar) ──
@@ -109,6 +114,8 @@ export const ALL_PORTALS = [
     { label: 'Classes',      href: '/admin/classes' },
     { label: 'Attendance',   href: '/admin/attendance' },
     { label: 'Certificates', href: '/admin/certificates' },
+    { label: 'Exam Prep',    href: '/coordinator' },
+    { label: 'Testimonials', href: '/coordinator/testimonials' },
     { label: 'Alumni',       href: '/admin/alumni' },
   ]},
   { id: 'grp_messaging', label: 'Messaging & AI', icon: MessageSquare, href: '/admin/broadcast', children: [
@@ -133,7 +140,7 @@ export const ALL_PORTALS = [
 const ROLE_HOME: Record<string, string> = {
   super_admin: '/admin', project_manager: '/pm', marketing_officer: '/marketer',
   admissions_officer: '/admission', accountant: '/finance',
-  receptionist: '/receptionist', trainer: '/trainer', student: '/student',
+  receptionist: '/receptionist', trainer: '/trainer', student: '/student', exam_coordinator: '/coordinator',
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
@@ -144,6 +151,7 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   accountant:        ['dashboard','finance','registrations','leads','my_links','clock_in'],
   receptionist:      ['dashboard','reminders','attendance','my_links','clock_in'],
   trainer:           ['dashboard','my_classes','attendance','my_links','clock_in'],
+  exam_coordinator:  ['prep','my_links','clock_in'],
   student:           ['dashboard','my_payments'],
 }
 

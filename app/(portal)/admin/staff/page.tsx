@@ -12,13 +12,14 @@ const ROLES = [
   { value: 'accountant', label: 'Accountant', color: 'bg-amber-100 text-amber-700'},
   { value: 'receptionist', label: 'Receptionist', color: 'bg-pink-100 text-pink-700'},
   { value: 'trainer', label: 'Trainer', color: 'bg-orange-100 text-orange-700'},
+  { value: 'exam_coordinator', label: 'Exam Prep Coordinator', color: 'bg-teal-100 text-teal-700'},
   { value: 'super_admin', label: 'Super Admin', color: 'bg-purple-100 text-purple-700'},
 ]
 
 const ROLE_COLOR: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.color]))
 const ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.label]))
 
-const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: ''}
+const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: ''}
 
 export default function StaffPage() {
   const [showModal, setShowModal] = useState(false)
@@ -254,6 +255,16 @@ export default function StaffPage() {
                       </button>
                     </div>
                   </div>
+
+                  {form.role === 'exam_coordinator' && (
+                    <div>
+                      <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Programme they coordinate *</label>
+                      <input value={form.coordinator_program} onChange={e => set('coordinator_program', e.target.value.toUpperCase())}
+                        placeholder="e.g. PMP or SPHRI (the course code)"
+                        className="w-full h-11 px-4 rounded-xl border-2 border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                      <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Must match the course code. All students of this programme are auto-assigned to this coordinator.</p>
+                    </div>
+                  )}
                 </div>
 
                 {/* Actions */}

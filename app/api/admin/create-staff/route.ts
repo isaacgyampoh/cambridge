@@ -8,7 +8,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { full_name, email, phone, role, initial_pin, department } = await req.json()
+  const { full_name, email, phone, role, initial_pin, department, coordinator_program } = await req.json()
 
   if (!full_name?.trim() || !phone?.trim() || !role) {
     return NextResponse.json({ error: 'Full name, phone number and role are required' }, { status: 400 })
@@ -59,6 +59,7 @@ export async function POST(req: NextRequest) {
     phone: phone233,
     role,
     department: department?.trim() || null,
+    coordinator_program: role === 'exam_coordinator' ? (coordinator_program?.trim().toUpperCase() || null) : null,
     pin_hash: hashPIN(pin),
     pin_set_at: new Date().toISOString(),
     must_change_pin: true,
