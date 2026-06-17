@@ -78,6 +78,43 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     finally { setActing(null) }
   }
 
+  async function togglePaid(e: any) {
+    const nowPaid = !e.fees_paid
+    setActing(e.id)
+    try {
+      await fetch('/api/data', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'class_enrollments', data: { fees_paid: nowPaid }, filters: [{ col: 'id', val: e.id }] }),
+      })
+      // If they're now fully paid AND already completed, auto-issue the certificate
+      if (nowPaid && e.status === 'completed') {
+        const res = await fetch('/api/classes/complete', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ enrollmentId: e.id, completed: true }),
+        }).then(r => r.json())
+        if (res.certIssued) { toast.success(res.sent ? 'Fees paid — certificate sent to student' : 'Fees paid — certificate issued'); load(); setActing(null); return }
+      }
+      toast.success(nowPaid ? 'Full fees marked paid' : 'Marked unpaid'); load()
+    } catch { toast.error('Failed') }
+    finally { setActing(null) }
+  }
+
+  async function markComplete(e: any, completed: boolean) {
+    setActing(e.id)
+    try {
+      const res = await fetch('/api/classes/complete', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ enrollmentId: e.id, completed }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      if (!completed) toast.success('Reopened')
+      else if (res.certIssued) toast.success(res.sent ? 'Completed — certificate sent to student' : 'Completed — certificate issued')
+      else toast.success('Completed — certificate pending (full fees not yet paid)')
+      load()
+    } catch (e: any) { toast.error(e.message || 'Failed') }
+    finally { setActing(null) }
+  }
+
   return (
     <div className="fade-in w-full">
       <PageHeader
@@ -114,7 +151,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
                     <td className="px-4 py-3 font-medium text-[var(--ink)]">{e.full_name}</td>
                     <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{e.phone && String(e.phone).replace(/^233/, '0')}{e.email ? ` · ${e.email}` : ''}</td>
                     <td className="px-4 py-3">
-                      <button disabled={acting === e.id} onClick={() => patch(e, { fees_paid: !e.fees_paid }, e.fees_paid ? 'Marked unpaid' : 'Full fees marked paid')}
+                      <button disabled={acting === e.id} onClick={() => togglePaid(e)}
                         className={`text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${e.fees_paid ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)] hover:ring-[var(--accent)]'}`}>
                         {e.fees_paid ? 'Paid in full' : 'Mark paid'}
                       </button>
@@ -128,12 +165,12 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
                       <div className="flex items-center gap-1.5 justify-end">
                         {e.status !== 'completed' ? (
                           <Button size="sm" variant="secondary" disabled={acting === e.id}
-                            onClick={() => patch(e, { status: 'completed', completed_at: new Date().toISOString() }, 'Marked completed')}>
+                            onClick={() => markComplete(e, true)}>
                             Mark done
                           </Button>
                         ) : (
                           <Button size="sm" variant="ghost" disabled={acting === e.id}
-                            onClick={() => patch(e, { status: 'active', completed_at: null }, 'Reopened')}>Reopen</Button>
+                            onClick={() => markComplete(e, false)}>Reopen</Button>
                         )}
                         <button disabled={acting === e.id} onClick={() => remove(e)} className="p-1.5 text-[var(--ink-faint)] hover:text-red-500"><UserMinus size={15} /></button>
                       </div>
