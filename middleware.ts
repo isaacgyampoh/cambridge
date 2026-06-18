@@ -9,7 +9,7 @@ const PUBLIC = [
   '/certificate/',
   '/testimonial/', '/api/testimonials/',
   '/login', '/setup', '/apply/', '/signin/', '/public-alumni',
-  '/api/auth/', '/api/setup/', '/api/signin/', '/api/webhooks/', '/api/applications/', '/_next', '/favicon',
+  '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/webhooks/', '/api/applications/', '/_next', '/favicon',
 ]
 
 // Portal ID → path prefixes it grants access to
@@ -43,6 +43,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   registrations: ['/finance/registrations'],
   clock_in:    ['/clock-in'],
   my_links:    ['/links'],
+  my_attendance: ['/marketer/attendance'],
   prep:        ['/coordinator'],
   settings:    ['/admin/settings'],
 }

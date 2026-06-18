@@ -15,6 +15,15 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   const [search, setSearch] = useState('')
   const [acting, setActing] = useState<string | null>(null)
   const [blasting, setBlasting] = useState(false)
+  const [showAttendance, setShowAttendance] = useState(false)
+  const [attendance, setAttendance] = useState<any>(null)
+
+  async function loadAttendance() {
+    try {
+      const d = await fetch(`/api/classes/attendance?batchId=${batchId}`).then(r => r.json())
+      if (!d.error) setAttendance(d)
+    } catch { /* ignore */ }
+  }
 
   async function sendSigninLink() {
     if (!confirm("Send today's sign-in link to all active students by WhatsApp?")) return
@@ -150,7 +159,50 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         <Badge tone="accent">{enrolled.length} enrolled</Badge>
         <Badge tone="success">{enrolled.filter((e: any) => e.fees_paid).length} fees paid</Badge>
         <Badge tone="neutral">{enrolled.filter((e: any) => e.status === 'completed').length} completed</Badge>
+        <button onClick={() => { setShowAttendance(s => !s); if (!attendance) loadAttendance() }}
+          className="ml-auto text-xs font-medium text-[var(--accent)] hover:underline">
+          {showAttendance ? 'Hide attendance' : "Today's attendance"}
+        </button>
       </div>
+
+      {showAttendance && (
+        <Card className="p-5 mb-5">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="font-display font-semibold text-[var(--ink)]">Today's attendance</h3>
+            <span className="text-xs text-[var(--ink-faint)]">{attendance?.date || ''}</span>
+          </div>
+          {!attendance ? <Spinner /> : (
+            <>
+              <div className="grid grid-cols-3 gap-3 mb-4">
+                <div className="rounded-xl bg-[var(--accent-soft)] p-3 text-center">
+                  <div className="font-display text-2xl font-semibold text-[var(--accent)]">{attendance.presentCount}</div>
+                  <div className="text-[11px] text-[var(--ink-soft)]">Came to class</div>
+                </div>
+                <div className="rounded-xl bg-[var(--canvas)] p-3 text-center">
+                  <div className="font-display text-2xl font-semibold text-[var(--ink-soft)]">{attendance.absentCount}</div>
+                  <div className="text-[11px] text-[var(--ink-soft)]">Absent</div>
+                </div>
+                <div className="rounded-xl bg-[var(--canvas)] p-3 text-center">
+                  <div className="font-display text-2xl font-semibold text-[var(--ink)]">{attendance.total}</div>
+                  <div className="text-[11px] text-[var(--ink-soft)]">Total</div>
+                </div>
+              </div>
+              <p className="text-[11px] text-[var(--ink-faint)] mb-2">{attendance.presentCount} booklets needed for those present.</p>
+              <div className="max-h-64 overflow-y-auto divide-y divide-[var(--line-soft)]">
+                {attendance.students.map((s: any) => (
+                  <div key={s.enrollmentId} className="flex items-center justify-between py-2">
+                    <span className="text-sm text-[var(--ink)]">{s.name}</span>
+                    <div className="flex items-center gap-3">
+                      {s.balance > 0 && <span className="text-[11px] text-amber-600">GHS {s.balance.toFixed(2)} owing</span>}
+                      <Badge tone={s.present ? 'success' : 'neutral'}>{s.present ? 'Present' : 'Absent'}</Badge>
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </>
+          )}
+        </Card>
+      )}
 
       {loading ? <Spinner /> : enrolled.length === 0 ? (
         <EmptyState icon={<Users size={20} />} title="No students enrolled yet"

@@ -35,6 +35,7 @@ export const ALL_PORTALS = [
       { label: 'Follow-ups',      href: '/marketer/activities' },
     ]},
   { id: 'my_link',     label: 'My Link',      icon: Radio,           href: '/marketer/link' },
+  { id: 'my_attendance', label: 'Class Attendance', icon: Users,      href: '/marketer/attendance' },
   { id: 'pm_leads',    label: 'Lead Inbox',   icon: TrendingUp,      href: '/pm',
     children: [
       { label: 'Lead Inbox', href: '/pm' },
@@ -147,7 +148,7 @@ const ROLE_HOME: Record<string, string> = {
 const ROLE_DEFAULTS: Record<string, string[]> = {
   super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','my_links','clock_in'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','clock_in'],
+  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in'],
   admissions_officer:['dashboard','admissions','leads','my_links','clock_in'],
   accountant:        ['dashboard','finance','registrations','leads','my_links','clock_in'],
   receptionist:      ['dashboard','reminders','attendance','my_links','clock_in'],
