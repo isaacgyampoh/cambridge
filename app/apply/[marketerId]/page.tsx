@@ -434,8 +434,10 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
           <>
             <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4 text-sm">
               <div className="font-semibold text-[var(--ink)] mb-1.5">Bank transfer details</div>
-              <div className="text-[var(--ink-soft)]">Bank: <strong>Cambridge CE Bank</strong></div>
-              <div className="text-[var(--ink-soft)]">Account: <strong>1234567890</strong></div>
+              <div className="text-[var(--ink-soft)]">Bank: <strong>{CONFIG.bankName}</strong></div>
+              <div className="text-[var(--ink-soft)]">Account name: <strong>{CONFIG.bankAccountName}</strong></div>
+              <div className="text-[var(--ink-soft)]">Account: <strong>{CONFIG.bankAccountNumber}</strong></div>
+              {CONFIG.bankBranch && <div className="text-[var(--ink-soft)]">Branch: <strong>{CONFIG.bankBranch}</strong></div>}
               <div className="text-[11px] text-[var(--ink-faint)] mt-2">Transfer GHS {Number(amount).toFixed(2)}, then upload your screenshot. Finance will verify it.</div>
             </div>
             {screenshot ? (

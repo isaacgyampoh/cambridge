@@ -56,6 +56,13 @@ export const CONFIG = {
   pinSalt: 'cce-pin-salt-cambridge-2024',
   setupSecret: 'cce-setup-2024',
   superAdminEmail: 'admin@cambridge.edu.gh',
+
+  // ── BANK DETAILS (shown to students paying by bank transfer) ──
+  // Update these with the real account; they appear on every pay page.
+  bankName: 'Cambridge CE Bank',
+  bankAccountName: 'Cambridge Centre of Excellence',
+  bankAccountNumber: '1234567890',
+  bankBranch: '',
   superAdminPassword: 'CCE-Admin-Secure-2024!',
   cronSecret: 'cce-cron-2024',
 

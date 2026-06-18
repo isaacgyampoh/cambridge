@@ -190,8 +190,10 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
           <>
             <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 14, fontSize: 14, color: '#1a2230' }}>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Bank transfer details</div>
-              <div>Bank: <strong>Cambridge CE Bank</strong></div>
-              <div>Account: <strong>1234567890</strong></div>
+              <div>Bank: <strong>{CONFIG.bankName}</strong></div>
+              <div>Account name: <strong>{CONFIG.bankAccountName}</strong></div>
+              <div>Account: <strong>{CONFIG.bankAccountNumber}</strong></div>
+              {CONFIG.bankBranch && <div>Branch: <strong>{CONFIG.bankBranch}</strong></div>}
               <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Transfer GHS {Number(payAmount).toFixed(2)}, then upload your screenshot below. The accountant will verify it.</div>
             </div>
             {screenshot ? (
