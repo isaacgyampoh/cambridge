@@ -3,7 +3,7 @@ import { useState, useEffect, use } from 'react'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
-import { Users, Plus, Search, X, Check, GraduationCap, UserMinus } from 'lucide-react'
+import { Users, Plus, Search, X, Check, GraduationCap, UserMinus, Send } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ClassStudents({ params }: { params: Promise<{ id: string }> }) {
@@ -14,6 +14,21 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   const [addOpen, setAddOpen] = useState(false)
   const [search, setSearch] = useState('')
   const [acting, setActing] = useState<string | null>(null)
+  const [blasting, setBlasting] = useState(false)
+
+  async function sendSigninLink() {
+    if (!confirm("Send today's sign-in link to all active students by WhatsApp?")) return
+    setBlasting(true)
+    try {
+      const res = await fetch('/api/classes/signin-blast', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ batchId }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      toast.success(`Sign-in link sent to ${res.sent} of ${res.total} students`)
+    } catch (e: any) { toast.error(e.message) }
+    finally { setBlasting(false) }
+  }
 
   // All paid registrations (candidates to enroll)
   const { data: apps } = useData<any>({
@@ -121,7 +136,14 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         eyebrow={batch?.course?.name || 'Class'}
         title={batch ? `${batch.name} — students` : 'Class students'}
         description="Enroll registered students, track full-fee payment, and mark completion."
-        actions={<Button onClick={() => setAddOpen(true)} icon={<Plus size={15} />}>Enroll student</Button>}
+        actions={
+          <div className="flex gap-2">
+            <Button variant="secondary" onClick={sendSigninLink} disabled={blasting} icon={<Send size={15} />}>
+              {blasting ? 'Sending…' : 'Send sign-in link'}
+            </Button>
+            <Button onClick={() => setAddOpen(true)} icon={<Plus size={15} />}>Enroll student</Button>
+          </div>
+        }
       />
 
       <div className="flex flex-wrap gap-2 mb-5">
