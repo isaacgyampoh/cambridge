@@ -15,6 +15,8 @@ const STATUSES = [
   { key: 'next_session',  label: 'Next Session',   color: 'bg-amber-100 text-amber-700',    needsComment: true },
   { key: 'zuku',          label: 'Zuku',           color: 'bg-red-100 text-red-600',        needsComment: true, hint: 'Not qualified — give the reason' },
   { key: 'defiled',       label: 'Defiled',        color: 'bg-purple-100 text-purple-700',  needsComment: true, hint: 'Stopped current class to join the next — why?' },
+  { key: 'conflicts',     label: 'Conflicts',      color: 'bg-rose-100 text-rose-700',      needsComment: true, hint: 'What is the conflict?' },
+  { key: 'deferred',      label: 'Deferred',       color: 'bg-slate-100 text-slate-700',    needsComment: true, hint: 'Give the reason for deferring' },
   { key: 'done',          label: 'Done',           color: 'bg-emerald-100 text-emerald-700', needsComment: false, hint: 'Completed the class' },
 ]
 
@@ -294,6 +296,8 @@ export default function MarketerDashboard() {
                             ps.status === 'next_session' ? 'Which session will they join, and why the wait?' :
                             ps.status === 'follow_up' ? 'What needs following up, and when?' :
                             ps.status === 'defiled' ? 'Why did they stop the current class to join the next?' :
+                            ps.status === 'conflicts' ? 'What is the conflict?' :
+                            ps.status === 'deferred' ? 'Give the reason for deferring' :
                             'Add your comment...'
                           }
                           className="w-full text-xs px-3 py-2 border border-[var(--line)] rounded-lg resize-none focus:outline-none focus:border-[var(--accent)] bg-white mb-2" />

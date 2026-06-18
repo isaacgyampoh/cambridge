@@ -51,6 +51,8 @@ export const STATUS_COLORS: Record<string, string> = {
   next_session: 'bg-amber-100 text-amber-700',
   zuku: 'bg-red-100 text-red-600',
   defiled: 'bg-purple-100 text-purple-700',
+  conflicts: 'bg-rose-100 text-rose-700',
+  deferred: 'bg-slate-100 text-slate-700',
   done: 'bg-emerald-100 text-emerald-700',
   ready_to_join: 'bg-green-100 text-green-700',
   registered: 'bg-emerald-100 text-emerald-700',
@@ -61,7 +63,7 @@ export const STATUS_COLORS: Record<string, string> = {
 export const STATUS_LABELS: Record<string, string> = {
   new: 'New', contacted: 'Contacted', interested: 'Interested',
   follow_up: 'Follow Up', next_session: 'Next Session', zuku: 'Zuku',
-  defiled: 'Defiled', done: 'Done', ready_to_join: 'Ready to Join',
+  defiled: 'Defiled', conflicts: 'Conflicts', deferred: 'Deferred', done: 'Done', ready_to_join: 'Ready to Join',
   registered: 'Registered', not_interested: 'Not Interested', lost: 'Lost',
 }
 
