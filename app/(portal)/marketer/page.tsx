@@ -3,7 +3,7 @@ import { useState, useEffect } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { STATUS_COLORS, formatGHS } from '@/lib/utils'
-import { Phone, MessageSquare, ChevronDown, ChevronUp, Plus, Clock } from 'lucide-react'
+import { Phone, MessageSquare, ChevronDown, ChevronUp, Plus, Clock, ArrowLeftRight, X } from 'lucide-react'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import { changeLeadStatus } from '@/lib/leadStatus'
@@ -32,6 +32,41 @@ export default function MarketerDashboard() {
   const [updating, setUpdating] = useState<string|null>(null)
   const [pendingStatus, setPendingStatus] = useState<{ leadId: string; status: string } | null>(null)
   const [comment, setComment] = useState('')
+  const [reqOpen, setReqOpen] = useState(false)
+  const [reqPhone, setReqPhone] = useState('')
+  const [reqReason, setReqReason] = useState('')
+  const [reqFound, setReqFound] = useState<any>(null)
+  const [reqBusy, setReqBusy] = useState(false)
+
+  async function lookupLead() {
+    if (!reqPhone.trim()) return
+    setReqBusy(true); setReqFound(null)
+    try {
+      const d = await fetch('/api/leads/transfer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lookup', phone: reqPhone }),
+      }).then(r => r.json())
+      if (!d.found) { toast.error('No lead found with that number'); setReqBusy(false); return }
+      if (d.lead.mine) { toast.error('This lead is already yours'); setReqBusy(false); return }
+      setReqFound({ ...d.lead, assignee: { full_name: d.lead.owner_name } })
+    } catch { toast.error('Lookup failed') }
+    finally { setReqBusy(false) }
+  }
+
+  async function submitRequest() {
+    if (!reqFound) return
+    setReqBusy(true)
+    try {
+      const res = await fetch('/api/leads/transfer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'request', leadId: reqFound.id, reason: reqReason }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      toast.success('Transfer request sent to the manager')
+      setReqOpen(false); setReqPhone(''); setReqReason(''); setReqFound(null)
+    } catch (e: any) { toast.error(e.message) }
+    finally { setReqBusy(false) }
+  }
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setMyId(s.userId) })
@@ -158,6 +193,10 @@ export default function MarketerDashboard() {
             className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
             My link
           </Link>
+          <button onClick={() => setReqOpen(true)}
+            className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
+            <ArrowLeftRight size={14} /> Request a lead
+          </button>
         </div>
       </div>
 
@@ -335,6 +374,43 @@ export default function MarketerDashboard() {
               </div>
             )
           })}
+        </div>
+      )}
+
+      {/* Request a lead modal */}
+      {reqOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setReqOpen(false)}>
+          <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Request a lead</h2>
+              <button onClick={() => setReqOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            </div>
+            <p className="text-sm text-[var(--ink-soft)] mb-4">If a lead reached you but is assigned to someone else, enter their number to request the lead. Your manager will review it.</p>
+
+            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Lead's phone number</label>
+            <div className="flex gap-2 mb-4">
+              <input value={reqPhone} onChange={e => setReqPhone(e.target.value)} placeholder="024 000 0000"
+                className="flex-1 h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+              <button onClick={lookupLead} disabled={reqBusy}
+                className="h-11 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-xl text-sm font-medium disabled:opacity-50">Find</button>
+            </div>
+
+            {reqFound && (
+              <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4">
+                <div className="font-semibold text-[var(--ink)]">{reqFound.full_name}</div>
+                <div className="text-xs text-[var(--ink-soft)] mt-0.5">
+                  {reqFound.assigned_to ? `Currently with ${reqFound.assignee?.full_name || 'another marketer'}` : 'Currently unassigned'}
+                </div>
+                <textarea value={reqReason} onChange={e => setReqReason(e.target.value)} rows={2}
+                  placeholder="Why should this lead be transferred to you?"
+                  className="w-full mt-3 px-3 py-2 rounded-lg border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
+                <button onClick={submitRequest} disabled={reqBusy}
+                  className="w-full mt-3 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold disabled:opacity-50">
+                  {reqBusy ? 'Sending…' : 'Send request to manager'}
+                </button>
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

@@ -93,6 +93,7 @@ export const ALL_PORTALS = [
     { label: 'Pipeline',        href: '/admin/pipeline' },
     { label: 'Hot Leads',       href: '/admin/hotleads' },
     { label: 'Conversions',     href: '/admin/conversions' },
+    { label: 'Transfer Requests', href: '/admin/transfers' },
     { label: 'Add Lead',        href: '/admin/leads/new' },
     { label: 'Import',          href: '/admin/leads/import' },
     { label: 'Marketers',       href: '/admin/marketers' },
