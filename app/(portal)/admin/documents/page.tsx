@@ -83,9 +83,6 @@ export default function DocumentsPage() {
     if (!confirm('Delete this document?')) return
     try {
       await mutateDelete('documents', [{ col: 'id', val: id }])
-      // Extract path from URL and delete from storage
-      const path = fileUrl.split('/storage/v1/object/public/documents/')[1]
-      if (path) await sb.storage.from('documents').remove([path])
       toast.success('Document deleted')
       load()
     } catch (e: any) {

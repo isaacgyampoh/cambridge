@@ -1,8 +1,14 @@
 import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function POST(req: NextRequest) {
+  const token = req.cookies.get('cce_session')?.value
+  const session = token ? await verifySession(token) : { valid: false, role: '' }
+  if (!session.valid || !['super_admin', 'project_manager', 'admissions_officer', 'receptionist'].includes(session.role || '')) {
+    return NextResponse.json({ error: 'Not permitted' }, { status: 403 })
+  }
  const { documentId, studentIds } = await req.json()
  if (!documentId || !studentIds?.length) {
  return NextResponse.json({ error: 'Missing params' }, { status: 400 })

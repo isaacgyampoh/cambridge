@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
@@ -39,6 +40,11 @@ function buildPersonalizedMessage(
 }
 
 export async function POST(req: NextRequest) {
+  const token = req.cookies.get('cce_session')?.value
+  const session = token ? await verifySession(token) : { valid: false, role: '' }
+  if (!session.valid || !['super_admin', 'project_manager', 'trainer', 'receptionist'].includes(session.role || '')) {
+    return NextResponse.json({ error: 'Not permitted' }, { status: 403 })
+  }
  const { batchId, type } = await req.json()
  if (!batchId || !type) return NextResponse.json({ error: 'Missing batchId or type' }, { status: 400 })
 
