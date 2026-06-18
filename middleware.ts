@@ -9,7 +9,7 @@ const PUBLIC = [
   '/certificate/',
   '/testimonial/', '/api/testimonials/',
   '/login', '/setup', '/apply/', '/signin/', '/public-alumni',
-  '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/classes/pay', '/api/webhooks/', '/api/applications/', '/_next', '/favicon',
+  '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/classes/pay', '/api/fees/pay', '/api/webhooks/', '/api/applications/', '/_next', '/favicon',
 ]
 
 // Portal ID → path prefixes it grants access to
@@ -112,7 +112,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links', '/api/prep',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links', '/api/prep', '/api/fees',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 

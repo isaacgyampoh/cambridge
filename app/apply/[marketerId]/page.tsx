@@ -141,18 +141,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   }
 
   if (step === 3) return (
-    <div className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: "var(--canvas)" }}>
-      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-8 max-w-md w-full text-center">
-        <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: "var(--accent-soft)" }}>
-          <svg width="40" height="40" viewBox="0 0 40 40" fill="none">
-            <path d="M8 20L16 28L32 12" stroke="#2f80d6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/>
-          </svg>
-        </div>
-        <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-2">Application received</h1>
-        <p className="text-[var(--ink-soft)] mb-2">Welcome to Cambridge Centre of Excellence, {form.first_name}.</p>
-        <p className="text-sm text-[var(--ink-faint)]">Our admissions team will review your application and contact you within 24 hours.</p>
-      </div>
-    </div>
+    <FeePayStep applicationId={applicationId} firstName={form.first_name} />
   )
 
   return (
@@ -337,5 +326,146 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
         </div>
       </div>
     </>
+  )
+}
+
+// ── Post-registration fee step: shows the course fee and offers
+// pay now (MoMo / bank) or later. Appears right after registration. ──
+function FeePayStep({ applicationId, firstName }: { applicationId: string | null; firstName: string }) {
+  const [fee, setFee] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const [view, setView] = useState<'intro' | 'method' | 'bank' | 'done'>('intro')
+  const [amount, setAmount] = useState('')
+  const [screenshot, setScreenshot] = useState('')
+  const [uploading, setUploading] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [receipt, setReceipt] = useState<any>(null)
+
+  useEffect(() => {
+    if (!applicationId) { setLoading(false); return }
+    let tries = 0
+    const tick = async () => {
+      const d = await fetch(`/api/fees/pay?applicationId=${applicationId}`).then(r => r.json()).catch(() => ({ found: false }))
+      if (d.found) { setFee(d.fee); setAmount(String(d.fee.balance)); setLoading(false) }
+      else if (tries++ < 5) setTimeout(tick, 1500)  // the ledger is created moments after payment webhook
+      else setLoading(false)
+    }
+    tick()
+  }, [applicationId])
+
+  function payMomo() {
+    const amt = Number(amount)
+    if (!(amt > 0)) { toast.error('Enter an amount'); return }
+    const ps = (window as any).PaystackPop
+    if (!ps) { toast.error('Payment not available, please refresh'); return }
+    ps.setup({
+      key: CONFIG.paystackPublicKey,
+      email: `${(fee.student_name || 'student').replace(/\s+/g, '').toLowerCase()}@cce.edu.gh`,
+      amount: Math.round(amt * 100), currency: 'GHS',
+      ref: `CCE-FEE-${fee.id}-${Date.now()}`,
+      channels: ['mobile_money', 'card'],
+      callback: (res: any) => record('momo', amt, res.reference),
+      onClose: () => {},
+    }).openIframe()
+  }
+
+  async function record(method: string, amt: number, paystackRef?: string, screenshotUrl?: string) {
+    setBusy(true)
+    try {
+      const res = await fetch('/api/fees/pay', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ studentFeeId: fee.id, amount: amt, method, paystackRef, screenshotUrl }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      setReceipt(res); setView('done')
+    } catch (e: any) { toast.error(e.message) } finally { setBusy(false) }
+  }
+
+  async function uploadShot(file: File) {
+    if (!CONFIG.cloudinaryCloudName || !CONFIG.cloudinaryUploadPreset) { toast.error('Upload not available'); return }
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file); fd.append('upload_preset', CONFIG.cloudinaryUploadPreset); fd.append('folder', 'cce/fee-proofs')
+      const r = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudinaryCloudName}/image/upload`, { method: 'POST', body: fd }).then(x => x.json())
+      if (r.secure_url) setScreenshot(r.secure_url)
+    } catch { toast.error('Upload failed') } finally { setUploading(false) }
+  }
+
+  const card = "bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-8 max-w-md w-full"
+  const btn = "w-full h-12 rounded-xl font-semibold text-[15px] transition"
+
+  return (
+    <div className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: "var(--canvas)" }}>
+      <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
+      <div className={card}>
+        <div className="text-center mb-6">
+          <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-soft)" }}>
+            <svg width="34" height="34" viewBox="0 0 40 40" fill="none"><path d="M8 20L16 28L32 12" stroke="#2f80d6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+          </div>
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-1">You're registered, {firstName}!</h1>
+          <p className="text-sm text-[var(--ink-soft)]">Your admission letter is on its way by WhatsApp.</p>
+        </div>
+
+        {loading ? (
+          <p className="text-center text-sm text-[var(--ink-faint)]">Loading your fees…</p>
+        ) : !fee || Number(fee.total_fee) <= 0 ? (
+          <p className="text-center text-sm text-[var(--ink-faint)]">Our team will be in touch about your fees shortly.</p>
+        ) : view === 'intro' ? (
+          <>
+            <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4 text-center">
+              <div className="text-xs text-[var(--ink-faint)] uppercase tracking-wide">Your course fee</div>
+              <div className="font-display text-3xl font-semibold text-[var(--ink)] mt-1">GHS {Number(fee.total_fee).toFixed(2)}</div>
+              {Number(fee.amount_paid) > 0 && <div className="text-xs text-emerald-600 mt-1">GHS {Number(fee.amount_paid).toFixed(2)} paid · balance GHS {Number(fee.balance).toFixed(2)}</div>}
+            </div>
+            <p className="text-center text-sm text-[var(--ink-soft)] mb-4">Would you like to pay now, or later?</p>
+            <button onClick={() => setView('method')} className={btn + " bg-[var(--accent)] text-white mb-2.5"}>Pay now</button>
+            <button onClick={() => setView('done')} className={btn + " bg-[var(--line-soft)] text-[var(--ink-soft)]"}>I'll pay later</button>
+          </>
+        ) : view === 'method' ? (
+          <>
+            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Amount to pay</label>
+            <p className="text-[11px] text-[var(--ink-faint)] mb-2">You can pay all or part of GHS {Number(fee.balance).toFixed(2)}.</p>
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full h-12 px-4 rounded-xl border border-[var(--line)] text-[15px] mb-4 outline-none" />
+            <button onClick={payMomo} disabled={busy} className={btn + " mb-2.5"} style={{ background: '#ffcc00', color: '#1a2230' }}>Mobile Money (MoMo)</button>
+            <button onClick={() => setView('bank')} className={btn + " text-white"} style={{ background: '#1e3a8a' }}>Bank transfer</button>
+          </>
+        ) : view === 'bank' ? (
+          <>
+            <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4 text-sm">
+              <div className="font-semibold text-[var(--ink)] mb-1.5">Bank transfer details</div>
+              <div className="text-[var(--ink-soft)]">Bank: <strong>Cambridge CE Bank</strong></div>
+              <div className="text-[var(--ink-soft)]">Account: <strong>1234567890</strong></div>
+              <div className="text-[11px] text-[var(--ink-faint)] mt-2">Transfer GHS {Number(amount).toFixed(2)}, then upload your screenshot. Finance will verify it.</div>
+            </div>
+            {screenshot ? (
+              <div className="flex items-center gap-2 mb-3"><img src={screenshot} alt="" className="w-11 h-11 rounded-lg object-cover" /><span className="text-sm text-emerald-600">Screenshot attached</span></div>
+            ) : (
+              <label className="flex items-center justify-center h-12 rounded-xl border border-dashed border-[var(--line)] text-sm text-[var(--ink-soft)] cursor-pointer mb-3">
+                {uploading ? 'Uploading…' : 'Upload payment screenshot'}
+                <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadShot(f) }} />
+              </label>
+            )}
+            <button onClick={() => record('bank', Number(amount), undefined, screenshot)} disabled={busy || !screenshot} className={btn + " bg-[var(--accent)] text-white disabled:opacity-50"}>{busy ? 'Submitting…' : 'Submit for verification'}</button>
+          </>
+        ) : (
+          <div className="text-center">
+            {receipt ? (
+              <>
+                <div className="text-emerald-600 text-3xl mb-2">✓</div>
+                <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">{receipt.verified ? 'Payment received' : receipt.message}</h2>
+                {receipt.receiptNo && <p className="text-sm text-[var(--ink-soft)]">Receipt: {receipt.receiptNo}</p>}
+                {receipt.verified && <p className="text-sm text-[var(--ink-soft)] mt-1">{receipt.balance > 0 ? `Balance: GHS ${receipt.balance.toFixed(2)}` : 'Fully paid — thank you!'}</p>}
+              </>
+            ) : (
+              <>
+                <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">All set, {firstName}!</h2>
+                <p className="text-sm text-[var(--ink-soft)]">You can pay your fees anytime. Our team will share the details.</p>
+              </>
+            )}
+          </div>
+        )}
+      </div>
+    </div>
   )
 }

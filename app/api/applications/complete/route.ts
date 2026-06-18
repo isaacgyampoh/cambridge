@@ -158,5 +158,27 @@ export async function POST(req: NextRequest) {
     await sb.from('admissions').update({ admission_letter_sent: true, admitted_at: new Date().toISOString() }).eq('lead_id', leadId).then(() => {}, () => {})
   }
 
+  // 6. STUDENT FEES — create the fee ledger so the student appears on the
+  // finance page with their course fee owed. Idempotent per application.
+  try {
+    const { data: existingFee } = await sb.from('student_fees').select('id').eq('application_id', applicationId).maybeSingle()
+    if (!existingFee) {
+      // Course fee from the course record (the total school fee)
+      let totalFee = 0, courseName = (app as any).course?.name || null
+      if (app.course_id) {
+        const { data: course } = await sb.from('courses').select('name, course_fee').eq('id', app.course_id).maybeSingle()
+        if (course) { totalFee = Number(course.course_fee) || 0; courseName = course.name }
+      }
+      await sb.from('student_fees').insert({
+        application_id: applicationId, lead_id: leadId,
+        student_name: app.full_name, email: app.email, phone: app.phone,
+        course_id: app.course_id, course_name: courseName,
+        delivery: app.delivery || 'in_person',
+        total_fee: totalFee, amount_paid: 0, balance: totalFee,
+        status: totalFee > 0 ? 'owing' : 'paid',
+      })
+    }
+  } catch { /* fee ledger optional — never block registration */ }
+
   return NextResponse.json({ success: true, credited: app.payment_status === 'paid' })
 }

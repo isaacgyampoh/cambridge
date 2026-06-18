@@ -107,6 +107,7 @@ export const ALL_PORTALS = [
   ]},
   { id: 'grp_finance', label: 'Finance', icon: DollarSign, href: '/finance', children: [
     { label: 'Payments & Invoices', href: '/finance' },
+    { label: 'Student Fees',        href: '/finance/student-fees' },
     { label: 'Class Payments',      href: '/finance/class-payments' },
     { label: 'Registrations',       href: '/finance/registrations' },
     { label: 'Reports',             href: '/finance/reports' },
