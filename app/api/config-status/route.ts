@@ -19,6 +19,7 @@ export async function GET() {
     wawpCentral: !!CONFIG.wawpInstanceId && !!CONFIG.wawpAccessToken,
     wawpLines: waLines,
     resend: !!CONFIG.resendApiKey,
+    cloudinary: !!CONFIG.cloudinaryCloudName && !!CONFIG.cloudinaryUploadPreset,
     ai: !!CONFIG.anthropicApiKey && CONFIG.aiAssistantEnabled,
     senderId: CONFIG.arkeselSenderId,
   })

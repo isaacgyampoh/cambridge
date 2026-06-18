@@ -74,6 +74,7 @@ export default function SettingsPage() {
     { name: 'WhatsApp', desc: `${status.wawpLines} line${status.wawpLines === 1 ? '' : 's'} connected`, icon: MessageSquare, ok: status.wawpLines > 0 || status.wawpCentral, detail: status.wawpLines > 0 ? `${status.wawpLines} connected` : status.wawpCentral ? 'Central line set' : 'No lines yet' },
     { name: 'AI assistant', desc: 'Auto-answers WhatsApp inquiries', icon: Sparkles, ok: status.ai, detail: status.ai ? 'Active' : 'Add Anthropic key' },
     { name: 'Email', desc: 'Resend', icon: Mail, ok: status.resend, detail: status.resend ? 'Active' : 'Optional — not set' },
+    { name: 'File storage', desc: 'Cloudinary · certificates, receipts, brochures', icon: Database, ok: status.cloudinary, detail: status.cloudinary ? 'Connected' : 'Add Cloudinary keys' },
   ] : []
 
   const webhooks = [
