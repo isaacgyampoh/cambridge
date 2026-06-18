@@ -15,8 +15,11 @@ export async function POST(req: NextRequest) {
 
   const sb = createServiceClient()
 
+  // Class info (incl. the Zoom link set per class on the batch)
+  const { data: batch } = await sb.from('batches').select('id, name, zoom_link').eq('id', batchId).maybeSingle()
+
   const { data: roster } = await sb.from('class_enrollments')
-    .select('id, full_name, phone, total_fee, amount_paid, balance, application_id')
+    .select('id, full_name, phone, total_fee, amount_paid, balance, application_id, application:application_id(delivery)')
     .eq('batch_id', batchId).eq('status', 'active')
   const q = name.toLowerCase().trim()
   const match = (roster || []).find((s: any) => (s.full_name || '').toLowerCase().trim() === q) ||
@@ -25,19 +28,34 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'name_not_found', message: "We couldn't find your name on this class list. Please check the spelling or see the desk." }, { status: 404 })
   }
 
-  let inPerson = false
+  // Is this student registered as an online student?
+  const registeredOnline = (match as any).application?.delivery === 'online'
+
+  let atVenue = false
   if (typeof lat === 'number' && typeof lng === 'number') {
     const { data: offices } = await sb.from('office_locations').select('latitude, longitude, radius_meters')
     if (offices?.length) {
       for (const o of offices) {
         const dist = distanceMeters(lat, lng, Number(o.latitude), Number(o.longitude))
-        if (dist <= (o.radius_meters || 150)) { inPerson = true; break }
+        if (dist <= (o.radius_meters || 150)) { atVenue = true; break }
       }
     }
   }
 
-  if (!inPerson && !joiningOnline) {
-    return NextResponse.json({ error: 'not_in_class', message: "You don't appear to be at the class venue. If you're joining online today, choose that option." }, { status: 403 })
+  // Decide the mode:
+  //  - Registered online students are always online (get the Zoom link).
+  //  - In-person students at the venue -> in_person.
+  //  - In-person students NOT at the venue -> only if they choose online,
+  //    then they switch to online (and get the Zoom link).
+  let mode: 'in_person' | 'online'
+  if (registeredOnline) {
+    mode = 'online'
+  } else if (atVenue) {
+    mode = 'in_person'
+  } else if (joiningOnline) {
+    mode = 'online'
+  } else {
+    return NextResponse.json({ error: 'not_in_class', message: "You don't appear to be at the class venue. If you're joining online today, choose that option and we'll switch you over.", canJoinOnline: true }, { status: 403 })
   }
 
   const today = new Date().toISOString().slice(0, 10)
@@ -50,7 +68,8 @@ export async function POST(req: NextRequest) {
     })
   }
 
-  if (!inPerson && joiningOnline && match.application_id) {
+  // If an in-person student switched to online, flip their delivery
+  if (mode === 'online' && !registeredOnline && match.application_id) {
     await sb.from('applications').update({ delivery: 'online' }).eq('id', match.application_id).then(() => {}, () => {})
   }
 
@@ -58,11 +77,14 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     success: true,
-    mode: inPerson ? 'in_person' : 'online',
+    mode,
+    switched: mode === 'online' && !registeredOnline,
+    zoomLink: mode === 'online' ? (batch?.zoom_link || null) : null,
     enrollmentId: match.id,
     studentName: match.full_name,
     totalFee: match.total_fee || 0,
     amountPaid: match.amount_paid || 0,
     balance,
+    allowCash: mode === 'in_person',  // online students pay MoMo/bank only
   })
 }
