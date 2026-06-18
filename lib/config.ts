@@ -49,8 +49,8 @@ export const CONFIG = {
   //  1. Sign up -> Dashboard shows your "Cloud name"
   //  2. Settings -> Upload -> add an UNSIGNED upload preset, copy its name
   // Only these two are needed for browser uploads (no secret exposed).
-  cloudinaryCloudName: '',
-  cloudinaryUploadPreset: '',
+  cloudinaryCloudName: 'dafiojcq6',
+  cloudinaryUploadPreset: 'cce_uploads',
 
   // ── PIN AUTH ─────────────────────────────────────────────────
   pinSalt: 'cce-pin-salt-cambridge-2024',
