@@ -14,7 +14,7 @@ export default function CoursesPage() {
   const [saving, setSaving] = useState(false)
 
   function openNew() {
-    setEditing({ name: '', code: '', description: '', duration: '', course_fee: 0, registration_fee: 200, is_active: true })
+    setEditing({ name: '', code: '', description: '', duration: '', course_fee: 0, course_fee_online: 0, registration_fee: 200, is_active: true })
     setModal('new')
   }
   function openEdit(c: Course) { setEditing({ ...c }); setModal('edit') }
@@ -42,7 +42,8 @@ export default function CoursesPage() {
     { key: 'name', label: 'Course name', placeholder: 'Project Management Professional', type: 'text', required: true },
     { key: 'code', label: 'Code', placeholder: 'PMP-001', type: 'text' },
     { key: 'duration', label: 'Duration', placeholder: '3 months', type: 'text' },
-    { key: 'course_fee', label: 'Course fee (GHS)', placeholder: '2000', type: 'number' },
+    { key: 'course_fee', label: 'Course fee — in person (GHS)', placeholder: '4950', type: 'number' },
+    { key: 'course_fee_online', label: 'Course fee — online (GHS)', placeholder: '3950', type: 'number' },
     { key: 'registration_fee', label: 'Registration fee (GHS)', placeholder: '200', type: 'number' },
   ]
 
@@ -108,6 +109,7 @@ export default function CoursesPage() {
                   <div className="flex justify-between"><span className="text-[var(--ink-faint)]">Duration</span><span className="font-medium text-[var(--ink)]">{c.duration}</span></div>
                 )}
                 <div className="flex justify-between"><span className="text-[var(--ink-faint)]">Course fee</span><span className="font-semibold text-[var(--ink)]">GHS {Number(c.course_fee || 0).toLocaleString()}</span></div>
+                {Number(c.course_fee_online) > 0 && <div className="flex justify-between"><span className="text-[var(--ink-faint)]">Online fee</span><span className="font-medium text-[var(--ink)]">GHS {Number(c.course_fee_online).toLocaleString()}</span></div>}
                 <div className="flex justify-between"><span className="text-[var(--ink-faint)]">Registration</span><span className="font-medium text-[var(--ink)]">GHS {Number(c.registration_fee || 0).toLocaleString()}</span></div>
               </div>
 

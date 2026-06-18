@@ -166,8 +166,14 @@ export async function POST(req: NextRequest) {
       // Course fee from the course record (the total school fee)
       let totalFee = 0, courseName = (app as any).course?.name || null
       if (app.course_id) {
-        const { data: course } = await sb.from('courses').select('name, course_fee').eq('id', app.course_id).maybeSingle()
-        if (course) { totalFee = Number(course.course_fee) || 0; courseName = course.name }
+        const { data: course } = await sb.from('courses').select('name, course_fee, course_fee_online').eq('id', app.course_id).maybeSingle()
+        if (course) {
+          courseName = course.name
+          // Online students pay the online fee where one is set; otherwise the standard fee
+          const isOnline = (app.delivery || 'in_person') === 'online'
+          const onlineFee = Number(course.course_fee_online) || 0
+          totalFee = isOnline && onlineFee > 0 ? onlineFee : (Number(course.course_fee) || 0)
+        }
       }
       await sb.from('student_fees').insert({
         application_id: applicationId, lead_id: leadId,
