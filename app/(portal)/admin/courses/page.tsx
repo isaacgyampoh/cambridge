@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useData, mutate } from '@/hooks/useData'
+import FileUpload from '@/components/shared/FileUpload'
 import type { Course } from '@/types'
 import { toast } from 'sonner'
 import { Plus, X, BookOpen, Pencil } from 'lucide-react'
@@ -74,6 +75,10 @@ export default function CoursesPage() {
             <Field label="Description">
               <textarea value={(editing as any)?.description || ''} onChange={e => setEditing({ ...editing, description: e.target.value })} rows={3}
                 className={inputClass.replace('h-11', 'min-h-[80px] py-3')} />
+            </Field>
+            <Field label="Brochure (PDF)">
+              <FileUpload onUploaded={url => setEditing({ ...editing, brochure_url: url })} value={(editing as any)?.brochure_url} label="Upload course brochure" accept="application/pdf" folder="cce/brochures" />
+              <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">The AI sends this brochure to leads interested in this course, alongside its reply.</p>
             </Field>
           </div>
           <div className="flex gap-2 mt-6">

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { generateAssistantReply } from '@/lib/integrations/ai-assistant'
-import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
+import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
 
 /**
@@ -61,6 +61,27 @@ export async function POST(req: NextRequest) {
   // If the lead signals they want to register, send their marketer's
   // registration link straight away instead of a generic reply.
   const lower = text.toLowerCase()
+
+  // ── Brochure intent: send the course brochure PDF ──
+  // If the lead asks about fees, price, details or a brochure, and their
+  // course of interest has a brochure uploaded, send the PDF with the reply.
+  const wantsBrochure = /\b(brochure|flyer|price|prices|pricing|fee|fees|cost|how much|details|more info|information|tell me more)\b/.test(lower)
+  if (wantsBrochure && lead?.course_interest) {
+    const { data: course } = await sb.from('courses')
+      .select('name, brochure_url').or(`code.eq.${lead.course_interest},name.ilike.%${lead.course_interest}%`).maybeSingle()
+    if (course?.brochure_url) {
+      const first = (lead?.full_name || '').split(' ')[0] || 'there'
+      const mFirst = (marketer?.full_name || '').split(' ')[0] || ''
+      const caption = `Here you go, ${first} — full details of our ${course.name} programme are in this brochure. Let me know if you'd like to register or have any questions.${mFirst ? `\n\n${mFirst}` : ''}`
+      const sent = await sendWhatsAppMedia(phone, caption, course.brochure_url, marketer?.id || null)
+      await sb.from('ai_conversations').insert({
+        phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
+        incoming_text: text, reply_text: '[brochure sent] ' + caption, answered_by: sent ? 'ai_brochure' : 'fallback',
+      }).then(() => {}, () => {})
+      if (sent) return NextResponse.json({ ok: true, brochure: true })
+    }
+  }
+
   const wantsToRegister = /\b(register|sign ?up|enroll|enrol|join|pay|send.*(link|form)|i'?m ready|am ready|ready to)\b/.test(lower)
     && /\b(register|sign ?up|enroll|enrol|join|link|form|pay|ready)\b/.test(lower)
 

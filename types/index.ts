@@ -52,6 +52,7 @@ export interface Course {
   duration: string | null
   course_fee: number
   course_fee_online?: number
+  brochure_url?: string
   registration_fee: number
   campus_id: string | null
   is_active: boolean
