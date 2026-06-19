@@ -9,7 +9,7 @@ import {
   LayoutDashboard, Users, UserCheck, DollarSign, BookOpen,
   Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
   ClipboardList, Settings, Building2, ChevronRight,
-  Radio, CalendarCheck, FolderOpen, BarChart3, Search, Sparkles, Flame, MessageSquare, Trophy,
+  Radio, CalendarCheck, FolderOpen, BarChart3, Search, Sparkles, MessageSquare, Trophy,
   Shield, ArrowLeft, ChevronDown, UserPlus, Link2
 } from 'lucide-react'
 
@@ -72,11 +72,9 @@ export const ALL_PORTALS = [
   { id: 'my_payments', label: 'My Payments',  icon: DollarSign,      href: '/student' },
   { id: 'reminders',   label: 'Reminders',    icon: Bell,            href: '/receptionist' },
   { id: 'workforce',   label: 'Workforce',    icon: CalendarCheck,   href: '/admin/workforce' },
-  { id: 'signins',     label: 'Walk-in Sign-ins', icon: ClipboardList, href: '/admin/signins' },
   { id: 'wa_lines',    label: 'WhatsApp Lines', icon: Radio,         href: '/admin/whatsapp' },
   { id: 'knowledge',   label: 'AI Knowledge', icon: Sparkles,         href: '/admin/knowledge' },
   { id: 'conversations', label: 'AI Conversations', icon: MessageSquare, href: '/admin/conversations' },
-  { id: 'hotleads',    label: 'Hot Leads',    icon: Flame,           href: '/admin/hotleads' },
   { id: 'remuneration', label: 'Remuneration', icon: Trophy,          href: '/admin/remuneration' },
   { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
   { id: 'my_links',    label: 'My Links',     icon: Link2,           href: '/links' },
@@ -92,7 +90,6 @@ export const ALL_PORTALS = [
     { label: 'All Leads',       href: '/admin/leads' },
     { label: 'Leads by Course', href: '/admin/leads/courses' },
     { label: 'Pipeline',        href: '/admin/pipeline' },
-    { label: 'Hot Leads',       href: '/admin/hotleads' },
     { label: 'Conversions',     href: '/admin/conversions' },
     { label: 'Transfer Requests', href: '/admin/transfers' },
     { label: 'Add Lead',        href: '/admin/leads/new' },
@@ -103,7 +100,6 @@ export const ALL_PORTALS = [
   { id: 'grp_enrolment', label: 'Enrolment', icon: UserCheck, href: '/admin/admissions', children: [
     { label: 'Admissions',       href: '/admin/admissions' },
     { label: 'Student Records',  href: '/admin/registrations' },
-    { label: 'Walk-in Sign-ins', href: '/admin/signins' },
   ]},
   { id: 'grp_finance', label: 'Finance', icon: DollarSign, href: '/finance', children: [
     { label: 'Payments & Invoices', href: '/finance' },

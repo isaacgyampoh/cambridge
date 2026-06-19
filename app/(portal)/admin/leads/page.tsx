@@ -38,8 +38,6 @@ export default function AdminLeads() {
       Source: l.source,
       Stage: l.status?.replace(/_/g, ' '),
       Course: l.course_interest || '',
-      Score: l.score ?? '',
-      Temperature: l.score_label || '',
       Owner: l.assignee?.full_name || 'Unassigned',
       Added: formatDateTime(l.created_at),
     }))

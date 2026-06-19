@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
     safe(sb.from('leads').select('id, full_name, source, created_at').order('created_at', { ascending: false }).limit(8)),
     safe(sb.from('payments').select('id, amount, status, created_at, student:student_id(full_name)').eq('status', 'paid').order('created_at', { ascending: false }).limit(8)),
     safe(sb.from('admissions').select('id, status, created_at, lead:lead_id(full_name)').order('created_at', { ascending: false }).limit(8)),
-    safe(sb.from('external_signins').select('id, full_name, created_at').order('created_at', { ascending: false }).limit(8)),
+    safe(sb.from('class_signins').select('id, student_name, signed_in_at').order('signed_in_at', { ascending: false }).limit(8)),
     safe(sb.from('staff_attendance').select('id, clock_in_at, status, staff:staff_id(full_name)').order('clock_in_at', { ascending: false }).limit(8)),
   ])
 
@@ -33,7 +33,7 @@ export async function GET(req: NextRequest) {
     type: 'admission', icon: 'admission', title: `Admission ${a.status?.replace(/_/g, ' ')}`, sub: a.lead?.full_name || '', at: a.created_at,
   }))
   ;((signins as any).data || []).forEach((s: any) => events.push({
-    type: 'signin', icon: 'signin', title: `Walk-in sign-in`, sub: s.full_name || '', at: s.created_at,
+    type: 'signin', icon: 'signin', title: `Class sign-in`, sub: s.student_name || '', at: s.signed_in_at,
   }))
   ;((attendance as any).data || []).forEach((a: any) => events.push({
     type: 'attendance', icon: 'attendance', title: `${a.staff?.full_name || 'Staff'} clocked in`, sub: a.status === 'late' ? 'Late' : 'On time', at: a.clock_in_at,

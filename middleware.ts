@@ -33,11 +33,9 @@ const PORTAL_PATHS: Record<string, string[]> = {
   my_payments: ['/student'],
   reminders:   ['/receptionist'],
   workforce:   ['/admin/workforce'],
-  signins:     ['/admin/signins'],
   wa_lines:    ['/admin/whatsapp'],
   knowledge:   ['/admin/knowledge'],
   conversations: ['/admin/conversations'],
-  hotleads:    ['/admin/hotleads'],
   remuneration: ['/admin/remuneration'],
   my_earnings: ['/marketer/earnings'],
   registrations: ['/finance/registrations'],
@@ -49,7 +47,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','signins','wa_lines','knowledge','conversations','hotleads','remuneration','clock_in','settings'],
+  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings'],
   project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','clock_in'],
   admissions_officer:['dashboard','admissions','leads','clock_in'],

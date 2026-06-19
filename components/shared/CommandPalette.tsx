@@ -31,7 +31,6 @@ const COMMANDS: Command[] = [
   { label: 'WhatsApp lines', href: '/admin/whatsapp', icon: MessageSquare, keywords: 'instance wawp connect line' },
   { label: 'Class attendance', href: '/admin/attendance', icon: CalendarCheck, keywords: 'sign in class session' },
   { label: 'Staff attendance', sublabel: 'Workforce', href: '/admin/workforce', icon: CalendarCheck, keywords: 'clock in office location geofence' },
-  { label: 'Walk-in sign-ins', href: '/admin/signins', icon: ClipboardList, keywords: 'google sheet form external' },
   { label: 'Academics', href: '/admin/academics', icon: BookOpen, keywords: 'courses classes programmes' },
   { label: 'Courses', href: '/admin/courses', icon: BookOpen, keywords: 'programme catalogue fee' },
   { label: 'Classes', href: '/admin/classes', icon: GraduationCap, keywords: 'batch trainer schedule' },
