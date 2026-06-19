@@ -266,7 +266,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                       { value: 'online', label: 'Online', sub: 'Join classes via Zoom' },
                       { value: 'in_person', label: 'In-person', sub: 'Attend at the campus' },
                     ].map(d => (
-                      <button key={d.value} type="button" onClick={() => set('delivery', d.value)}
+                      <button key={d.value} type="button" onClick={() => { set('delivery', d.value); if (d.value === 'online') set('payment_method', 'paystack') }}
                         className={`text-left px-4 py-3 rounded-xl border transition ${form.delivery === d.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'}`}>
                         <div className="text-sm font-bold text-gray-900">{d.label}</div>
                         <div className="text-[11px] text-[var(--ink-faint)]">{d.sub}</div>
@@ -282,7 +282,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { value: 'paystack', label: 'Pay Online', sub: 'MoMo or Card' },
-                    { value: 'cash', label: 'Pay Cash', sub: 'At the office' },
+                    // Online students must pay the registration fee online (no cash)
+                    ...(form.delivery === 'online' ? [] : [{ value: 'cash', label: 'Pay Cash', sub: 'At the office' }]),
                   ].map(m => (
                     <button key={m.value} type="button" onClick={() => set('payment_method', m.value)}
                       className={`p-3 rounded-xl border-2 text-left transition ${
@@ -293,6 +294,9 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     </button>
                   ))}
                 </div>
+                {form.delivery === 'online' && (
+                  <p className="text-[11px] text-[var(--ink-faint)] mt-2">Online students pay the registration fee by MoMo or card.</p>
+                )}
               </div>
 
               <button onClick={submitForm} disabled={submitting}
