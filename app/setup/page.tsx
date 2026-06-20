@@ -158,7 +158,7 @@ export default function SetupPage() {
           </div>
           <a href="/login"
             className="flex items-center justify-center gap-2 w-full h-12 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition">
-            Go to Login →
+            Go to Login
           </a>
         </div>
 

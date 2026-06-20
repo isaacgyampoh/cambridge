@@ -170,7 +170,7 @@ export default function ImportLeadsPage() {
           <div className="flex gap-3">
             <Link href="/admin/leads"
               className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 transition flex items-center justify-center">
-              View Leads →
+              View Leads
             </Link>
             <button onClick={() => { setDone(null); setParsed([]); setRaw('') }}
               className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">

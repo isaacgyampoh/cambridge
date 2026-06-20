@@ -7,7 +7,7 @@ import {
   Search, LayoutDashboard, TrendingUp, UserCheck, DollarSign,
   Radio, CalendarCheck, BookOpen, FolderOpen, BarChart3,
   GraduationCap, Users, Settings, CornerDownLeft, MessageSquare,
-  ClipboardList, Kanban,
+  ClipboardList,
 } from 'lucide-react'
 
 interface Command {
@@ -21,7 +21,6 @@ interface Command {
 const COMMANDS: Command[] = [
   { label: 'Dashboard', href: '/admin', icon: LayoutDashboard, keywords: 'home overview' },
   { label: 'Insights', sublabel: 'Analytics & charts', href: '/admin/insights', icon: BarChart3, keywords: 'analytics charts reports data' },
-  { label: 'Lead pipeline', sublabel: 'Kanban board', href: '/admin/pipeline', icon: Kanban, keywords: 'kanban stages drag' },
   { label: 'All leads', href: '/admin/leads', icon: TrendingUp, keywords: 'crm prospects' },
   { label: 'Add a lead', href: '/admin/leads/new', icon: TrendingUp, keywords: 'new create lead' },
   { label: 'Import leads', href: '/admin/leads/import', icon: TrendingUp, keywords: 'csv upload bulk' },

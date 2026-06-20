@@ -7,7 +7,7 @@ import { CONFIG } from '@/lib/config'
 function SubmitForm() {
   const params = useSearchParams()
   const token = params.get('t') || ''
-  const [form, setForm] = useState({ student_name: '', role_title: '', quote: '', image_url: '' })
+  const [form, setForm] = useState({ student_name: '', role_title: '', program_name: '', quote: '', image_url: '' })
   const [submitting, setSubmitting] = useState(false)
   const [uploading, setUploading] = useState(false)
   const [done, setDone] = useState(false)
@@ -68,6 +68,9 @@ function SubmitForm() {
         </Field>
         <Field label="Your role / title (optional)">
           <input value={form.role_title} onChange={e => set('role_title', e.target.value)} placeholder="e.g. HR Manager, Project Lead" style={inp} />
+        </Field>
+        <Field label="Course you completed (optional)">
+          <input value={form.program_name} onChange={e => set('program_name', e.target.value)} placeholder="e.g. PMP, PHRi" style={inp} />
         </Field>
         <Field label="Your testimonial *">
           <textarea value={form.quote} onChange={e => set('quote', e.target.value)} rows={4} placeholder="What did you gain from the programme?" style={{ ...inp, resize: 'none' as const }} />

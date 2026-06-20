@@ -6,6 +6,7 @@ import { createClient } from '@/lib/supabase/client'
 import type { Profile, Course } from '@/types'
 import { toast } from 'sonner'
 import Script from 'next/script'
+import { Check } from 'lucide-react'
 
 const PROGRAMS = ['PMP', 'PRINCE2', 'Agile/Scrum', 'Data Analytics', 'Cyber Security', 'Cloud Computing', 'Business Analysis', 'Other']
 
@@ -303,7 +304,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 className="w-full h-12 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
                 {submitting
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin" />Submitting…</>
-                  : form.payment_method === 'paystack' ? 'Continue to Payment →' : 'Submit Application'
+                  : form.payment_method === 'paystack' ? 'Continue to Payment' : 'Submit Application'
                 }
               </button>
             </div>
@@ -458,7 +459,9 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
           <div className="text-center">
             {receipt ? (
               <>
-                <div className="text-emerald-600 text-3xl mb-2">✓</div>
+                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
+                  <Check size={24} className="text-emerald-600" strokeWidth={2.5} />
+                </div>
                 <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">{receipt.verified ? 'Payment received' : receipt.message}</h2>
                 {receipt.receiptNo && <p className="text-sm text-[var(--ink-soft)]">Receipt: {receipt.receiptNo}</p>}
                 {receipt.verified && <p className="text-sm text-[var(--ink-soft)] mt-1">{receipt.balance > 0 ? `Balance: GHS ${receipt.balance.toFixed(2)}` : 'Fully paid — thank you!'}</p>}

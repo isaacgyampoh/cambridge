@@ -34,5 +34,29 @@ export async function POST(req: NextRequest) {
   })
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
+  // Auto-add to Alumni: anyone who submits a testimonial is an alumnus.
+  // Avoid duplicating an existing alumni record for the same person.
+  try {
+    const { data: existing } = await sb.from('alumni')
+      .select('id').ilike('full_name', student_name.trim()).maybeSingle()
+    if (!existing) {
+      await sb.from('alumni').insert({
+        full_name: student_name.trim(),
+        course_completed: program || 'Cambridge Centre of Excellence',
+        photo_url: image_url?.trim() || null,
+        current_job_title: role_title?.trim() || null,
+        testimonial: quote.trim(),
+        graduation_date: new Date().toISOString().slice(0, 10),
+        is_published: true,
+      })
+    } else {
+      // Enrich the existing record with the new testimonial/photo
+      const upd: any = { testimonial: quote.trim(), is_published: true }
+      if (image_url?.trim()) upd.photo_url = image_url.trim()
+      if (role_title?.trim()) upd.current_job_title = role_title.trim()
+      await sb.from('alumni').update(upd).eq('id', existing.id)
+    }
+  } catch { /* alumni enrichment optional — never block the testimonial */ }
+
   return NextResponse.json({ success: true })
 }

@@ -215,7 +215,9 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
 
         {step === 'done' && (
           <div style={{ textAlign: 'center' }}>
-            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ecfdf5', color: '#059669', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px', fontSize: 28 }}>✓</div>
+            <div style={{ width: 56, height: 56, borderRadius: '50%', background: '#ecfdf5', display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px' }}>
+              <svg width="26" height="26" viewBox="0 0 24 24" fill="none" stroke="#059669" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round"><path d="M20 6L9 17l-5-5"/></svg>
+            </div>
             {invoice ? (
               <>
                 <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1a2230', margin: '0 0 6px' }}>{invoice.verified ? 'Payment received' : invoice.message}</h2>

@@ -180,7 +180,7 @@ export default function BroadcastPage() {
 
                 {/* Preview */}
                 <button onClick={getPreview} className="mt-2 text-xs text-[var(--accent)] hover:text-blue-800 font-semibold">
-                  Preview audience →
+                  Preview audience
                 </button>
                 {preview && (
                   <div className="mt-2 p-3 bg-[var(--accent-soft)] rounded-xl text-sm">

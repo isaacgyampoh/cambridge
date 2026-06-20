@@ -21,7 +21,6 @@ export const ALL_PORTALS = [
     children: [
       { label: 'All Leads',       href: '/admin/leads' },
       { label: 'Leads by Course', href: '/admin/leads/courses' },
-      { label: 'Pipeline',        href: '/admin/pipeline' },
       { label: 'Conversions',     href: '/admin/conversions' },
       { label: 'Add Lead',        href: '/admin/leads/new' },
       { label: 'Import Leads',    href: '/admin/leads/import' },
@@ -89,7 +88,6 @@ export const ALL_PORTALS = [
   { id: 'grp_growth', label: 'Growth', icon: TrendingUp, href: '/admin/leads', children: [
     { label: 'All Leads',       href: '/admin/leads' },
     { label: 'Leads by Course', href: '/admin/leads/courses' },
-    { label: 'Pipeline',        href: '/admin/pipeline' },
     { label: 'Conversions',     href: '/admin/conversions' },
     { label: 'Transfer Requests', href: '/admin/transfers' },
     { label: 'Add Lead',        href: '/admin/leads/new' },
