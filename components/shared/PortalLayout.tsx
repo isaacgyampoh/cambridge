@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef } from 'react'
+import { ROLE_HOME } from '@/lib/access/portals'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import CommandPalette from '@/components/shared/CommandPalette'
@@ -143,13 +144,10 @@ export const ALL_PORTALS = [
   ]},
 ]
 
-const ROLE_HOME: Record<string, string> = {
-  super_admin: '/admin', project_manager: '/pm', marketing_officer: '/marketer', content_manager: '/content',
-  admissions_officer: '/admission', accountant: '/finance',
-  receptionist: '/receptionist', trainer: '/trainer', student: '/student', exam_coordinator: '/coordinator',
-}
-
-const ROLE_DEFAULTS: Record<string, string[]> = {
+// Sidebar nav uses its own role->nav map because super_admin's sidebar is
+// organised into visual GROUPS (grp_*), while access control uses flat
+// portal ids. ROLE_HOME and the access rules come from the shared module.
+const NAV_BY_ROLE: Record<string, string[]> = {
   super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content','grp_socials'],
   project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in'],
@@ -179,7 +177,7 @@ const ROLE_COLOR: Record<string, string> = {
 function getNavItems(profile: any) {
   // Merge the role defaults with any custom saved portals, so portals added
   // after a user was created (e.g. My Links) always appear for them.
-  const defaults: string[] = ROLE_DEFAULTS[profile?.role] || ['dashboard']
+  const defaults: string[] = NAV_BY_ROLE[profile?.role] || ['dashboard']
   const saved: string[] = profile?.portals?.length ? profile.portals : []
   const ids: string[] = Array.from(new Set([...defaults, ...saved]))
 

@@ -1,5 +1,6 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient as createSupabase } from '@supabase/supabase-js'
+import { PORTAL_PATHS, ROLE_DEFAULTS, ROLE_HOME, resolvePortals } from '@/lib/access/portals'
 
 const SUPABASE_URL = 'https://gejtxkbatldxbbqynpfg.supabase.co'
 const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlanR4a2JhdGxkeGJicXlucGZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTExODYzOSwiZXhwIjoyMDk2Njk0NjM5fQ.FSHbZgJ2ZnzFnHl_DAM2SWwuVkXTbDmK0GQDPJCyBLs'
@@ -13,58 +14,8 @@ const PUBLIC = [
 ]
 
 // Portal ID → path prefixes it grants access to
-const PORTAL_PATHS: Record<string, string[]> = {
-  dashboard:   ['/admin', '/pm', '/marketer', '/admission', '/finance', '/receptionist', '/trainer', '/student', '/coordinator'],
-  insights:    ['/admin/insights'],
-  leads:       ['/admin/leads', '/admin/conversions', '/admin/transfers'],
-  my_leads:    ['/marketer', '/marketer/leads', '/admin/conversions', '/admin/leads/courses', '/admin/leads/course'],
-  my_link:     ['/marketer/link'],
-  pm_leads:    ['/pm'],
-  grp_socials: ['/content'],
-  admissions:  ['/admin/admissions', '/admission', '/admin/registrations'],
-  finance:     ['/admin/finance', '/finance'],
-  broadcast:   ['/admin/broadcast', '/admin/links'],
-  attendance:  ['/admin/attendance'],
-  academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates', '/coordinator'],
-  documents:   ['/admin/documents'],
-  marketers:   ['/admin/marketers'],
-  alumni:      ['/admin/alumni'],
-  staff:       ['/admin/staff', '/admin/reports'],
-  my_classes:  ['/trainer'],
-  my_payments: ['/student'],
-  reminders:   ['/receptionist'],
-  workforce:   ['/admin/workforce'],
-  wa_lines:    ['/admin/whatsapp'],
-  knowledge:   ['/admin/knowledge'],
-  conversations: ['/admin/conversations'],
-  remuneration: ['/admin/remuneration'],
-  my_earnings: ['/marketer/earnings'],
-  registrations: ['/finance/registrations'],
-  clock_in:    ['/clock-in'],
-  my_links:    ['/links'],
-  my_attendance: ['/marketer/attendance'],
-  prep:        ['/coordinator'],
-  settings:    ['/admin/settings'],
-}
 
-const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
-  project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in'],
-  admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in'],
-  accountant:        ['dashboard','finance','registrations','leads','my_leads','my_earnings','my_links','clock_in'],
-  receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in'],
-  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in'],
-  exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in'],
-  content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in'],
-  student:           ['dashboard','my_payments'],
-}
 
-const ROLE_HOME: Record<string, string> = {
-  super_admin:'/admin', project_manager:'/pm', marketing_officer:'/marketer', content_manager:'/content',
-  admissions_officer:'/admission', accountant:'/finance', receptionist:'/receptionist',
-  trainer:'/trainer', student:'/student',
-}
 
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
@@ -102,12 +53,9 @@ export async function middleware(request: NextRequest) {
     // Super admin — full access
     if (role === 'super_admin') return NextResponse.next()
 
-    // Get this user's portal list: merge role defaults with custom portals,
-    // so portals added after a user was created still work for them.
-    const portals: string[] = Array.from(new Set([
-      ...(ROLE_DEFAULTS[role] || ['dashboard']),
-      ...(profile.portals?.length ? profile.portals : []),
-    ]))
+    // Resolve this user's portals (role defaults merged with custom) from
+    // the shared access module — single source of truth with the sidebar.
+    const portals = resolvePortals(role, profile.portals)
 
     // Build allowed paths from portal list
     const allowedPaths = [
