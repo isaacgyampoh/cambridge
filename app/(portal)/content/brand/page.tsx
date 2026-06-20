@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PageHeader, Card, Button, Spinner, EmptyState, Field, inputClass } from '@/components/ui'
+import { PageHeader, Card, Button, Spinner, EmptyState, Field, inputClass, textareaClass} from '@/components/ui'
 import FileUpload from '@/components/shared/FileUpload'
 import { Palette, Save, Trash2, ImageIcon, Copy } from 'lucide-react'
 import { toast } from 'sonner'
@@ -53,7 +53,7 @@ export default function BrandKit() {
         <Field label="Brand voice">
           <textarea value={profile.voice || ''} onChange={e => set('voice', e.target.value)} rows={3}
             placeholder="How should we sound? e.g. Confident, aspirational, credible…"
-            className={inputClass.replace('h-11', 'min-h-[80px] py-2.5')} />
+            className={textareaClass} />
         </Field>
         <Field label="Tagline">
           <input value={profile.tagline || ''} onChange={e => set('tagline', e.target.value)} className={inputClass} placeholder="Your signature line" />
@@ -61,11 +61,11 @@ export default function BrandKit() {
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
           <Field label="Words / phrases to use">
             <textarea value={profile.do_say || ''} onChange={e => set('do_say', e.target.value)} rows={2}
-              className={inputClass.replace('h-11', 'min-h-[60px] py-2.5')} placeholder="globally recognised, career growth…" />
+              className={textareaClass} placeholder="globally recognised, career growth…" />
           </Field>
           <Field label="Words / phrases to avoid">
             <textarea value={profile.dont_say || ''} onChange={e => set('dont_say', e.target.value)} rows={2}
-              className={inputClass.replace('h-11', 'min-h-[60px] py-2.5')} placeholder="cheap, guaranteed pass…" />
+              className={textareaClass} placeholder="cheap, guaranteed pass…" />
           </Field>
         </div>
         <Field label="Primary colour">

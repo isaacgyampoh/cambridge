@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, textareaClass} from '@/components/ui'
 import FileUpload from '@/components/shared/FileUpload'
 import { Sparkles, Wand2, MessageSquare, Hash, Lightbulb, Copy, Save, Send, Trash2, Calendar, FileText } from 'lucide-react'
 import { toast } from 'sonner'
@@ -104,7 +104,7 @@ export default function ContentStudio() {
             <Card className="p-5">
               <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">What's the post about?</label>
               <textarea value={brief} onChange={e => setBrief(e.target.value)} rows={2} placeholder="e.g. Promote the PMP April cohort — early-bird, limited seats"
-                className={inputClass.replace('h-11', 'min-h-[60px] py-2.5') + ' mt-1.5 mb-3'} />
+                className={textareaClass + ' mt-1.5 mb-3'} />
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" onClick={() => runAI('write')} disabled={!!busy} icon={<Wand2 size={14} />}>{busy === 'write' ? 'Writing…' : 'Write post'}</Button>
                 <Button size="sm" variant="secondary" onClick={() => runAI('ideas')} disabled={!!busy} icon={<Lightbulb size={14} />}>{busy === 'ideas' ? 'Thinking…' : 'Give me ideas'}</Button>
@@ -115,7 +115,7 @@ export default function ContentStudio() {
             <Card className="p-5">
               <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Post draft</label>
               <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={10} placeholder="Write your post here, or use 'Write post' above. Then get AI feedback."
-                className={inputClass.replace('h-11', 'min-h-[220px] py-3') + ' mt-1.5 mb-3'} />
+                className={textareaClass + ' mt-1.5 mb-3'} />
               {hashtags && <div className="text-xs text-[var(--accent)] mb-3 break-words">{hashtags}</div>}
               <div className="flex flex-wrap gap-2">
                 <Button size="sm" variant="secondary" onClick={() => runAI('critique')} disabled={!!busy} icon={<MessageSquare size={14} />}>{busy === 'critique' ? 'Reviewing…' : 'AI critique'}</Button>

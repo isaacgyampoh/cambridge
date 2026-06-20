@@ -6,7 +6,7 @@ import type { Course } from '@/types'
 import { toast } from 'sonner'
 import { Plus, X, BookOpen, Pencil } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
-import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass, textareaClass} from '@/components/ui'
 
 export default function CoursesPage() {
   const { data: courses, loading, refetch: load } = useData<Course>({ table: 'courses', orderBy: 'name', limit: 200 })
@@ -74,7 +74,7 @@ export default function CoursesPage() {
             ))}
             <Field label="Description">
               <textarea value={(editing as any)?.description || ''} onChange={e => setEditing({ ...editing, description: e.target.value })} rows={3}
-                className={inputClass.replace('h-11', 'min-h-[80px] py-3')} />
+                className={textareaClass} />
             </Field>
             <Field label="Brochure (PDF)">
               <FileUpload onUploaded={url => setEditing({ ...editing, brochure_url: url })} value={(editing as any)?.brochure_url} label="Upload course brochure" accept="application/pdf" folder="cce/brochures" />

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { PageHeader, Card, Button, Spinner, inputClass } from '@/components/ui'
+import { PageHeader, Card, Button, Spinner, inputClass, textareaClass} from '@/components/ui'
 import { Search, ExternalLink, Sparkles, Eye } from 'lucide-react'
 import { toast } from 'sonner'
 
@@ -57,7 +57,7 @@ export default function CompetitorResearch() {
         <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Analyze a competitor's ad</label>
         <p className="text-xs text-[var(--ink-soft)] mt-1 mb-2">Paste the text of a competitor ad you found, and the AI will tell you what works and how to beat it.</p>
         <textarea value={adText} onChange={e => setAdText(e.target.value)} rows={5} placeholder="Paste the competitor's ad copy here…"
-          className={inputClass.replace('h-11', 'min-h-[110px] py-3') + ' mb-3'} />
+          className={textareaClass + ' mb-3'} />
         <Button onClick={analyze} disabled={busy} icon={<Sparkles size={14} />}>{busy ? 'Analyzing…' : 'Analyze & advise'}</Button>
 
         {analysis && (

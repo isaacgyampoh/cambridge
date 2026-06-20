@@ -37,7 +37,7 @@ export default function ClassPaymentsPage() {
   const decided = payments.filter(p => p.status !== 'pending')
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full">
       <PageHeader eyebrow="Finance" title="Class payments" description="Verify bank transfers and cash payments made at class sign-in. Confirm the amount (full or partial) and the student is notified with an invoice." />
 
       {loading ? <Spinner /> : (

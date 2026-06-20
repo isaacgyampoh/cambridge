@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, Field, inputClass, SectionLabel } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, Spinner, EmptyState, Field, inputClass, SectionLabel, textareaClass} from '@/components/ui'
 import { Plus, X, MessageCircleQuestion, Info, Pencil, Trash2, Sparkles } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
@@ -155,7 +155,7 @@ export default function KnowledgeBasePage() {
             <Field label={form.kind === 'faq' ? 'Answer' : 'Information'} required>
               <textarea value={form.answer} onChange={e => setForm({ ...form, answer: e.target.value })} rows={4}
                 placeholder={form.kind === 'faq' ? 'The Project Management course is GHS 2,000, payable in two instalments...' : 'We are located at... Open Monday to Friday, 8am–5pm...'}
-                className={inputClass.replace('h-11', 'min-h-[110px] py-3')} />
+                className={textareaClass} />
             </Field>
           </div>
           <div className="flex gap-2 mt-6">

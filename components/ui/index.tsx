@@ -223,10 +223,10 @@ export function Field({
 }) {
   return (
     <div>
-      <label className="flex items-baseline gap-1.5 mb-1.5">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.08em] text-[var(--ink-soft)]">{label}</span>
+      <label className="flex items-baseline gap-1.5 mb-2">
+        <span className="text-[13px] font-medium text-[var(--ink)]">{label}</span>
         {required && <span className="text-[var(--accent)]">*</span>}
-        {hint && <span className="text-[11px] text-[var(--ink-faint)] normal-case font-normal tracking-normal">{hint}</span>}
+        {hint && <span className="text-[12px] text-[var(--ink-faint)] font-normal">· {hint}</span>}
       </label>
       {children}
     </div>
@@ -234,7 +234,11 @@ export function Field({
 }
 
 export const inputClass =
-  'w-full h-11 px-3.5 rounded-lg border border-[var(--line)] bg-white text-sm text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition'
+  'w-full h-11 px-3.5 rounded-xl border border-[var(--line)] bg-white text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
+
+// For multi-line inputs — same look as inputClass but auto-height with comfortable padding.
+export const textareaClass =
+  'w-full px-3.5 py-3 rounded-xl border border-[var(--line)] bg-white text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
 
 /* ─────────────────────────────────────────────
    Spinner
