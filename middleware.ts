@@ -100,10 +100,12 @@ export async function middleware(request: NextRequest) {
     // Super admin — full access
     if (role === 'super_admin') return NextResponse.next()
 
-    // Get this user's portal list (custom or role default)
-    const portals: string[] = profile.portals?.length
-      ? profile.portals
-      : ROLE_DEFAULTS[role] || ['dashboard']
+    // Get this user's portal list: merge role defaults with custom portals,
+    // so portals added after a user was created still work for them.
+    const portals: string[] = Array.from(new Set([
+      ...(ROLE_DEFAULTS[role] || ['dashboard']),
+      ...(profile.portals?.length ? profile.portals : []),
+    ]))
 
     // Build allowed paths from portal list
     const allowedPaths = [

@@ -22,6 +22,7 @@ export const ALL_PORTALS = [
       { label: 'All Leads',       href: '/admin/leads' },
       { label: 'Leads by Course', href: '/admin/leads/courses' },
       { label: 'Conversions',     href: '/admin/conversions' },
+      { label: 'Transfer Requests', href: '/admin/transfers' },
       { label: 'Add Lead',        href: '/admin/leads/new' },
       { label: 'Import Leads',    href: '/admin/leads/import' },
     ]},
@@ -168,9 +169,11 @@ const ROLE_COLOR: Record<string, string> = {
 }
 
 function getNavItems(profile: any) {
-  const ids: string[] = profile?.portals?.length
-    ? profile.portals
-    : ROLE_DEFAULTS[profile?.role] || ['dashboard']
+  // Merge the role defaults with any custom saved portals, so portals added
+  // after a user was created (e.g. My Links) always appear for them.
+  const defaults: string[] = ROLE_DEFAULTS[profile?.role] || ['dashboard']
+  const saved: string[] = profile?.portals?.length ? profile.portals : []
+  const ids: string[] = Array.from(new Set([...defaults, ...saved]))
 
   return ids.map(id => {
     const p = ALL_PORTALS.find(x => x.id === id)
