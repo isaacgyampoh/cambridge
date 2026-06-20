@@ -48,13 +48,13 @@ const PORTAL_PATHS: Record<string, string[]> = {
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
   super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings'],
-  project_manager:   ['dashboard','pm_leads','leads','admissions','clock_in'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','clock_in'],
-  admissions_officer:['dashboard','admissions','leads','clock_in'],
-  accountant:        ['dashboard','finance','registrations','leads','clock_in'],
-  receptionist:      ['dashboard','reminders','attendance','clock_in'],
-  trainer:           ['dashboard','my_classes','attendance','clock_in'],
-  exam_coordinator:  ['prep','my_links','clock_in'],
+  project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in'],
+  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in'],
+  admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in'],
+  accountant:        ['dashboard','finance','registrations','leads','my_leads','my_earnings','my_links','clock_in'],
+  receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in'],
+  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in'],
+  exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in'],
   student:           ['dashboard','my_payments'],
 }
 

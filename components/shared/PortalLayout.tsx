@@ -40,6 +40,7 @@ export const ALL_PORTALS = [
     children: [
       { label: 'Lead Inbox', href: '/pm' },
       { label: 'Reports',    href: '/pm/reports' },
+      { label: 'Coordinator Activity', href: '/pm/prep-activity' },
     ]},
   { id: 'admissions',  label: 'Admissions',   icon: UserCheck,       href: '/admin/admissions',
     children: [

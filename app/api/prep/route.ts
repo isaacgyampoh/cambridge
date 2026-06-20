@@ -92,6 +92,7 @@ export async function POST(req: NextRequest) {
       prep_status: 'ongoing',
     }).select().single()
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    await logPrep(sb, data.id, session, code, enr.full_name, 'added', `Added ${enr.full_name} to ${name || code || 'prep'} tracking`)
     return NextResponse.json({ success: true, record: data })
   }
 
@@ -99,15 +100,47 @@ export async function POST(req: NextRequest) {
     const { id, ...fields } = body
     delete fields.action
     fields.updated_at = new Date().toISOString()
+    // Capture what's being changed for the activity log
+    const { data: before } = await sb.from('prep_records').select('*').eq('id', id).maybeSingle()
     const { error } = await sb.from('prep_records').update(fields).eq('id', id)
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    // Build a human description of the change
+    const changes: string[] = []
+    for (const k of Object.keys(fields)) {
+      if (k === 'updated_at') continue
+      const oldV = before?.[k]
+      const newV = (fields as any)[k]
+      if (String(oldV ?? '') !== String(newV ?? '')) {
+        if (k === 'comment') changes.push(`Comment: "${newV}"`)
+        else changes.push(`${k.replace(/_/g, ' ')} → ${newV}`)
+      }
+    }
+    const action = fields.comment !== undefined && Object.keys(fields).filter(k => k !== 'updated_at' && k !== 'comment').length === 0 ? 'comment' : 'updated'
+    await logPrep(sb, id, session, before?.program_code || null, before?.student_name || null, action, changes.join('; ') || 'Updated record')
     return NextResponse.json({ success: true })
   }
 
   if (body.action === 'remove') {
+    const { data: before } = await sb.from('prep_records').select('*').eq('id', body.id).maybeSingle()
     await sb.from('prep_records').delete().eq('id', body.id)
+    if (before) await logPrep(sb, body.id, session, before.program_code, before.student_name, 'removed', `Removed ${before.student_name} from tracking`)
     return NextResponse.json({ success: true })
   }
 
   return NextResponse.json({ error: 'Unknown action' }, { status: 400 })
+}
+
+// Log a coordinator action so the PM/admin can see all prep activity.
+async function logPrep(sb: any, prepRecordId: string, session: any, programCode: string | null, studentName: string | null, action: string, detail: string) {
+  try {
+    await sb.from('prep_activity').insert({
+      prep_record_id: prepRecordId,
+      actor_id: session.userId,
+      actor_name: session.fullName || null,
+      program_code: programCode,
+      student_name: studentName,
+      action,
+      detail,
+    })
+  } catch { /* logging is best-effort, never block the action */ }
 }
