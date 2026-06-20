@@ -65,10 +65,11 @@ export async function POST(req: NextRequest) {
     await sb.from('certificates').update({ issued: true, issued_at: new Date().toISOString() }).eq('id', existing.id)
   }
 
-  // Send the download link
+  // Send the download link + invite them to leave a testimonial
   const link = `${CONFIG.appUrl}/certificate/${dl}`
+  const testimonialLink = `${CONFIG.appUrl}/testimonial/submit`
   const first = (enr.full_name || '').split(' ')[0] || 'there'
-  const msg = `Congratulations ${first}! You've completed ${courseName} at Cambridge Centre of Excellence and your certificate is ready. Download it here: ${link}`
+  const msg = `Congratulations ${first}! You've completed ${courseName} at Cambridge Centre of Excellence and your certificate is ready. Download it here: ${link}\n\nWe'd love to hear about your experience — share a short testimonial here: ${testimonialLink}`
   let sent = false
   if (enr.phone) { try { await sendWhatsAppText(enr.phone, msg); sent = true } catch { try { await sendSMS(enr.phone, msg); sent = true } catch {} } }
   if (enr.email) { try { await sendEmailGeneric(enr.email, `Your certificate — ${courseName}`, `<p>Congratulations ${first},</p><p>You've completed <strong>${courseName}</strong>. Your certificate is ready.</p><p><a href="${link}">Download your certificate</a></p><p>Cambridge Centre of Excellence</p>`); sent = true } catch {} }
