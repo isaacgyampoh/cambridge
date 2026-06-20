@@ -8,6 +8,7 @@ import { Plus, X, Check, Copy, Eye, EyeOff, Shield, Phone, Mail, User, Briefcase
 const ROLES = [
   { value: 'project_manager', label: 'Project Manager', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
   { value: 'marketing_officer', label: 'Marketing Officer', color: 'bg-green-100 text-green-700'},
+  { value: 'content_manager', label: 'Content Manager', color: 'bg-pink-100 text-pink-700'},
   { value: 'admissions_officer',label: 'Admissions Officer', color: 'bg-indigo-100 text-indigo-700'},
   { value: 'accountant', label: 'Accountant', color: 'bg-amber-100 text-amber-700'},
   { value: 'receptionist', label: 'Receptionist', color: 'bg-pink-100 text-pink-700'},

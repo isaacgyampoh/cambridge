@@ -77,6 +77,11 @@ export const ALL_PORTALS = [
   { id: 'knowledge',   label: 'AI Knowledge', icon: Sparkles,         href: '/admin/knowledge' },
   { id: 'conversations', label: 'AI Conversations', icon: MessageSquare, href: '/admin/conversations' },
   { id: 'remuneration', label: 'Remuneration', icon: Trophy,          href: '/admin/remuneration' },
+  { id: 'grp_socials', label: 'Content Studio', icon: Sparkles, href: '/content',
+    children: [
+      { label: 'Content Studio',      href: '/content' },
+      { label: 'Competitor Research', href: '/content/research' },
+    ]},
   { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
   { id: 'my_links',    label: 'My Links',     icon: Link2,           href: '/links' },
   { id: 'prep',        label: 'Exam Prep',    icon: ClipboardList,   href: '/coordinator',
@@ -138,13 +143,13 @@ export const ALL_PORTALS = [
 ]
 
 const ROLE_HOME: Record<string, string> = {
-  super_admin: '/admin', project_manager: '/pm', marketing_officer: '/marketer',
+  super_admin: '/admin', project_manager: '/pm', marketing_officer: '/marketer', content_manager: '/content',
   admissions_officer: '/admission', accountant: '/finance',
   receptionist: '/receptionist', trainer: '/trainer', student: '/student', exam_coordinator: '/coordinator',
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content'],
+  super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content','grp_socials'],
   project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in'],
@@ -152,19 +157,20 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in'],
   trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in'],
   exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in'],
+  content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in'],
   student:           ['dashboard','my_payments'],
 }
 
 const ROLE_LABEL: Record<string, string> = {
   super_admin:'Super Admin', project_manager:'Project Manager',
-  marketing_officer:'Marketing Officer', admissions_officer:'Admissions Officer',
+  marketing_officer:'Marketing Officer', content_manager:'Content Manager', admissions_officer:'Admissions Officer',
   accountant:'Accountant', receptionist:'Receptionist',
   trainer:'Trainer', student:'Student',
 }
 
 const ROLE_COLOR: Record<string, string> = {
   super_admin:'#7c3aed', project_manager:'#2563eb',
-  marketing_officer:'#16a34a', admissions_officer:'#4338ca',
+  marketing_officer:'#16a34a', content_manager:'#db2777', admissions_officer:'#4338ca',
   accountant:'#d97706', receptionist:'#db2777',
   trainer:'#ea580c', student:'#6b7280',
 }

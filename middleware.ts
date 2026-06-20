@@ -20,6 +20,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
   my_leads:    ['/marketer', '/marketer/leads', '/admin/conversions', '/admin/leads/courses', '/admin/leads/course'],
   my_link:     ['/marketer/link'],
   pm_leads:    ['/pm'],
+  grp_socials: ['/content'],
   admissions:  ['/admin/admissions', '/admission', '/admin/registrations'],
   finance:     ['/admin/finance', '/finance'],
   broadcast:   ['/admin/broadcast', '/admin/links'],
@@ -47,7 +48,7 @@ const PORTAL_PATHS: Record<string, string[]> = {
 }
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings'],
+  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
   project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in'],
@@ -55,11 +56,12 @@ const ROLE_DEFAULTS: Record<string, string[]> = {
   receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in'],
   trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in'],
   exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in'],
+  content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in'],
   student:           ['dashboard','my_payments'],
 }
 
 const ROLE_HOME: Record<string, string> = {
-  super_admin:'/admin', project_manager:'/pm', marketing_officer:'/marketer',
+  super_admin:'/admin', project_manager:'/pm', marketing_officer:'/marketer', content_manager:'/content',
   admissions_officer:'/admission', accountant:'/finance', receptionist:'/receptionist',
   trainer:'/trainer', student:'/student',
 }
@@ -112,7 +114,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links', '/api/prep', '/api/fees',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links', '/api/prep', '/api/fees', '/api/content',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 
