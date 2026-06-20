@@ -164,7 +164,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
 
           {step === 1 && (
             <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 lg:p-8">
-              <h2 className="text-lg font-bold text-gray-900 mb-1">Details to complete your registration</h2>
+              <h2 className="text-lg font-bold text-[var(--ink)] mb-1">Details to complete your registration</h2>
               <p className="text-sm text-[var(--ink-soft)] mb-6">Please fill in your information accurately.</p>
 
               {/* Name */}
@@ -176,7 +176,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                   { key: 'last_name', label: 'Last name *', placeholder: 'Mensah' },
                 ].map(f => (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                    <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">{f.label}</label>
                     <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
@@ -188,12 +188,12 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Personal</p>
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-6">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Date of birth</label>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Date of birth</label>
                   <input type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)}
                     className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Gender</label>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Gender</label>
                   <select value={form.gender} onChange={e => set('gender', e.target.value)}
                     className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
                     <option value="">Select...</option>
@@ -205,7 +205,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                   { key: 'nationality', label: 'Nationality', placeholder: 'Ghanaian' },
                 ].map(f => (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                    <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">{f.label}</label>
                     <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
@@ -223,7 +223,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                   { key: 'residential_address', label: 'Residential address', placeholder: 'Street, Area, City', type: 'text' },
                 ].map(f => (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                    <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">{f.label}</label>
                     <input type={f.type} placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
@@ -241,7 +241,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                   { key: 'year_completed', label: 'Year completed', placeholder: 'e.g. 2020' },
                 ].map(f => (
                   <div key={f.key}>
-                    <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">{f.label}</label>
+                    <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">{f.label}</label>
                     <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
@@ -253,7 +253,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Programme</p>
               <div className="grid grid-cols-1 gap-4 mb-6">
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">Programme you're registering for *</label>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Programme you're registering for *</label>
                   <select value={form.course_id} onChange={e => set('course_id', e.target.value)}
                     className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
                     <option value="">Select programme...</option>
@@ -261,7 +261,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                   </select>
                 </div>
                 <div>
-                  <label className="block text-xs font-semibold text-gray-500 uppercase tracking-wide mb-1.5">How will you attend? *</label>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">How will you attend? *</label>
                   <div className="grid grid-cols-2 gap-3">
                     {[
                       { value: 'online', label: 'Online', sub: 'Join classes via Zoom' },
@@ -269,7 +269,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     ].map(d => (
                       <button key={d.value} type="button" onClick={() => { set('delivery', d.value); if (d.value === 'online') set('payment_method', 'paystack') }}
                         className={`text-left px-4 py-3 rounded-xl border transition ${form.delivery === d.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'}`}>
-                        <div className="text-sm font-bold text-gray-900">{d.label}</div>
+                        <div className="text-sm font-bold text-[var(--ink)]">{d.label}</div>
                         <div className="text-[11px] text-[var(--ink-faint)]">{d.sub}</div>
                       </button>
                     ))}
@@ -278,8 +278,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               </div>
 
               {/* Payment method */}
-              <div className="border-t border-gray-100 pt-5 mb-6">
-                <p className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">Registration Fee — GHS 200</p>
+              <div className="border-t border-[var(--line)] pt-5 mb-6">
+                <p className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-3">Registration Fee — GHS 200</p>
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { value: 'paystack', label: 'Pay Online', sub: 'MoMo or Card' },
@@ -290,8 +290,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                       className={`p-3 rounded-xl border-2 text-left transition ${
                         form.payment_method === m.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
                       }`}>
-                      <div className="text-sm font-bold text-gray-900">{m.label}</div>
-                      <div className="text-xs text-gray-500">{m.sub}</div>
+                      <div className="text-sm font-bold text-[var(--ink)]">{m.label}</div>
+                      <div className="text-xs text-[var(--ink-faint)]">{m.sub}</div>
                     </button>
                   ))}
                 </div>
@@ -318,14 +318,14 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                   <path d="M10 16h12M16 10v12" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
-              <h2 className="text-xl font-bold text-gray-900 mb-2">Pay Registration Fee</h2>
-              <p className="text-gray-500 mb-2">Registration fee: <span className="font-bold text-gray-900">GHS 200</span></p>
-              <p className="text-sm text-gray-400 mb-8">Complete payment to submit your application</p>
+              <h2 className="text-xl font-bold text-[var(--ink)] mb-2">Pay Registration Fee</h2>
+              <p className="text-[var(--ink-faint)] mb-2">Registration fee: <span className="font-bold text-[var(--ink)]">GHS 200</span></p>
+              <p className="text-sm text-[var(--ink-faint)] mb-8">Complete payment to submit your application</p>
               <button onClick={payWithPaystack}
                 className="w-full h-12 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
                 Pay GHS 200 via Paystack
               </button>
-              <p className="text-xs text-gray-400 mt-4">Secured by Paystack · Mobile Money & Card accepted</p>
+              <p className="text-xs text-[var(--ink-faint)] mt-4">Secured by Paystack · Mobile Money & Card accepted</p>
             </div>
           )}
         </div>

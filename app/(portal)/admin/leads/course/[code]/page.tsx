@@ -98,7 +98,7 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[l.status] || 'bg-gray-100 text-gray-600'}`}>
+                      <span className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[l.status] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {STATUS_LABELS[l.status] || l.status}
                       </span>
                     </td>

@@ -339,7 +339,7 @@ export default function StaffPage() {
                   <tr key={s.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${ROLE_COLOR[s.role]?.replace('text-', 'bg-').replace('-100', '-600').replace('-700','') || 'bg-gray-500'}`}>
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${ROLE_COLOR[s.role]?.replace('text-', 'bg-').replace('-100', '-600').replace('-700','') || 'bg-[var(--canvas)]0'}`}>
                           {s.full_name?.charAt(0) || '?'}
                         </div>
                         <div>

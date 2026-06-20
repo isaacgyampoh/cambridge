@@ -10,7 +10,7 @@ import InstallPrompt from '@/components/shared/InstallPrompt'
 
 export const metadata: Metadata = {
   title: 'Cambridge Centre of Excellence',
-  description: 'Institutional management system',
+  description: 'Cambridge Centre of Excellence — professional and executive certification training in Ghana.',
   manifest: '/manifest.json',
   appleWebApp: {
     capable: true,
