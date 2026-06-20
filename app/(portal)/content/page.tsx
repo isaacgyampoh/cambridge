@@ -80,7 +80,7 @@ export default function ContentStudio() {
   }
 
   return (
-    <div className="fade-in w-full max-w-4xl">
+    <div className="fade-in w-full">
       <PageHeader eyebrow="Marketing" title="Content Studio"
         description="Draft posts, get AI feedback, plan your calendar. The AI knows our courses, fees and dates." />
 
@@ -90,59 +90,71 @@ export default function ContentStudio() {
       </div>
 
       {tab === 'studio' ? (
-        <div className="space-y-4">
-          {/* Platform picker */}
-          <div className="flex flex-wrap gap-2">
-            {PLATFORMS.map(p => (
-              <button key={p} onClick={() => setPlatform(p)} className={`text-xs font-medium px-3 h-8 rounded-lg ${platform === p ? 'bg-[var(--ink)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>{PLATFORM_LABEL[p]}</button>
-            ))}
+        <div className="grid grid-cols-1 lg:grid-cols-[1fr_380px] gap-5 items-start">
+          {/* LEFT: compose */}
+          <div className="space-y-4 min-w-0">
+            {/* Platform picker */}
+            <div className="flex flex-wrap gap-2">
+              {PLATFORMS.map(p => (
+                <button key={p} onClick={() => setPlatform(p)} className={`text-xs font-medium px-3 h-8 rounded-lg transition ${platform === p ? 'bg-[var(--ink)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--ink-faint)]'}`}>{PLATFORM_LABEL[p]}</button>
+              ))}
+            </div>
+
+            {/* Brief -> AI write */}
+            <Card className="p-5">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">What's the post about?</label>
+              <textarea value={brief} onChange={e => setBrief(e.target.value)} rows={2} placeholder="e.g. Promote the PMP April cohort — early-bird, limited seats"
+                className={inputClass.replace('h-11', 'min-h-[60px] py-2.5') + ' mt-1.5 mb-3'} />
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" onClick={() => runAI('write')} disabled={!!busy} icon={<Wand2 size={14} />}>{busy === 'write' ? 'Writing…' : 'Write post'}</Button>
+                <Button size="sm" variant="secondary" onClick={() => runAI('ideas')} disabled={!!busy} icon={<Lightbulb size={14} />}>{busy === 'ideas' ? 'Thinking…' : 'Give me ideas'}</Button>
+              </div>
+            </Card>
+
+            {/* Draft editor */}
+            <Card className="p-5">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Post draft</label>
+              <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={10} placeholder="Write your post here, or use 'Write post' above. Then get AI feedback."
+                className={inputClass.replace('h-11', 'min-h-[220px] py-3') + ' mt-1.5 mb-3'} />
+              {hashtags && <div className="text-xs text-[var(--accent)] mb-3 break-words">{hashtags}</div>}
+              <div className="flex flex-wrap gap-2">
+                <Button size="sm" variant="secondary" onClick={() => runAI('critique')} disabled={!!busy} icon={<MessageSquare size={14} />}>{busy === 'critique' ? 'Reviewing…' : 'AI critique'}</Button>
+                <Button size="sm" variant="secondary" onClick={() => runAI('improve')} disabled={!!busy} icon={<Sparkles size={14} />}>{busy === 'improve' ? 'Improving…' : 'Improve it'}</Button>
+                <Button size="sm" variant="secondary" onClick={() => runAI('hashtags')} disabled={!!busy} icon={<Hash size={14} />}>{busy === 'hashtags' ? '…' : 'Hashtags'}</Button>
+                <Button size="sm" variant="secondary" onClick={() => runAI('image_brief')} disabled={!!busy} icon={<Sparkles size={14} />}>{busy === 'image_brief' ? '…' : 'Image brief'}</Button>
+              </div>
+            </Card>
           </div>
 
-          {/* Brief -> AI write */}
-          <Card className="p-5">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">What's the post about?</label>
-            <textarea value={brief} onChange={e => setBrief(e.target.value)} rows={2} placeholder="e.g. Promote the PMP April cohort — early-bird, limited seats"
-              className={inputClass.replace('h-11', 'min-h-[60px] py-2.5') + ' mt-1.5 mb-3'} />
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={() => runAI('write')} disabled={!!busy} icon={<Wand2 size={14} />}>{busy === 'write' ? 'Writing…' : 'Write post'}</Button>
-              <Button size="sm" variant="secondary" onClick={() => runAI('ideas')} disabled={!!busy} icon={<Lightbulb size={14} />}>{busy === 'ideas' ? 'Thinking…' : 'Give me ideas'}</Button>
-            </div>
-          </Card>
+          {/* RIGHT: AI feedback + publish */}
+          <div className="space-y-4 lg:sticky lg:top-4">
+            {aiNotes ? (
+              <Card className="p-5 bg-[var(--accent-soft)] border-[var(--accent)]/20">
+                <div className="flex items-center gap-2 mb-2"><Sparkles size={15} className="text-[var(--accent)]" /><span className="text-sm font-semibold text-[var(--ink)]">AI feedback</span></div>
+                <div className="text-sm text-[var(--ink-soft)] whitespace-pre-wrap max-h-[360px] overflow-y-auto">{aiNotes}</div>
+              </Card>
+            ) : (
+              <Card className="p-5">
+                <div className="flex items-center gap-2 mb-1.5"><Sparkles size={15} className="text-[var(--ink-faint)]" /><span className="text-sm font-semibold text-[var(--ink-soft)]">AI feedback</span></div>
+                <p className="text-xs text-[var(--ink-faint)]">Use AI critique, ideas, or image brief and the results show here.</p>
+              </Card>
+            )}
 
-          {/* Draft editor */}
-          <Card className="p-5">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Post draft</label>
-            <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={7} placeholder="Write your post here, or use 'Write post' above. Then get AI feedback."
-              className={inputClass.replace('h-11', 'min-h-[150px] py-3') + ' mt-1.5 mb-3'} />
-            {hashtags && <div className="text-xs text-[var(--accent)] mb-3 break-words">{hashtags}</div>}
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" variant="secondary" onClick={() => runAI('critique')} disabled={!!busy} icon={<MessageSquare size={14} />}>{busy === 'critique' ? 'Reviewing…' : 'AI critique'}</Button>
-              <Button size="sm" variant="secondary" onClick={() => runAI('improve')} disabled={!!busy} icon={<Sparkles size={14} />}>{busy === 'improve' ? 'Improving…' : 'Improve it'}</Button>
-              <Button size="sm" variant="secondary" onClick={() => runAI('hashtags')} disabled={!!busy} icon={<Hash size={14} />}>{busy === 'hashtags' ? '…' : 'Hashtags'}</Button>
-              <Button size="sm" variant="secondary" onClick={() => runAI('image_brief')} disabled={!!busy} icon={<Sparkles size={14} />}>{busy === 'image_brief' ? '…' : 'Image brief'}</Button>
-            </div>
-          </Card>
-
-          {/* AI notes */}
-          {aiNotes && (
-            <Card className="p-5 bg-[var(--accent-soft)] border-[var(--accent)]/20">
-              <div className="flex items-center gap-2 mb-2"><Sparkles size={15} className="text-[var(--accent)]" /><span className="text-sm font-semibold text-[var(--ink)]">AI feedback</span></div>
-              <div className="text-sm text-[var(--ink-soft)] whitespace-pre-wrap">{aiNotes}</div>
+            <Card className="p-5">
+              <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Image / graphic (optional)</label>
+              <div className="mt-2 mb-4"><FileUpload onUploaded={setMediaUrl} value={mediaUrl} label="Upload visual" folder="cce/content" /></div>
+              <div className="space-y-2">
+                <Button onClick={copyAll} icon={<Copy size={14} />} className="w-full justify-center">Copy for {PLATFORM_LABEL[platform]}</Button>
+                <div className="flex gap-2">
+                  <Button size="sm" variant="secondary" onClick={() => save('draft')} disabled={busy === 'save'} icon={<Save size={14} />} className="flex-1 justify-center">Save</Button>
+                  <Button size="sm" variant="secondary" onClick={() => save('scheduled')} disabled={busy === 'save'} icon={<Calendar size={14} />} className="flex-1 justify-center">Schedule</Button>
+                </div>
+              </div>
+              {platform !== 'whatsapp'
+                ? <p className="text-[11px] text-[var(--ink-faint)] mt-3">Copy and paste into {PLATFORM_LABEL[platform]}. Direct auto-posting needs platform setup.</p>
+                : <p className="text-[11px] text-[var(--ink-faint)] mt-3">WhatsApp broadcasting is on the Broadcast page.</p>}
             </Card>
-          )}
-
-          {/* Media + actions */}
-          <Card className="p-5">
-            <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Image / graphic (optional)</label>
-            <div className="mt-2 mb-4"><FileUpload onUploaded={setMediaUrl} value={mediaUrl} label="Upload visual" folder="cce/content" /></div>
-            <div className="flex flex-wrap gap-2">
-              <Button size="sm" onClick={copyAll} icon={<Copy size={14} />}>Copy for {PLATFORM_LABEL[platform]}</Button>
-              <Button size="sm" variant="secondary" onClick={() => save('draft')} disabled={busy === 'save'} icon={<Save size={14} />}>Save draft</Button>
-              <Button size="sm" variant="secondary" onClick={() => save('scheduled')} disabled={busy === 'save'} icon={<Calendar size={14} />}>Schedule</Button>
-              {platform === 'whatsapp' && <p className="text-[11px] text-[var(--ink-faint)] w-full mt-1">WhatsApp broadcasting is available from the Broadcast page.</p>}
-            </div>
-            {platform !== 'whatsapp' && <p className="text-[11px] text-[var(--ink-faint)] mt-2">Copy the post and paste it into {PLATFORM_LABEL[platform]}. (Direct auto-posting needs platform setup — coming later.)</p>}
-          </Card>
+          </div>
         </div>
       ) : (
         <ContentLibrary posts={posts} loading={loadingPosts} onLoad={loadPost} onDelete={del} />
