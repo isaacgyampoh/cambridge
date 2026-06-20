@@ -2,7 +2,7 @@ import { CONFIG } from '@/lib/config'
 
 const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
-type ContentTask = 'write' | 'critique' | 'improve' | 'hashtags' | 'ideas'
+type ContentTask = 'write' | 'critique' | 'improve' | 'hashtags' | 'ideas' | 'image_brief'
 
 const SYSTEM = `You are a senior social media strategist for Cambridge Centre of Excellence, a professional training institute in Ghana offering PMP, HR (PHRi/SPHRi), and other career certifications.
 
@@ -29,11 +29,14 @@ function buildPrompt(task: ContentTask, input: string, platform?: string, contex
       return `Suggest 8-12 relevant, effective hashtags${plat} for this post. Mix broad and niche, Ghana-relevant where useful. Return just the hashtags.\n\nPost:\n${input}`
     case 'ideas':
       return `Generate 6 strong content ideas${plat} for this topic/goal. For each: a one-line hook and a sentence on the angle.\n\nTopic:\n${input}`
+    case 'image_brief':
+      return `Describe the ideal visual/graphic to accompany this post${plat}. Give a clear creative brief a designer could follow: composition, key text overlay, colours, mood, and what to show. Keep it practical for a training institute in Ghana.\n\nPost:\n${input}`
   }
 }
 
-export async function generateContent(task: ContentTask, input: string, platform?: string, context?: string): Promise<string | null> {
+export async function generateContent(task: ContentTask, input: string, platform?: string, context?: string, brand?: string): Promise<string | null> {
   if (!CONFIG.anthropicApiKey) return null
+  const system = brand ? `${SYSTEM}\n\nBRAND GUIDELINES (follow these closely):\n${brand}` : SYSTEM
   try {
     const res = await fetch(ANTHROPIC_URL, {
       method: 'POST',
@@ -45,7 +48,7 @@ export async function generateContent(task: ContentTask, input: string, platform
       body: JSON.stringify({
         model: CONFIG.aiModel,
         max_tokens: 1000,
-        system: SYSTEM,
+        system,
         messages: [{ role: 'user', content: buildPrompt(task, input, platform, context) }],
       }),
       signal: AbortSignal.timeout(30000),

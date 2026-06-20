@@ -81,6 +81,7 @@ export const ALL_PORTALS = [
     children: [
       { label: 'Content Studio',      href: '/content' },
       { label: 'Competitor Research', href: '/content/research' },
+      { label: 'Brand Kit',           href: '/content/brand' },
     ]},
   { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
   { id: 'my_links',    label: 'My Links',     icon: Link2,           href: '/links' },

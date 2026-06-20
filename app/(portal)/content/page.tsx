@@ -40,8 +40,7 @@ export default function ContentStudio() {
       if (d.error) throw new Error(d.error)
       if (task === 'write' || task === 'improve') setDraft(d.result)
       else if (task === 'hashtags') setHashtags(d.result)
-      else if (task === 'critique') setAiNotes(d.result)
-      else if (task === 'ideas') setAiNotes(d.result)
+      else if (task === 'critique' || task === 'ideas' || task === 'image_brief') setAiNotes(d.result)
       toast.success('Done')
     } catch (e: any) { toast.error(e.message) }
     finally { setBusy('') }
@@ -120,6 +119,7 @@ export default function ContentStudio() {
               <Button size="sm" variant="secondary" onClick={() => runAI('critique')} disabled={!!busy} icon={<MessageSquare size={14} />}>{busy === 'critique' ? 'Reviewing…' : 'AI critique'}</Button>
               <Button size="sm" variant="secondary" onClick={() => runAI('improve')} disabled={!!busy} icon={<Sparkles size={14} />}>{busy === 'improve' ? 'Improving…' : 'Improve it'}</Button>
               <Button size="sm" variant="secondary" onClick={() => runAI('hashtags')} disabled={!!busy} icon={<Hash size={14} />}>{busy === 'hashtags' ? '…' : 'Hashtags'}</Button>
+              <Button size="sm" variant="secondary" onClick={() => runAI('image_brief')} disabled={!!busy} icon={<Sparkles size={14} />}>{busy === 'image_brief' ? '…' : 'Image brief'}</Button>
             </div>
           </Card>
 
