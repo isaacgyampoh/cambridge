@@ -21,11 +21,14 @@ export async function autoAssignLead(leadId: string): Promise<string | null> {
     if (setting && setting.value === 'false') return null
   } catch { /* no settings table yet — default ON */ }
 
-  // Active marketers
+  // Everyone except the super admin is in the marketing pool — all active
+  // staff get leads to work on, not just marketing officers. A person can
+  // opt out by setting in_lead_pool = false on their profile.
   const { data: marketers } = await sb.from('profiles')
-    .select('id, full_name')
-    .eq('role', 'marketing_officer').eq('is_active', true)
-  if (!marketers || marketers.length === 0) return null
+    .select('id, full_name, in_lead_pool')
+    .neq('role', 'super_admin').eq('is_active', true)
+  const pool = (marketers || []).filter(m => m.in_lead_pool !== false)
+  if (pool.length === 0) return null
 
   // Count each marketer's current OPEN leads (not closed/registered/lost)
   const { data: openLeads } = await sb.from('leads')
@@ -34,15 +37,15 @@ export async function autoAssignLead(leadId: string): Promise<string | null> {
     .not('status', 'in', '(registered,lost,not_interested)')
 
   const load: Record<string, number> = {}
-  marketers.forEach(m => { load[m.id] = 0 })
+  pool.forEach(m => { load[m.id] = 0 })
   ;(openLeads || []).forEach((l: any) => {
     if (l.assigned_to in load) load[l.assigned_to]++
   })
 
   // Pick the marketer with the fewest open leads (ties -> first)
-  let chosen = marketers[0]
+  let chosen = pool[0]
   let min = load[chosen.id] ?? 0
-  for (const m of marketers) {
+  for (const m of pool) {
     if ((load[m.id] ?? 0) < min) { chosen = m; min = load[m.id] ?? 0 }
   }
 

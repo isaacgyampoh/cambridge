@@ -75,6 +75,16 @@ export default function StaffPage() {
     refetch()
   }
 
+  async function toggleLeadPool(id: string, current: boolean) {
+    await fetch('/api/data', {
+      method: 'PATCH',
+      headers: { 'Content-Type': 'application/json'},
+      body: JSON.stringify({ table: 'profiles', data: { in_lead_pool: !current }, filters: [{ col: 'id', val: id }] }),
+    })
+    toast.success(current ? 'Removed from lead pool': 'Added to lead pool')
+    refetch()
+  }
+
   function copyText(text: string, label: string) {
     navigator.clipboard.writeText(text)
     toast.success(`${label} copied!`)
@@ -376,6 +386,16 @@ export default function StaffPage() {
                           }`}>
                           {s.is_active ? 'Deactivate': 'Activate'}
                         </button>
+                        {s.role !== 'super_admin' && (
+                          <button onClick={() => toggleLeadPool(s.id, s.in_lead_pool !== false)}
+                            className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition ${
+                              s.in_lead_pool !== false
+                                ? 'text-[var(--accent)] bg-[var(--accent-soft)] hover:brightness-95'
+                                : 'text-[var(--ink-faint)] bg-[var(--line-soft)] hover:brightness-95'
+                            }`}>
+                            {s.in_lead_pool !== false ? 'In lead pool' : 'Not in pool'}
+                          </button>
+                        )}
                       </div>
                     </td>
                   </tr>
