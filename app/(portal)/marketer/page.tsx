@@ -180,21 +180,21 @@ export default function MarketerDashboard() {
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My leads</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{leads.length} assigned to you</p>
         </div>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Link href="/marketer/leads/new"
-            className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
             <Plus size={15} /> Add lead
           </Link>
           <Link href="/marketer/activities"
-            className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
             <Clock size={14} /> Follow-ups
           </Link>
           <Link href="/marketer/link"
-            className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
             My link
           </Link>
           <button onClick={() => setReqOpen(true)}
-            className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
+            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
             <ArrowLeftRight size={14} /> Request a lead
           </button>
         </div>
