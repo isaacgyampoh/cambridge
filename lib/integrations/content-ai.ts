@@ -1,6 +1,4 @@
-import { CONFIG } from '@/lib/config'
-
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
+import { aiComplete } from '@/lib/integrations/ai-client'
 
 type ContentTask = 'write' | 'critique' | 'improve' | 'hashtags' | 'ideas' | 'image_brief'
 
@@ -35,29 +33,10 @@ function buildPrompt(task: ContentTask, input: string, platform?: string, contex
 }
 
 export async function generateContent(task: ContentTask, input: string, platform?: string, context?: string, brand?: string): Promise<string | null> {
-  if (!CONFIG.anthropicApiKey) return null
   const system = brand ? `${SYSTEM}\n\nBRAND GUIDELINES (follow these closely):\n${brand}` : SYSTEM
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CONFIG.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CONFIG.aiModel,
-        max_tokens: 1000,
-        system,
-        messages: [{ role: 'user', content: buildPrompt(task, input, platform, context) }],
-      }),
-      signal: AbortSignal.timeout(30000),
-    })
-    if (!res.ok) { console.error('[content-ai]', res.status); return null }
-    const data = await res.json()
-    return (data?.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n').trim() || null
-  } catch (e: any) {
-    console.error('[content-ai] error', e.message)
-    return null
-  }
+  return aiComplete({
+    system,
+    messages: [{ role: 'user', content: buildPrompt(task, input, platform, context) }],
+    maxTokens: 1000,
+  })
 }

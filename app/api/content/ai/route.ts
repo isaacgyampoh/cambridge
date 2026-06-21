@@ -39,6 +39,6 @@ export async function POST(req: NextRequest) {
   } catch { /* context optional */ }
 
   const result = await generateContent(task, input, platform, context, brand)
-  if (!result) return NextResponse.json({ error: 'AI is not configured. Add the Anthropic API key in settings.' }, { status: 503 })
+  if (!result) return NextResponse.json({ error: 'AI is not configured. Add your AI API key in the config.' }, { status: 503 })
   return NextResponse.json({ result })
 }

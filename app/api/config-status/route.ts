@@ -20,7 +20,7 @@ export async function GET() {
     wawpLines: waLines,
     resend: !!CONFIG.resendApiKey,
     cloudinary: !!CONFIG.cloudinaryCloudName && !!CONFIG.cloudinaryUploadPreset,
-    ai: !!CONFIG.anthropicApiKey && CONFIG.aiAssistantEnabled,
+    ai: (CONFIG.aiProvider === 'openai' ? !!CONFIG.openaiApiKey : !!CONFIG.anthropicApiKey) && CONFIG.aiAssistantEnabled,
     senderId: CONFIG.arkeselSenderId,
   })
 }

@@ -1,7 +1,7 @@
 import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
+import { aiComplete, aiConfigured } from '@/lib/integrations/ai-client'
 
-const ANTHROPIC_URL = 'https://api.anthropic.com/v1/messages'
 
 interface AssistantContext {
   leadName?: string | null
@@ -21,7 +21,7 @@ export async function generateAssistantReply(
   ctx: AssistantContext,
   history: { role: 'user' | 'assistant'; content: string }[] = [],
 ): Promise<string | null> {
-  if (!CONFIG.aiAssistantEnabled || !CONFIG.anthropicApiKey) return null
+  if (!CONFIG.aiAssistantEnabled || !aiConfigured()) return null
 
   const sb = createServiceClient()
   const { data: kb } = await sb
@@ -59,36 +59,11 @@ RULES:
 
 ${knowledge || 'No specific knowledge base entries are configured yet. Be warm, acknowledge the message, and say you will call them shortly with full details.'}`
 
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: {
-        'Content-Type': 'application/json',
-        'x-api-key': CONFIG.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CONFIG.aiModel,
-        max_tokens: 400,
-        system,
-        messages: [
-          ...history.slice(-6),
-          { role: 'user', content: incomingText },
-        ],
-      }),
-      signal: AbortSignal.timeout(20000),
-    })
-    if (!res.ok) {
-      console.error('[AI] Anthropic error', res.status, await res.text())
-      return null
-    }
-    const data = await res.json()
-    const text = (data?.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n').trim()
-    return text || null
-  } catch (e: any) {
-    console.error('[AI] generate error', e.message)
-    return null
-  }
+  return aiComplete({
+    system,
+    messages: [...history.slice(-6), { role: 'user', content: incomingText }],
+    maxTokens: 400,
+  })
 }
 
 /**
@@ -98,7 +73,7 @@ ${knowledge || 'No specific knowledge base entries are configured yet. Be warm, 
  * knowledge. Returns null if AI is disabled/unconfigured.
  */
 export async function generateOpeningMessage(ctx: AssistantContext): Promise<string | null> {
-  if (!CONFIG.aiAssistantEnabled || !CONFIG.anthropicApiKey) return null
+  if (!CONFIG.aiAssistantEnabled || !aiConfigured()) return null
 
   const firstName = (ctx.leadName || '').split(' ')[0] || 'there'
   const marketer = ctx.marketerName?.split(' ')[0] || 'your advisor'
@@ -106,28 +81,9 @@ export async function generateOpeningMessage(ctx: AssistantContext): Promise<str
 
   const system = `You are ${marketer}, a friendly admissions advisor at Cambridge Centre of Excellence in Ghana. Write a SHORT, warm opening WhatsApp message (2-3 sentences max) to a new prospect named ${firstName} who showed interest in ${course}. Introduce yourself by first name, acknowledge their interest, and invite them to ask anything or say they're ready to register. Be human and personable, not salesy or robotic. No markdown, no emojis unless natural. Do not invent specific prices or dates.`
 
-  try {
-    const res = await fetch(ANTHROPIC_URL, {
-      method: 'POST',
-      headers: {
-        'content-type': 'application/json',
-        'x-api-key': CONFIG.anthropicApiKey,
-        'anthropic-version': '2023-06-01',
-      },
-      body: JSON.stringify({
-        model: CONFIG.aiModel || 'claude-sonnet-4-6',
-        max_tokens: 300,
-        system,
-        messages: [{ role: 'user', content: `Write the opening message to ${firstName}.` }],
-      }),
-      signal: AbortSignal.timeout(20000),
-    })
-    if (!res.ok) { console.error('[AI] opening error', res.status); return null }
-    const data = await res.json()
-    const text = (data?.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n').trim()
-    return text || null
-  } catch (e: any) {
-    console.error('[AI] opening generate error', e.message)
-    return null
-  }
+  return aiComplete({
+    system,
+    messages: [{ role: 'user', content: `Write the opening message to ${firstName}.` }],
+    maxTokens: 300,
+  })
 }
