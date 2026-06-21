@@ -123,11 +123,11 @@ export default function StaffPage() {
                 <div className="bg-[var(--ok-soft)] border border-[var(--ok)]/20 rounded-2xl p-5 mb-5">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 bg-[var(--ok)]/10 rounded-full flex items-center justify-center">
-                      <Check size={16} className="text-green-600" />
+                      <Check size={16} className="text-[var(--ok)]" />
                     </div>
                     <div>
                       <div className="text-sm font-bold text-green-800">Account Created!</div>
-                      <div className="text-xs text-green-600">Share these credentials with the staff member</div>
+                      <div className="text-xs text-[var(--ok)]">Share these credentials with the staff member</div>
                     </div>
                   </div>
 
@@ -155,9 +155,9 @@ export default function StaffPage() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 mt-3 p-2 bg-amber-50 border border-amber-200 rounded-xl">
-                    <Shield size={13} className="text-amber-600 flex-shrink-0" />
-                    <p className="text-[11px] text-amber-700 font-medium">They log in with phone number + PIN. Must change PIN on first login.</p>
+                  <div className="flex items-center gap-2 mt-3 p-2 bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-xl">
+                    <Shield size={13} className="text-[var(--warn)] flex-shrink-0" />
+                    <p className="text-[11px] text-[var(--warn)] font-medium">They log in with phone number + PIN. Must change PIN on first login.</p>
                   </div>
                 </div>
 
@@ -259,7 +259,7 @@ export default function StaffPage() {
                       <button type="button" onClick={() => set('role', 'super_admin')}
                         className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left col-span-2 ${
                           form.role === 'super_admin'
-                            ? 'border-purple-600 bg-purple-50 text-purple-700'
+                            ? 'border-purple-600 bg-purple-50 text-[var(--gold)]'
                             : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'
                         }`}>
                          Super Admin (full access)

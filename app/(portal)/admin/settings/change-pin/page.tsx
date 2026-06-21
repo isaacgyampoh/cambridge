@@ -91,7 +91,7 @@ export default function ChangePINPage() {
           {showPin ? 'Hide PINs' : 'Show PINs'}
         </button>
 
-        {error && <p className="text-red-500 text-sm bg-red-50 rounded-xl py-2 px-3">{error}</p>}
+        {error && <p className="text-[var(--danger)] text-sm bg-[var(--danger-soft)] rounded-xl py-2 px-3">{error}</p>}
 
         <div className="flex gap-3 pt-2">
           <button onClick={save} disabled={saving}

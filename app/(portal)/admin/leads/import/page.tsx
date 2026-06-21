@@ -151,18 +151,18 @@ export default function ImportLeadsPage() {
       {done ? (
         /* ── Success state ── */
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-10 text-center max-w-md mx-auto shadow-sm">
-          <div className="w-16 h-16 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle size={32} className="text-green-600" />
+          <div className="w-16 h-16 bg-[var(--ok-soft)] rounded-full flex items-center justify-center mx-auto mb-4">
+            <CheckCircle size={32} className="text-[var(--ok)]" />
           </div>
           <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-2">Import Complete!</h2>
           <div className="flex justify-center gap-6 mb-6 text-sm">
             <div className="text-center">
-              <div className="text-2xl font-black text-green-600">{done.success}</div>
+              <div className="text-2xl font-black text-[var(--ok)]">{done.success}</div>
               <div className="text-[var(--ink-faint)]">Imported</div>
             </div>
             {done.failed > 0 && (
               <div className="text-center">
-                <div className="text-2xl font-black text-red-500">{done.failed}</div>
+                <div className="text-2xl font-black text-[var(--danger)]">{done.failed}</div>
                 <div className="text-[var(--ink-faint)]">Failed</div>
               </div>
             )}
@@ -234,14 +234,14 @@ export default function ImportLeadsPage() {
               <>
                 {/* Stats bar */}
                 <div className="flex gap-3">
-                  <div className="flex-1 bg-green-50 border border-green-100 rounded-xl p-3 text-center">
-                    <div className="text-xl font-black text-green-600">{validCount}</div>
-                    <div className="text-xs text-green-600 font-semibold">Ready to import</div>
+                  <div className="flex-1 bg-[var(--ok-soft)] border border-green-100 rounded-xl p-3 text-center">
+                    <div className="text-xl font-black text-[var(--ok)]">{validCount}</div>
+                    <div className="text-xs text-[var(--ok)] font-semibold">Ready to import</div>
                   </div>
                   {errorCount > 0 && (
-                    <div className="flex-1 bg-red-50 border border-red-100 rounded-xl p-3 text-center">
-                      <div className="text-xl font-black text-red-500">{errorCount}</div>
-                      <div className="text-xs text-red-500 font-semibold">Will be skipped</div>
+                    <div className="flex-1 bg-[var(--danger-soft)] border border-red-100 rounded-xl p-3 text-center">
+                      <div className="text-xl font-black text-[var(--danger)]">{errorCount}</div>
+                      <div className="text-xs text-[var(--danger)] font-semibold">Will be skipped</div>
                     </div>
                   )}
                   <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line-soft)] rounded-xl p-3 text-center">
@@ -267,11 +267,11 @@ export default function ImportLeadsPage() {
                       </thead>
                       <tbody>
                         {parsed.slice(0, 20).map((row, i) => (
-                          <tr key={i} className={`border-t border-[var(--line-soft)] ${row.status === 'error' ? 'bg-red-50' : 'hover:bg-[var(--line-soft)]'}`}>
+                          <tr key={i} className={`border-t border-[var(--line-soft)] ${row.status === 'error' ? 'bg-[var(--danger-soft)]' : 'hover:bg-[var(--line-soft)]'}`}>
                             <td className="px-3 py-2">
                               {row.status === 'valid'
                                 ? <CheckCircle size={13} className="text-green-500" />
-                                : <XCircle size={13} className="text-red-500" />}
+                                : <XCircle size={13} className="text-[var(--danger)]" />}
                             </td>
                             <td className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-red-400 italic">missing</span>}</td>
                             <td className="px-3 py-2 text-xs text-[var(--ink-faint)]">{row.phone || '—'}</td>
@@ -289,12 +289,12 @@ export default function ImportLeadsPage() {
 
                 {/* Errors */}
                 {errorCount > 0 && (
-                  <div className="bg-yellow-50 border border-yellow-200 rounded-xl p-3">
-                    <div className="flex items-center gap-2 text-sm font-bold text-yellow-800 mb-2">
+                  <div className="bg-[var(--warn-soft)] border border-yellow-200 rounded-xl p-3">
+                    <div className="flex items-center gap-2 text-sm font-bold text-[var(--warn)] mb-2">
                       <AlertTriangle size={15} /> {errorCount} row{errorCount > 1 ? 's' : ''} will be skipped:
                     </div>
                     {parsed.filter(p => p.status === 'error').map((p, i) => (
-                      <div key={i} className="text-xs text-yellow-700">{p.error}</div>
+                      <div key={i} className="text-xs text-[var(--warn)]">{p.error}</div>
                     ))}
                   </div>
                 )}

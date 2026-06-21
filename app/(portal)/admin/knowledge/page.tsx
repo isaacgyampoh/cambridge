@@ -98,7 +98,7 @@ export default function KnowledgeBasePage() {
                     <div className="flex gap-1 flex-shrink-0">
                       <button onClick={() => toggle(e)} className="text-xs font-medium px-2 py-1 rounded-md text-[var(--ink-soft)] hover:bg-[var(--line-soft)]">{e.is_active ? 'Disable' : 'Enable'}</button>
                       <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"><Pencil size={14} /></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>
+                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 </Card>
@@ -125,7 +125,7 @@ export default function KnowledgeBasePage() {
                     <div className="flex gap-1 flex-shrink-0">
                       <button onClick={() => toggle(e)} className="text-xs font-medium px-2 py-1 rounded-md text-[var(--ink-soft)] hover:bg-[var(--line-soft)]">{e.is_active ? 'Disable' : 'Enable'}</button>
                       <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"><Pencil size={14} /></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-red-600 hover:bg-red-50"><Trash2 size={14} /></button>
+                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"><Trash2 size={14} /></button>
                     </div>
                   </div>
                 </Card>

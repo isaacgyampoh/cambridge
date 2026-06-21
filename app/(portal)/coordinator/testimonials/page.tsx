@@ -73,10 +73,10 @@ export default function TestimonialsPage() {
               </div>
               <p className="text-sm text-[var(--ink-soft)] flex-1 mb-3">"{t.quote}"</p>
               <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => toggle(t, 'approved')} className={`text-[11px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.approved ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.approved ? 'Approved' : 'Approve'}</button>
+                <button onClick={() => toggle(t, 'approved')} className={`text-[11px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.approved ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.approved ? 'Approved' : 'Approve'}</button>
                 <button onClick={() => toggle(t, 'shared')} className={`text-[11px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.shared ? 'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/20' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.shared ? 'Shared' : 'Mark shared'}</button>
                 <button onClick={() => copyText(t)} title="Copy text" className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={14} /></button>
-                <button onClick={() => remove(t.id)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-red-500"><Trash2 size={14} /></button>
+                <button onClick={() => remove(t.id)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={14} /></button>
               </div>
             </Card>
           ))}

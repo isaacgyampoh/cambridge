@@ -10,14 +10,14 @@ import { changeLeadStatus } from '@/lib/leadStatus'
 
 const STATUSES = [
   { key: 'contacted',     label: 'Contacted',      color: 'bg-[var(--accent-soft)] text-[var(--accent)]', needsComment: false },
-  { key: 'interested',    label: 'Interested',     color: 'bg-indigo-100 text-indigo-700',  needsComment: false, sendsLink: true },
-  { key: 'follow_up',     label: 'Follow Up',      color: 'bg-orange-100 text-orange-700',  needsComment: true },
-  { key: 'next_session',  label: 'Next Session',   color: 'bg-amber-100 text-amber-700',    needsComment: true },
-  { key: 'zuku',          label: 'Zuku',           color: 'bg-red-100 text-red-600',        needsComment: true, hint: 'Not qualified — give the reason' },
-  { key: 'defiled',       label: 'Defiled',        color: 'bg-purple-100 text-purple-700',  needsComment: true, hint: 'Stopped current class to join the next — why?' },
-  { key: 'conflicts',     label: 'Conflicts',      color: 'bg-rose-100 text-rose-700',      needsComment: true, hint: 'What is the conflict?' },
-  { key: 'deferred',      label: 'Deferred',       color: 'bg-slate-100 text-slate-700',    needsComment: true, hint: 'Give the reason for deferring' },
-  { key: 'done',          label: 'Done',           color: 'bg-emerald-100 text-emerald-700', needsComment: false, hint: 'Completed the class' },
+  { key: 'interested',    label: 'Interested',     color: 'bg-[var(--info-soft)] text-[var(--info)]',  needsComment: false, sendsLink: true },
+  { key: 'follow_up',     label: 'Follow Up',      color: 'bg-[var(--warn-soft)] text-[var(--warn)]',  needsComment: true },
+  { key: 'next_session',  label: 'Next Session',   color: 'bg-[var(--warn-soft)] text-[var(--warn)]',    needsComment: true },
+  { key: 'zuku',          label: 'Zuku',           color: 'bg-[var(--danger-soft)] text-[var(--danger)]',        needsComment: true, hint: 'Not qualified — give the reason' },
+  { key: 'defiled',       label: 'Defiled',        color: 'bg-[var(--gold-soft)] text-[var(--gold)]',  needsComment: true, hint: 'Stopped current class to join the next — why?' },
+  { key: 'conflicts',     label: 'Conflicts',      color: 'bg-[var(--danger-soft)] text-[var(--danger)]',      needsComment: true, hint: 'What is the conflict?' },
+  { key: 'deferred',      label: 'Deferred',       color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',    needsComment: true, hint: 'Give the reason for deferring' },
+  { key: 'done',          label: 'Done',           color: 'bg-emerald-100 text-[var(--ok)]', needsComment: false, hint: 'Completed the class' },
 ]
 
 export default function MarketerDashboard() {
@@ -166,10 +166,10 @@ export default function MarketerDashboard() {
 
   const statusOrder = ['new','contacted','interested','follow_up','ready_to_join','not_interested','lost','registered']
   const COLORS: Record<string,string> = {
-    new:'bg-yellow-100 text-yellow-800', contacted:'bg-[var(--accent-soft)] text-[var(--accent)]',
-    interested:'bg-indigo-100 text-indigo-700', follow_up:'bg-orange-100 text-orange-700',
-    ready_to_join:'bg-green-100 text-green-700', registered:'bg-emerald-100 text-emerald-700',
-    not_interested:'bg-red-100 text-red-600', lost:'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+    new:'bg-[var(--warn-soft)] text-[var(--warn)]', contacted:'bg-[var(--accent-soft)] text-[var(--accent)]',
+    interested:'bg-[var(--info-soft)] text-[var(--info)]', follow_up:'bg-[var(--warn-soft)] text-[var(--warn)]',
+    ready_to_join:'bg-[var(--ok-soft)] text-[var(--ok)]', registered:'bg-emerald-100 text-[var(--ok)]',
+    not_interested:'bg-[var(--danger-soft)] text-[var(--danger)]', lost:'bg-[var(--line-soft)] text-[var(--ink-soft)]',
   }
 
   return (
@@ -237,20 +237,20 @@ export default function MarketerDashboard() {
 
       {/* Due follow-ups today */}
       {dueFollowUps.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-amber-200 bg-amber-50 p-4">
+        <div className="mb-6 rounded-2xl border border-[var(--warn)]/20 bg-[var(--warn-soft)] p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Clock size={16} className="text-amber-600" />
+            <Clock size={16} className="text-[var(--warn)]" />
             <span className="text-sm font-semibold text-amber-800">{dueFollowUps.length} follow-up{dueFollowUps.length === 1 ? '' : 's'} due today</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {dueFollowUps.slice(0, 8).map((l: any) => (
               <Link key={l.id} href={`/marketer/leads/${l.id}`}
-                className="inline-flex items-center gap-1.5 bg-white border border-amber-200 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:border-amber-300 transition">
+                className="inline-flex items-center gap-1.5 bg-white border border-[var(--warn)]/20 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:border-amber-300 transition">
                 {l.full_name}
                 {l.phone && <span className="text-[var(--ink-faint)]">· {String(l.phone).replace(/^233/, '0')}</span>}
               </Link>
             ))}
-            {dueFollowUps.length > 8 && <span className="text-xs text-amber-700 self-center">+{dueFollowUps.length - 8} more</span>}
+            {dueFollowUps.length > 8 && <span className="text-xs text-[var(--warn)] self-center">+{dueFollowUps.length - 8} more</span>}
           </div>
         </div>
       )}

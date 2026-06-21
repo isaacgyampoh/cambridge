@@ -119,11 +119,11 @@ export default function DocumentsPage() {
 
   const TYPE_COLORS: Record<string, string> = {
     admission_letter: 'bg-[var(--accent-soft)] text-[var(--accent)]',
-    brochure: 'bg-purple-100 text-purple-700',
-    offer_letter: 'bg-green-100 text-green-700',
-    receipt: 'bg-yellow-100 text-yellow-700',
-    application_form: 'bg-orange-100 text-orange-700',
-    certificate: 'bg-pink-100 text-pink-700',
+    brochure: 'bg-[var(--gold-soft)] text-[var(--gold)]',
+    offer_letter: 'bg-[var(--ok-soft)] text-[var(--ok)]',
+    receipt: 'bg-[var(--warn-soft)] text-[var(--warn)]',
+    application_form: 'bg-[var(--warn-soft)] text-[var(--warn)]',
+    certificate: 'bg-[var(--danger-soft)] text-[var(--danger)]',
     other: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
   }
 
@@ -242,8 +242,8 @@ export default function DocumentsPage() {
           {docs.map(doc => (
             <div key={doc.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
               <div className="flex items-start justify-between mb-3">
-                <div className="w-10 h-10 rounded-xl bg-red-100 flex items-center justify-center flex-shrink-0">
-                  <FileText size={20} className="text-red-600" />
+                <div className="w-10 h-10 rounded-xl bg-[var(--danger-soft)] flex items-center justify-center flex-shrink-0">
+                  <FileText size={20} className="text-[var(--danger)]" />
                 </div>
                 <div className="flex gap-1 ml-2">
                   {doc.is_template && (
@@ -269,7 +269,7 @@ export default function DocumentsPage() {
                   <Send size={13} /> Send
                 </button>
                 <button onClick={() => deleteDoc(doc.id, doc.file_url)}
-                  className="h-9 w-9 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition">
+                  className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition">
                   <Trash2 size={13} />
                 </button>
               </div>

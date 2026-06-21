@@ -125,7 +125,7 @@ export default function CoordinatorPage() {
                       <td className="px-4 py-3">{rd ? <Badge tone={rd.tone}>{rd.label}</Badge> : <span className="text-[var(--ink-faint)] text-xs">—</span>}</td>
                       <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.exam_scheduled_date || '—'}</td>
                       <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.voucher_expiry_date || '—'}</td>
-                      <td className="px-4 py-3 text-sm">{r.final_status ? <span className={r.final_status === 'passed' ? 'text-emerald-600 font-medium' : r.final_status === 'failed' ? 'text-red-500 font-medium' : 'text-[var(--ink-soft)]'}>{FINAL.find(f => f.value === r.final_status)?.label}</span> : <span className="text-[var(--ink-faint)]">—</span>}</td>
+                      <td className="px-4 py-3 text-sm">{r.final_status ? <span className={r.final_status === 'passed' ? 'text-[var(--ok)] font-medium' : r.final_status === 'failed' ? 'text-[var(--danger)] font-medium' : 'text-[var(--ink-soft)]'}>{FINAL.find(f => f.value === r.final_status)?.label}</span> : <span className="text-[var(--ink-faint)]">—</span>}</td>
                       <td className="px-4 py-3 text-xs text-[var(--accent)] font-medium">Edit</td>
                     </tr>
                   )

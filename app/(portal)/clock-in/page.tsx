@@ -101,7 +101,7 @@ export default function ClockInPage() {
           <div className="bg-[var(--line-soft)] rounded-lg p-3 text-center">
             <div className="text-[11px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock in</div>
             <div className="font-display text-xl font-semibold text-[var(--ink)]">{today?.clock_in_at ? fmt(today.clock_in_at) : '—'}</div>
-            {today?.status === 'late' && <div className="text-[10px] text-amber-600 font-medium mt-0.5">Late</div>}
+            {today?.status === 'late' && <div className="text-[10px] text-[var(--warn)] font-medium mt-0.5">Late</div>}
           </div>
           <div className="bg-[var(--line-soft)] rounded-lg p-3 text-center">
             <div className="text-[11px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock out</div>
@@ -131,7 +131,7 @@ export default function ClockInPage() {
           <span>Your location is checked at sign-in. You must be at the office for it to be accepted — this prevents remote sign-ins.</span>
         </div>
         {geoState === 'denied' && (
-          <div className="flex items-start gap-2 mt-3 text-xs text-red-600 bg-red-50 rounded-lg p-3">
+          <div className="flex items-start gap-2 mt-3 text-xs text-[var(--danger)] bg-[var(--danger-soft)] rounded-lg p-3">
             <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
             <span>Location access is blocked. Enable it in your browser settings to sign in.</span>
           </div>

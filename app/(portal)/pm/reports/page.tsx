@@ -131,7 +131,7 @@ export default function PMReports() {
                 <tr key={m.name} className="border-t border-[var(--line-soft)]">
                   <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{m.name}</td>
                   <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{m.total}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-green-600">{m.converted}</td>
+                  <td className="px-4 py-3 text-sm font-bold text-[var(--ok)]">{m.converted}</td>
                   <td className="px-4 py-3 text-sm font-bold">{m.total ? Math.round(m.converted / m.total * 100) : 0}%</td>
                 </tr>
               ))}

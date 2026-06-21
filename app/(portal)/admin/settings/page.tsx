@@ -122,7 +122,7 @@ export default function SettingsPage() {
                 <div className="text-xs text-[var(--ink-faint)] truncate">{i.desc}</div>
               </div>
               {i.ok
-                ? <span className="flex items-center gap-1 text-emerald-600 text-xs font-medium flex-shrink-0"><CheckCircle2 size={14} />{i.detail}</span>
+                ? <span className="flex items-center gap-1 text-[var(--ok)] text-xs font-medium flex-shrink-0"><CheckCircle2 size={14} />{i.detail}</span>
                 : <span className="flex items-center gap-1 text-[var(--ink-faint)] text-xs font-medium flex-shrink-0"><AlertCircle size={14} />{i.detail}</span>}
             </Card>
           ))}
@@ -139,7 +139,7 @@ export default function SettingsPage() {
           <Button variant="secondary" onClick={testWhatsApp} disabled={testing === 'wa'} icon={<MessageSquare size={14} />}>{testing === 'wa' ? 'Sending…' : 'Test WhatsApp'}</Button>
         </div>
         {result && (
-          <div className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-emerald-50 text-emerald-800' : 'bg-amber-50 text-amber-800'}`}>
+          <div className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-[var(--ok-soft)] text-emerald-800' : 'bg-[var(--warn-soft)] text-amber-800'}`}>
             <div className="font-medium mb-1">{result.channel}: {result.success ? 'Delivered to provider' : 'Not delivered'}</div>
             {result.hint && <div className="text-xs">{result.hint}</div>}
             {result.arkeselResponse && <div className="text-[11px] font-mono mt-1 opacity-70">{JSON.stringify(result.arkeselResponse)}</div>}

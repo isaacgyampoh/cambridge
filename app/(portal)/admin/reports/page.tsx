@@ -73,8 +73,8 @@ export default function AdminReports() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
           { label: 'Total Leads', value: data.totalLeads, sub: `${data.unassigned} unassigned`, color: 'bg-[var(--accent-soft)] text-[var(--accent)]' },
-          { label: 'Conversion Rate', value: `${data.totalLeads ? Math.round(data.converted/data.totalLeads*100) : 0}%`, sub: `${data.converted} converted`, color: 'bg-green-50 text-green-600' },
-          { label: 'Revenue', value: formatGHS(data.revenue), sub: `${data.txCount} transactions`, color: 'bg-emerald-50 text-emerald-600' },
+          { label: 'Conversion Rate', value: `${data.totalLeads ? Math.round(data.converted/data.totalLeads*100) : 0}%`, sub: `${data.converted} converted`, color: 'bg-[var(--ok-soft)] text-[var(--ok)]' },
+          { label: 'Revenue', value: formatGHS(data.revenue), sub: `${data.txCount} transactions`, color: 'bg-[var(--ok-soft)] text-[var(--ok)]' },
           { label: 'Total Students', value: data.totalStudents, sub: `${data.ongoingBatches} active classes`, color: 'bg-purple-50 text-purple-600' },
           { label: 'Admissions', value: data.totalAdmissions, sub: `${data.admitted} admitted`, color: 'bg-indigo-50 text-indigo-600' },
           { label: 'Ongoing Batches', value: data.ongoingBatches, sub: `${data.upcomingBatches} upcoming`, color: 'bg-orange-50 text-orange-600' },

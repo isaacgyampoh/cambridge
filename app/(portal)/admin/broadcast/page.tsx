@@ -106,8 +106,8 @@ export default function BroadcastPage() {
   const STATUS_CONFIG: Record<string, string> = {
     draft: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
     sending: 'bg-[var(--accent-soft)] text-[var(--accent)]',
-    sent: 'bg-green-100 text-green-700',
-    failed: 'bg-red-100 text-red-600',
+    sent: 'bg-[var(--ok-soft)] text-[var(--ok)]',
+    failed: 'bg-[var(--danger-soft)] text-[var(--danger)]',
   }
 
   return (
@@ -197,7 +197,7 @@ export default function BroadcastPage() {
                 <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Send via</label>
                 <div className="flex gap-2">
                   {[
-                    { key: 'whatsapp', label: 'WhatsApp', color: 'border-green-400 bg-green-50 text-green-700'},
+                    { key: 'whatsapp', label: 'WhatsApp', color: 'border-green-400 bg-[var(--ok-soft)] text-[var(--ok)]'},
                     { key: 'sms', label: 'SMS', color: 'border-blue-400 bg-[var(--accent-soft)] text-[var(--accent)]'},
                   ].map(ch => (
                     <button key={ch.key} onClick={() => toggleChannel(ch.key)}
@@ -269,12 +269,12 @@ export default function BroadcastPage() {
               </div>
               <div className="flex items-center gap-4 text-xs text-[var(--ink-faint)]">
                 <span className="flex items-center gap-1"><Users size={12} /> {b.target_count} targeted</span>
-                <span className="flex items-center gap-1 text-green-600"><CheckCircle size={12} /> {b.sent_count} sent</span>
-                {b.failed_count > 0 && <span className="flex items-center gap-1 text-red-500"><XCircle size={12} /> {b.failed_count} failed</span>}
+                <span className="flex items-center gap-1 text-[var(--ok)]"><CheckCircle size={12} /> {b.sent_count} sent</span>
+                {b.failed_count > 0 && <span className="flex items-center gap-1 text-[var(--danger)]"><XCircle size={12} /> {b.failed_count} failed</span>}
                 <span className="flex items-center gap-1"><Clock size={12} /> {formatDateTime(b.created_at)}</span>
                 <div className="flex gap-1 ml-auto items-center">
                   {(b.channels || []).map((ch: string) => (
-                    <span key={ch} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ch === 'whatsapp'? 'bg-green-100 text-green-700': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+                    <span key={ch} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ch === 'whatsapp'? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                       {ch}
                     </span>
                   ))}

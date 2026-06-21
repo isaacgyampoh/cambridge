@@ -169,8 +169,8 @@ export default function FinancePage() {
                       <td className="px-4 py-3 text-[11px] font-mono text-[var(--ink-faint)]">{inv.invoice_number || '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium text-[var(--ink)]">{inv.student?.full_name || '—'}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(inv.total_amount)}</td>
-                      <td className="px-4 py-3 text-sm text-emerald-600 font-medium">{formatGHS(inv.amount_paid)}</td>
-                      <td className="px-4 py-3"><span className={`text-sm font-semibold ${Number(inv.outstanding) > 0 ? 'text-red-600' : 'text-emerald-600'}`}>{formatGHS(inv.outstanding || 0)}</span></td>
+                      <td className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(inv.amount_paid)}</td>
+                      <td className="px-4 py-3"><span className={`text-sm font-semibold ${Number(inv.outstanding) > 0 ? 'text-[var(--danger)]' : 'text-[var(--ok)]'}`}>{formatGHS(inv.outstanding || 0)}</span></td>
                       <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">{inv.due_date || 'No due date'}</td>
                     </tr>
                   ))}

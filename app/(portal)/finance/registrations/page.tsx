@@ -94,7 +94,7 @@ export default function FinanceRegistrations() {
                     </button>
                   </>
                 ) : (
-                  <div className="flex items-center gap-1 text-xs text-emerald-600 font-medium"><Check size={12} /> All paid out</div>
+                  <div className="flex items-center gap-1 text-xs text-[var(--ok)] font-medium"><Check size={12} /> All paid out</div>
                 )}
               </div>
             </div>

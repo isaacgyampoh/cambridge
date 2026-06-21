@@ -79,7 +79,7 @@ export default function AdminRemuneration() {
                     <td className="px-4 py-3">{m.trend && m.trend.some((v:number)=>v>0) ? <Sparkline data={m.trend} /> : <span className="text-[11px] text-[var(--ink-faint)]">—</span>}</td>
                     <td className="px-4 py-3"><Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge></td>
                     <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(m.grossSalary)}</td>
-                    <td className="px-4 py-3 text-sm text-emerald-600 font-medium">{formatGHS(m.registrationCommission)}</td>
+                    <td className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(m.registrationCommission)}</td>
                     <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{m.nextRank ? `${m.pointsToNext} → ${m.nextRank}` : 'Top rank'}</td>
                   </tr>
                 ))}

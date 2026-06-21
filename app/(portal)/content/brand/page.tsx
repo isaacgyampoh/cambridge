@@ -95,7 +95,7 @@ export default function BrandKit() {
                 <span className="text-xs text-[var(--ink-soft)] truncate">{a.name}</span>
                 <div className="flex gap-1 flex-shrink-0">
                   <button onClick={() => { navigator.clipboard.writeText(a.url); toast.success('Link copied') }} className="p-1 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={13} /></button>
-                  <button onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-red-500"><Trash2 size={13} /></button>
+                  <button onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={13} /></button>
                 </div>
               </div>
             </Card>

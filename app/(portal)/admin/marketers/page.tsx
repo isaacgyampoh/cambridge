@@ -166,10 +166,10 @@ export default function MarketerPerformancePage() {
   }
 
   const STATUS_CONFIG = {
-    top_performer: { label: 'Top Performer', color: 'bg-yellow-100 text-yellow-800 border-yellow-200', bg: 'border-yellow-300'},
-    active: { label: 'Active', color: 'bg-green-100 text-green-700 border-green-200', bg: 'border-green-200'},
-    at_risk: { label: 'At Risk', color: 'bg-orange-100 text-orange-700 border-orange-200', bg: 'border-orange-300'},
-    inactive: { label: 'Inactive', color: 'bg-red-100 text-red-700 border-red-200', bg: 'border-red-300'},
+    top_performer: { label: 'Top Performer', color: 'bg-[var(--warn-soft)] text-[var(--warn)] border-yellow-200', bg: 'border-yellow-300'},
+    active: { label: 'Active', color: 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/20', bg: 'border-[var(--ok)]/20'},
+    at_risk: { label: 'At Risk', color: 'bg-[var(--warn-soft)] text-[var(--warn)] border-orange-200', bg: 'border-orange-300'},
+    inactive: { label: 'Inactive', color: 'bg-[var(--danger-soft)] text-red-700 border-[var(--danger)]/20', bg: 'border-red-300'},
   }
 
   const summary = {
@@ -204,10 +204,10 @@ export default function MarketerPerformancePage() {
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Top performers', value: summary.topPerformers, tone: 'text-emerald-600' },
+          { label: 'Top performers', value: summary.topPerformers, tone: 'text-[var(--ok)]' },
           { label: 'Active', value: summary.active, tone: 'text-[var(--ink)]' },
-          { label: 'At risk', value: summary.atRisk, tone: 'text-amber-600' },
-          { label: 'Inactive', value: summary.inactive, tone: 'text-red-600' },
+          { label: 'At risk', value: summary.atRisk, tone: 'text-[var(--warn)]' },
+          { label: 'Inactive', value: summary.inactive, tone: 'text-[var(--danger)]' },
         ].map(k => (
           <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
             <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{k.label}</div>
@@ -239,7 +239,7 @@ export default function MarketerPerformancePage() {
           {selected && <div className="p-6">
             <h2 className="font-semibold text-[var(--ink)] mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
             <p className="text-sm text-[var(--ink-faint)] mb-4">This will send an in-app notification and SMS.</p>
-            <div className="bg-orange-50 rounded-xl p-3 mb-4 text-xs text-orange-700">
+            <div className="bg-orange-50 rounded-xl p-3 mb-4 text-xs text-[var(--warn)]">
               <strong>Performance snapshot:</strong><br />
               {selected.totalLeads} leads · {selected.convertedLeads} converted ({selected.conversionRate}%) · {selected.uncontactedLeads} uncontacted · Last active: {selected.daysSinceActivity === 999 ? 'Never': `${selected.daysSinceActivity} days ago`}
             </div>
@@ -294,12 +294,12 @@ export default function MarketerPerformancePage() {
                   </div>
                   <div className="flex items-center gap-2">
                     {m.status === 'inactive'&& (
-                      <div className="text-xs font-bold text-red-600 bg-red-50 px-3 py-1 rounded-full">
+                      <div className="text-xs font-bold text-[var(--danger)] bg-[var(--danger-soft)] px-3 py-1 rounded-full">
                         {m.daysSinceActivity === 999 ? 'Never active': `${m.daysSinceActivity} days idle`}
                       </div>
                     )}
                     <button onClick={() => setSelected(m)}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-orange-100 text-orange-700 rounded-xl text-xs font-semibold hover:bg-orange-200 transition">
+                      className="flex items-center gap-1.5 px-3 py-2 bg-[var(--warn-soft)] text-[var(--warn)] rounded-xl text-xs font-semibold hover:bg-orange-200 transition">
                       <Bell size={13} /> Alert
                     </button>
                   </div>
@@ -315,8 +315,8 @@ export default function MarketerPerformancePage() {
                     { label: 'Calls/wk', value: m.callsThisWeek, icon: Phone },
                     { label: 'WA/wk', value: m.waThisWeek, icon: MessageSquare },
                   ].map(s => (
-                    <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-red-50': 'bg-[var(--line-soft)]'}`}>
-                      <div className={`text-xl font-bold ${(s as any).alert ? 'text-red-600': 'text-[var(--ink)]'}`}>{s.value}</div>
+                    <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-[var(--danger-soft)]': 'bg-[var(--line-soft)]'}`}>
+                      <div className={`text-xl font-bold ${(s as any).alert ? 'text-[var(--danger)]': 'text-[var(--ink)]'}`}>{s.value}</div>
                       <div className="text-[10px] text-[var(--ink-faint)] mt-0.5">{s.label}</div>
                     </div>
                   ))}
@@ -357,11 +357,11 @@ export default function MarketerPerformancePage() {
                       <div>Applications</div>
                     </div>
                     <div>
-                      <div className="font-bold text-green-600">{m.applicationsPaid}</div>
+                      <div className="font-bold text-[var(--ok)]">{m.applicationsPaid}</div>
                       <div>Paid</div>
                     </div>
                     <div>
-                      <div className="font-bold text-emerald-600">{formatGHS(m.revenueGenerated)}</div>
+                      <div className="font-bold text-[var(--ok)]">{formatGHS(m.revenueGenerated)}</div>
                       <div>Revenue</div>
                     </div>
                     {m.lastActivityDate && (

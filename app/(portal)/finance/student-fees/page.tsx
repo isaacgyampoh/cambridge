@@ -102,8 +102,8 @@ export default function StudentFeesPage() {
                       </td>
                       <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{f.course_name || '—'}</td>
                       <td className="px-4 py-3 text-sm">GHS {Number(f.total_fee).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm text-emerald-600">GHS {Number(f.amount_paid).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-amber-600">GHS {Number(f.balance).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm text-[var(--ok)]">GHS {Number(f.amount_paid).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-sm font-medium text-[var(--warn)]">GHS {Number(f.balance).toFixed(2)}</td>
                       <td className="px-4 py-3"><Badge tone={f.status === 'paid' ? 'success' : f.status === 'partial' ? 'warning' : 'neutral'}>{f.status}</Badge></td>
                       <td className="px-4 py-3">
                         {f.status !== 'paid' && <Button size="sm" variant="secondary" onClick={() => { setRecordFor(f); setRecordAmt(String(f.balance)) }}>Record payment</Button>}

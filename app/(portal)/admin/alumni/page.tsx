@@ -262,15 +262,15 @@ export default function AlumniPage() {
                   <button onClick={() => openEdit(a)}
                     className="flex-1 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">Edit</button>
                   <button onClick={() => toggleFeatured(a.id, a.is_featured)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-yellow-100 text-yellow-700 hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-[var(--warn-soft)] text-[var(--warn)] hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                     <Star size={15} fill={a.is_featured ? 'currentColor': 'none'} />
                   </button>
                   <button onClick={() => togglePublish(a.id, a.is_published)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-green-100 text-green-600 hover:bg-green-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-green-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                     {a.is_published ? <Eye size={15} /> : <EyeOff size={15} />}
                   </button>
                   <button onClick={() => del(a.id)}
-                    className="h-9 w-9 flex items-center justify-center bg-red-50 text-red-500 rounded-xl hover:bg-red-100 transition text-xs"></button>
+                    className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition text-xs"></button>
                 </div>
               </div>
             </div>

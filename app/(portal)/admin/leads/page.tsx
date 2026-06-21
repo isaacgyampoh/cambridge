@@ -118,7 +118,7 @@ export default function AdminLeads() {
                     <td className="px-4 py-3"><Badge tone="neutral">{l.source}</Badge></td>
                     <td className="px-4 py-3 text-sm text-[var(--ink-soft)] max-w-32 truncate">{l.course_interest || '—'}</td>
                     <td className="px-4 py-3"><Badge tone={STATUS_TONE[l.status] || 'neutral'}>{l.status.replace(/_/g, ' ')}</Badge></td>
-                    <td className="px-4 py-3 text-sm">{l.assignee?.full_name || <span className="text-amber-600 text-xs font-medium">Unassigned</span>}</td>
+                    <td className="px-4 py-3 text-sm">{l.assignee?.full_name || <span className="text-[var(--warn)] text-xs font-medium">Unassigned</span>}</td>
                     <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{formatDateTime(l.created_at)}</td>
                   </tr>
                 ))}

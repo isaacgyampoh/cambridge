@@ -195,7 +195,7 @@ function PostRow({ p, onLoad, onDelete }: any) {
           </div>
           <p className="text-sm text-[var(--ink-soft)] line-clamp-2">{p.body}</p>
         </div>
-        <button onClick={() => onDelete(p.id)} className="p-1.5 text-[var(--ink-faint)] hover:text-red-500 flex-shrink-0"><Trash2 size={14} /></button>
+        <button onClick={() => onDelete(p.id)} className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)] flex-shrink-0"><Trash2 size={14} /></button>
       </div>
     </Card>
   )

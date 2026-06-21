@@ -157,7 +157,7 @@ export default function SequencesPage() {
                     Step {i + 1}
                   </div>
                   {steps.length > 1 && (
-                    <button onClick={() => removeStep(i)} className="text-[var(--ink-faint)] hover:text-red-500"><Trash2 size={15} /></button>
+                    <button onClick={() => removeStep(i)} className="text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={15} /></button>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-3">

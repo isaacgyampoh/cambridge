@@ -157,7 +157,7 @@ export default function AdminLinks() {
                 </div>
                 <Badge tone="neutral">{l.audience === 'all' ? 'Everyone' : l.audience === 'marketers' ? 'Marketers' : 'Staff'}</Badge>
                 {l.expires_at && <Badge tone="warning">Expires {new Date(l.expires_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</Badge>}
-                <button onClick={() => remove(l.id)} className="p-2 text-[var(--ink-faint)] hover:text-red-500"><Trash2 size={15} /></button>
+                <button onClick={() => remove(l.id)} className="p-2 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={15} /></button>
               </Card>
             )
           })}

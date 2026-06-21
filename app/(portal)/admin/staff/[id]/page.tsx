@@ -93,10 +93,10 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   if (!staff) return <div className="text-center py-20 text-[var(--ink-faint)]">Staff member not found</div>
 
   const ROLE_COLOR: Record<string, string> = {
-    super_admin:'bg-purple-100 text-purple-700', project_manager:'bg-[var(--accent-soft)] text-[var(--accent)]',
-    marketing_officer:'bg-green-100 text-green-700', admissions_officer:'bg-indigo-100 text-indigo-700',
-    accountant:'bg-amber-100 text-amber-700', receptionist:'bg-pink-100 text-pink-700',
-    trainer:'bg-orange-100 text-orange-700',
+    super_admin:'bg-[var(--gold-soft)] text-[var(--gold)]', project_manager:'bg-[var(--accent-soft)] text-[var(--accent)]',
+    marketing_officer:'bg-[var(--ok-soft)] text-[var(--ok)]', admissions_officer:'bg-[var(--info-soft)] text-[var(--info)]',
+    accountant:'bg-[var(--warn-soft)] text-[var(--warn)]', receptionist:'bg-[var(--danger-soft)] text-[var(--danger)]',
+    trainer:'bg-[var(--warn-soft)] text-[var(--warn)]',
   }
 
   // Group portals

@@ -147,7 +147,7 @@ export default function AttendanceDashboard() {
 
       {/* No batches warning */}
       {batches.length === 0 && (
-        <div className="bg-amber-50 border border-amber-200 rounded-2xl p-4 mb-5 text-sm text-amber-800">
+        <div className="bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-2xl p-4 mb-5 text-sm text-amber-800">
           <strong>No classes/batches found.</strong> Go to <span className="font-semibold">Academics → Courses</span> to add a course,
           then <span className="font-semibold">Academics → Classes</span> to create a batch. Once a batch exists, it will appear here.
         </div>
@@ -170,7 +170,7 @@ export default function AttendanceDashboard() {
                   {batches.map((b: any) => <option key={b.id} value={b.id}>{b.name} — {b.courses?.name}</option>)}
                 </select>
                 {batches.length === 0 && (
-                  <p className="text-xs text-red-500 mt-1">No batches available. Create one in Academics → Classes first.</p>
+                  <p className="text-xs text-[var(--danger)] mt-1">No batches available. Create one in Academics → Classes first.</p>
                 )}
               </div>
               <div>
@@ -202,7 +202,7 @@ export default function AttendanceDashboard() {
                 className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600': 'border-[var(--line)] hover:border-gray-300'}`}>
                 <div className="flex items-start justify-between mb-1">
                   <div className="text-sm font-semibold text-[var(--ink)] truncate">{s.batches?.name}</div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-green-100 text-green-700': 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
+                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
                     {s.signin_open ? 'OPEN': 'CLOSED'}
                   </span>
                 </div>
@@ -243,7 +243,7 @@ export default function AttendanceDashboard() {
                     <p className="text-sm font-mono text-[var(--accent)] mt-1">Code: <strong>{selected.class_code}</strong></p>
                   </div>
                   <button onClick={() => toggleSession(selected.id, selected.signin_open)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${selected.signin_open ? 'bg-red-100 text-red-700 hover:bg-red-200': 'bg-green-100 text-green-700 hover:bg-green-200'}`}>
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${selected.signin_open ? 'bg-[var(--danger-soft)] text-red-700 hover:bg-red-200': 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-green-200'}`}>
                     {selected.signin_open ? 'Close Sign-in': 'Reopen Sign-in'}
                   </button>
                 </div>
@@ -261,9 +261,9 @@ export default function AttendanceDashboard() {
                 <div className="grid grid-cols-4 gap-2">
                   {[
                     { label: 'Total', value: signins.length, color: 'text-[var(--ink)]'},
-                    { label: 'Verified', value: verified.length, color: 'text-green-600'},
+                    { label: 'Verified', value: verified.length, color: 'text-[var(--ok)]'},
                     { label: 'In Person', value: inPerson.length, color: 'text-[var(--accent)]'},
-                    { label: 'Paid', value: paid.length, color: 'text-emerald-600'},
+                    { label: 'Paid', value: paid.length, color: 'text-[var(--ok)]'},
                   ].map(s => (
                     <div key={s.label} className="bg-[var(--line-soft)] rounded-xl p-2.5 text-center">
                       <div className={`text-xl font-bold ${s.color}`}>{s.value}</div>
@@ -302,7 +302,7 @@ export default function AttendanceDashboard() {
                           <td className="px-3 py-2.5 text-sm font-semibold text-[var(--ink)]">{s.full_name}</td>
                           <td className="px-3 py-2.5 text-xs text-[var(--ink-soft)]">{s.phone?.replace(/^233/, '0') || '—'}</td>
                           <td className="px-3 py-2.5">
-                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online'? 'bg-purple-100 text-purple-700': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+                            <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online'? 'bg-[var(--gold-soft)] text-[var(--gold)]': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                               {s.attendance_type === 'online'? 'Online': 'In Person'}
                             </span>
                           </td>
@@ -313,9 +313,9 @@ export default function AttendanceDashboard() {
                           </td>
                           <td className="px-3 py-2.5">
                             {s.payment_status === 'paid'? (
-                              <span className="text-[10px] font-bold bg-green-100 text-green-700 px-2 py-0.5 rounded-full">Paid</span>
+                              <span className="text-[10px] font-bold bg-[var(--ok-soft)] text-[var(--ok)] px-2 py-0.5 rounded-full">Paid</span>
                             ) : s.payment_method === 'cash'? (
-                              <button onClick={() => markPaid(s.id)} className="text-[10px] font-bold bg-orange-100 text-orange-700 px-2 py-0.5 rounded-full hover:bg-orange-200 transition">
+                              <button onClick={() => markPaid(s.id)} className="text-[10px] font-bold bg-[var(--warn-soft)] text-[var(--warn)] px-2 py-0.5 rounded-full hover:bg-orange-200 transition">
                                 Cash — Mark Paid
                               </button>
                             ) : (

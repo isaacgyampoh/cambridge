@@ -45,7 +45,7 @@ export default function StudentDashboard() {
         {[
           { label: 'Enrolled', value: enrollments.length, icon: BookOpen, color: 'text-[var(--accent)] bg-[var(--accent-soft)]'},
           { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-purple-600 bg-purple-50'},
-          { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-red-600 bg-red-50': 'text-green-600 bg-green-50'},
+          { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-[var(--danger)] bg-[var(--danger-soft)]': 'text-[var(--ok)] bg-[var(--ok-soft)]'},
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
             <div className="w-9 h-9 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center mb-3">
@@ -74,7 +74,7 @@ export default function StudentDashboard() {
                 <div className="text-xs text-[var(--ink-faint)]">{batch?.name} · {batch?.schedule || 'Schedule TBD'}</div>
                 {batch?.start_date && <div className="text-xs text-[var(--ink-faint)]">{formatDate(batch.start_date)}</div>}
               </div>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${batch?.status==='ongoing'?'bg-green-100 text-green-700':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${batch?.status==='ongoing'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                 {batch?.status || 'upcoming'}
               </span>
             </div>
@@ -94,7 +94,7 @@ export default function StudentDashboard() {
               <div className="text-sm font-semibold text-[var(--ink)]">{formatGHS(inv.total_amount)}</div>
               {inv.due_date && <div className="text-xs text-[var(--ink-faint)]">Due: {formatDate(inv.due_date)}</div>}
             </div>
-            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(inv.outstanding)===0?'bg-green-100 text-green-700':'bg-red-100 text-red-600'}`}>
+            <span className={`text-xs font-bold px-2.5 py-1 rounded-full ${Number(inv.outstanding)===0?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
               {Number(inv.outstanding)===0 ? 'Paid ': `Owes ${formatGHS(inv.outstanding)}`}
             </span>
           </div>

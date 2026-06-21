@@ -68,9 +68,9 @@ export default function WorkforcePage() {
 
       {/* Office setup notice */}
       {offices.length === 0 && (
-        <Card className="p-4 mb-6 border-amber-200 bg-amber-50">
+        <Card className="p-4 mb-6 border-[var(--warn)]/20 bg-[var(--warn-soft)]">
           <div className="flex items-start gap-3">
-            <MapPin size={18} className="text-amber-600 flex-shrink-0 mt-0.5" />
+            <MapPin size={18} className="text-[var(--warn)] flex-shrink-0 mt-0.5" />
             <div className="text-sm text-amber-800">
               <strong>No office location set.</strong> Staff cannot sign in until you set one. Stand at your office and use “Office location → Use my current location”.
             </div>

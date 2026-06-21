@@ -84,11 +84,11 @@ export default function ActivitiesPage() {
       </div>
 
       {overdue.length > 0 && (
-        <div className="bg-red-50 border border-red-200 rounded-2xl p-4 mb-5 flex items-center gap-3">
-          <AlertTriangle size={20} className="text-red-500 flex-shrink-0" />
+        <div className="bg-[var(--danger-soft)] border border-[var(--danger)]/20 rounded-2xl p-4 mb-5 flex items-center gap-3">
+          <AlertTriangle size={20} className="text-[var(--danger)] flex-shrink-0" />
           <div>
             <div className="text-sm font-bold text-red-700">{overdue.length} overdue follow-up{overdue.length > 1 ? 's': ''}!</div>
-            <div className="text-xs text-red-600">These should have been done already. Take action now.</div>
+            <div className="text-xs text-[var(--danger)]">These should have been done already. Take action now.</div>
           </div>
         </div>
       )}
@@ -121,7 +121,7 @@ export default function ActivitiesPage() {
             const lead = item.lead
             const isOverdue = new Date(item.follow_up_at) < new Date()
             return (
-              <div key={item.id} className={`bg-[var(--paper)] rounded-xl border-2 p-4 ${isOverdue ? 'border-red-200': 'border-[var(--line)]'}`}>
+              <div key={item.id} className={`bg-[var(--paper)] rounded-xl border-2 p-4 ${isOverdue ? 'border-[var(--danger)]/20': 'border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">
@@ -129,13 +129,13 @@ export default function ActivitiesPage() {
                         className="font-semibold text-[var(--ink)] hover:text-[var(--accent)] transition">
                         {lead?.full_name}
                       </Link>
-                      {isOverdue && <span className="text-[10px] font-bold bg-red-100 text-red-600 px-2 py-0.5 rounded-full">OVERDUE</span>}
+                      {isOverdue && <span className="text-[10px] font-bold bg-[var(--danger-soft)] text-[var(--danger)] px-2 py-0.5 rounded-full">OVERDUE</span>}
                     </div>
                     {lead?.course_interest && <div className="text-xs text-[var(--accent)] mb-1"> {lead.course_interest}</div>}
                     {item.reason && <div className="text-xs text-[var(--ink-faint)] mb-2 line-clamp-2">{item.reason}</div>}
                     <div className="flex items-center gap-1 text-xs text-[var(--ink-faint)]">
                       <Clock size={11} />
-                      <span className={isOverdue ? 'text-red-500 font-semibold': ''}>{formatDateTime(item.follow_up_at)}</span>
+                      <span className={isOverdue ? 'text-[var(--danger)] font-semibold': ''}>{formatDateTime(item.follow_up_at)}</span>
                     </div>
                   </div>
 
@@ -143,8 +143,8 @@ export default function ActivitiesPage() {
                     {lead?.phone && (
                       <div className="flex gap-1">
                         <a href={`tel:${lead.phone}`}
-                          className="w-9 h-9 rounded-xl bg-green-100 flex items-center justify-center hover:bg-green-200 transition">
-                          <Phone size={14} className="text-green-600" />
+                          className="w-9 h-9 rounded-xl bg-[var(--ok-soft)] flex items-center justify-center hover:bg-green-200 transition">
+                          <Phone size={14} className="text-[var(--ok)]" />
                         </a>
                         <a href={`https://wa.me/${lead.phone.replace(/^0/, '233')}`} target="_blank"
                           className="w-9 h-9 rounded-xl bg-[#25D366]/10 flex items-center justify-center hover:bg-[#25D366]/20 transition">

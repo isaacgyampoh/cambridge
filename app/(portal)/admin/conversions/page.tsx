@@ -97,7 +97,7 @@ export default function ConversionsPage() {
                         </td>
                         <td className="px-5 py-3.5 font-display text-lg font-semibold text-[var(--ink)]">{c.leads}</td>
                         <td className="px-5 py-3.5">
-                          <span className="font-display text-lg font-semibold text-emerald-600">{c.registered}</span>
+                          <span className="font-display text-lg font-semibold text-[var(--ok)]">{c.registered}</span>
                         </td>
                         <td className="px-5 py-3.5">
                           <div className="flex items-center gap-2">

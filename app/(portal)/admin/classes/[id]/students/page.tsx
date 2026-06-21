@@ -193,7 +193,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
                   <div key={s.enrollmentId} className="flex items-center justify-between py-2">
                     <span className="text-sm text-[var(--ink)]">{s.name}</span>
                     <div className="flex items-center gap-3">
-                      {s.balance > 0 && <span className="text-[11px] text-amber-600">GHS {s.balance.toFixed(2)} owing</span>}
+                      {s.balance > 0 && <span className="text-[11px] text-[var(--warn)]">GHS {s.balance.toFixed(2)} owing</span>}
                       <Badge tone={s.present ? 'success' : 'neutral'}>{s.present ? 'Present' : 'Absent'}</Badge>
                     </div>
                   </div>
@@ -226,7 +226,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
                     <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{e.phone && String(e.phone).replace(/^233/, '0')}{e.email ? ` · ${e.email}` : ''}</td>
                     <td className="px-4 py-3">
                       <button disabled={acting === e.id} onClick={() => togglePaid(e)}
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${e.fees_paid ? 'bg-emerald-50 text-emerald-700 ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)] hover:ring-[var(--accent)]'}`}>
+                        className={`text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${e.fees_paid ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)] hover:ring-[var(--accent)]'}`}>
                         {e.fees_paid ? 'Paid in full' : 'Mark paid'}
                       </button>
                     </td>
@@ -246,7 +246,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
                           <Button size="sm" variant="ghost" disabled={acting === e.id}
                             onClick={() => markComplete(e, false)}>Reopen</Button>
                         )}
-                        <button disabled={acting === e.id} onClick={() => remove(e)} className="p-1.5 text-[var(--ink-faint)] hover:text-red-500"><UserMinus size={15} /></button>
+                        <button disabled={acting === e.id} onClick={() => remove(e)} className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"><UserMinus size={15} /></button>
                       </div>
                     </td>
                   </tr>

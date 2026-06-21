@@ -40,12 +40,12 @@ export default function MarketerAttendance() {
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3 mb-5">
-            <div className="rounded-xl bg-emerald-50 p-4 text-center">
-              <div className="font-display text-2xl font-semibold text-emerald-600">{att.presentCount}</div>
+            <div className="rounded-xl bg-[var(--ok-soft)] p-4 text-center">
+              <div className="font-display text-2xl font-semibold text-[var(--ok)]">{att.presentCount}</div>
               <div className="text-[11px] text-[var(--ink-soft)]">Came</div>
             </div>
-            <div className="rounded-xl bg-amber-50 p-4 text-center">
-              <div className="font-display text-2xl font-semibold text-amber-600">{att.absentCount}</div>
+            <div className="rounded-xl bg-[var(--warn-soft)] p-4 text-center">
+              <div className="font-display text-2xl font-semibold text-[var(--warn)]">{att.absentCount}</div>
               <div className="text-[11px] text-[var(--ink-soft)]">Absent — call them</div>
             </div>
             <div className="rounded-xl bg-[var(--canvas)] p-4 text-center">

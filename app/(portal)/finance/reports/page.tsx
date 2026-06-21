@@ -75,10 +75,10 @@ export default function FinanceReports() {
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[
-          { label: 'Revenue', value: formatGHS(data.totalRevenue), icon: DollarSign, color: 'text-green-600 bg-green-50'},
+          { label: 'Revenue', value: formatGHS(data.totalRevenue), icon: DollarSign, color: 'text-[var(--ok)] bg-[var(--ok-soft)]'},
           { label: 'Transactions', value: data.txCount, icon: TrendingUp, color: 'text-[var(--accent)] bg-[var(--accent-soft)]'},
           { label: 'Avg Transaction', value: formatGHS(data.avgTx), icon: TrendingUp, color: 'text-purple-600 bg-purple-50'},
-          { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-red-600 bg-red-50'},
+          { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-[var(--danger)] bg-[var(--danger-soft)]'},
         ].map(k => (
           <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-4">
             <div className={`w-10 h-10 rounded-xl ${k.color.split(' ')[1]} flex items-center justify-center mb-3`}>
@@ -140,7 +140,7 @@ export default function FinanceReports() {
                   <div className="text-sm font-semibold text-[var(--ink)]">{inv.student?.full_name || '—'}</div>
                   <div className="text-xs text-[var(--ink-faint)]">{inv.invoice_number}</div>
                 </div>
-                <span className="text-sm font-bold text-red-600">{formatGHS(inv.outstanding)}</span>
+                <span className="text-sm font-bold text-[var(--danger)]">{formatGHS(inv.outstanding)}</span>
               </div>
             ))}
             {data.outstanding.length === 0 && <p className="text-sm text-[var(--ink-faint)] text-center py-4">No outstanding balances </p>}

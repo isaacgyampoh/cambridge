@@ -19,10 +19,10 @@ const STATUSES = [
 ]
 
 const ACTIVITY_TYPES = [
-  { key: 'call', label: 'Call', color: 'bg-green-100 text-green-700'},
-  { key: 'whatsapp', label: 'WhatsApp', color: 'bg-emerald-100 text-emerald-700'},
+  { key: 'call', label: 'Call', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
+  { key: 'whatsapp', label: 'WhatsApp', color: 'bg-emerald-100 text-[var(--ok)]'},
   { key: 'email', label: 'Email', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
-  { key: 'meeting', label: 'Meeting', color: 'bg-purple-100 text-purple-700'},
+  { key: 'meeting', label: 'Meeting', color: 'bg-[var(--gold-soft)] text-[var(--gold)]'},
   { key: 'note', label: 'Note', color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]'},
 ]
 
@@ -258,7 +258,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <div className="space-y-2">
                 {WA_TEMPLATES.map((t, i) => (
                   <button key={i} onClick={() => sendQuickWA(t)}
-                    className="w-full text-left p-3 bg-[var(--line-soft)] rounded-xl text-xs text-[var(--ink-soft)] hover:bg-green-50 hover:text-green-700 hover:border-green-200 border border-transparent transition line-clamp-2">
+                    className="w-full text-left p-3 bg-[var(--line-soft)] rounded-xl text-xs text-[var(--ink-soft)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)] hover:border-[var(--ok)]/20 border border-transparent transition line-clamp-2">
                     {t.replace('{{name}}', lead.full_name.split(' ')[0])}
                   </button>
                 ))}
@@ -357,9 +357,9 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             </div>
           )}
           {lead.status === 'registered' && (
-            <div className="rounded-2xl bg-emerald-50 border border-emerald-200 p-5 text-center">
-              <div className="text-sm font-semibold text-emerald-700">Registered</div>
-              <div className="text-xs text-emerald-600 mt-1">Points have been credited to your annual total.</div>
+            <div className="rounded-2xl bg-[var(--ok-soft)] border border-[var(--ok)]/20 p-5 text-center">
+              <div className="text-sm font-semibold text-[var(--ok)]">Registered</div>
+              <div className="text-xs text-[var(--ok)] mt-1">Points have been credited to your annual total.</div>
             </div>
           )}
 

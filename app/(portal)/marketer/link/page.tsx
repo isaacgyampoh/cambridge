@@ -174,7 +174,7 @@ export default function MarketerLink() {
                     <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.email}</td>
                     <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{(a as any).course?.name || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.payment_status === 'paid' ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
+                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.payment_status === 'paid' ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
                         {a.payment_status}
                       </span>
                     </td>

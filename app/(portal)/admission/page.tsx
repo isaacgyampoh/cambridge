@@ -6,11 +6,11 @@ import { UserCheck, RefreshCw, MessageSquare } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 
 const S: Record<string, { label: string; color: string }> = {
-  pending: { label: 'Pending', color: 'bg-yellow-100 text-yellow-800'},
+  pending: { label: 'Pending', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
   awaiting_forms: { label: 'Awaiting Forms', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
-  awaiting_payment: { label: 'Awaiting Payment', color: 'bg-orange-100 text-orange-700'},
-  admitted: { label: 'Admitted ', color: 'bg-green-100 text-green-700'},
-  rejected: { label: 'Rejected', color: 'bg-red-100 text-red-600'},
+  awaiting_payment: { label: 'Awaiting Payment', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
+  admitted: { label: 'Admitted ', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
+  rejected: { label: 'Rejected', color: 'bg-[var(--danger-soft)] text-[var(--danger)]'},
 }
 
 export default function AdmissionPage() {
@@ -76,9 +76,9 @@ export default function AdmissionPage() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 mb-5">
         {[
           { label: 'Total', value: stats.total, tone: 'text-[var(--ink)]' },
-          { label: 'Pending', value: stats.pending, tone: 'text-amber-600' },
+          { label: 'Pending', value: stats.pending, tone: 'text-[var(--warn)]' },
           { label: 'Awaiting payment', value: stats.awaitingPayment, tone: 'text-orange-600' },
-          { label: 'Admitted', value: stats.admitted, tone: 'text-emerald-600' },
+          { label: 'Admitted', value: stats.admitted, tone: 'text-[var(--ok)]' },
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-xl p-5 border border-[var(--line)]">
             <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{s.label}</div>
@@ -165,7 +165,7 @@ export default function AdmissionPage() {
                       )}
                       {!['rejected','admitted'].includes(a.status) && (
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'rejected')}
-                          className="px-3 py-1.5 bg-red-50 text-red-600 rounded-xl text-xs font-semibold hover:bg-red-100 disabled:opacity-50 transition">
+                          className="px-3 py-1.5 bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl text-xs font-semibold hover:bg-[var(--danger-soft)] disabled:opacity-50 transition">
                           Reject
                         </button>
                       )}
@@ -211,7 +211,7 @@ export default function AdmissionPage() {
                       <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.phone}</td>
                       <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{app.course?.name || '—'}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${app.payment_status==='paid'?'bg-green-100 text-green-700':'bg-yellow-100 text-yellow-700'}`}>
+                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${app.payment_status==='paid'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
                           {app.payment_status}
                         </span>
                       </td>
