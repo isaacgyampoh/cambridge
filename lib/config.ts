@@ -1,30 +1,37 @@
 // ============================================================
 // CAMBRIDGE CCE — ALL CONFIGURATION
-// Change values here directly — no Vercel env vars needed
+//
+// Secrets are read from environment variables FIRST (set these in Vercel:
+// Settings -> Environment Variables), falling back to any inline value.
+// New secrets (OpenAI) live ONLY in env vars and never touch the repo.
+// To rotate a key, change it in Vercel — no code change, no redeploy of code.
 // ============================================================
+
+// Read an env var safely on both server and edge runtimes.
+const env = (k: string): string => (typeof process !== 'undefined' && process.env?.[k]) || ''
 
 export const CONFIG = {
 
   // ── APP ─────────────────────────────────────────────────────
   appName: 'Cambridge Centre of Excellence',
-  appUrl: 'https://cambridge-mu.vercel.app', // update after deploy
+  appUrl: env('APP_URL') || 'https://cambridge-mu.vercel.app',
 
   // ── SUPABASE ────────────────────────────────────────────────
-  supabaseUrl: 'https://gejtxkbatldxbbqynpfg.supabase.co',
+  supabaseUrl: env('SUPABASE_URL') || 'https://gejtxkbatldxbbqynpfg.supabase.co',
   supabaseAnonKey: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlanR4a2JhdGxkeGJicXlucGZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODExMTg2MzksImV4cCI6MjA5NjY5NDYzOX0.wKs4_UCaxpIi2a0g9eor_KTmkkzzytNi0KsSf9tJgZI',
   // Service key split
   _ssk: 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlanR4a2JhdGxkeGJicXlucGZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTExODYzOSwiZXhwIjoyMDk2Njk0NjM5fQ.FSHbZgJ2ZnzFnHl' + '_DAM2SWwuVkXTbDmK0GQDPJCyBLs',
-  get supabaseServiceKey() { return this._ssk },
+  get supabaseServiceKey() { return env('SUPABASE_SERVICE_KEY') || this._ssk },
 
   // ── PAYSTACK ─────────────────────────────────────────────────
-  paystackPublicKey: 'pk_live_0c562178b2e71a90ecd8bd78d78310e159ea0f69',
+  paystackPublicKey: env('PAYSTACK_PUBLIC_KEY') || 'pk_live_0c562178b2e71a90ecd8bd78d78310e159ea0f69',
   // Paystack secret — stored split, joined at runtime
   _psk1: 'sk_live_da0342b5a5c7d',
   _psk2: 'ca2ecaf3c60e1ee5c5d695b8780',
-  get paystackSecretKey() { return this._psk1 + this._psk2 },
+  get paystackSecretKey() { return env('PAYSTACK_SECRET_KEY') || (this._psk1 + this._psk2) },
 
   // ── ARKESEL SMS ──────────────────────────────────────────────
-  arkeselApiKey: 'VXliSENVQnpsYkhWYlNpZkNRZEc',
+  arkeselApiKey: env('ARKESEL_API_KEY') || 'VXliSENVQnpsYkhWYlNpZkNRZEc',
   arkeselSenderId: 'CambridgeCE',
 
   // ── WAWP WHATSAPP ────────────────────────────────────────────
@@ -35,21 +42,21 @@ export const CONFIG = {
   // ── AI ASSISTANT (Anthropic Claude) ──────────────────────────
   // ── AI PROVIDER ──────────────────────────────────────────────
   // Set aiProvider to 'openai' or 'anthropic'. Fill in the matching key.
-  aiProvider: 'openai' as 'openai' | 'anthropic',
+  aiProvider: (env('AI_PROVIDER') || 'openai') as 'openai' | 'anthropic',
 
-  // OpenAI (https://platform.openai.com/api-keys)
-  openaiApiKey: '',
-  openaiModel: 'gpt-4o',
+  // OpenAI — set OPENAI_API_KEY in Vercel (never in code)
+  openaiApiKey: env('OPENAI_API_KEY'),
+  openaiModel: env('OPENAI_MODEL') || 'gpt-4o',
 
-  // Anthropic (https://console.anthropic.com) — for later
-  anthropicApiKey: '',
-  aiModel: 'claude-sonnet-4-6',
+  // Anthropic — set ANTHROPIC_API_KEY in Vercel if you switch back
+  anthropicApiKey: env('ANTHROPIC_API_KEY'),
+  aiModel: env('ANTHROPIC_MODEL') || 'claude-sonnet-4-6',
 
   aiAssistantEnabled: true,   // master on/off for WhatsApp auto-replies
 
   // ── RESEND EMAIL ─────────────────────────────────────────────
   // Add when you get from resend.com (free tier available)
-  resendApiKey: '',
+  resendApiKey: env('RESEND_API_KEY'),
   resendFromEmail: 'Cambridge CE <noreply@cambridge.edu.gh>',
 
   // ── CLOUDINARY (file storage: certificates, receipts, brochures, photos) ──

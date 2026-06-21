@@ -2,8 +2,8 @@ import { NextResponse, type NextRequest } from 'next/server'
 import { createClient as createSupabase } from '@supabase/supabase-js'
 import { PORTAL_PATHS, ROLE_DEFAULTS, ROLE_HOME, resolvePortals } from '@/lib/access/portals'
 
-const SUPABASE_URL = 'https://gejtxkbatldxbbqynpfg.supabase.co'
-const SERVICE_KEY  = 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlanR4a2JhdGxkeGJicXlucGZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTExODYzOSwiZXhwIjoyMDk2Njk0NjM5fQ.FSHbZgJ2ZnzFnHl_DAM2SWwuVkXTbDmK0GQDPJCyBLs'
+const SUPABASE_URL = process.env.SUPABASE_URL || 'https://gejtxkbatldxbbqynpfg.supabase.co'
+const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImdlanR4a2JhdGxkeGJicXlucGZnIiwicm9sZSI6InNlcnZpY2Vfcm9sZSIsImlhdCI6MTc4MTExODYzOSwiZXhwIjoyMDk2Njk0NjM5fQ.FSHbZgJ2ZnzFnHl_DAM2SWwuVkXTbDmK0GQDPJCyBLs'
 
 // Public paths — no auth needed
 const PUBLIC = [
