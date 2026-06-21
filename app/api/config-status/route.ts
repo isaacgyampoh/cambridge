@@ -21,15 +21,6 @@ export async function GET() {
     resend: !!CONFIG.resendApiKey,
     cloudinary: !!CONFIG.cloudinaryCloudName && !!CONFIG.cloudinaryUploadPreset,
     ai: (CONFIG.aiProvider === 'openai' ? !!CONFIG.openaiApiKey : !!CONFIG.anthropicApiKey) && CONFIG.aiAssistantEnabled,
-    // Safe AI diagnostic (no secret exposed) — remove after setup
-    aiDebug: {
-      provider: CONFIG.aiProvider,
-      openaiKeyPresent: !!CONFIG.openaiApiKey,
-      openaiKeyLength: CONFIG.openaiApiKey ? CONFIG.openaiApiKey.length : 0,
-      envSeesKey: typeof process !== 'undefined' && !!process.env?.OPENAI_API_KEY,
-      model: CONFIG.openaiModel,
-      assistantEnabled: CONFIG.aiAssistantEnabled,
-    },
     senderId: CONFIG.arkeselSenderId,
   })
 }
