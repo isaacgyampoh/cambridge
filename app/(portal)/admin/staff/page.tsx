@@ -7,14 +7,14 @@ import { Plus, X, Check, Copy, Eye, EyeOff, Shield, Phone, Mail, User, Briefcase
 
 const ROLES = [
   { value: 'project_manager', label: 'Project Manager', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
-  { value: 'marketing_officer', label: 'Marketing Officer', color: 'bg-green-100 text-green-700'},
-  { value: 'content_manager', label: 'Content Manager', color: 'bg-pink-100 text-pink-700'},
-  { value: 'admissions_officer',label: 'Admissions Officer', color: 'bg-indigo-100 text-indigo-700'},
-  { value: 'accountant', label: 'Accountant', color: 'bg-amber-100 text-amber-700'},
-  { value: 'receptionist', label: 'Receptionist', color: 'bg-pink-100 text-pink-700'},
-  { value: 'trainer', label: 'Trainer', color: 'bg-orange-100 text-orange-700'},
-  { value: 'exam_coordinator', label: 'Exam Prep Coordinator', color: 'bg-teal-100 text-teal-700'},
-  { value: 'super_admin', label: 'Super Admin', color: 'bg-purple-100 text-purple-700'},
+  { value: 'marketing_officer', label: 'Marketing Officer', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
+  { value: 'content_manager', label: 'Content Manager', color: 'bg-[var(--gold-soft)] text-[var(--gold)]'},
+  { value: 'admissions_officer',label: 'Admissions Officer', color: 'bg-[var(--info-soft)] text-[var(--info)]'},
+  { value: 'accountant', label: 'Accountant', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
+  { value: 'receptionist', label: 'Receptionist', color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]'},
+  { value: 'trainer', label: 'Trainer', color: 'bg-[var(--gold-soft)] text-[var(--gold)]'},
+  { value: 'exam_coordinator', label: 'Exam Prep Coordinator', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
+  { value: 'super_admin', label: 'Super Admin', color: 'bg-[var(--ink)] text-white'},
 ]
 
 const ROLE_COLOR: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.color]))
@@ -120,9 +120,9 @@ export default function StaffPage() {
             {/* Credentials shown after success */}
             {creds ? (
               <div className="p-6">
-                <div className="bg-green-50 border-2 border-green-200 rounded-2xl p-5 mb-5">
+                <div className="bg-[var(--ok-soft)] border border-[var(--ok)]/20 rounded-2xl p-5 mb-5">
                   <div className="flex items-center gap-2 mb-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-[var(--ok)]/10 rounded-full flex items-center justify-center">
                       <Check size={16} className="text-green-600" />
                     </div>
                     <div>
@@ -369,7 +369,7 @@ export default function StaffPage() {
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--ink-faint)]">{(s as any).department || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-green-100 text-green-700': 'bg-red-100 text-red-600'}`}>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
                         {s.is_active ? '● Active': '○ Inactive'}
                       </span>
                     </td>
@@ -382,8 +382,8 @@ export default function StaffPage() {
                         <button onClick={() => toggleActive(s.id, s.is_active)}
                           className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition ${
                             s.is_active
-                              ? 'text-red-600 bg-red-50 hover:bg-red-100'
-                              : 'text-green-600 bg-green-50 hover:bg-green-100'
+                              ? 'text-[var(--danger)] bg-[var(--danger-soft)] hover:brightness-95'
+                              : 'text-[var(--ok)] bg-[var(--ok-soft)] hover:brightness-95'
                           }`}>
                           {s.is_active ? 'Deactivate': 'Activate'}
                         </button>

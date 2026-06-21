@@ -35,29 +35,29 @@ export function daysUntil(date: string) {
 }
 
 export const SOURCE_COLORS: Record<string, string> = {
-  facebook: 'bg-blue-100 text-blue-700',
-  google: 'bg-red-100 text-red-700',
-  linkedin: 'bg-blue-900/20 text-blue-800',
-  website: 'bg-purple-100 text-purple-700',
-  referral: 'bg-green-100 text-green-700',
-  manual: 'bg-gray-100 text-gray-700',
+  facebook: 'bg-[var(--info-soft)] text-[var(--info)]',
+  google: 'bg-[var(--danger-soft)] text-[var(--danger)]',
+  linkedin: 'bg-[var(--accent-soft)] text-[var(--accent)]',
+  website: 'bg-[var(--gold-soft)] text-[var(--gold)]',
+  referral: 'bg-[var(--ok-soft)] text-[var(--ok)]',
+  manual: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
 }
 
 export const STATUS_COLORS: Record<string, string> = {
-  new: 'bg-yellow-100 text-yellow-800',
-  contacted: 'bg-blue-100 text-blue-700',
-  interested: 'bg-indigo-100 text-indigo-700',
-  follow_up: 'bg-orange-100 text-orange-700',
-  next_session: 'bg-amber-100 text-amber-700',
-  zuku: 'bg-red-100 text-red-600',
-  defiled: 'bg-purple-100 text-purple-700',
-  conflicts: 'bg-rose-100 text-rose-700',
-  deferred: 'bg-slate-100 text-slate-700',
-  done: 'bg-emerald-100 text-emerald-700',
-  ready_to_join: 'bg-green-100 text-green-700',
-  registered: 'bg-emerald-100 text-emerald-700',
-  not_interested: 'bg-red-100 text-red-600',
-  lost: 'bg-gray-100 text-gray-600',
+  new: 'bg-[var(--warn-soft)] text-[var(--warn)]',
+  contacted: 'bg-[var(--info-soft)] text-[var(--info)]',
+  interested: 'bg-[var(--accent-soft)] text-[var(--accent)]',
+  follow_up: 'bg-[var(--warn-soft)] text-[var(--warn)]',
+  next_session: 'bg-[var(--gold-soft)] text-[var(--gold)]',
+  zuku: 'bg-[var(--danger-soft)] text-[var(--danger)]',
+  defiled: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+  conflicts: 'bg-[var(--danger-soft)] text-[var(--danger)]',
+  deferred: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+  done: 'bg-[var(--ok-soft)] text-[var(--ok)]',
+  ready_to_join: 'bg-[var(--ok-soft)] text-[var(--ok)]',
+  registered: 'bg-[var(--ok-soft)] text-[var(--ok)]',
+  not_interested: 'bg-[var(--danger-soft)] text-[var(--danger)]',
+  lost: 'bg-[var(--line-soft)] text-[var(--ink-faint)]',
 }
 
 export const STATUS_LABELS: Record<string, string> = {
@@ -81,13 +81,13 @@ export const ROLE_LABELS: Record<string, string> = {
 }
 
 export const ROLE_COLORS: Record<string, string> = {
-  super_admin: 'bg-purple-100 text-purple-700',
-  project_manager: 'bg-blue-100 text-blue-700',
-  marketing_officer: 'bg-green-100 text-green-700',
-  content_manager: 'bg-pink-100 text-pink-700',
-  admissions_officer: 'bg-indigo-100 text-indigo-700',
-  accountant: 'bg-yellow-100 text-yellow-700',
-  receptionist: 'bg-pink-100 text-pink-700',
-  trainer: 'bg-orange-100 text-orange-700',
-  student: 'bg-gray-100 text-gray-700',
+  super_admin: 'bg-[var(--ink)] text-white',
+  project_manager: 'bg-[var(--accent-soft)] text-[var(--accent)]',
+  marketing_officer: 'bg-[var(--ok-soft)] text-[var(--ok)]',
+  content_manager: 'bg-[var(--gold-soft)] text-[var(--gold)]',
+  admissions_officer: 'bg-[var(--info-soft)] text-[var(--info)]',
+  accountant: 'bg-[var(--warn-soft)] text-[var(--warn)]',
+  receptionist: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+  trainer: 'bg-[var(--gold-soft)] text-[var(--gold)]',
+  student: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
 }

@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import Link from 'next/link'
 
 /* ─────────────────────────────────────────────
@@ -127,7 +128,7 @@ export function StatCard({
               {trend && (
                 <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md
                   ${accent ? 'bg-white/15 text-white' : trend.up ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
-                  {trend.up ? '↑' : '↓'} {trend.value}
+                  {trend.up ? <ArrowUpRight size={11} strokeWidth={2.5} /> : <ArrowDownRight size={11} strokeWidth={2.5} />} {trend.value}
                 </span>
               )}
               {sub && <span className={`text-xs ${accent ? 'text-white/60' : 'text-[var(--ink-faint)]'}`}>{sub}</span>}
@@ -198,9 +199,9 @@ export function Badge({
   const tones = {
     neutral: 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]',
     accent:  'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/15',
-    success: 'bg-emerald-50 text-emerald-700 ring-emerald-200',
-    warning: 'bg-amber-50 text-amber-700 ring-amber-200',
-    danger:  'bg-red-50 text-red-600 ring-red-200',
+    success: 'bg-[var(--ok-soft)] text-[var(--ok)] ring-[var(--ok)]/15',
+    warning: 'bg-[var(--warn-soft)] text-[var(--warn)] ring-[var(--warn)]/15',
+    danger:  'bg-[var(--danger-soft)] text-[var(--danger)] ring-[var(--danger)]/15',
     muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)] ring-[var(--line)]',
   }
   return (
