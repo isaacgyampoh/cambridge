@@ -10,6 +10,17 @@ import { Check } from 'lucide-react'
 
 const PROGRAMS = ['PMP', 'PRINCE2', 'Agile/Scrum', 'Data Analytics', 'Cyber Security', 'Cloud Computing', 'Business Analysis', 'Other']
 
+// Map a UTM source slug to a friendly platform label.
+function prettySource(s?: string): string {
+  if (!s) return ''
+  const m: Record<string, string> = {
+    facebook: 'Facebook', fb: 'Facebook', instagram: 'Instagram', ig: 'Instagram',
+    google: 'Google', linkedin: 'LinkedIn', tiktok: 'TikTok', twitter: 'X (Twitter)',
+    x: 'X (Twitter)', whatsapp: 'WhatsApp', youtube: 'YouTube', email: 'Email',
+  }
+  return m[s.toLowerCase()] || (s.charAt(0).toUpperCase() + s.slice(1))
+}
+
 export default function ApplicationPage({ params }: { params: Promise<{ marketerId: string }> }) {
   const { marketerId } = use(params)
   const [marketer, setMarketer] = useState<Profile | null>(null)
@@ -17,6 +28,18 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   const [step, setStep] = useState(1) // 1=form, 2=payment, 3=success
   const [submitting, setSubmitting] = useState(false)
   const [applicationId, setApplicationId] = useState<string | null>(null)
+  const [utm, setUtm] = useState<Record<string, string>>({})
+
+  // Capture ad-tracking parameters from the URL (e.g. ?utm_source=facebook)
+  useEffect(() => {
+    if (typeof window === 'undefined') return
+    const p = new URLSearchParams(window.location.search)
+    const grab: Record<string, string> = {}
+    for (const k of ['utm_source', 'utm_medium', 'utm_campaign', 'utm_content']) {
+      const v = p.get(k); if (v) grab[k] = v
+    }
+    if (Object.keys(grab).length) setUtm(grab)
+  }, [])
 
   const [form, setForm] = useState({
     // Name
@@ -84,6 +107,12 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       delivery: form.delivery,
       payment_method: form.payment_method as any,
       payment_status: 'pending',
+      // Ad-source tracking
+      utm_source: utm.utm_source || null,
+      utm_medium: utm.utm_medium || null,
+      utm_campaign: utm.utm_campaign || null,
+      utm_content: utm.utm_content || null,
+      landing_source: prettySource(utm.utm_source) || null,
     }).select().single()
 
     if (error) {
