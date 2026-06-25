@@ -3,6 +3,8 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN } from '@/lib/auth/pin'
 import { sendOTPEmail } from '@/lib/integrations/email'
 
+export const runtime = 'nodejs'
+
 const MAX_PIN_ATTEMPTS = 5
 const LOCK_MINUTES = 15
 

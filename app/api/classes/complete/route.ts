@@ -6,6 +6,8 @@ import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmailGeneric } from '@/lib/integrations/email'
 import { CONFIG } from '@/lib/config'
 
+export const runtime = 'nodejs'
+
 function token(n = 16) {
   const ch = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789'
   return Array.from({ length: n }, () => ch[Math.floor(Math.random() * ch.length)]).join('')

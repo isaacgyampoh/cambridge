@@ -4,6 +4,8 @@ import { verifySession } from '@/lib/auth/pin'
 import { sendAdmissionLetter } from '@/lib/integrations/email'
 import { sendSMS } from '@/lib/integrations/sms'
 
+export const runtime = 'nodejs'
+
 /**
  * Admit a student. Sets the admission to 'admitted', generates an
  * admission number if missing, and AUTOMATICALLY sends the admission

@@ -4,6 +4,8 @@ import { sendWelcomeEmail, sendAdmissionLetter } from '@/lib/integrations/email'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 
+export const runtime = 'nodejs'
+
 /**
  * Called when a student completes the registration link AND pays the
  * GHS 200 registration fee via Paystack.

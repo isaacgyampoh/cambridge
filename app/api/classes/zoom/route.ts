@@ -5,6 +5,8 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmailGeneric } from '@/lib/integrations/email'
 
+export const runtime = 'nodejs'
+
 /**
  * Save a class (batch) Zoom link and optionally send it to all enrolled
  * students automatically. For online classes the link is sent to every

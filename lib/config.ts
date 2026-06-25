@@ -56,8 +56,16 @@ export const CONFIG = {
 
   // ── RESEND EMAIL ─────────────────────────────────────────────
   // Add when you get from resend.com (free tier available)
+  // ── EMAIL ────────────────────────────────────────────────────
+  // Primary: SMTP (the campus mailbox). Set these in Vercel env vars.
+  // Falls back to Resend if SMTP isn't configured.
+  smtpHost: env('SMTP_HOST'),
+  smtpPort: Number(env('SMTP_PORT') || '465'),
+  smtpSecure: (env('SMTP_SECURE') || 'true') === 'true',
+  smtpUser: env('SMTP_USER'),
+  smtpPass: env('SMTP_PASS'),
   resendApiKey: env('RESEND_API_KEY'),
-  resendFromEmail: 'Cambridge CE <noreply@cambridge.edu.gh>',
+  resendFromEmail: env('EMAIL_FROM') || 'Cambridge CE <portal@cambridge.edu.gh>',
 
   // ── CLOUDINARY (file storage: certificates, receipts, brochures, photos) ──
   // Get these from cloudinary.com (free tier ~25GB). Steps:

@@ -1,40 +1,65 @@
 import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
+import nodemailer from 'nodemailer'
 
 const RESEND_URL = 'https://api.resend.com/emails'
 
+// Reuse one SMTP transporter across calls
+let transporter: nodemailer.Transporter | null = null
+function getTransporter() {
+  if (transporter) return transporter
+  if (!CONFIG.smtpHost || !CONFIG.smtpUser || !CONFIG.smtpPass) return null
+  transporter = nodemailer.createTransport({
+    host: CONFIG.smtpHost,
+    port: CONFIG.smtpPort,
+    secure: CONFIG.smtpSecure,
+    auth: { user: CONFIG.smtpUser, pass: CONFIG.smtpPass },
+  })
+  return transporter
+}
+
 export async function sendEmail(to: string, subject: string, html: string, text?: string) {
- const apiKey = CONFIG.resendApiKey
- const from = CONFIG.resendFromEmail || 'Cambridge CE <noreply@cambridge.edu.gh>'
+  const from = CONFIG.resendFromEmail || 'Cambridge CE <portal@cambridge.edu.gh>'
+  let status = 'pending'
+  let providerResponse: any = null
 
- if (!apiKey) {
- console.warn('[Email] RESEND_API_KEY not set — skipping')
- return false
- }
+  // 1) Prefer SMTP (the campus mailbox)
+  const tx = getTransporter()
+  if (tx) {
+    try {
+      const info = await tx.sendMail({ from, to, subject, html, text })
+      status = 'sent'; providerResponse = { messageId: info.messageId, via: 'smtp' }
+      return true
+    } catch (e: any) {
+      status = 'failed'; providerResponse = { error: e.message, via: 'smtp' }
+    } finally {
+      try { const sb = createServiceClient(); await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse }) } catch {}
+    }
+  }
 
- let status = 'pending'
- let providerResponse: any = null
+  // 2) Fallback: Resend (only if a key is set)
+  if (CONFIG.resendApiKey) {
+    status = 'pending'; providerResponse = null
+    try {
+      const res = await fetch(RESEND_URL, {
+        method: 'POST',
+        headers: { 'Authorization': `Bearer ${CONFIG.resendApiKey}`, 'Content-Type': 'application/json' },
+        body: JSON.stringify({ from, to, subject, html, text }),
+        signal: AbortSignal.timeout(10000),
+      })
+      providerResponse = await res.json(); providerResponse.via = 'resend'
+      status = res.ok ? 'sent' : 'failed'
+      return res.ok
+    } catch (e: any) {
+      status = 'failed'; providerResponse = { error: e.message, via: 'resend' }
+      return false
+    } finally {
+      try { const sb = createServiceClient(); await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse }) } catch {}
+    }
+  }
 
- try {
- const res = await fetch(RESEND_URL, {
- method: 'POST',
- headers: { 'Authorization':`Bearer ${apiKey}`, 'Content-Type': 'application/json' },
- body: JSON.stringify({ from, to, subject, html, text }),
- signal: AbortSignal.timeout(10000),
- })
- providerResponse = await res.json()
- status = res.ok ? 'sent' : 'failed'
- return res.ok
- } catch (e: any) {
- status = 'failed'
- providerResponse = { error: e.message }
- return false
- } finally {
- try {
- const sb = createServiceClient()
- await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse })
- } catch {}
- }
+  if (!tx) console.warn('[Email] No SMTP or Resend configured — skipping')
+  return false
 }
 
 // ── Email Templates ──────────────────────────────────────────

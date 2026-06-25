@@ -5,6 +5,8 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmailGeneric } from '@/lib/integrations/email'
 
+export const runtime = 'nodejs'
+
 /**
  * Send course materials to all students enrolled in a class (batch).
  * Typically used after a session. Body: { batchId, title, link, note }
