@@ -6,8 +6,12 @@ import { Eye, EyeOff } from 'lucide-react'
 
 function LoginForm() {
   const router = useRouter()
-  const [step,    setStep]    = useState<'pin' | 'set-pin'>('pin')
+  const [step,    setStep]    = useState<'pin' | 'otp' | 'set-pin'>('pin')
   const [pin,     setPin]     = useState(['', '', '', ''])
+  const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
+  const [otpUserId, setOtpUserId] = useState('')
+  const [emailHint, setEmailHint] = useState('')
+  const [pendingChangePin, setPendingChangePin] = useState(false)
   const [newPin,  setNewPin]  = useState(['', '', '', ''])
   const [confPin, setConfPin] = useState(['', '', '', ''])
   const [showPin, setShowPin] = useState(false)
@@ -18,6 +22,7 @@ function LoginForm() {
   const p = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const n = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const c = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
+  const o = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
 
   useEffect(() => { setTimeout(() => p[0].current?.focus(), 120) }, [])
 
@@ -62,8 +67,42 @@ function LoginForm() {
       setTimeout(() => p[0].current?.focus(), 80)
       return
     }
+    // PIN correct → an OTP was emailed. Move to the OTP step.
+    if (d.otpRequired) {
+      setOtpUserId(d.userId)
+      setEmailHint(d.emailHint || '')
+      setPendingChangePin(!!d.mustChangePIN)
+      setStep('otp')
+      setTimeout(() => o[0].current?.focus(), 120)
+      return
+    }
     if (d.mustChangePIN) { setStep('set-pin'); setTimeout(() => n[0].current?.focus(), 100); return }
     router.replace(d.redirect || '/admin')
+  }
+
+  async function submitOtp(codeStr: string) {
+    busy.current = true; setLoading(true); setError('')
+    const res = await fetch('/api/auth/verify-otp', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: otpUserId, code: codeStr }),
+    })
+    const d = await res.json()
+    busy.current = false; setLoading(false)
+    if (!d.success) {
+      setError(d.error || 'Incorrect code')
+      setOtp(['', '', '', '', '', ''])
+      setTimeout(() => o[0].current?.focus(), 80)
+      return
+    }
+    if (d.mustChangePIN || pendingChangePin) { setStep('set-pin'); setTimeout(() => n[0].current?.focus(), 100); return }
+    router.replace(d.redirect || '/admin')
+  }
+
+  async function resendOtp() {
+    // Re-run the PIN step silently using the stored PIN isn't possible (we don't keep it),
+    // so ask the user to re-enter the PIN.
+    setError(''); setOtp(['', '', '', '', '', '']); setStep('pin'); setPin(['', '', '', ''])
+    setTimeout(() => p[0].current?.focus(), 100)
   }
 
   async function submitNewPin(confirmOverride?: string) {
@@ -197,6 +236,52 @@ function LoginForm() {
               <p className="text-xs text-[var(--ink-faint)] mt-8">
                 Forgot your PIN? Contact your administrator.
               </p>
+            </>
+          )}
+
+          {step === 'otp' && (
+            <>
+              <div className="mb-8">
+                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Check your email</h2>
+                <p className="text-[var(--ink-soft)] text-sm">We sent a 6-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
+              </div>
+
+              <div className="flex gap-2 justify-center lg:justify-start">
+                {otp.map((v, i) => (
+                  <input key={i} ref={o[i]}
+                    type="text" inputMode="numeric" maxLength={1} value={v} autoComplete="off"
+                    onChange={e => handleDigit(e.target.value, i, otp, setOtp, o, submitOtp)}
+                    onKeyDown={e => handleBksp(e, i, otp, setOtp, o)}
+                    style={{
+                      backgroundColor: v ? 'var(--accent)' : 'var(--paper)',
+                      borderColor: v ? 'var(--accent)' : 'var(--line)',
+                      color: v ? '#fff' : 'var(--ink)',
+                      transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+                    }}
+                    className="w-[46px] h-[58px] text-center text-xl font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent"
+                  />
+                ))}
+              </div>
+
+              {loading && (
+                <div className="flex items-center justify-center lg:justify-start gap-2 mt-6 text-[var(--ink-soft)]">
+                  <span className="w-4 h-4 border-2 border-[var(--ink-faint)] border-t-transparent rounded-full animate-spin" />
+                  <span className="text-sm">Verifying…</span>
+                </div>
+              )}
+
+              {error && !loading && (
+                <div className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
+                  {error}
+                </div>
+              )}
+
+              <div className="mt-8 flex items-center gap-4">
+                <button onClick={resendOtp} className="text-xs text-[var(--accent)] font-medium hover:underline">
+                  Didn't get it? Sign in again
+                </button>
+              </div>
+              <p className="text-xs text-[var(--ink-faint)] mt-3">The code expires in 10 minutes. Check your spam folder if you don't see it.</p>
             </>
           )}
 

@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 const RESEND_URL = 'https://api.resend.com/emails'
 
-async function sendEmail(to: string, subject: string, html: string, text?: string) {
+export async function sendEmail(to: string, subject: string, html: string, text?: string) {
  const apiKey = CONFIG.resendApiKey
  const from = CONFIG.resendFromEmail || 'Cambridge CE <noreply@cambridge.edu.gh>'
 
@@ -135,4 +135,23 @@ export async function sendClassReminder(to: string, name: string, course: string
 /** Generic email sender — for ad-hoc messages (Zoom links, materials, etc.) */
 export async function sendEmailGeneric(to: string, subject: string, html: string) {
   return sendEmail(to, subject, html)
+}
+
+// ── Login OTP ────────────────────────────────────────────────
+export async function sendOTPEmail(to: string, name: string, code: string) {
+  const first = (name || '').split(' ')[0] || 'there'
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#16202e">
+    <div style="text-align:center;margin-bottom:24px">
+      <div style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#8b97a8;font-weight:600">Cambridge Centre of Excellence</div>
+    </div>
+    <h1 style="font-size:20px;font-weight:600;margin:0 0 8px">Your login code</h1>
+    <p style="font-size:14px;color:#45505f;line-height:1.6;margin:0 0 24px">Hi ${first}, use this code to finish signing in. It expires in 10 minutes.</p>
+    <div style="background:#f6f7f9;border:1px solid #e4e8ee;border-radius:14px;padding:20px;text-align:center;margin-bottom:24px">
+      <div style="font-size:34px;font-weight:700;letter-spacing:0.3em;color:#1c4d8c;font-family:monospace">${code}</div>
+    </div>
+    <p style="font-size:13px;color:#8b97a8;line-height:1.6;margin:0">If you didn't try to sign in, someone may have your PIN — change it once you're in, and tell your administrator. Never share this code with anyone.</p>
+  </div>`
+  const text = `Your Cambridge CE login code is ${code}. It expires in 10 minutes. If you didn't request it, change your PIN and tell your administrator.`
+  return sendEmail(to, `${code} is your login code — Cambridge CE`, html, text)
 }

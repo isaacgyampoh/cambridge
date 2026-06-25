@@ -46,6 +46,14 @@ export default function StaffPage() {
       toast.error('Full name and phone number are required')
       return
     }
+    if (!form.email.trim()) {
+      toast.error('Email is required — staff receive their login code by email')
+      return
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      toast.error('Please enter a valid email address')
+      return
+    }
     setSaving(true)
     try {
       const res = await fetch('/api/admin/create-staff', {
@@ -184,20 +192,20 @@ export default function StaffPage() {
                       <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                       <input value={form.full_name} onChange={e => set('full_name', e.target.value)}
                         placeholder="e.g. Ama Owusu"type="text"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
                     </div>
                   </div>
 
                   {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
-                      Email <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(optional — for sending documents)</span>
+                      Email <span className="text-[10px] text-[var(--danger)] normal-case font-normal">(required — for login codes &amp; documents)</span>
                     </label>
                     <div className="relative">
                       <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                       <input value={form.email} onChange={e => set('email', e.target.value)}
                         placeholder="ama@cambridge.edu.gh"type="email"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
                     </div>
                   </div>
 
@@ -210,7 +218,7 @@ export default function StaffPage() {
                       <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
                       <input value={form.phone} onChange={e => set('phone', e.target.value)}
                         placeholder="0241234567"type="tel"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
                     </div>
                   </div>
 
