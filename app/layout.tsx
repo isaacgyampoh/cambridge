@@ -12,9 +12,14 @@ import ServiceWorker from '@/components/shared/ServiceWorker'
 import InstallPrompt from '@/components/shared/InstallPrompt'
 
 export const metadata: Metadata = {
-  title: 'Cambridge Centre of Excellence',
-  description: 'Cambridge Centre of Excellence — professional and executive certification training in Ghana.',
+  metadataBase: new URL('https://portal.cambridge.edu.gh'),
+  title: {
+    default: 'Cambridge Centre of Excellence',
+    template: '%s · Cambridge Centre of Excellence',
+  },
+  description: 'Cambridge Centre of Excellence — professional and executive certification training in Ghana. PMP, HR (PHRi/SPHRi) and more.',
   manifest: '/manifest.json',
+  applicationName: 'Cambridge CCE',
   appleWebApp: {
     capable: true,
     statusBarStyle: 'default',
@@ -24,6 +29,21 @@ export const metadata: Metadata = {
     icon: '/favicon.png',
     apple: '/icons/apple-touch-icon.png',
   },
+  openGraph: {
+    type: 'website',
+    siteName: 'Cambridge Centre of Excellence',
+    title: 'Cambridge Centre of Excellence',
+    description: 'Professional and executive certification training in Ghana — PMP, HR (PHRi/SPHRi) and more.',
+    url: 'https://portal.cambridge.edu.gh',
+    images: [{ url: '/brand/logo.png', width: 512, height: 512, alt: 'Cambridge Centre of Excellence' }],
+  },
+  twitter: {
+    card: 'summary',
+    title: 'Cambridge Centre of Excellence',
+    description: 'Professional and executive certification training in Ghana.',
+    images: ['/brand/logo.png'],
+  },
+  robots: { index: true, follow: true },
 }
 
 export const viewport: Viewport = {

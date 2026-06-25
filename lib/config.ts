@@ -14,7 +14,7 @@ export const CONFIG = {
 
   // ── APP ─────────────────────────────────────────────────────
   appName: 'Cambridge Centre of Excellence',
-  appUrl: env('APP_URL') || 'https://cambridge-mu.vercel.app',
+  appUrl: env('APP_URL') || 'https://portal.cambridge.edu.gh',
 
   // ── SUPABASE ────────────────────────────────────────────────
   supabaseUrl: env('SUPABASE_URL') || 'https://gejtxkbatldxbbqynpfg.supabase.co',

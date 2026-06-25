@@ -95,7 +95,7 @@ export async function GET(req: NextRequest) {
  success: true,
  message: ' Super admin created successfully!',
  login: {
- url: 'https://cambridge-mu.vercel.app/login',
+ url: 'https://portal.cambridge.edu.gh/login',
  phone: '0201024000',
  pin: '1024',
  note: 'You will be forced to set a new PIN on first login',
