@@ -8,7 +8,7 @@ function LoginForm() {
   const router = useRouter()
   const [step,    setStep]    = useState<'pin' | 'otp' | 'set-pin'>('pin')
   const [pin,     setPin]     = useState(['', '', '', ''])
-  const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
+  const [otp,     setOtp]     = useState(['', '', '', ''])
   const [otpUserId, setOtpUserId] = useState('')
   const [emailHint, setEmailHint] = useState('')
   const [pendingChangePin, setPendingChangePin] = useState(false)
@@ -22,7 +22,7 @@ function LoginForm() {
   const p = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const n = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const c = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
-  const o = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
+  const o = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
 
   useEffect(() => { setTimeout(() => p[0].current?.focus(), 120) }, [])
 
@@ -90,7 +90,7 @@ function LoginForm() {
     busy.current = false; setLoading(false)
     if (!d.success) {
       setError(d.error || 'Incorrect code')
-      setOtp(['', '', '', '', '', ''])
+      setOtp(['', '', '', ''])
       setTimeout(() => o[0].current?.focus(), 80)
       return
     }
@@ -101,7 +101,7 @@ function LoginForm() {
   async function resendOtp() {
     // Re-run the PIN step silently using the stored PIN isn't possible (we don't keep it),
     // so ask the user to re-enter the PIN.
-    setError(''); setOtp(['', '', '', '', '', '']); setStep('pin'); setPin(['', '', '', ''])
+    setError(''); setOtp(['', '', '', '']); setStep('pin'); setPin(['', '', '', ''])
     setTimeout(() => p[0].current?.focus(), 100)
   }
 
@@ -243,10 +243,10 @@ function LoginForm() {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Check your email</h2>
-                <p className="text-[var(--ink-soft)] text-sm">We sent a 6-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
+                <p className="text-[var(--ink-soft)] text-sm">We sent a 4-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
               </div>
 
-              <div className="flex gap-2 justify-center lg:justify-start">
+              <div className="flex gap-3 justify-center lg:justify-start">
                 {otp.map((v, i) => (
                   <input key={i} ref={o[i]}
                     type="text" inputMode="numeric" maxLength={1} value={v} autoComplete="off"
@@ -258,7 +258,7 @@ function LoginForm() {
                       color: v ? '#fff' : 'var(--ink)',
                       transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
                     }}
-                    className="w-[46px] h-[58px] text-center text-xl font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent"
+                    className="w-[58px] h-[64px] text-center text-2xl font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent"
                   />
                 ))}
               </div>

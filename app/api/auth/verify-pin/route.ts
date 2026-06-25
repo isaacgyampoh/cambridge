@@ -10,7 +10,7 @@ const LOCK_MINUTES = 15
 
 /**
  * Step 1 of login: verify the PIN. On success we DON'T create a session —
- * instead we email a 6-digit OTP and ask the client to move to the OTP step.
+ * instead we email a 4-digit OTP and ask the client to move to the OTP step.
  * Lockout protects against PIN guessing.
  */
 export async function POST(req: NextRequest) {
@@ -42,8 +42,8 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'No email on file for this account. Ask your administrator to add your email so you can receive a login code.' }, { status: 400 })
   }
 
-  // Generate a 6-digit OTP, store it hashed-by-expiry, email it.
-  const code = String(Math.floor(100000 + Math.random() * 900000))
+  // Generate a 4-digit OTP, store it hashed-by-expiry, email it.
+  const code = String(Math.floor(1000 + Math.random() * 9000))
   const expires = new Date(Date.now() + 10 * 60 * 1000).toISOString()
   await sb.from('profiles').update({
     otp_code: hashPIN(code),          // store hashed, never plain
