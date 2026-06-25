@@ -90,8 +90,9 @@ export const CONFIG = {
   cronSecret: 'cce-cron-2024',
 
   // ── FACEBOOK (add later) ──────────────────────────────────────
-  facebookAppSecret: '',
-  facebookVerifyToken: 'cambridge_fb_2024',
-  facebookPageAccessToken: '',
+  facebookAppSecret: env('FACEBOOK_APP_SECRET'),
+  facebookVerifyToken: env('FACEBOOK_VERIFY_TOKEN') || 'cambridge_fb_2024',
+  facebookPageAccessToken: env('FACEBOOK_PAGE_ACCESS_TOKEN'),
+  googleLeadKey: env('GOOGLE_LEAD_KEY'),
 
 } as const

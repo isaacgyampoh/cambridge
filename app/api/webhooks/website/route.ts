@@ -1,68 +1,38 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { autoAssignLead } from '@/lib/autoAssign'
-import { sendSMS, SMS } from '@/lib/integrations/sms'
+import { intakeLead } from '@/lib/leadIntake'
 
+export const runtime = 'nodejs'
+
+/**
+ * Generic website / landing-page lead capture. POST a JSON body with
+ * full_name, email, phone, course_interest, and optional UTM + referrer_code.
+ */
 export async function POST(req: NextRequest) {
   const body = await req.json()
-  const { full_name, email, phone, course_interest, utm_source, utm_medium, utm_campaign, referrer_code } = body
+  const { full_name, email, phone, course_interest, utm_source, utm_medium, utm_campaign, utm_content, referrer_code } = body
 
-  if (!full_name) {
-    return NextResponse.json({ error: 'full_name is required' }, { status: 400 })
+  if (!full_name && !phone && !email) {
+    return NextResponse.json({ error: 'Provide at least a name, phone or email' }, { status: 400 })
   }
 
-  const sb = createServiceClient()
-
-  // Check for referrer marketer
-  let referrerId = null
+  // Optional: attribute to a specific marketer by their code
+  let extra: Record<string, any> = {}
   if (referrer_code) {
-    const { data: ref } = await sb.from('profiles').select('id').eq('marketer_code', referrer_code).single()
-    referrerId = ref?.id || null
+    const sb = createServiceClient()
+    const { data: ref } = await sb.from('profiles').select('id').eq('marketer_code', referrer_code).maybeSingle()
+    if (ref?.id) extra.referrer_id = ref.id
   }
 
-  const { data: lead, error } = await sb.from('leads').insert({
-    full_name,
-    email: email || null,
-    phone: phone || null,
+  const { leadId, duplicate } = await intakeLead({
+    full_name, email, phone,
     source: 'website',
-    status: 'new',
-    course_interest: course_interest || null,
+    course_interest,
     utm_source: utm_source || 'website',
-    utm_medium: utm_medium || null,
-    utm_campaign: utm_campaign || null,
-    referrer_id: referrerId,
+    utm_medium, utm_campaign, utm_content,
     raw_payload: body,
-  }).select().single()
+    extra,
+  })
 
-  if (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 })
-  }
-
-  // Auto-assign to a marketer (round-robin by lightest load)
-  try {
-    const assignedTo = await autoAssignLead(lead.id)
-    if (assignedTo) (lead as any).assigned_to = assignedTo
-  } catch (e) { console.error('[Website Webhook] auto-assign failed', e) }
-
-  // Notify PMs
-  const { data: pms } = await sb.from('profiles')
-    .select('*').eq('role', 'project_manager').eq('is_active', true)
-
-  const { count: unassigned } = await sb.from('leads')
-    .select('id', { count: 'exact', head: true }).is('assigned_to', null)
-
-  for (const pm of pms || []) {
-    await Promise.all([
-      sb.from('notifications').insert({
-        user_id: pm.id,
-        type: 'lead',
-        title: 'New lead from website',
-        body: `${lead.full_name} submitted a form on the website.`,
-        data: { lead_id: lead.id, source: 'website' },
-      }),
-      pm.phone ? sendSMS(pm.phone, SMS.newLeadToPM(lead.full_name, 'Website', unassigned || 1)) : Promise.resolve(),
-    ])
-  }
-
-  return NextResponse.json({ success: true, lead_id: lead.id })
+  return NextResponse.json({ success: true, lead_id: leadId, duplicate })
 }
