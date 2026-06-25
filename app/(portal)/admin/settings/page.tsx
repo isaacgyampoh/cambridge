@@ -78,11 +78,13 @@ export default function SettingsPage() {
   ] : []
 
   const webhooks = [
-    { label: 'Facebook Lead Ads', url: '/api/webhooks/facebook' },
-    { label: 'Google Lead Forms', url: '/api/webhooks/google' },
-    { label: 'Paystack Payments', url: '/api/webhooks/paystack' },
-    { label: 'Website Forms', url: '/api/webhooks/website' },
-    { label: 'WhatsApp Replies (AI assistant)', url: '/api/webhooks/whatsapp' },
+    { label: 'Facebook Lead Ads', url: '/api/webhooks/facebook', platform: 'facebook', hint: 'In Meta Events Manager, add this as your Lead Ads webhook callback URL and subscribe to the "leadgen" field.' },
+    { label: 'Instagram Lead Ads', url: '/api/webhooks/facebook', platform: 'facebook', hint: 'Instagram lead ads use the same Meta webhook as Facebook.' },
+    { label: 'Google Lead Forms', url: '/api/webhooks/google', platform: 'google', hint: 'In your Google Lead Form extension, set this as the webhook URL and add your secret key.' },
+    { label: 'LinkedIn Lead Gen', url: '/api/webhooks/linkedin', platform: 'linkedin', hint: 'Connect via LinkedIn lead sync (often through Zapier/Make) pointing at this URL.' },
+    { label: 'Website Forms', url: '/api/webhooks/website', platform: 'website', hint: 'POST your landing-page form submissions here (full_name, email, phone, course_interest, referrer_code).' },
+    { label: 'Paystack Payments', url: '/api/webhooks/paystack', platform: 'paystack', hint: 'In your Paystack dashboard, set this as the webhook URL.' },
+    { label: 'WhatsApp Replies (AI assistant)', url: '/api/webhooks/whatsapp', platform: 'whatsapp', hint: 'In WAWP, point the incoming-message webhook here so the AI can reply to leads.' },
   ]
 
   function copy(text: string) { navigator.clipboard.writeText(text); toast.success('Copied') }
@@ -147,16 +149,22 @@ export default function SettingsPage() {
         )}
       </Card>
 
-      {/* Webhooks */}
-      <SectionLabel>Webhook endpoints</SectionLabel>
+      {/* Lead connections / Webhooks */}
+      <SectionLabel>Lead connections</SectionLabel>
+      <p className="text-sm text-[var(--ink-soft)] mb-4 -mt-2">
+        Connect your ad platforms so leads flow straight into the system and auto-assign to your team. Copy each URL into that platform's lead/webhook settings.
+      </p>
       <Card className="divide-y divide-[var(--line-soft)]">
-        {webhooks.map(w => (
-          <div key={w.url} className="flex items-center justify-between gap-3 p-4">
-            <div className="min-w-0">
-              <div className="text-sm font-medium text-[var(--ink)]">{w.label}</div>
-              <code className="text-xs text-[var(--ink-faint)] font-mono break-all">{CONFIG.appUrl}{w.url}</code>
+        {webhooks.map((w, i) => (
+          <div key={w.label + i} className="p-4">
+            <div className="flex items-center justify-between gap-3">
+              <div className="min-w-0">
+                <div className="text-sm font-medium text-[var(--ink)]">{w.label}</div>
+                <code className="text-xs text-[var(--ink-faint)] font-mono break-all">{CONFIG.appUrl}{w.url}</code>
+              </div>
+              <Button variant="ghost" size="sm" onClick={() => copy(`${CONFIG.appUrl}${w.url}`)} icon={<Copy size={13} />}>Copy</Button>
             </div>
-            <Button variant="ghost" size="sm" onClick={() => copy(`${CONFIG.appUrl}${w.url}`)} icon={<Copy size={13} />}>Copy</Button>
+            {w.hint && <p className="text-[11px] text-[var(--ink-faint)] mt-2 leading-relaxed">{w.hint}</p>}
           </div>
         ))}
       </Card>
