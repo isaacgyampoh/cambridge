@@ -32,41 +32,43 @@ export default function CompetitorResearch() {
   }
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full">
       <PageHeader eyebrow="Marketing" title="Competitor research"
         description="See what ads competitors are running, and get AI analysis on how to do better." />
 
-      {/* Search competitor */}
-      <Card className="p-5 mb-4">
-        <label className="text-[13px] font-medium text-[var(--ink-faint)]">Competitor or keyword</label>
-        <input value={competitor} onChange={e => setCompetitor(e.target.value)} placeholder="e.g. a training institute name, or 'PMP Ghana'"
-          className={inputClass + ' mt-1.5 mb-3'} />
-        <div className="flex flex-wrap gap-2">
-          <a href={metaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-[var(--accent)] text-white text-sm font-medium">
-            <Eye size={14} /> Meta Ad Library <ExternalLink size={12} />
-          </a>
-          <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1.5 h-9 px-4 rounded-lg bg-white border border-[var(--line)] text-[var(--ink-soft)] text-sm font-medium">
-            <Eye size={14} /> Google Ads Transparency <ExternalLink size={12} />
-          </a>
-        </div>
-        <p className="text-[12px] text-[var(--ink-faint)] mt-3">These are official public ad libraries — every ad running on Facebook/Instagram and Google. Search a competitor to see exactly what they're publishing in Ghana.</p>
-      </Card>
-
-      {/* Analyze a competitor ad */}
-      <Card className="p-5">
-        <label className="text-[13px] font-medium text-[var(--ink-faint)]">Analyze a competitor's ad</label>
-        <p className="text-xs text-[var(--ink-soft)] mt-1 mb-2">Paste the text of a competitor ad you found, and the AI will tell you what works and how to beat it.</p>
-        <textarea value={adText} onChange={e => setAdText(e.target.value)} rows={5} placeholder="Paste the competitor's ad copy here…"
-          className={textareaClass + ' mb-3'} />
-        <Button onClick={analyze} disabled={busy} icon={<Sparkles size={14} />}>{busy ? 'Analyzing…' : 'Analyze & advise'}</Button>
-
-        {analysis && (
-          <div className="mt-4 rounded-xl bg-[var(--accent-soft)] p-4">
-            <div className="flex items-center gap-2 mb-2"><Sparkles size={15} className="text-[var(--accent)]" /><span className="text-sm font-semibold text-[var(--ink)]">Analysis & recommendations</span></div>
-            <div className="text-sm text-[var(--ink-soft)] whitespace-pre-wrap">{analysis}</div>
+      <div className="grid grid-cols-1 lg:grid-cols-[380px_1fr] gap-5 items-start">
+        {/* LEFT: find competitor ads */}
+        <Card className="p-6">
+          <label className="text-[14px] font-medium text-[var(--ink)]">Competitor or keyword</label>
+          <input value={competitor} onChange={e => setCompetitor(e.target.value)} placeholder="e.g. a training institute name, or 'PMP Ghana'"
+            className={inputClass + ' mt-2 mb-4'} />
+          <div className="flex flex-col gap-2">
+            <a href={metaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-[var(--accent)] text-white text-[15px] font-medium">
+              <Eye size={16} /> Meta Ad Library <ExternalLink size={13} />
+            </a>
+            <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-white border border-[var(--line)] text-[var(--ink-soft)] text-[15px] font-medium">
+              <Eye size={16} /> Google Ads Transparency <ExternalLink size={13} />
+            </a>
           </div>
-        )}
-      </Card>
+          <p className="text-[13px] text-[var(--ink-faint)] mt-4 leading-relaxed">These are official public ad libraries — every ad running on Facebook/Instagram and Google. Search a competitor to see exactly what they're publishing in Ghana.</p>
+        </Card>
+
+        {/* RIGHT: paste + analyze (the main work area, full width) */}
+        <Card className="p-6">
+          <label className="text-[16px] font-semibold text-[var(--ink)]">Analyze a competitor's ad</label>
+          <p className="text-[14px] text-[var(--ink-soft)] mt-1 mb-3">Paste the text of a competitor ad you found, and the AI will tell you what works and how to beat it.</p>
+          <textarea value={adText} onChange={e => setAdText(e.target.value)} rows={12} placeholder="Paste the competitor's ad copy here…"
+            className={textareaClass + ' mb-3 min-h-[280px]'} />
+          <Button onClick={analyze} disabled={busy} icon={<Sparkles size={16} />}>{busy ? 'Analyzing…' : 'Analyze & advise'}</Button>
+
+          {analysis && (
+            <div className="mt-5 rounded-xl bg-[var(--accent-soft)] p-5">
+              <div className="flex items-center gap-2 mb-2"><Sparkles size={16} className="text-[var(--accent)]" /><span className="text-[15px] font-semibold text-[var(--ink)]">Analysis &amp; recommendations</span></div>
+              <div className="text-[15px] text-[var(--ink-soft)] whitespace-pre-wrap leading-relaxed">{analysis}</div>
+            </div>
+          )}
+        </Card>
+      </div>
     </div>
   )
 }

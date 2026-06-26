@@ -54,7 +54,7 @@ export default function KnowledgeBasePage() {
   const infos = entries.filter((e: any) => e.kind === 'info')
 
   return (
-    <div className="fade-in w-full max-w-4xl mx-auto">
+    <div className="fade-in w-full">
       <PageHeader
         eyebrow="AI Assistant"
         title="Knowledge base"

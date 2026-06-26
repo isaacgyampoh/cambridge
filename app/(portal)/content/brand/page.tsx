@@ -45,63 +45,69 @@ export default function BrandKit() {
   if (loading) return <div className="p-8"><Spinner /></div>
 
   return (
-    <div className="fade-in w-full max-w-2xl">
+    <div className="fade-in w-full">
       <PageHeader eyebrow="Marketing" title="Brand kit"
         description="Set your voice and assets once. The AI uses these every time it writes, so all content stays on-brand." />
 
-      <Card className="p-5 mb-5 space-y-4">
-        <Field label="Brand voice">
-          <textarea value={profile.voice || ''} onChange={e => set('voice', e.target.value)} rows={3}
-            placeholder="How should we sound? e.g. Confident, aspirational, credible…"
-            className={textareaClass} />
-        </Field>
-        <Field label="Tagline">
-          <input value={profile.tagline || ''} onChange={e => set('tagline', e.target.value)} className={inputClass} placeholder="Your signature line" />
-        </Field>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          <Field label="Words / phrases to use">
-            <textarea value={profile.do_say || ''} onChange={e => set('do_say', e.target.value)} rows={2}
-              className={textareaClass} placeholder="globally recognised, career growth…" />
+      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+        {/* LEFT: brand guidelines */}
+        <Card className="p-6 space-y-4">
+          <Field label="Brand voice">
+            <textarea value={profile.voice || ''} onChange={e => set('voice', e.target.value)} rows={3}
+              placeholder="How should we sound? e.g. Confident, aspirational, credible…"
+              className={textareaClass} />
           </Field>
-          <Field label="Words / phrases to avoid">
-            <textarea value={profile.dont_say || ''} onChange={e => set('dont_say', e.target.value)} rows={2}
-              className={textareaClass} placeholder="cheap, guaranteed pass…" />
+          <Field label="Tagline">
+            <input value={profile.tagline || ''} onChange={e => set('tagline', e.target.value)} className={inputClass} placeholder="Your signature line" />
           </Field>
-        </div>
-        <Field label="Primary colour">
-          <div className="flex items-center gap-3">
-            <input type="color" value={profile.primary_color || '#2f80d6'} onChange={e => set('primary_color', e.target.value)} className="w-12 h-10 rounded-lg border border-[var(--line)] cursor-pointer" />
-            <span className="text-sm text-[var(--ink-soft)]">{profile.primary_color}</span>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <Field label="Words / phrases to use">
+              <textarea value={profile.do_say || ''} onChange={e => set('do_say', e.target.value)} rows={3}
+                className={textareaClass} placeholder="globally recognised, career growth…" />
+            </Field>
+            <Field label="Words / phrases to avoid">
+              <textarea value={profile.dont_say || ''} onChange={e => set('dont_say', e.target.value)} rows={3}
+                className={textareaClass} placeholder="cheap, guaranteed pass…" />
+            </Field>
           </div>
-        </Field>
-        <Button onClick={save} disabled={saving} icon={<Save size={15} />}>{saving ? 'Saving…' : 'Save brand guidelines'}</Button>
-      </Card>
+          <Field label="Primary colour">
+            <div className="flex items-center gap-3">
+              <input type="color" value={profile.primary_color || '#2f80d6'} onChange={e => set('primary_color', e.target.value)} className="w-12 h-10 rounded-lg border border-[var(--line)] cursor-pointer" />
+              <span className="text-sm text-[var(--ink-soft)]">{profile.primary_color}</span>
+            </div>
+          </Field>
+          <Button onClick={save} disabled={saving} icon={<Save size={15} />}>{saving ? 'Saving…' : 'Save brand guidelines'}</Button>
+        </Card>
 
-      <div className="mb-3 flex items-center justify-between">
-        <h2 className="font-display font-semibold text-[var(--ink)]">Brand assets</h2>
-        <div className="w-44"><FileUpload onUploaded={addAsset} label="Add logo / graphic" folder="cce/brand" /></div>
+        {/* RIGHT: brand assets */}
+        <Card className="p-6">
+          <div className="mb-4 flex items-center justify-between">
+            <h2 className="font-display font-semibold text-[var(--ink)] text-[16px]">Brand assets</h2>
+            <div className="w-44"><FileUpload onUploaded={addAsset} label="Add logo / graphic" folder="cce/brand" /></div>
+          </div>
+
+          {assets.length === 0 ? (
+            <EmptyState icon={<ImageIcon size={20} />} title="No assets yet" description="Upload your logos and approved graphics so the team always uses the right files." />
+          ) : (
+            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+              {assets.map(a => (
+                <Card key={a.id} className="p-3">
+                  <div className="aspect-square rounded-lg bg-[var(--canvas)] overflow-hidden mb-2 flex items-center justify-center">
+                    <img src={a.url} alt={a.name} className="max-w-full max-h-full object-contain" />
+                  </div>
+                  <div className="flex items-center justify-between gap-1">
+                    <span className="text-xs text-[var(--ink-soft)] truncate">{a.name}</span>
+                    <div className="flex gap-1 flex-shrink-0">
+                      <button onClick={() => { navigator.clipboard.writeText(a.url); toast.success('Link copied') }} className="p-1 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={13} /></button>
+                      <button onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={13} /></button>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </Card>
       </div>
-
-      {assets.length === 0 ? (
-        <EmptyState icon={<ImageIcon size={20} />} title="No assets yet" description="Upload your logos and approved graphics so the team always uses the right files." />
-      ) : (
-        <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
-          {assets.map(a => (
-            <Card key={a.id} className="p-3">
-              <div className="aspect-square rounded-lg bg-[var(--canvas)] overflow-hidden mb-2 flex items-center justify-center">
-                <img src={a.url} alt={a.name} className="max-w-full max-h-full object-contain" />
-              </div>
-              <div className="flex items-center justify-between gap-1">
-                <span className="text-xs text-[var(--ink-soft)] truncate">{a.name}</span>
-                <div className="flex gap-1 flex-shrink-0">
-                  <button onClick={() => { navigator.clipboard.writeText(a.url); toast.success('Link copied') }} className="p-1 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={13} /></button>
-                  <button onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={13} /></button>
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
     </div>
   )
 }

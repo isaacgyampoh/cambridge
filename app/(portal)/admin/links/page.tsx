@@ -65,7 +65,7 @@ export default function AdminLinks() {
   }
 
   return (
-    <div className="fade-in w-full max-w-3xl mx-auto">
+    <div className="fade-in w-full">
       <PageHeader
         eyebrow="Distribution"
         title="Post a link"

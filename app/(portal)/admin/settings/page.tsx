@@ -109,7 +109,7 @@ export default function SettingsPage() {
   function copy(text: string) { navigator.clipboard.writeText(text); toast.success('Copied') }
 
   return (
-    <div className="fade-in w-full max-w-4xl mx-auto">
+    <div className="fade-in w-full">
       <PageHeader eyebrow="System" title="Settings" description="Integrations, delivery tests and webhook endpoints." />
 
       {/* Lead assignment */}

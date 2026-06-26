@@ -15,7 +15,7 @@ export default function MyLinksPage() {
   }, [])
 
   return (
-    <div className="fade-in w-full max-w-2xl">
+    <div className="fade-in w-full">
       <PageHeader
         eyebrow="My work"
         title="My links"
