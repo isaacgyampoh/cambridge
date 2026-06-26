@@ -165,7 +165,7 @@ export default function DocumentsPage() {
             <p className="text-xs font-semibold text-[var(--accent)] mb-2">Available template fields (use in your PDF):</p>
             <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_FIELDS.map(f => (
-                <code key={f} className="text-[11px] bg-white border border-blue-200 text-[var(--accent)] px-2 py-0.5 rounded font-mono">{f}</code>
+                <code key={f} className="text-[12px] bg-white border border-blue-200 text-[var(--accent)] px-2 py-0.5 rounded font-mono">{f}</code>
               ))}
             </div>
           </div>

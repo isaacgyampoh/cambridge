@@ -131,7 +131,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-[var(--ink)]">{staff.full_name}</div>
           <div className="text-sm text-[var(--ink-faint)]">{staff.phone?.replace(/^233/,'0')}</div>
-          <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${ROLE_COLOR[staff.role]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+          <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${ROLE_COLOR[staff.role]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
             {staff.role?.replace(/_/g,' ')}
           </span>
         </div>
@@ -175,7 +175,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                       </div>
                       <div className="min-w-0 flex-1">
                         <div className={`text-sm font-bold truncate ${on ? 'text-[var(--accent)]' : 'text-[var(--ink-soft)]'}`}>{portal.label}</div>
-                        <div className="text-[11px] text-[var(--ink-faint)] truncate">{PORTAL_DESC[portal.id] || ''}</div>
+                        <div className="text-[12px] text-[var(--ink-faint)] truncate">{PORTAL_DESC[portal.id] || ''}</div>
                       </div>
                       <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${on ? 'border-blue-600 bg-[var(--accent)]' : 'border-gray-300'}`}>
                         {on && <div className="w-2 h-2 bg-white rounded-full"/>}

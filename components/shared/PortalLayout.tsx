@@ -503,7 +503,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
         {/* Page */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: 'var(--canvas)' }}>
-          <div className="w-full px-4 py-5 sm:px-6 sm:py-6 lg:px-8 lg:py-8 mx-auto max-w-[1600px]">{children}</div>
+          <div className="w-full px-5 py-6 sm:px-7 sm:py-7 lg:px-10 lg:py-9 mx-auto max-w-[1500px]">{children}</div>
         </main>
       </div>
     </div>

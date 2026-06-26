@@ -165,7 +165,7 @@ export default function StaffPage() {
 
                   <div className="flex items-center gap-2 mt-3 p-2 bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-xl">
                     <Shield size={13} className="text-[var(--warn)] flex-shrink-0" />
-                    <p className="text-[11px] text-[var(--warn)] font-medium">They log in with phone number + PIN. Must change PIN on first login.</p>
+                    <p className="text-[12px] text-[var(--warn)] font-medium">They log in with phone number + PIN. Must change PIN on first login.</p>
                   </div>
                 </div>
 
@@ -281,7 +281,7 @@ export default function StaffPage() {
                       <input value={form.coordinator_program} onChange={e => set('coordinator_program', e.target.value.toUpperCase())}
                         placeholder="e.g. PMP or SPHRI (the course code)"
                         className="w-full h-11 px-4 rounded-xl border-2 border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
-                      <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Must match the course code. All students of this programme are auto-assigned to this coordinator.</p>
+                      <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">Must match the course code. All students of this programme are auto-assigned to this coordinator.</p>
                     </div>
                   )}
                 </div>
@@ -306,7 +306,7 @@ export default function StaffPage() {
       {/* ── Page header ── */}
       <div className="flex items-center justify-between mb-5">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">People</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">People</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Staff</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{staff.length} team members across all roles</p>
         </div>
@@ -349,7 +349,7 @@ export default function StaffPage() {
               <thead className="bg-[var(--line-soft)]">
                 <tr>
                   {['Staff Member', 'Contact', 'Role', 'Dept', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -363,7 +363,7 @@ export default function StaffPage() {
                         </div>
                         <div>
                           <div className="text-sm font-medium text-[var(--ink)]">{s.full_name}</div>
-                          <div className="text-[11px] text-[var(--ink-faint)]">{s.email}</div>
+                          <div className="text-[12px] text-[var(--ink-faint)]">{s.email}</div>
                         </div>
                       </div>
                     </td>
@@ -371,13 +371,13 @@ export default function StaffPage() {
                       <div className="text-sm text-[var(--ink-soft)]">{s.phone?.replace(/^233/, '0') || '—'}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${ROLE_COLOR[s.role] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+                      <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ${ROLE_COLOR[s.role] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {ROLE_LABEL[s.role] || s.role}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--ink-faint)]">{(s as any).department || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
+                      <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
                         {s.is_active ? '● Active': '○ Inactive'}
                       </span>
                     </td>

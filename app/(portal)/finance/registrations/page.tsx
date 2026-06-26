@@ -124,7 +124,7 @@ export default function FinanceRegistrations() {
             <table className="w-full">
               <thead><tr className="border-b border-[var(--line)]">
                 {['Student', 'Programme', 'Delivery', 'Fee', 'Assigned to', 'Commission', 'Registered'].map(h => (
-                  <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
@@ -132,14 +132,14 @@ export default function FinanceRegistrations() {
                   <tr key={r.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
                     <td className="px-4 py-3">
                       <div className="text-sm font-medium text-[var(--ink)]">{r.studentName}</div>
-                      <div className="text-[11px] text-[var(--ink-faint)]">{r.studentPhone?.replace(/^233/, '0')}</div>
+                      <div className="text-[12px] text-[var(--ink-faint)]">{r.studentPhone?.replace(/^233/, '0')}</div>
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.program}</td>
                     <td className="px-4 py-3"><Badge tone="neutral">{r.delivery?.replace('_', ' ')}</Badge></td>
                     <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(r.registrationFee)}</td>
                     <td className="px-4 py-3"><Badge tone="accent">{r.marketerName}</Badge></td>
                     <td className="px-4 py-3">{r.commissionPaid ? <Badge tone="success">Paid</Badge> : <Badge tone="warning">Owing</Badge>}</td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">{formatDateTime(r.registeredAt)}</td>
+                    <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{formatDateTime(r.registeredAt)}</td>
                   </tr>
                 ))}
               </tbody>

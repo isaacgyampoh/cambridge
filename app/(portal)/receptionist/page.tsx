@@ -37,7 +37,7 @@ export default function ReceptionistDashboard() {
     <div className="fade-in w-full">
       <div className="flex items-center justify-between mb-5">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Front desk</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Front desk</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Class reminders</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send personalised reminders in each marketer's name.</p>
         </div>
@@ -78,7 +78,7 @@ export default function ReceptionistDashboard() {
                     </div>
                   </div>
                   <div className="text-right">
-                    <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ${batch.status==='ongoing'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+                    <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ${batch.status==='ongoing'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                       {batch.status}
                     </span>
                     {days !== null && days >= 0 && (
@@ -90,7 +90,7 @@ export default function ReceptionistDashboard() {
                 </div>
 
                 <div className="border-t border-[var(--line-soft)] pt-4">
-                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Send Reminders via WhatsApp + SMS</p>
+                  <p className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Send Reminders via WhatsApp + SMS</p>
                   <div className="flex flex-wrap gap-2">
                     {REMINDER_TYPES.map(r => (
                       <button key={r.type}

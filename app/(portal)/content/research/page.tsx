@@ -38,7 +38,7 @@ export default function CompetitorResearch() {
 
       {/* Search competitor */}
       <Card className="p-5 mb-4">
-        <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Competitor or keyword</label>
+        <label className="text-[13px] font-medium text-[var(--ink-faint)]">Competitor or keyword</label>
         <input value={competitor} onChange={e => setCompetitor(e.target.value)} placeholder="e.g. a training institute name, or 'PMP Ghana'"
           className={inputClass + ' mt-1.5 mb-3'} />
         <div className="flex flex-wrap gap-2">
@@ -49,12 +49,12 @@ export default function CompetitorResearch() {
             <Eye size={14} /> Google Ads Transparency <ExternalLink size={12} />
           </a>
         </div>
-        <p className="text-[11px] text-[var(--ink-faint)] mt-3">These are official public ad libraries — every ad running on Facebook/Instagram and Google. Search a competitor to see exactly what they're publishing in Ghana.</p>
+        <p className="text-[12px] text-[var(--ink-faint)] mt-3">These are official public ad libraries — every ad running on Facebook/Instagram and Google. Search a competitor to see exactly what they're publishing in Ghana.</p>
       </Card>
 
       {/* Analyze a competitor ad */}
       <Card className="p-5">
-        <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Analyze a competitor's ad</label>
+        <label className="text-[13px] font-medium text-[var(--ink-faint)]">Analyze a competitor's ad</label>
         <p className="text-xs text-[var(--ink-soft)] mt-1 mb-2">Paste the text of a competitor ad you found, and the AI will tell you what works and how to beat it.</p>
         <textarea value={adText} onChange={e => setAdText(e.target.value)} rows={5} placeholder="Paste the competitor's ad copy here…"
           className={textareaClass + ' mb-3'} />

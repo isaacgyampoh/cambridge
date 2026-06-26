@@ -80,7 +80,7 @@ export default function CertificatesPage() {
               <div key={e.id} className="flex items-center justify-between gap-3 py-2 border-b border-[var(--line-soft)] last:border-0">
                 <div>
                   <div className="text-sm font-medium text-[var(--ink)]">{e.full_name}</div>
-                  <div className="text-[11px] text-[var(--ink-faint)]">{e.batch?.course?.name || e.batch?.name} · completed</div>
+                  <div className="text-[12px] text-[var(--ink-faint)]">{e.batch?.course?.name || e.batch?.name} · completed</div>
                 </div>
                 <Button size="sm" onClick={() => openIssue(e)} icon={<Award size={13} />}>Issue certificate</Button>
               </div>
@@ -106,7 +106,7 @@ export default function CertificatesPage() {
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Student', 'Course', 'Completed', 'Certificate No.', 'Status', ''].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>

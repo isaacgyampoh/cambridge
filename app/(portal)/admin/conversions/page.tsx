@@ -84,7 +84,7 @@ export default function ConversionsPage() {
                   <thead>
                     <tr className="border-b border-[var(--line)]">
                       {['Programme', 'Leads', 'Registered', 'Conversion', ''].map(h => (
-                        <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-5 py-3">{h}</th>
+                        <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-5 py-3">{h}</th>
                       ))}
                     </tr>
                   </thead>
@@ -93,7 +93,7 @@ export default function ConversionsPage() {
                       <tr key={c.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
                         <td className="px-5 py-3.5">
                           <div className="font-medium text-[var(--ink)]">{c.name}</div>
-                          {c.code && <div className="text-[11px] text-[var(--ink-faint)]">{c.code}</div>}
+                          {c.code && <div className="text-[12px] text-[var(--ink-faint)]">{c.code}</div>}
                         </td>
                         <td className="px-5 py-3.5 font-display text-lg font-semibold text-[var(--ink)]">{c.leads}</td>
                         <td className="px-5 py-3.5">

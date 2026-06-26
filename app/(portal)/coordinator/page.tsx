@@ -107,7 +107,7 @@ export default function CoordinatorPage() {
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Student', 'Prep', 'Readiness', 'Exam date', 'Voucher expiry', 'Final', ''].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -119,7 +119,7 @@ export default function CoordinatorPage() {
                     <tr key={r.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition cursor-pointer" onClick={() => setEdit(r)}>
                       <td className="px-4 py-3">
                         <div className="font-medium text-[var(--ink)]">{r.student_name}</div>
-                        <div className="text-[11px] text-[var(--ink-faint)]">{r.program_name || r.program_code}</div>
+                        <div className="text-[12px] text-[var(--ink-faint)]">{r.program_name || r.program_code}</div>
                       </td>
                       <td className="px-4 py-3">{ps && <Badge tone={ps.tone}>{ps.label}</Badge>}</td>
                       <td className="px-4 py-3">{rd ? <Badge tone={rd.tone}>{rd.label}</Badge> : <span className="text-[var(--ink-faint)] text-xs">—</span>}</td>
@@ -150,7 +150,7 @@ export default function CoordinatorPage() {
               <div key={e.id} className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--line-soft)] last:border-0">
                 <div>
                   <div className="text-sm font-medium text-[var(--ink)]">{e.full_name}</div>
-                  <div className="text-[11px] text-[var(--ink-faint)]">{e.batch?.course?.name || e.batch?.name}</div>
+                  <div className="text-[12px] text-[var(--ink-faint)]">{e.batch?.course?.name || e.batch?.name}</div>
                 </div>
                 <Button size="sm" disabled={saving} onClick={() => addStudent(e.id)}>Add</Button>
               </div>

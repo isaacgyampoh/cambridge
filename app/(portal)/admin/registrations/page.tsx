@@ -75,7 +75,7 @@ export default function AdminRegistrations() {
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Name', 'Contact', 'Programme', 'Registered by', 'Status', ''].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>

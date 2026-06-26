@@ -70,7 +70,7 @@ export default function LeadSources() {
             <Copy size={13} /> Copy
           </button>
         </div>
-        <p className="text-[11px] text-[var(--ink-faint)] mt-3">Use this exact link in your Facebook / Google / LinkedIn ad. When someone registers through it, the system records that they came from {PLATFORMS.find(p => p.id === platform)?.label}.</p>
+        <p className="text-[12px] text-[var(--ink-faint)] mt-3">Use this exact link in your Facebook / Google / LinkedIn ad. When someone registers through it, the system records that they came from {PLATFORMS.find(p => p.id === platform)?.label}.</p>
       </Card>
 
       {/* Source breakdown */}
@@ -81,7 +81,7 @@ export default function LeadSources() {
         <>
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             <Card className="p-5">
-              <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-4">By platform</h3>
+              <h3 className="text-[13px] font-medium text-[var(--ink-faint)] mb-4">By platform</h3>
               <div className="space-y-3">
                 {data.sources.map((s: any) => (
                   <div key={s.label}>
@@ -100,7 +100,7 @@ export default function LeadSources() {
             <Card className="p-5">
               <div className="flex items-center gap-2 mb-4">
                 <Megaphone size={14} className="text-[var(--ink-faint)]" />
-                <h3 className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">By campaign</h3>
+                <h3 className="text-[13px] font-medium text-[var(--ink-faint)]">By campaign</h3>
               </div>
               {!data.campaigns?.length ? (
                 <p className="text-sm text-[var(--ink-faint)]">No named campaigns yet. Add a campaign name when building links to track them individually.</p>
@@ -110,7 +110,7 @@ export default function LeadSources() {
                     <div key={c.campaign + c.source} className="flex items-center justify-between py-2 border-b border-[var(--line-soft)] last:border-0">
                       <div className="min-w-0">
                         <div className="text-sm font-medium text-[var(--ink)] truncate">{c.campaign}</div>
-                        <div className="text-[11px] text-[var(--ink-faint)]">{c.source}</div>
+                        <div className="text-[12px] text-[var(--ink-faint)]">{c.source}</div>
                       </div>
                       <div className="text-xs text-[var(--ink-soft)] flex-shrink-0 ml-3">{c.applications} · <span className="text-[var(--ok)] font-semibold">{c.registrations}</span></div>
                     </div>

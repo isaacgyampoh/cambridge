@@ -30,7 +30,7 @@ export default function MarketerEarnings() {
         <div className="absolute top-0 right-0 w-48 h-48 rounded-full bg-white/5 -mr-16 -mt-16" />
         <div className="absolute bottom-0 right-20 w-32 h-32 rounded-full bg-white/5 -mb-12" />
         <div className="relative">
-          <div className="flex items-center gap-2 text-white/60 text-[11px] uppercase tracking-[0.14em] mb-2">
+          <div className="flex items-center gap-2 text-white/60 text-[12px] mb-2">
             <Trophy size={13} /> Current rank
           </div>
           <div className="flex flex-wrap items-end gap-4 mb-1">

@@ -187,7 +187,7 @@ export default function MarketerPerformancePage() {
     <div className="fade-in w-full">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Team</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Team</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Marketer performance</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Conversion, activity and revenue attributed to each marketer.</p>
         </div>
@@ -210,7 +210,7 @@ export default function MarketerPerformancePage() {
           { label: 'Inactive', value: summary.inactive, tone: 'text-[var(--danger)]' },
         ].map(k => (
           <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{k.label}</div>
+            <div className="text-[13px] font-medium text-[var(--ink-faint)]">{k.label}</div>
             <div className={`font-display text-[30px] leading-none font-semibold mt-3 ${k.tone}`}>{k.value}</div>
           </div>
         ))}
@@ -219,16 +219,16 @@ export default function MarketerPerformancePage() {
       {/* Overall stats */}
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-[var(--accent)] rounded-xl p-5 text-white">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-white/70">Total leads</div>
+          <div className="text-[13px] font-medium text-white/70">Total leads</div>
           <div className="font-display text-[30px] leading-none font-semibold mt-3">{summary.totalLeads}</div>
         </div>
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Converted</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)]">Converted</div>
           <div className="font-display text-[30px] leading-none font-semibold mt-3 text-[var(--ink)]">{summary.totalConverted}</div>
           <div className="text-xs text-[var(--ink-faint)] mt-1.5">{summary.totalLeads ? Math.round(summary.totalConverted/summary.totalLeads*100) : 0}% conversion</div>
         </div>
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-          <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Revenue attributed</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)]">Revenue attributed</div>
           <div className="font-display text-[30px] leading-none font-semibold mt-3 text-[var(--ink)]">{formatGHS(summary.totalRevenue)}</div>
         </div>
       </div>

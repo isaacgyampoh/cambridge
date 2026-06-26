@@ -78,7 +78,7 @@ export default function CoursesPage() {
             </Field>
             <Field label="Brochure (PDF)">
               <FileUpload onUploaded={url => setEditing({ ...editing, brochure_url: url })} value={(editing as any)?.brochure_url} label="Upload course brochure" accept="application/pdf" folder="cce/brochures" />
-              <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">The AI sends this brochure to leads interested in this course, alongside its reply.</p>
+              <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">The AI sends this brochure to leads interested in this course, alongside its reply.</p>
             </Field>
           </div>
           <div className="flex gap-2 mt-6">

@@ -131,21 +131,21 @@ export default function FinancePage() {
               <table className="w-full">
                 <thead><tr className="border-b border-[var(--line)]">
                   {['Receipt', 'Student', 'Amount', 'Method', 'Status', 'Date'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr></thead>
                 <tbody>
                   {payments.map((p: any) => (
                     <tr key={p.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                      <td className="px-4 py-3 text-[11px] font-mono text-[var(--ink-faint)]">{p.receipt_number || '—'}</td>
+                      <td className="px-4 py-3 text-[12px] font-mono text-[var(--ink-faint)]">{p.receipt_number || '—'}</td>
                       <td className="px-4 py-3">
                         <div className="text-sm font-medium text-[var(--ink)]">{p.student?.full_name || '—'}</div>
-                        <div className="text-[11px] text-[var(--ink-faint)]">{p.student?.phone}</div>
+                        <div className="text-[12px] text-[var(--ink-faint)]">{p.student?.phone}</div>
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(p.amount)}</td>
                       <td className="px-4 py-3"><Badge tone={METHOD_TONE[p.method] || 'neutral'}>{p.method?.replace(/_/g, ' ') || '—'}</Badge></td>
                       <td className="px-4 py-3"><Badge tone={p.status === 'paid' ? 'success' : p.status === 'pending' ? 'warning' : 'danger'}>{p.status}</Badge></td>
-                      <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">{formatDateTime(p.created_at)}</td>
+                      <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{formatDateTime(p.created_at)}</td>
                     </tr>
                   ))}
                 </tbody>
@@ -160,18 +160,18 @@ export default function FinancePage() {
               <table className="w-full">
                 <thead><tr className="border-b border-[var(--line)]">
                   {['Invoice', 'Student', 'Total', 'Paid', 'Balance', 'Due'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr></thead>
                 <tbody>
                   {invoices.map((inv: any) => (
                     <tr key={inv.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                      <td className="px-4 py-3 text-[11px] font-mono text-[var(--ink-faint)]">{inv.invoice_number || '—'}</td>
+                      <td className="px-4 py-3 text-[12px] font-mono text-[var(--ink-faint)]">{inv.invoice_number || '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium text-[var(--ink)]">{inv.student?.full_name || '—'}</td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(inv.total_amount)}</td>
                       <td className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(inv.amount_paid)}</td>
                       <td className="px-4 py-3"><span className={`text-sm font-semibold ${Number(inv.outstanding) > 0 ? 'text-[var(--danger)]' : 'text-[var(--ok)]'}`}>{formatGHS(inv.outstanding || 0)}</span></td>
-                      <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">{inv.due_date || 'No due date'}</td>
+                      <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{inv.due_date || 'No due date'}</td>
                     </tr>
                   ))}
                 </tbody>

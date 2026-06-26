@@ -162,12 +162,12 @@ export default function SequencesPage() {
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
                   <div>
-                    <label className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide">{i === 0 ? 'Send after (hours)' : 'Wait after previous (hours)'}</label>
+                    <label className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide">{i === 0 ? 'Send after (hours)' : 'Wait after previous (hours)'}</label>
                     <input type="number" min={0} value={st.delay_hours} onChange={e => updateStep(i, 'delay_hours', e.target.value)}
                       className={inputClass + ' mt-1'} placeholder="0" />
                   </div>
                   <div>
-                    <label className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Channel</label>
+                    <label className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Channel</label>
                     <select value={st.channel} onChange={e => updateStep(i, 'channel', e.target.value)} className={inputClass + ' mt-1'}>
                       <option value="whatsapp">WhatsApp</option>
                       <option value="sms">SMS</option>
@@ -176,7 +176,7 @@ export default function SequencesPage() {
                 </div>
                 <textarea value={st.message} onChange={e => updateStep(i, 'message', e.target.value)} rows={3}
                   placeholder="Hi {name}, just checking in..." className={inputClass + ' resize-none h-auto py-2.5'} />
-                <p className="text-[11px] text-[var(--ink-faint)] mt-1">Use {'{name}'} for the lead's first name.</p>
+                <p className="text-[12px] text-[var(--ink-faint)] mt-1">Use {'{name}'} for the lead's first name.</p>
               </div>
             ))}
           </div>

@@ -69,7 +69,7 @@ export default function AcademicsHub() {
                         </div>
                         <div className="text-right flex-shrink-0 ml-4">
                           <div className="text-sm font-semibold text-[var(--ink)]">GHS {Number(c.course_fee || 0).toLocaleString()}</div>
-                          <div className="text-[11px] text-[var(--ink-faint)]">course fee</div>
+                          <div className="text-[12px] text-[var(--ink-faint)]">course fee</div>
                         </div>
                       </Card>
                     </Link>

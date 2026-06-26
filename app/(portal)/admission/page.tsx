@@ -62,7 +62,7 @@ export default function AdmissionPage() {
       {/* Header */}
       <div className="flex items-center justify-between mb-8">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Admissions</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Admissions</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Admissions</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Process and track student admissions.</p>
         </div>
@@ -81,7 +81,7 @@ export default function AdmissionPage() {
           { label: 'Admitted', value: stats.admitted, tone: 'text-[var(--ok)]' },
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-xl p-5 border border-[var(--line)]">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{s.label}</div>
+            <div className="text-[13px] font-medium text-[var(--ink-faint)]">{s.label}</div>
             <div className={`font-display text-[28px] font-semibold mt-2 leading-none ${s.tone}`}>{s.value}</div>
           </div>
         ))}
@@ -141,7 +141,7 @@ export default function AdmissionPage() {
                         )}
                         <div className="text-[10px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)}</div>
                       </div>
-                      <span className={`text-[11px] font-bold px-2.5 py-1 rounded-full ml-3 flex-shrink-0 ${sc.color}`}>
+                      <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ml-3 flex-shrink-0 ${sc.color}`}>
                         {sc.label}
                       </span>
                     </div>
@@ -197,7 +197,7 @@ export default function AdmissionPage() {
                 <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
                   <tr>
                     {['Name','Email','Phone','Course','Payment','Marketer','Date'].map(h => (
-                      <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
+                      <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
@@ -211,12 +211,12 @@ export default function AdmissionPage() {
                       <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.phone}</td>
                       <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{app.course?.name || '—'}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${app.payment_status==='paid'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
+                        <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${app.payment_status==='paid'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
                           {app.payment_status}
                         </span>
                       </td>
                       <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.marketer?.full_name || 'Direct'}</td>
-                      <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">{new Date(app.created_at).toLocaleDateString('en-GH')}</td>
+                      <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{new Date(app.created_at).toLocaleDateString('en-GH')}</td>
                     </tr>
                   ))}
                 </tbody>

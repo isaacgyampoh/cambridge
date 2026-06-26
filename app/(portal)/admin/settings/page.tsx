@@ -163,7 +163,7 @@ export default function SettingsPage() {
           <div className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-[var(--ok-soft)] text-emerald-800' : 'bg-[var(--warn-soft)] text-amber-800'}`}>
             <div className="font-medium mb-1">{result.channel}: {result.success ? 'Delivered to provider' : 'Not delivered'}</div>
             {result.hint && <div className="text-xs">{result.hint}</div>}
-            {result.arkeselResponse && <div className="text-[11px] font-mono mt-1 opacity-70">{JSON.stringify(result.arkeselResponse)}</div>}
+            {result.arkeselResponse && <div className="text-[12px] font-mono mt-1 opacity-70">{JSON.stringify(result.arkeselResponse)}</div>}
           </div>
         )}
       </Card>
@@ -200,7 +200,7 @@ export default function SettingsPage() {
               </div>
               <Button variant="ghost" size="sm" onClick={() => copy(`${CONFIG.appUrl}${w.url}`)} icon={<Copy size={13} />}>Copy</Button>
             </div>
-            {w.hint && <p className="text-[11px] text-[var(--ink-faint)] mt-2 leading-relaxed">{w.hint}</p>}
+            {w.hint && <p className="text-[12px] text-[var(--ink-faint)] mt-2 leading-relaxed">{w.hint}</p>}
           </div>
         ))}
       </Card>

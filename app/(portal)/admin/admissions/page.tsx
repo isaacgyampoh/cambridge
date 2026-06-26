@@ -120,15 +120,15 @@ export default function AdminAdmissions() {
                       <span className="inline-flex items-center gap-1.5">
                         <Badge tone="accent">{a.scholarship_type === 'full' ? 'Full scholarship' : 'Partial scholarship'}</Badge>
                         <button disabled={acting === a.id} onClick={() => setScholarship(a.id, null)}
-                          className="text-[11px] text-[var(--ink-faint)] hover:text-[var(--ink)] underline">clear</button>
+                          className="text-[12px] text-[var(--ink-faint)] hover:text-[var(--ink)] underline">clear</button>
                       </span>
                     ) : (
                       <div className="inline-flex items-center gap-1">
-                        <span className="text-[11px] text-[var(--ink-faint)]">Scholarship:</span>
+                        <span className="text-[12px] text-[var(--ink-faint)]">Scholarship:</span>
                         <button disabled={acting === a.id} onClick={() => setScholarship(a.id, 'full')}
-                          className="text-[11px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Full</button>
+                          className="text-[12px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Full</button>
                         <button disabled={acting === a.id} onClick={() => setScholarship(a.id, 'partial')}
-                          className="text-[11px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Partial</button>
+                          className="text-[12px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Partial</button>
                       </div>
                     )}
                   </div>

@@ -87,7 +87,7 @@ export default function MarketerLink() {
   return (
     <div className="fade-in w-full">
       <div className="mb-8">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">My work</div>
+        <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">My work</div>
         <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My links</h1>
         <p className="text-[var(--ink-soft)] text-sm mt-1.5">Your registration link is always here. Other links shared by the office appear above it and update automatically.</p>
       </div>
@@ -97,7 +97,7 @@ export default function MarketerLink() {
 
       {/* Link card */}
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">
-        <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.1em] mb-2">Your registration link (always yours)</p>
+        <p className="text-[12px] font-semibold text-[var(--ink-faint)] mb-2">Your registration link (always yours)</p>
         {appUrl ? (
           <div>
             <div className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export default function MarketerLink() {
           { label: 'Submitted', value: stats.converted },
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-            <div className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">{s.label}</div>
+            <div className="text-[13px] font-medium text-[var(--ink-faint)]">{s.label}</div>
             <div className="font-display text-[26px] font-semibold text-[var(--ink)] mt-2 leading-none">{s.value}</div>
           </div>
         ))}
@@ -163,7 +163,7 @@ export default function MarketerLink() {
               <thead className="bg-[var(--line-soft)]">
                 <tr>
                   {['Name','Email','Course','Payment','Date'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>

@@ -96,7 +96,7 @@ export default function WorkforcePage() {
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Staff', 'Role', 'Clock in', 'Clock out', 'Distance', 'Status'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>

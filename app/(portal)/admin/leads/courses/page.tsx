@@ -57,7 +57,7 @@ export default function CourseLeadsHub() {
                     <ArrowRight size={16} className="text-[var(--ink-faint)]" />
                   </div>
                   <div className="font-semibold text-[var(--ink)] mb-1">{course.name}</div>
-                  {course.code && <div className="text-[11px] text-[var(--ink-faint)] mb-3">{course.code}</div>}
+                  {course.code && <div className="text-[12px] text-[var(--ink-faint)] mb-3">{course.code}</div>}
                   <div className="flex items-center gap-2 mt-2">
                     <Badge tone="accent">{mine.length} lead{mine.length === 1 ? '' : 's'}</Badge>
                     {registered > 0 && <Badge tone="success">{registered} registered</Badge>}

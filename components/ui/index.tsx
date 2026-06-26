@@ -16,18 +16,18 @@ export function PageHeader({
   actions?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-7">
       <div>
         {eyebrow && (
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-1">
             {eyebrow}
           </div>
         )}
-        <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">
+        <h1 className="font-display text-[26px] sm:text-[28px] font-semibold text-[var(--ink)]">
           {title}
         </h1>
         {description && (
-          <p className="text-[var(--ink-soft)] text-sm mt-1.5 max-w-xl">{description}</p>
+          <p className="text-[var(--ink-soft)] text-[15px] mt-2 max-w-2xl leading-relaxed">{description}</p>
         )}
       </div>
       {actions && <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">{actions}</div>}
@@ -108,7 +108,7 @@ export function StatCard({
         ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-[0_4px_20px_rgba(47,128,214,0.20)]'
         : 'bg-[var(--paper)] border-[var(--line)] shadow-[0_1px_2px_rgba(31,29,26,0.04)]'}`}>
       <div className="flex items-start justify-between mb-3">
-        <div className={`text-[11px] font-semibold uppercase tracking-[0.1em] ${accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>
+        <div className={`text-[14px] font-medium ${accent ? 'text-white/80' : 'text-[var(--ink-soft)]'}`}>
           {label}
         </div>
         {icon && (
@@ -257,9 +257,8 @@ export function Spinner({ className = '' }: { className?: string }) {
    ───────────────────────────────────────────── */
 export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
-    <div className="flex items-center gap-3 mb-4">
-      <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">{children}</span>
-      <div className="flex-1 h-px bg-[var(--line)]" />
+    <div className="mb-4">
+      <span className="text-[15px] font-semibold text-[var(--ink)]">{children}</span>
     </div>
   )
 }

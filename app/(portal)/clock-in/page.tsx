@@ -72,7 +72,7 @@ export default function ClockInPage() {
   return (
     <div className="fade-in max-w-md mx-auto">
       <div className="text-center mb-8">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Staff attendance</div>
+        <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Staff attendance</div>
         <h1 className="font-display text-[26px] font-semibold text-[var(--ink)]">
           {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}
         </h1>
@@ -99,12 +99,12 @@ export default function ClockInPage() {
         {/* Times */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-[var(--line-soft)] rounded-lg p-3 text-center">
-            <div className="text-[11px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock in</div>
+            <div className="text-[12px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock in</div>
             <div className="font-display text-xl font-semibold text-[var(--ink)]">{today?.clock_in_at ? fmt(today.clock_in_at) : '—'}</div>
             {today?.status === 'late' && <div className="text-[10px] text-[var(--warn)] font-medium mt-0.5">Late</div>}
           </div>
           <div className="bg-[var(--line-soft)] rounded-lg p-3 text-center">
-            <div className="text-[11px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock out</div>
+            <div className="text-[12px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock out</div>
             <div className="font-display text-xl font-semibold text-[var(--ink)]">{today?.clock_out_at ? fmt(today.clock_out_at) : '—'}</div>
           </div>
         </div>

@@ -62,21 +62,21 @@ export default function AdminRemuneration() {
             <table className="w-full">
               <thead><tr className="border-b border-[var(--line)]">
                 {['#', 'Marketer', 'Points', 'Trend', 'Rank', 'Gross salary', 'Reg. commission', 'To next rank'].map(h => (
-                  <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                  <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                 ))}
               </tr></thead>
               <tbody>
                 {board.map((m, i) => (
                   <tr key={m.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
                     <td className="px-4 py-3">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[11px] font-bold ${i === 0 ? 'bg-[var(--gold)] text-white' : i < 3 ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>{i + 1}</span>
+                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-bold ${i === 0 ? 'bg-[var(--gold)] text-white' : i < 3 ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>{i + 1}</span>
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-sm font-medium text-[var(--ink)]">{m.name}</div>
-                      <div className="text-[11px] text-[var(--ink-faint)]">{m.enrollments} enrollments</div>
+                      <div className="text-[12px] text-[var(--ink-faint)]">{m.enrollments} enrollments</div>
                     </td>
                     <td className="px-4 py-3 font-display text-lg font-semibold text-[var(--ink)]">{m.points}</td>
-                    <td className="px-4 py-3">{m.trend && m.trend.some((v:number)=>v>0) ? <Sparkline data={m.trend} /> : <span className="text-[11px] text-[var(--ink-faint)]">—</span>}</td>
+                    <td className="px-4 py-3">{m.trend && m.trend.some((v:number)=>v>0) ? <Sparkline data={m.trend} /> : <span className="text-[12px] text-[var(--ink-faint)]">—</span>}</td>
                     <td className="px-4 py-3"><Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge></td>
                     <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(m.grossSalary)}</td>
                     <td className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(m.registrationCommission)}</td>
@@ -114,7 +114,7 @@ export default function AdminRemuneration() {
               <div key={p.code} className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-[var(--ink)]">{p.name}</div>
-                  <div className="text-[11px] text-[var(--ink-faint)] font-mono">{p.code}{p.is_corporate ? ' · 40–200' : ''}</div>
+                  <div className="text-[12px] text-[var(--ink-faint)] font-mono">{p.code}{p.is_corporate ? ' · 40–200' : ''}</div>
                 </div>
                 <input type="number" defaultValue={p.points} disabled={p.is_corporate}
                   onBlur={e => { const v = parseFloat(e.target.value); if (v !== p.points) savePoints(p.code, v) }}

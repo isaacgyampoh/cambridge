@@ -210,7 +210,7 @@ export default function ClassesPage() {
                 {/* Zoom link — send to enrolled students */}
                 {b.class_type === 'online' && (
                   <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
-                    <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Zoom / meeting link</p>
+                    <p className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Zoom / meeting link</p>
                     <div className="flex flex-wrap items-center gap-2">
                       <input
                         value={zoomEdits[b.id] ?? b.zoom_link ?? ''}
@@ -222,7 +222,7 @@ export default function ClassesPage() {
                         {zoomSending === b.id ? 'Sending…' : 'Send to students'}
                       </Button>
                     </div>
-                    <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Sends the link to every enrolled student by WhatsApp (SMS fallback) and email.</p>
+                    <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">Sends the link to every enrolled student by WhatsApp (SMS fallback) and email.</p>
                   </div>
                 )}
 
@@ -236,7 +236,7 @@ export default function ClassesPage() {
 
                 {/* Course materials — send to enrolled students after a session */}
                 <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
-                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Course materials</p>
+                  <p className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Course materials</p>
                   {matOpen === b.id ? (
                     <div className="space-y-2">
                       <input value={matForm.title} onChange={e => setMatForm(f => ({ ...f, title: e.target.value }))}
@@ -258,7 +258,7 @@ export default function ClassesPage() {
                   ) : (
                     <Button size="sm" variant="secondary" onClick={() => setMatOpen(b.id)} icon={<Send size={13} />}>Send course materials</Button>
                   )}
-                  <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Shares materials with every enrolled student by WhatsApp (SMS fallback) and email.</p>
+                  <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">Shares materials with every enrolled student by WhatsApp (SMS fallback) and email.</p>
                 </div>
               </Card>
             )

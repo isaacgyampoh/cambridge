@@ -345,7 +345,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           {/* Register & earn points */}
           {lead.status !== 'registered' && (
             <div className="rounded-2xl bg-[var(--accent)] text-white p-5">
-              <div className="flex items-center gap-2 text-white/70 text-[11px] uppercase tracking-[0.12em] mb-1.5">
+              <div className="flex items-center gap-2 text-white/70 text-[12px] mb-1.5">
                 Convert this lead
               </div>
               <h3 className="font-display text-lg font-semibold mb-1">Register student</h3>

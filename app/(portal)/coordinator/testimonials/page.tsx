@@ -39,7 +39,7 @@ export default function TestimonialsPage() {
       <Card className="p-5 mb-6">
         <div className="flex items-center gap-2 mb-2">
           <Link2 size={15} className="text-[var(--accent)]" />
-          <span className="text-[11px] font-semibold text-[var(--accent)] uppercase tracking-[0.1em]">Testimonial collection link</span>
+          <span className="text-[12px] font-semibold text-[var(--accent)]">Testimonial collection link</span>
         </div>
         <p className="text-sm text-[var(--ink-soft)] mb-3">Copy this and send it to any student who has completed. They submit their testimonial themselves — it shows up below.</p>
         <div className="flex items-center gap-2">
@@ -67,14 +67,14 @@ export default function TestimonialsPage() {
                 )}
                 <div className="min-w-0">
                   <div className="font-medium text-[var(--ink)] truncate">{t.student_name}</div>
-                  {t.role_title && <div className="text-[11px] text-[var(--ink-soft)] truncate">{t.role_title}</div>}
-                  {t.program_name && <div className="text-[11px] text-[var(--ink-faint)]">{t.program_name}</div>}
+                  {t.role_title && <div className="text-[12px] text-[var(--ink-soft)] truncate">{t.role_title}</div>}
+                  {t.program_name && <div className="text-[12px] text-[var(--ink-faint)]">{t.program_name}</div>}
                 </div>
               </div>
               <p className="text-sm text-[var(--ink-soft)] flex-1 mb-3">"{t.quote}"</p>
               <div className="flex flex-wrap items-center gap-2">
-                <button onClick={() => toggle(t, 'approved')} className={`text-[11px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.approved ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.approved ? 'Approved' : 'Approve'}</button>
-                <button onClick={() => toggle(t, 'shared')} className={`text-[11px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.shared ? 'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/20' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.shared ? 'Shared' : 'Mark shared'}</button>
+                <button onClick={() => toggle(t, 'approved')} className={`text-[12px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.approved ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.approved ? 'Approved' : 'Approve'}</button>
+                <button onClick={() => toggle(t, 'shared')} className={`text-[12px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.shared ? 'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/20' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.shared ? 'Shared' : 'Mark shared'}</button>
                 <button onClick={() => copyText(t)} title="Copy text" className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={14} /></button>
                 <button onClick={() => remove(t.id)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={14} /></button>
               </div>

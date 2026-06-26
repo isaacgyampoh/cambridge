@@ -91,14 +91,14 @@ export default function StudentFeesPage() {
             <div className="overflow-x-auto">
               <table className="w-full">
                 <thead><tr className="border-b border-[var(--line)]">
-                  {['Student', 'Course', 'Total', 'Paid', 'Balance', 'Status', ''].map(h => <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>)}
+                  {['Student', 'Course', 'Total', 'Paid', 'Balance', 'Status', ''].map(h => <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {filtered.map((f: any) => (
                     <tr key={f.id} className="border-b border-[var(--line-soft)] last:border-0">
                       <td className="px-4 py-3">
                         <div className="font-medium text-[var(--ink)]">{f.student_name}</div>
-                        <div className="text-[11px] text-[var(--ink-faint)]">{f.delivery === 'online' ? 'Online' : 'In person'}</div>
+                        <div className="text-[12px] text-[var(--ink-faint)]">{f.delivery === 'online' ? 'Online' : 'In person'}</div>
                       </td>
                       <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{f.course_name || '—'}</td>
                       <td className="px-4 py-3 text-sm">GHS {Number(f.total_fee).toFixed(2)}</td>

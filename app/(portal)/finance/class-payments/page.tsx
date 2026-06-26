@@ -42,7 +42,7 @@ export default function ClassPaymentsPage() {
 
       {loading ? <Spinner /> : (
         <>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-3">Pending ({pending.length})</p>
+          <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Pending ({pending.length})</p>
           {pending.length === 0 ? (
             <EmptyState icon={<Banknote size={20} />} title="Nothing to verify" description="Bank and cash payments from sign-in will appear here." />
           ) : (
@@ -86,7 +86,7 @@ export default function ClassPaymentsPage() {
 
           {decided.length > 0 && (
             <>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-3">Recent</p>
+              <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Recent</p>
               <div className="space-y-2">
                 {decided.slice(0, 30).map(p => (
                   <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-[var(--line)] bg-[var(--paper)]">

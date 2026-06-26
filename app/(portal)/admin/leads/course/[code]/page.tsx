@@ -81,7 +81,7 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Name', 'Contact', 'Status', 'Assigned to', 'Date'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -98,12 +98,12 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
                       </div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`inline-flex text-[11px] font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[l.status] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+                      <span className={`inline-flex text-[12px] font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[l.status] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {STATUS_LABELS[l.status] || l.status}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{l.assignee?.full_name || <span className="text-[var(--ink-faint)]">Unassigned</span>}</td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">
+                    <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
                       {new Date(l.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}
                     </td>
                   </tr>

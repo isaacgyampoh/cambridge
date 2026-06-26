@@ -69,7 +69,7 @@ export default function AdminDashboard() {
     <div className="fade-in w-full">
       {/* Header */}
       <div className="mb-8">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">{dateStr}</div>
+        <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">{dateStr}</div>
         <h1 className="font-display text-[30px] leading-tight font-semibold text-[var(--ink)]">{greeting}</h1>
         <p className="text-[var(--ink-soft)] text-sm mt-1.5">Here is where things stand across the centre today.</p>
       </div>
@@ -89,7 +89,7 @@ export default function AdminDashboard() {
       {/* Navigation sections */}
       {/* Activity feed — full width, clean */}
       <div className="flex items-center gap-2 mb-4">
-        <span className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)]">Recent activity</span>
+        <span className="text-[13px] font-medium text-[var(--ink-faint)]">Recent activity</span>
         <span className="relative flex h-2 w-2">
           <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-60" />
           <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
@@ -114,7 +114,7 @@ export default function AdminDashboard() {
                     <div className="text-sm font-medium text-[var(--ink)] leading-snug">{e.title}</div>
                     {e.sub && <div className="text-xs text-[var(--ink-faint)] truncate mt-0.5">{e.sub}</div>}
                   </div>
-                  <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0 mt-0.5">{timeAgo(e.at)}</span>
+                  <span className="text-[12px] text-[var(--ink-faint)] flex-shrink-0 mt-0.5">{timeAgo(e.at)}</span>
                 </div>
               )
             })}

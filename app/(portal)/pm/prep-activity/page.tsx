@@ -62,12 +62,12 @@ export default function PrepActivityPage() {
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium text-[var(--ink)]">{a.actor_name || 'Coordinator'}</span>
                       <Badge tone={meta.tone as any}>{meta.label}</Badge>
-                      {a.program_code && <span className="text-[11px] text-[var(--ink-faint)]">{a.program_code}</span>}
+                      {a.program_code && <span className="text-[12px] text-[var(--ink-faint)]">{a.program_code}</span>}
                     </div>
                     {a.student_name && <div className="text-xs text-[var(--ink-soft)] mt-0.5">Student: {a.student_name}</div>}
                     {a.detail && <div className="text-sm text-[var(--ink-soft)] mt-1">{a.detail}</div>}
                   </div>
-                  <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0">{timeAgo(a.created_at)}</span>
+                  <span className="text-[12px] text-[var(--ink-faint)] flex-shrink-0">{timeAgo(a.created_at)}</span>
                 </div>
               )
             })}

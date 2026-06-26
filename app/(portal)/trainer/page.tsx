@@ -73,7 +73,7 @@ export default function TrainerDashboard() {
   return (
     <div className="fade-in w-full">
       <div className="mb-8">
-        <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Teaching</div>
+        <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Teaching</div>
         <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Trainer portal</h1>
         <p className="text-[var(--ink-soft)] text-sm mt-1.5">Manage your classes and record attendance.</p>
       </div>
@@ -140,7 +140,7 @@ export default function TrainerDashboard() {
                             </div>
                             <div>
                               <div className="text-sm font-semibold text-[var(--ink)]">{s.full_name}</div>
-                              {s.phone && <div className="text-[11px] text-[var(--ink-faint)]">{s.phone}</div>}
+                              {s.phone && <div className="text-[12px] text-[var(--ink-faint)]">{s.phone}</div>}
                             </div>
                           </div>
                           <div className="flex gap-1">

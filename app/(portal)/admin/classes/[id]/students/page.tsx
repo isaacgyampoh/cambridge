@@ -176,24 +176,24 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
               <div className="grid grid-cols-3 gap-3 mb-4">
                 <div className="rounded-xl bg-[var(--accent-soft)] p-3 text-center">
                   <div className="font-display text-2xl font-semibold text-[var(--accent)]">{attendance.presentCount}</div>
-                  <div className="text-[11px] text-[var(--ink-soft)]">Came to class</div>
+                  <div className="text-[12px] text-[var(--ink-soft)]">Came to class</div>
                 </div>
                 <div className="rounded-xl bg-[var(--canvas)] p-3 text-center">
                   <div className="font-display text-2xl font-semibold text-[var(--ink-soft)]">{attendance.absentCount}</div>
-                  <div className="text-[11px] text-[var(--ink-soft)]">Absent</div>
+                  <div className="text-[12px] text-[var(--ink-soft)]">Absent</div>
                 </div>
                 <div className="rounded-xl bg-[var(--canvas)] p-3 text-center">
                   <div className="font-display text-2xl font-semibold text-[var(--ink)]">{attendance.total}</div>
-                  <div className="text-[11px] text-[var(--ink-soft)]">Total</div>
+                  <div className="text-[12px] text-[var(--ink-soft)]">Total</div>
                 </div>
               </div>
-              <p className="text-[11px] text-[var(--ink-faint)] mb-2">{attendance.presentCount} booklets needed for those present.</p>
+              <p className="text-[12px] text-[var(--ink-faint)] mb-2">{attendance.presentCount} booklets needed for those present.</p>
               <div className="max-h-64 overflow-y-auto divide-y divide-[var(--line-soft)]">
                 {attendance.students.map((s: any) => (
                   <div key={s.enrollmentId} className="flex items-center justify-between py-2">
                     <span className="text-sm text-[var(--ink)]">{s.name}</span>
                     <div className="flex items-center gap-3">
-                      {s.balance > 0 && <span className="text-[11px] text-[var(--warn)]">GHS {s.balance.toFixed(2)} owing</span>}
+                      {s.balance > 0 && <span className="text-[12px] text-[var(--warn)]">GHS {s.balance.toFixed(2)} owing</span>}
                       <Badge tone={s.present ? 'success' : 'neutral'}>{s.present ? 'Present' : 'Absent'}</Badge>
                     </div>
                   </div>
@@ -215,7 +215,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Student', 'Contact', 'Full fees', 'Status', ''].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -275,7 +275,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
               <div key={a.id} className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--line-soft)] last:border-0">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-[var(--ink)] truncate">{a.full_name}</div>
-                  <div className="text-[11px] text-[var(--ink-faint)]">{a.course?.name || '—'} · {a.payment_status}</div>
+                  <div className="text-[12px] text-[var(--ink-faint)]">{a.course?.name || '—'} · {a.payment_status}</div>
                 </div>
                 <Button size="sm" disabled={acting === a.id} onClick={() => enroll(a.id)}>
                   {acting === a.id ? '…' : 'Enroll'}

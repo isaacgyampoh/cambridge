@@ -102,7 +102,7 @@ export default function ContentStudio() {
 
             {/* Brief -> AI write */}
             <Card className="p-5">
-              <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">What's the post about?</label>
+              <label className="text-[13px] font-medium text-[var(--ink-faint)]">What's the post about?</label>
               <textarea value={brief} onChange={e => setBrief(e.target.value)} rows={2} placeholder="e.g. Promote the PMP April cohort — early-bird, limited seats"
                 className={textareaClass + ' mt-1.5 mb-3'} />
               <div className="flex flex-wrap gap-2">
@@ -113,7 +113,7 @@ export default function ContentStudio() {
 
             {/* Draft editor */}
             <Card className="p-5">
-              <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Post draft</label>
+              <label className="text-[13px] font-medium text-[var(--ink-faint)]">Post draft</label>
               <textarea value={draft} onChange={e => setDraft(e.target.value)} rows={10} placeholder="Write your post here, or use 'Write post' above. Then get AI feedback."
                 className={textareaClass + ' mt-1.5 mb-3'} />
               {hashtags && <div className="text-xs text-[var(--accent)] mb-3 break-words">{hashtags}</div>}
@@ -141,7 +141,7 @@ export default function ContentStudio() {
             )}
 
             <Card className="p-5">
-              <label className="text-[11px] font-semibold uppercase tracking-[0.1em] text-[var(--ink-faint)]">Image / graphic (optional)</label>
+              <label className="text-[13px] font-medium text-[var(--ink-faint)]">Image / graphic (optional)</label>
               <div className="mt-2 mb-4"><FileUpload onUploaded={setMediaUrl} value={mediaUrl} label="Upload visual" folder="cce/content" /></div>
               <div className="space-y-2">
                 <Button onClick={copyAll} icon={<Copy size={14} />} className="w-full justify-center">Copy for {PLATFORM_LABEL[platform]}</Button>
@@ -151,8 +151,8 @@ export default function ContentStudio() {
                 </div>
               </div>
               {platform !== 'whatsapp'
-                ? <p className="text-[11px] text-[var(--ink-faint)] mt-3">Copy and paste into {PLATFORM_LABEL[platform]}. Direct auto-posting needs platform setup.</p>
-                : <p className="text-[11px] text-[var(--ink-faint)] mt-3">WhatsApp broadcasting is on the Broadcast page.</p>}
+                ? <p className="text-[12px] text-[var(--ink-faint)] mt-3">Copy and paste into {PLATFORM_LABEL[platform]}. Direct auto-posting needs platform setup.</p>
+                : <p className="text-[12px] text-[var(--ink-faint)] mt-3">WhatsApp broadcasting is on the Broadcast page.</p>}
             </Card>
           </div>
         </div>
@@ -172,12 +172,12 @@ function ContentLibrary({ posts, loading, onLoad, onDelete }: any) {
     <div className="space-y-6">
       {scheduled.length > 0 && (
         <div>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-3">Scheduled</p>
+          <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Scheduled</p>
           <div className="space-y-2">{scheduled.map((p: any) => <PostRow key={p.id} p={p} onLoad={onLoad} onDelete={onDelete} />)}</div>
         </div>
       )}
       <div>
-        <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-3">Drafts</p>
+        <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Drafts</p>
         <div className="space-y-2">{drafts.map((p: any) => <PostRow key={p.id} p={p} onLoad={onLoad} onDelete={onDelete} />)}</div>
       </div>
     </div>

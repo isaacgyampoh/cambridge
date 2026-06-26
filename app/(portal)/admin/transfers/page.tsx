@@ -44,7 +44,7 @@ export default function TransfersPage() {
 
       {loading ? <Spinner /> : (
         <>
-          <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-3">Pending ({pending.length})</p>
+          <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Pending ({pending.length})</p>
           {pending.length === 0 ? (
             <EmptyState icon={<ArrowLeftRight size={20} />} title="No pending requests" description="Transfer requests from marketers will appear here." />
           ) : (
@@ -80,7 +80,7 @@ export default function TransfersPage() {
 
           {decided.length > 0 && (
             <>
-              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-3">Decided</p>
+              <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Decided</p>
               <div className="space-y-2">
                 {decided.slice(0, 20).map(r => (
                   <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-[var(--line)] bg-[var(--paper)]">

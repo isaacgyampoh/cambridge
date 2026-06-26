@@ -176,7 +176,7 @@ export default function MarketerDashboard() {
     <div className="fade-in w-full">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">My work</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">My work</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My leads</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{leads.length} assigned to you</p>
         </div>
@@ -207,21 +207,21 @@ export default function MarketerDashboard() {
             <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -mr-14 -mt-14" />
             <div className="relative flex flex-wrap items-center justify-between gap-4">
               <div>
-                <div className="text-[11px] uppercase tracking-[0.14em] text-white/55 mb-1">Your rank · {remun.year}</div>
+                <div className="text-[12px] text-white/55 mb-1">Your rank · {remun.year}</div>
                 <div className="font-display text-[26px] leading-none font-semibold">{remun.currentRank?.name || 'Unranked'}</div>
                 <div className="text-white/70 text-sm mt-1.5">{remun.totalPoints} points{remun.nextRank ? ` · ${remun.pointsToNext} to ${remun.nextRank.name}` : ''}</div>
               </div>
               <div className="flex gap-6">
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.1em] text-white/55">Salary</div>
+                  <div className="text-[12px] text-white/55">Salary</div>
                   <div className="font-display text-xl font-semibold mt-1">{formatGHS(remun.grossSalary)}</div>
                 </div>
                 <div>
-                  <div className="text-[11px] uppercase tracking-[0.1em] text-white/55">Registration</div>
+                  <div className="text-[12px] text-white/55">Registration</div>
                   <div className="font-display text-xl font-semibold mt-1">{formatGHS(remun.registrationCommission)}</div>
                 </div>
                 <div className="hidden sm:block">
-                  <div className="text-[11px] uppercase tracking-[0.1em] text-white/55">Conversion</div>
+                  <div className="text-[12px] text-white/55">Conversion</div>
                   <div className="font-display text-xl font-semibold mt-1">{convRate}%</div>
                 </div>
               </div>
@@ -289,7 +289,7 @@ export default function MarketerDashboard() {
                   </div>
                   <div className="flex-1 min-w-0">
                     <div className="font-medium text-sm text-[var(--ink)] truncate">{lead.full_name}</div>
-                    <div className="text-[11px] text-[var(--ink-faint)]">{lead.phone} {lead.course_interest ? `· ${lead.course_interest}` : ''}</div>
+                    <div className="text-[12px] text-[var(--ink-faint)]">{lead.phone} {lead.course_interest ? `· ${lead.course_interest}` : ''}</div>
                   </div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mx-2 flex-shrink-0 ${COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                     {lead.status?.replace(/_/g, ' ')}
@@ -328,7 +328,7 @@ export default function MarketerDashboard() {
                         <div className="text-xs font-semibold text-[var(--ink)] mb-1.5">
                           {STATUSES.find(s => s.key === ps.status)?.label} — add a comment
                         </div>
-                        <p className="text-[11px] text-[var(--ink-faint)] mb-2">Explain the reason so the PM and admin understand.</p>
+                        <p className="text-[12px] text-[var(--ink-faint)] mb-2">Explain the reason so the PM and admin understand.</p>
                         <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} autoFocus
                           placeholder={
                             ps.status === 'zuku' ? 'Why is this lead not qualified? (Zuku)' :
@@ -358,13 +358,13 @@ export default function MarketerDashboard() {
                         {STATUSES.filter(s => s.key !== lead.status).map(s => (
                           <button key={s.key} disabled={updating === lead.id}
                             onClick={() => pickStatus(lead.id, s.key)}
-                            className={`text-[11px] font-semibold px-2.5 py-1 rounded-lg border border-transparent transition hover:opacity-80 disabled:opacity-40 ${s.color}`}>
+                            className={`text-[12px] font-semibold px-2.5 py-1 rounded-lg border border-transparent transition hover:opacity-80 disabled:opacity-40 ${s.color}`}>
                             {s.label}
                           </button>
                         ))}
                         {/* Register shortcut */}
                         <button onClick={() => router.push(`/marketer/leads/${lead.id}`)}
-                          className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-[var(--accent)] text-white transition hover:brightness-110">
+                          className="text-[12px] font-semibold px-2.5 py-1 rounded-lg bg-[var(--accent)] text-white transition hover:brightness-110">
                           Register
                         </button>
                       </div>

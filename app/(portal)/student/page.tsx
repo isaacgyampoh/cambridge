@@ -35,7 +35,7 @@ export default function StudentDashboard() {
     <div className="fade-in w-full">
       {/* Welcome banner */}
       <div className="bg-[var(--accent)] rounded-xl p-6 mb-6 text-white">
-        <div className="text-[11px] uppercase tracking-[0.14em] text-white/60 mb-1">Welcome back</div>
+        <div className="text-[12px] text-white/60 mb-1">Welcome back</div>
         <div className="font-display text-[26px] font-semibold">{myName.split(' ')[0] || 'Student'}</div>
         <div className="text-xs text-white/60 mt-1">Cambridge Centre of Excellence</div>
       </div>
@@ -74,7 +74,7 @@ export default function StudentDashboard() {
                 <div className="text-xs text-[var(--ink-faint)]">{batch?.name} · {batch?.schedule || 'Schedule TBD'}</div>
                 {batch?.start_date && <div className="text-xs text-[var(--ink-faint)]">{formatDate(batch.start_date)}</div>}
               </div>
-              <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${batch?.status==='ongoing'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+              <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${batch?.status==='ongoing'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                 {batch?.status || 'upcoming'}
               </span>
             </div>

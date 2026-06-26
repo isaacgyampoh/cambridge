@@ -49,24 +49,22 @@ html.app-shell, html.app-shell body {
 }
 
 body {
-  font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-  font-size: 14px;
-  line-height: 1.55;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Helvetica, Arial, sans-serif;
+  font-size: 15px;
+  line-height: 1.5;
   color: var(--ink);
   background: var(--canvas);
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-  letter-spacing: -0.006em;
 }
 
-/* Display face for headings — Fraunces, a refined editorial serif that
-   gives the institution an established, premium character. */
+/* Headings use the SAME clean sans — no decorative serif. This is what
+   makes it read as a real, senior-built product rather than "designed". */
 .font-display {
-  font-family: 'Fraunces', Georgia, 'Times New Roman', serif;
-  letter-spacing: -0.015em;
-  font-optical-sizing: auto;
-  font-feature-settings: 'ss01';
-  line-height: 1.15;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Inter', Roboto, Helvetica, Arial, sans-serif;
+  letter-spacing: -0.02em;
+  font-weight: 600;
+  line-height: 1.2;
 }
 
 /* Consistent vertical rhythm for form controls */

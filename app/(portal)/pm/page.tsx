@@ -74,7 +74,7 @@ export default function PMDashboard() {
     <div className="fade-in w-full">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Pipeline</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Pipeline</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Lead inbox</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Manage and assign incoming leads.</p>
         </div>
@@ -100,7 +100,7 @@ export default function PMDashboard() {
         ].map(s => (
           <div key={s.label} className={`rounded-xl p-5 border ${s.accent ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--paper)] border-[var(--line)]'}`}>
             <div className="flex items-start justify-between">
-              <div className={`text-[11px] font-semibold uppercase tracking-[0.1em] ${s.accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>{s.label}</div>
+              <div className={`text-[13px] font-medium ${s.accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>{s.label}</div>
               <s.icon size={17} className={s.accent ? 'text-white/50' : 'text-[var(--ink-faint)]'} />
             </div>
             <div className={`font-display text-[28px] font-semibold mt-3 leading-none ${s.accent ? 'text-white' : 'text-[var(--ink)]'}`}>{s.value}</div>
@@ -134,7 +134,7 @@ export default function PMDashboard() {
               <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
                 <tr>
                   {['Lead','Contact','Source','Course','Status','Assign To','Date'].map(h => (
-                    <th key={h} className="text-left text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
+                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -153,16 +153,16 @@ export default function PMDashboard() {
                     </td>
                     <td className="px-4 py-3">
                       <div className="text-xs text-[var(--ink-soft)]">{lead.phone || '—'}</div>
-                      <div className="text-[11px] text-[var(--ink-faint)]">{lead.email}</div>
+                      <div className="text-[12px] text-[var(--ink-faint)]">{lead.email}</div>
                     </td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_COLORS[lead.source]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+                      <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_COLORS[lead.source]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {lead.source}
                       </span>
                     </td>
                     <td className="px-4 py-3 text-xs text-[var(--ink-soft)] max-w-32 truncate">{lead.course_interest || '—'}</td>
                     <td className="px-4 py-3">
-                      <span className={`text-[11px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+                      <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {lead.status?.replace(/_/g,' ')}
                       </span>
                     </td>
@@ -183,7 +183,7 @@ export default function PMDashboard() {
                         </select>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[11px] text-[var(--ink-faint)]">
+                    <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
                       {new Date(lead.created_at).toLocaleDateString('en-GH', { day:'numeric', month:'short' })}
                     </td>
                   </tr>
@@ -211,7 +211,7 @@ export default function PMDashboard() {
                       {a.subject && <Badge tone="neutral">{a.subject}</Badge>}
                     </div>
                     {a.description && <p className="text-sm text-[var(--ink-soft)] mt-1 leading-snug">{a.description}</p>}
-                    <div className="text-[11px] text-[var(--ink-faint)] mt-1">
+                    <div className="text-[12px] text-[var(--ink-faint)] mt-1">
                       {a.author?.full_name || 'Unknown'} · {new Date(a.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })} {new Date(a.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit' })}
                     </div>
                   </div>

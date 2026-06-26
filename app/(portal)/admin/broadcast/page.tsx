@@ -114,7 +114,7 @@ export default function BroadcastPage() {
     <div className="fade-in w-full">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <div className="text-[11px] font-semibold uppercase tracking-[0.14em] text-[var(--ink-faint)] mb-2">Messaging</div>
+          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Messaging</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Broadcasts</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send bulk WhatsApp and SMS to any segment of leads or students.</p>
         </div>
@@ -221,7 +221,7 @@ export default function BroadcastPage() {
                 <div className="flex flex-wrap gap-1.5">
                   {TEMPLATES.map(t => (
                     <button key={t.label} onClick={() => setForm(f => ({ ...f, message: t.text }))}
-                      className="text-[11px] px-2 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
+                      className="text-[12px] px-2 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
                       {t.label}
                     </button>
                   ))}
@@ -280,7 +280,7 @@ export default function BroadcastPage() {
                   ))}
                   {(b.status === 'draft' || (b.failed_count > 0 && b.sent_count === 0)) && (
                     <button onClick={() => sendNow(b.id)} disabled={sendingId === b.id}
-                      className="ml-2 px-3 py-1 rounded-md bg-[var(--accent)] text-white text-[11px] font-semibold hover:brightness-110 disabled:opacity-50 transition">
+                      className="ml-2 px-3 py-1 rounded-md bg-[var(--accent)] text-white text-[12px] font-semibold hover:brightness-110 disabled:opacity-50 transition">
                       {sendingId === b.id ? 'Sending…' : 'Send now'}
                     </button>
                   )}
