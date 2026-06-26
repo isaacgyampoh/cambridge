@@ -54,6 +54,10 @@ export const CONFIG = {
 
   aiAssistantEnabled: true,   // master on/off for WhatsApp auto-replies
 
+  // Two-step login OTP. OFF by default — turn on by setting OTP_ENABLED=true
+  // in Vercel once the campus email is confirmed delivering codes reliably.
+  otpEnabled: env('OTP_ENABLED') === 'true',
+
   // ── RESEND EMAIL ─────────────────────────────────────────────
   // Add when you get from resend.com (free tier available)
   // ── EMAIL ────────────────────────────────────────────────────

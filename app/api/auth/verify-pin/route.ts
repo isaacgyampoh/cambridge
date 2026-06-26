@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { hashPIN } from '@/lib/auth/pin'
+import { hashPIN, createSession, ROLE_PORTAL, SESSION_COOKIE } from '@/lib/auth/pin'
 import { sendOTPEmail } from '@/lib/integrations/email'
+import { CONFIG } from '@/lib/config'
 
 export const runtime = 'nodejs'
 
@@ -35,6 +36,27 @@ export async function POST(req: NextRequest) {
   if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
     const mins = Math.ceil((new Date(profile.locked_until).getTime() - Date.now()) / 60000)
     return NextResponse.json({ error: `Too many attempts. Try again in ${mins} minute${mins !== 1 ? 's' : ''}.` }, { status: 429 })
+  }
+
+  // ── OTP disabled → log in directly after a correct PIN ──
+  if (!CONFIG.otpEnabled) {
+    await sb.from('profiles').update({
+      login_attempts: 0, locked_until: null, last_login_at: new Date().toISOString(),
+    }).eq('id', profile.id)
+    try { await sb.from('login_events').insert({ user_id: profile.id, event_type: 'success', ip_address: ip }) } catch {}
+    const sessionToken = await createSession(profile.id, ip)
+    const res = NextResponse.json({
+      success: true,
+      redirect: ROLE_PORTAL[profile.role] || '/admin',
+      role: profile.role,
+      fullName: profile.full_name,
+      mustChangePIN: profile.must_change_pin || false,
+    })
+    res.cookies.set(SESSION_COOKIE, sessionToken, {
+      httpOnly: true, secure: process.env.NODE_ENV === 'production',
+      sameSite: 'lax', maxAge: 8 * 3600, path: '/',
+    })
+    return res
   }
 
   // No email on file → can't deliver OTP. Fail safe with a clear message.
