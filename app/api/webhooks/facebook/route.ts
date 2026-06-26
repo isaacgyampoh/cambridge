@@ -22,20 +22,35 @@ export async function GET(req: NextRequest) {
 // Facebook sends lead data here
 export async function POST(req: NextRequest) {
   const body = await req.text()
+  const sb = createServiceClient()
 
-  // Verify signature
+  // TEMP debug: record that a webhook hit arrived, and why it may fail.
+  // Remove once Facebook leads are confirmed flowing.
   const sig = req.headers.get('x-hub-signature-256') || ''
   const expected = 'sha256=' + crypto
     .createHmac('sha256', CONFIG.facebookAppSecret || '')
     .update(body)
     .digest('hex')
+  const sigOk = sig === expected
+  try {
+    await sb.from('webhook_debug').insert({
+      source: 'facebook',
+      detail: JSON.stringify({
+        received: true,
+        signaturePresent: !!sig,
+        signatureMatches: sigOk,
+        appSecretSet: !!CONFIG.facebookAppSecret,
+        pageTokenSet: !!CONFIG.facebookPageAccessToken,
+        bodyPreview: body.slice(0, 500),
+      }),
+    })
+  } catch {}
 
-  if (sig !== expected && process.env.NODE_ENV === 'production') {
+  if (!sigOk && process.env.NODE_ENV === 'production') {
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
   const payload = JSON.parse(body)
-  const sb = createServiceClient()
 
   for (const entry of payload.entry || []) {
     for (const change of entry.changes || []) {
