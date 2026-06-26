@@ -11,6 +11,25 @@ export default function SettingsPage() {
   const [testing, setTesting] = useState<string | null>(null)
   const [testPhone, setTestPhone] = useState('')
   const [result, setResult] = useState<any>(null)
+  const [fbPage, setFbPage] = useState<any>(null)
+  const [fbBusy, setFbBusy] = useState(false)
+
+  async function checkFbPage() {
+    setFbBusy(true)
+    try {
+      const d = await fetch('/api/facebook/connect-page').then(r => r.json())
+      setFbPage(d)
+      if (d.error) toast.error(d.error); else toast.success(`Token points to: ${d.name}`)
+    } catch { toast.error('Could not check') } finally { setFbBusy(false) }
+  }
+  async function connectFbPage() {
+    setFbBusy(true)
+    try {
+      const d = await fetch('/api/facebook/connect-page', { method: 'POST' }).then(r => r.json())
+      if (d.error) { setFbPage(d); toast.error(d.error) }
+      else { setFbPage(d.page); toast.success(`Connected ${d.page?.name}! Real leads will now flow in.`) }
+    } catch { toast.error('Could not connect') } finally { setFbBusy(false) }
+  }
   const [autoAssign, setAutoAssign] = useState(true)
   const [savingToggle, setSavingToggle] = useState(false)
 
@@ -154,6 +173,23 @@ export default function SettingsPage() {
       <p className="text-sm text-[var(--ink-soft)] mb-4 -mt-2">
         Connect your ad platforms so leads flow straight into the system and auto-assign to your team. Copy each URL into that platform's lead/webhook settings.
       </p>
+
+      {/* Facebook Page subscription — the step that makes REAL leads flow */}
+      <Card className="p-4 mb-4">
+        <div className="flex items-center justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <div className="text-sm font-medium text-[var(--ink)]">Facebook Page connection</div>
+            <p className="text-xs text-[var(--ink-soft)] mt-0.5">
+              {fbPage ? (fbPage.error ? <span className="text-[var(--danger)]">{fbPage.error}</span> : <>Connected to <b>{fbPage.name}</b></>) : 'Subscribe your Page so real lead-ad submissions reach the system.'}
+            </p>
+          </div>
+          <div className="flex gap-2">
+            <Button variant="ghost" size="sm" onClick={checkFbPage} disabled={fbBusy}>Check</Button>
+            <Button size="sm" onClick={connectFbPage} disabled={fbBusy}>{fbBusy ? 'Connecting…' : 'Connect Page'}</Button>
+          </div>
+        </div>
+      </Card>
+
       <Card className="divide-y divide-[var(--line-soft)]">
         {webhooks.map((w, i) => (
           <div key={w.label + i} className="p-4">
