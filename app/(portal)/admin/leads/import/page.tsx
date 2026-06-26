@@ -157,12 +157,12 @@ export default function ImportLeadsPage() {
           <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-2">Import Complete!</h2>
           <div className="flex justify-center gap-6 mb-6 text-sm">
             <div className="text-center">
-              <div className="text-2xl font-black text-[var(--ok)]">{done.success}</div>
+              <div className="text-2xl font-bold text-[var(--ok)]">{done.success}</div>
               <div className="text-[var(--ink-faint)]">Imported</div>
             </div>
             {done.failed > 0 && (
               <div className="text-center">
-                <div className="text-2xl font-black text-[var(--danger)]">{done.failed}</div>
+                <div className="text-2xl font-bold text-[var(--danger)]">{done.failed}</div>
                 <div className="text-[var(--ink-faint)]">Failed</div>
               </div>
             )}
@@ -235,17 +235,17 @@ export default function ImportLeadsPage() {
                 {/* Stats bar */}
                 <div className="flex gap-3">
                   <div className="flex-1 bg-[var(--ok-soft)] border border-green-100 rounded-xl p-3 text-center">
-                    <div className="text-xl font-black text-[var(--ok)]">{validCount}</div>
+                    <div className="text-xl font-bold text-[var(--ok)]">{validCount}</div>
                     <div className="text-xs text-[var(--ok)] font-semibold">Ready to import</div>
                   </div>
                   {errorCount > 0 && (
                     <div className="flex-1 bg-[var(--danger-soft)] border border-red-100 rounded-xl p-3 text-center">
-                      <div className="text-xl font-black text-[var(--danger)]">{errorCount}</div>
+                      <div className="text-xl font-bold text-[var(--danger)]">{errorCount}</div>
                       <div className="text-xs text-[var(--danger)] font-semibold">Will be skipped</div>
                     </div>
                   )}
                   <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line-soft)] rounded-xl p-3 text-center">
-                    <div className="text-xl font-black text-[var(--ink-soft)]">{parsed.length}</div>
+                    <div className="text-xl font-bold text-[var(--ink-soft)]">{parsed.length}</div>
                     <div className="text-xs text-[var(--ink-faint)] font-semibold">Total rows</div>
                   </div>
                 </div>

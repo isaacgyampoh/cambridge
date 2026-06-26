@@ -154,7 +154,7 @@ export default function StaffPage() {
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
                         <div className="text-[10px] font-bold text-[var(--ink-faint)] uppercase tracking-wide">Initial PIN</div>
-                        <div className="text-2xl font-black tracking-[0.3em] text-[var(--accent)]">{creds.initial_pin}</div>
+                        <div className="text-2xl font-bold tracking-[0.3em] text-[var(--accent)]">{creds.initial_pin}</div>
                       </div>
                       <button onClick={() => copyText(creds.initial_pin, 'PIN')}
                         className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors">
@@ -320,7 +320,7 @@ export default function StaffPage() {
       <div className="flex flex-wrap gap-2 mb-5">
         {byRole.filter(r => r.count > 0).map(r => (
           <div key={r.value} className={`flex items-center gap-1.5 px-3 py-1.5 rounded-xl text-xs font-semibold ${r.color}`}>
-            {r.label} <span className="font-black">{r.count}</span>
+            {r.label} <span className="font-bold">{r.count}</span>
           </div>
         ))}
       </div>

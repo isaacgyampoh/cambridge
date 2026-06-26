@@ -425,18 +425,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--canvas)' }}>
       <CommandPalette />
 
-      {/* ── Desktop sidebar — collapsed strip, hover floats wide panel ── */}
+      {/* ── Desktop sidebar — always full width with labels (stable, clear) ── */}
       <div
         className="hidden lg:block relative flex-shrink-0 border-r border-[var(--line)] z-30"
-        style={{ width: W_ICON }}
-        onMouseEnter={onEnter}
-        onMouseLeave={onLeave}>
-        <SidebarPanel wide={false} />
-        {expanded && (
-          <div className="absolute inset-y-0 left-0 shadow-2xl border-r border-[var(--line)]" style={{ width: W_FULL }}>
-            <SidebarPanel wide={true} />
-          </div>
-        )}
+        style={{ width: W_FULL }}>
+        <SidebarPanel wide={true} />
       </div>
 
       {/* ── Mobile drawer ──────────────────────────────────────── */}

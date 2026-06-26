@@ -51,7 +51,7 @@ export default function ChangePINPage() {
             type={showPin ? 'text' : 'password'} inputMode="numeric" maxLength={1} value={digit}
             onChange={e => onChange(e.target.value, i)}
             onKeyDown={e => onKeyDown(e, i)}
-            className={`w-14 h-14 text-center text-xl font-black rounded-xl border-2 focus:outline-none transition
+            className={`w-14 h-14 text-center text-xl font-bold rounded-xl border-2 focus:outline-none transition
               ${digit ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--line)] bg-[var(--line-soft)]'}
               focus:border-[var(--accent)] focus:bg-white`} />
         ))}

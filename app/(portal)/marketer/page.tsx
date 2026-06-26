@@ -259,7 +259,7 @@ export default function MarketerDashboard() {
       <div className="grid grid-cols-4 lg:grid-cols-7 gap-1.5 mb-5">
         {statusOrder.filter(s => byStatus[s]?.length > 0).map(s => (
           <div key={s} className={`rounded-xl p-2 text-center ${COLORS[s]}`}>
-            <div className="text-lg font-black">{byStatus[s]?.length}</div>
+            <div className="text-lg font-bold">{byStatus[s]?.length}</div>
             <div className="text-[9px] font-semibold capitalize leading-tight mt-0.5">{s.replace(/_/g, ' ')}</div>
           </div>
         ))}
