@@ -80,8 +80,8 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-[0_1px_2px_rgba(31,29,26,0.04),0_1px_3px_rgba(31,29,26,0.02)]
-        ${hover ? 'transition-all duration-200 hover:border-[var(--line)] hover:shadow-[0_4px_20px_rgba(31,29,26,0.06),0_2px_6px_rgba(31,29,26,0.03)] hover:-translate-y-px cursor-pointer' : ''}
+      className={`bg-[var(--paper)] border border-[var(--line)] rounded-2xl
+        ${hover ? 'transition-all duration-200 hover:shadow-[0_2px_12px_rgba(26,34,48,0.06)] hover:border-[var(--line-soft)] cursor-pointer' : ''}
         ${className}`}>
       {children}
     </div>

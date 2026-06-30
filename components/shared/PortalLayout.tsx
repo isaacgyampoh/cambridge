@@ -294,7 +294,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     copy.splice(idx + 1, 0, courseGroup)
     return copy
   })()
-  const roleColor = '#2f80d6'  // sky blue — unified across roles
+  const roleColor = 'var(--accent)'  // unified teal accent
   const segments  = pathname.split('/').filter(Boolean)
   const canGoBack = segments.length > 1
   const expanded  = hovered || mobileOpen
@@ -319,24 +319,22 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 title={!wide ? item.label : undefined}
                 className={`w-full flex items-center rounded-xl transition-colors mb-0.5
                   ${wide ? 'gap-3 px-3 py-2.5' : 'justify-center py-3'}
-                  ${active ? 'text-white' : 'text-[var(--ink-faint)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`}
-                style={active ? { backgroundColor: roleColor } : {}}>
-                <Icon size={18} className="flex-shrink-0" />
+                  ${active ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`}>
+                <Icon size={19} className="flex-shrink-0" />
                 {wide && <>
-                  <span className="flex-1 text-left text-[13px] font-medium truncate">{item.label}</span>
-                  <ChevronDown size={14} className={`opacity-60 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
+                  <span className="flex-1 text-left text-[14px] font-medium truncate">{item.label}</span>
+                  <ChevronDown size={14} className={`opacity-50 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
                 </>}
               </button>
               {wide && isOpen && (
-                <div className="ml-4 pl-3 border-l border-[var(--line)] mb-1 space-y-0.5">
+                <div className="ml-5 pl-3 border-l border-[var(--line)] mb-1 space-y-0.5">
                   {item.children!.map((child: any) => {
                     const ca = pathname === child.href || pathname.startsWith(child.href + '/')
                     return (
                       <Link key={child.href} href={child.href} onClick={() => setMobileOpen(false)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-[12px] font-medium transition-colors
-                          ${ca ? 'bg-[var(--line-soft)] text-[var(--ink)] font-semibold' : 'text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]'}`}>
+                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-[13px] transition-colors
+                          ${ca ? 'text-[var(--accent)] font-semibold' : 'text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] font-medium'}`}>
                         {child.label}
-                        {ca && <ChevronRight size={11} className="text-[var(--ink-faint)]" />}
                       </Link>
                     )
                   })}
@@ -350,10 +348,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <Link key={item.id} href={item.href} title={!wide ? item.label : undefined}
             className={`flex items-center rounded-xl transition-colors mb-0.5
               ${wide ? 'gap-3 px-3 py-2.5' : 'justify-center py-3'}
-              ${selfActive ? 'text-white' : 'text-gray-500 hover:bg-gray-100 hover:text-gray-900'}`}
-            style={selfActive ? { backgroundColor: roleColor } : {}}>
-            <Icon size={18} className="flex-shrink-0" />
-            {wide && <span className="text-[13px] font-medium truncate">{item.label}</span>}
+              ${selfActive ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`}>
+            <Icon size={19} className="flex-shrink-0" />
+            {wide && <span className="text-[14px] font-medium truncate">{item.label}</span>}
           </Link>
         )
       })}
@@ -370,11 +367,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {wide && (
           <div className="min-w-0 flex-1">
             <div className="font-display text-[14px] font-semibold text-[var(--ink)] truncate leading-tight">Cambridge</div>
-            <div className="text-[10px] text-gray-400 truncate">{ROLE_LABEL[profile?.role || '']}</div>
+            <div className="text-[10px] text-[var(--ink-faint)] truncate">{ROLE_LABEL[profile?.role || '']}</div>
           </div>
         )}
         {mobile && (
-          <button onClick={() => setMobileOpen(false)} className="ml-auto p-1.5 text-gray-400 hover:text-gray-700 hover:bg-gray-100 rounded-lg transition-colors">
+          <button onClick={() => setMobileOpen(false)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-lg transition-colors">
             <X size={16} />
           </button>
         )}
@@ -395,14 +392,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               </div>
               <div className="min-w-0 flex-1">
                 <div className="text-[12px] font-semibold text-[var(--ink)] truncate">{profile?.full_name}</div>
-                <div className="text-[10px] text-gray-400">{ROLE_LABEL[profile?.role || '']}</div>
+                <div className="text-[10px] text-[var(--ink-faint)]">{ROLE_LABEL[profile?.role || '']}</div>
               </div>
             </div>
             <div className="flex gap-1.5">
-              <Link href="/admin/settings/change-pin" className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] text-gray-400 hover:text-gray-900 hover:bg-gray-100 transition-colors">
+              <Link href="/admin/settings/change-pin" className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] transition-colors">
                 <Shield size={11} /> PIN
               </Link>
-              <button onClick={logout} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors">
+              <button onClick={logout} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors">
                 <LogOut size={11} /> Logout
               </button>
             </div>
@@ -412,7 +409,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: roleColor }}>
               {profile?.full_name?.charAt(0) || '?'}
             </div>
-            <button onClick={logout} title="Logout" className="p-1.5 text-gray-400 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors">
+            <button onClick={logout} title="Logout" className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-lg transition-colors">
               <LogOut size={14} />
             </button>
           </div>
@@ -453,7 +450,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {canGoBack && (
             <button onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-900 hover:bg-gray-100 px-3 py-1.5 rounded-xl transition-colors">
+              className="flex items-center gap-1.5 text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] px-3 py-1.5 rounded-xl transition-colors">
               <ArrowLeft size={15} />
               <span className="hidden sm:inline font-medium">Back</span>
             </button>
