@@ -23,7 +23,6 @@ export const ALL_PORTALS = [
       { label: 'All Leads',       href: '/admin/leads' },
       { label: 'Leads by Course', href: '/admin/leads/courses' },
       { label: 'Conversions',     href: '/admin/conversions' },
-      { label: 'Lead Sources',    href: '/admin/sources' },
       { label: 'Transfer Requests', href: '/admin/transfers' },
       { label: 'Add Lead',        href: '/admin/leads/new' },
       { label: 'Import Leads',    href: '/admin/leads/import' },
@@ -96,7 +95,6 @@ export const ALL_PORTALS = [
 
   // ── Category groups (used by super_admin for a tidy, organised sidebar) ──
   { id: 'grp_growth', label: 'Growth', icon: TrendingUp, href: '/admin/leads', children: [
-    { label: 'Lead Sources',    href: '/admin/sources' },
     { label: 'All Leads',       href: '/admin/leads' },
     { label: 'Leads by Course', href: '/admin/leads/courses' },
     { label: 'Conversions',     href: '/admin/conversions' },
