@@ -63,14 +63,14 @@ export default function WorkforcePage() {
         eyebrow="Workforce"
         title="Staff attendance"
         description="Who is on site today. Sign-ins are location-verified against your office."
-        actions={<Button variant="secondary" onClick={() => setOfficeModal(true)} icon={<MapPin size={14} />}>Office location</Button>}
+        actions={<Button variant="secondary" onClick={() => setOfficeModal(true)} >Office location</Button>}
       />
 
       {/* Office setup notice */}
       {offices.length === 0 && (
         <Card className="p-4 mb-6 border-[var(--warn)]/20 bg-[var(--warn-soft)]">
           <div className="flex items-start gap-3">
-            <MapPin size={18} className="text-[var(--warn)] flex-shrink-0 mt-0.5" />
+            
             <div className="text-sm text-amber-800">
               <strong>No office location set.</strong> Staff cannot sign in until you set one. Stand at your office and use “Office location → Use my current location”.
             </div>
@@ -79,8 +79,8 @@ export default function WorkforcePage() {
       )}
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="On site today" value={present} icon={<Check size={18} />} accent />
-        <StatCard label="Late arrivals" value={late} icon={<Clock size={18} />} />
+        <StatCard label="On site today" value={present}  accent />
+        <StatCard label="Late arrivals" value={late}  />
         <StatCard label="Signed out" value={out} />
         <StatCard label="Office radius" value={offices[0] ? `${offices[0].radius_meters}m` : '—'} sub={offices[0]?.name} />
       </div>
@@ -89,7 +89,7 @@ export default function WorkforcePage() {
 
       <Card className="overflow-hidden">
         {loading ? <Spinner /> : attendance.length === 0 ? (
-          <div className="py-12"><EmptyState icon={<Clock size={20} />} title="No sign-ins yet today" description="Staff sign-ins will appear here as they arrive." /></div>
+          <div className="py-12"><EmptyState  title="No sign-ins yet today" description="Staff sign-ins will appear here as they arrive." /></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">
@@ -122,7 +122,7 @@ export default function WorkforcePage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Office location</h2>
-            <button onClick={() => setOfficeModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            <button onClick={() => setOfficeModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
 
           {offices.length > 0 && (
@@ -143,7 +143,7 @@ export default function WorkforcePage() {
             <Field label="Location name" required>
               <input value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} placeholder="Main Campus, Accra" className={inputClass} />
             </Field>
-            <Button variant="secondary" onClick={useMyLocation} disabled={locating} icon={<Crosshair size={14} />} className="w-full">
+            <Button variant="secondary" onClick={useMyLocation} disabled={locating}  className="w-full">
               {locating ? 'Getting location…' : 'Use my current location'}
             </Button>
             <div className="grid grid-cols-2 gap-3">

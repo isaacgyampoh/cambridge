@@ -34,9 +34,9 @@ export default function MarketerAttendance() {
       </select>
 
       {loading ? <Spinner /> : !att ? (
-        <EmptyState icon={<Users size={20} />} title="Pick a class" description="Choose a class above to see your students' attendance." />
+        <EmptyState  title="Pick a class" description="Choose a class above to see your students' attendance." />
       ) : att.students.length === 0 ? (
-        <EmptyState icon={<Users size={20} />} title="No students of yours in this class" description="You have no registered students enrolled in this class." />
+        <EmptyState  title="No students of yours in this class" description="You have no registered students enrolled in this class." />
       ) : (
         <>
           <div className="grid grid-cols-3 gap-3 mb-5">
@@ -68,7 +68,7 @@ export default function MarketerAttendance() {
                   <div className="flex items-center gap-2">
                     {!s.present && s.phone && (
                       <a href={`tel:${s.phone}`} className="inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] text-xs font-medium">
-                        <PhoneCall size={13} /> Call
+                         Call
                       </a>
                     )}
                     <Badge tone={s.present ? 'success' : 'neutral'}>{s.present ? 'Present' : 'Absent'}</Badge>

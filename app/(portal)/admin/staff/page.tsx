@@ -121,7 +121,7 @@ export default function StaffPage() {
               </div>
               <button onClick={() => setShowModal(false)}
                 className="w-8 h-8 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
-                <X size={18} />
+                
               </button>
             </div>
 
@@ -131,7 +131,7 @@ export default function StaffPage() {
                 <div className="bg-[var(--ok-soft)] border border-[var(--ok)]/20 rounded-2xl p-5 mb-5">
                   <div className="flex items-center gap-2 mb-3">
                     <div className="w-8 h-8 bg-[var(--ok)]/10 rounded-full flex items-center justify-center">
-                      <Check size={16} className="text-[var(--ok)]" />
+                      
                     </div>
                     <div>
                       <div className="text-sm font-bold text-green-800">Account Created!</div>
@@ -147,7 +147,7 @@ export default function StaffPage() {
                       </div>
                       <button onClick={() => copyText(creds.phone, 'Phone')}
                         className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors">
-                        <Copy size={14} />
+                        
                       </button>
                     </div>
 
@@ -158,13 +158,13 @@ export default function StaffPage() {
                       </div>
                       <button onClick={() => copyText(creds.initial_pin, 'PIN')}
                         className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors">
-                        <Copy size={14} />
+                        
                       </button>
                     </div>
                   </div>
 
                   <div className="flex items-center gap-2 mt-3 p-2 bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-xl">
-                    <Shield size={13} className="text-[var(--warn)] flex-shrink-0" />
+                    
                     <p className="text-[12px] text-[var(--warn)] font-medium">They log in with phone number + PIN. Must change PIN on first login.</p>
                   </div>
                 </div>
@@ -189,7 +189,7 @@ export default function StaffPage() {
                       Full Name *
                     </label>
                     <div className="relative">
-                      <User size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+                      
                       <input value={form.full_name} onChange={e => set('full_name', e.target.value)}
                         placeholder="e.g. Ama Owusu"type="text"
                         className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
@@ -202,7 +202,7 @@ export default function StaffPage() {
                       Email <span className="text-[10px] text-[var(--danger)] normal-case font-normal">(required — for login codes &amp; documents)</span>
                     </label>
                     <div className="relative">
-                      <Mail size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+                      
                       <input value={form.email} onChange={e => set('email', e.target.value)}
                         placeholder="ama@cambridge.edu.gh"type="email"
                         className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
@@ -215,7 +215,7 @@ export default function StaffPage() {
                       Phone Number * <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(used for WhatsApp notifications in their name)</span>
                     </label>
                     <div className="relative">
-                      <Phone size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+                      
                       <input value={form.phone} onChange={e => set('phone', e.target.value)}
                         placeholder="0241234567"type="tel"
                         className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
@@ -227,7 +227,7 @@ export default function StaffPage() {
                     <div>
                       <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Department</label>
                       <div className="relative">
-                        <Briefcase size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+                        
                         <input value={form.department} onChange={e => set('department', e.target.value)}
                           placeholder="Marketing"type="text"
                           className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
@@ -238,13 +238,13 @@ export default function StaffPage() {
                         Initial PIN <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(blank = last 4 of phone)</span>
                       </label>
                       <div className="relative">
-                        <Hash size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+                        
                         <input value={form.initial_pin} onChange={e => set('initial_pin', e.target.value.replace(/\D/g, '').slice(0, 6))}
                           placeholder="1234" type={showPin ? 'text': 'password'}
                           className="w-full h-11 pl-9 pr-10 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
                         <button type="button" onClick={() => setShowPin(!showPin)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)] hover:text-[var(--ink-soft)]">
-                          {showPin ? <EyeOff size={14} /> : <Eye size={14} />}
+                          {showPin ? null : null}
                         </button>
                       </div>
                     </div>
@@ -292,7 +292,7 @@ export default function StaffPage() {
                     className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
                     {saving
                       ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Creating...</>
-                      : <><Check size={16} /> Create Account</>}
+                      : <> Create Account</>}
                   </button>
                   <button onClick={() => setShowModal(false)}
                     className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
@@ -312,7 +312,7 @@ export default function StaffPage() {
         </div>
         <button onClick={openModal}
           className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm">
-          <Plus size={15} /> Add staff
+           Add staff
         </button>
       </div>
 
@@ -340,7 +340,7 @@ export default function StaffPage() {
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-[var(--ink-faint)]">
-            <User size={36} className="mx-auto mb-3 opacity-50" />
+            
             <p className="font-medium text-sm">{search ? 'No staff match your search': 'No staff yet — add your first team member'}</p>
           </div>
         ) : (

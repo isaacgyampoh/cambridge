@@ -71,18 +71,17 @@ export default function CoordinatorPage() {
         eyebrow={data?.myProgram ? `${data.myProgram} exam prep` : 'Exam prep'}
         title="Prep tracker"
         description="Track each student's exam preparation, readiness, scheduling and final result."
-        actions={eligible.length > 0 ? <Button onClick={() => setAddOpen(true)} icon={<Plus size={15} />}>Add student ({eligible.length})</Button> : undefined}
+        actions={eligible.length > 0 ? <Button onClick={() => setAddOpen(true)} >Add student ({eligible.length})</Button> : undefined}
       />
 
       <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 mb-6">
         {[
-          { label: 'In prep', value: stats.total, icon: <Users size={16} /> },
-          { label: 'Completed prep', value: stats.completed, icon: <ClipboardList size={16} /> },
-          { label: 'At risk', value: stats.atRisk, icon: <AlertTriangle size={16} /> },
-          { label: 'Passed', value: stats.passed, icon: <Award size={16} /> },
+          { label: 'In prep', value: stats.total},
+          { label: 'Completed prep', value: stats.completed},
+          { label: 'At risk', value: stats.atRisk},
+          { label: 'Passed', value: stats.passed},
         ].map(s => (
           <Card key={s.label} className="p-4">
-            <div className="w-8 h-8 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center mb-2">{s.icon}</div>
             <div className="font-display text-2xl font-semibold text-[var(--ink)]">{s.value}</div>
             <div className="text-xs text-[var(--ink-faint)]">{s.label}</div>
           </Card>
@@ -92,13 +91,13 @@ export default function CoordinatorPage() {
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-[var(--line)]">
           <div className="relative max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students..." className={inputClass + ' pl-9'} />
           </div>
         </div>
 
         {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-          <EmptyState icon={<ClipboardList size={20} />} title="No students in prep yet"
+          <EmptyState  title="No students in prep yet"
             description={eligible.length > 0 ? 'Add a completed student to start tracking their exam prep.' : 'Students appear here once they complete their class.'}
             action={eligible.length > 0 ? <Button onClick={() => setAddOpen(true)}>Add a student</Button> : undefined} />
         ) : (
@@ -141,7 +140,7 @@ export default function CoordinatorPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Add student to prep</h2>
-            <button onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            <button onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
           <div className="max-h-80 overflow-y-auto -mx-2 px-2">
             {eligible.length === 0 ? (
@@ -168,7 +167,7 @@ export default function CoordinatorPage() {
                 <h2 className="font-display text-xl font-semibold text-[var(--ink)]">{edit.student_name}</h2>
                 <p className="text-xs text-[var(--ink-faint)]">{edit.program_name || edit.program_code}</p>
               </div>
-              <button onClick={() => setEdit(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+              <button onClick={() => setEdit(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">

@@ -135,7 +135,7 @@ export default function AdminReports() {
               <a key={a.href} href={a.href}
                 className="flex items-center justify-between py-2.5 px-3 rounded-xl hover:bg-[var(--line-soft)] transition text-sm font-medium text-[var(--ink-soft)] hover:text-[var(--accent)]">
                 {a.label}
-                <ChevronRight size={15} className="text-[var(--ink-faint)]" />
+                
               </a>
             ))}
           </div>

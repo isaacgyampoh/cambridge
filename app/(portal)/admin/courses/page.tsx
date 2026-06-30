@@ -54,14 +54,14 @@ export default function CoursesPage() {
         eyebrow="Academics"
         title="Courses"
         description="Your programme catalogue. Fees set here flow through to admissions and invoicing."
-        actions={<Button onClick={openNew} icon={<Plus size={15} />}>Add course</Button>}
+        actions={<Button onClick={openNew} >Add course</Button>}
       />
 
       <Modal open={!!(modal && editing)} onClose={() => { setModal(null); setEditing(null) }} maxWidth="max-w-md">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">{modal === 'new' ? 'New course' : 'Edit course'}</h2>
-            <button onClick={() => { setModal(null); setEditing(null) }} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition"><X size={20} /></button>
+            <button onClick={() => { setModal(null); setEditing(null) }} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition"></button>
           </div>
           <div className="space-y-4">
             {fields.map(f => (
@@ -90,10 +90,10 @@ export default function CoursesPage() {
 
       {loading ? <Spinner /> : courses.length === 0 ? (
         <EmptyState
-          icon={<BookOpen size={22} />}
+          
           title="No courses yet"
           description="Add your first programme to start building your catalogue."
-          action={<Button onClick={openNew} icon={<Plus size={15} />}>Add course</Button>}
+          action={<Button onClick={openNew} >Add course</Button>}
         />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 stagger">
@@ -101,7 +101,7 @@ export default function CoursesPage() {
             <Card key={c.id} className={`p-5 ${!c.is_active ? 'opacity-60' : ''}`}>
               <div className="flex items-start justify-between mb-4">
                 <div className="w-10 h-10 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center">
-                  <BookOpen size={18} className="text-[var(--accent)]" />
+                  
                 </div>
                 <Badge tone={c.is_active ? 'success' : 'muted'}>{c.is_active ? 'Active' : 'Inactive'}</Badge>
               </div>
@@ -119,7 +119,7 @@ export default function CoursesPage() {
               </div>
 
               <div className="flex gap-2 mt-4">
-                <Button variant="secondary" size="sm" onClick={() => openEdit(c)} icon={<Pencil size={13} />} className="flex-1">Edit</Button>
+                <Button variant="secondary" size="sm" onClick={() => openEdit(c)}  className="flex-1">Edit</Button>
                 <Button variant="ghost" size="sm" onClick={() => toggle(c.id, c.is_active)}>{c.is_active ? 'Disable' : 'Enable'}</Button>
               </div>
             </Card>

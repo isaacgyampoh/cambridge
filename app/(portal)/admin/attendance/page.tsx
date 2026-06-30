@@ -141,7 +141,7 @@ export default function AttendanceDashboard() {
         </div>
         <button onClick={() => setCreating(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
-          <Plus size={16} /> Create Session
+           Create Session
         </button>
       </div>
 
@@ -158,7 +158,7 @@ export default function AttendanceDashboard() {
         <Modal open={creating} onClose={() => setCreating(false)} maxWidth="max-w-sm">
           <div className="p-6 relative">
             <button onClick={() => setCreating(false)} className="absolute top-4 right-4 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
-              <X size={18} />
+              
             </button>
             <h2 className="font-semibold text-[var(--ink)] mb-4">Create Sign-in Session</h2>
             <div className="space-y-3 mb-5">
@@ -229,7 +229,7 @@ export default function AttendanceDashboard() {
         <div className="lg:col-span-2">
           {!selected ? (
             <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              <Users size={40} className="mx-auto mb-3 opacity-30" />
+              
               <p>Select a session to view attendance</p>
             </div>
           ) : (
@@ -279,10 +279,10 @@ export default function AttendanceDashboard() {
                   <span className="text-sm font-semibold text-[var(--ink)]">{signins.length} sign-ins</span>
                   <div className="flex gap-2">
                     <button onClick={() => refetchSignins()} className="p-2 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
-                      <RefreshCw size={15} />
+                      
                     </button>
                     <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg text-xs font-semibold hover:bg-[var(--line)] transition">
-                      <Download size={13} /> Export
+                       Export
                     </button>
                   </div>
                 </div>
@@ -308,8 +308,8 @@ export default function AttendanceDashboard() {
                           </td>
                           <td className="px-3 py-2.5">
                             {s.code_verified
-                              ? <CheckCircle size={16} className="text-green-500" />
-                              : <XCircle size={16} className="text-red-400" />}
+                              ? <span className="text-[var(--ok)] text-xs font-medium">Verified</span>
+                              : <span className="text-[var(--ink-faint)] text-xs">Not verified</span>}
                           </td>
                           <td className="px-3 py-2.5">
                             {s.payment_status === 'paid'? (

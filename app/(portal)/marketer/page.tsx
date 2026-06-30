@@ -183,11 +183,11 @@ export default function MarketerDashboard() {
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Link href="/marketer/leads/new"
             className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
-            <Plus size={15} /> Add lead
+             Add lead
           </Link>
           <Link href="/marketer/activities"
             className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
-            <Clock size={14} /> Follow-ups
+             Follow-ups
           </Link>
           <Link href="/marketer/link"
             className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
@@ -195,7 +195,7 @@ export default function MarketerDashboard() {
           </Link>
           <button onClick={() => setReqOpen(true)}
             className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
-            <ArrowLeftRight size={14} /> Request a lead
+             Request a lead
           </button>
         </div>
       </div>
@@ -239,7 +239,7 @@ export default function MarketerDashboard() {
       {dueFollowUps.length > 0 && (
         <div className="mb-6 rounded-2xl border border-[var(--warn)]/20 bg-[var(--warn-soft)] p-4">
           <div className="flex items-center gap-2 mb-3">
-            <Clock size={16} className="text-[var(--warn)]" />
+            
             <span className="text-sm font-semibold text-amber-800">{dueFollowUps.length} follow-up{dueFollowUps.length === 1 ? '' : 's'} due today</span>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -294,7 +294,7 @@ export default function MarketerDashboard() {
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mx-2 flex-shrink-0 ${COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                     {lead.status?.replace(/_/g, ' ')}
                   </span>
-                  {isExpanded ? <ChevronUp size={15} className="text-[var(--ink-faint)]"/> : <ChevronDown size={15} className="text-[var(--ink-faint)]" />}
+                  {isExpanded ? null : null}
                 </div>
 
                 {/* Expanded actions */}
@@ -305,12 +305,12 @@ export default function MarketerDashboard() {
                       <div className="flex gap-2 mb-3">
                         <a href={`tel:${lead.phone}`}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition">
-                          <Phone size={12} /> Call
+                           Call
                         </a>
                         <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split(' ')[0]}, this is from Cambridge Centre of Excellence...`)}`}
                           target="_blank" rel="noopener noreferrer"
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] text-white rounded-lg text-xs font-semibold hover:opacity-90 transition">
-                          <MessageSquare size={12} /> WhatsApp
+                           WhatsApp
                         </a>
                         <Link href={`/marketer/leads/${lead.id}`}
                           className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-xs font-semibold hover:bg-[var(--line-soft)] transition">
@@ -383,7 +383,7 @@ export default function MarketerDashboard() {
           <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Request a lead</h2>
-              <button onClick={() => setReqOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+              <button onClick={() => setReqOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
             </div>
             <p className="text-sm text-[var(--ink-soft)] mb-4">If a lead reached you but is assigned to someone else, enter their number to request the lead. Your manager will review it.</p>
 

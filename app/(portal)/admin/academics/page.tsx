@@ -25,8 +25,8 @@ export default function AcademicsHub() {
         description="Manage your course catalogue and the class batches running against it."
         actions={
           <>
-            <Button variant="secondary" href="/admin/courses" icon={<BookOpen size={15} />}>Courses</Button>
-            <Button href="/admin/classes" icon={<GraduationCap size={15} />}>Classes</Button>
+            <Button variant="secondary" href="/admin/courses" >Courses</Button>
+            <Button href="/admin/classes" >Classes</Button>
           </>
         }
       />
@@ -34,10 +34,10 @@ export default function AcademicsHub() {
       {loading ? <Spinner /> : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-            <StatCard label="Active courses" value={activeCourses.length} sub={`${courses.length} total`} icon={<BookOpen size={18} />} />
-            <StatCard label="Ongoing classes" value={ongoing.length} icon={<CalendarCheck size={18} />} accent />
-            <StatCard label="Upcoming" value={upcoming.length} sub="Scheduled to begin" icon={<CalendarCheck size={18} />} />
-            <StatCard label="All batches" value={batches.length} icon={<GraduationCap size={18} />} />
+            <StatCard label="Active courses" value={activeCourses.length} sub={`${courses.length} total`}  />
+            <StatCard label="Ongoing classes" value={ongoing.length}  accent />
+            <StatCard label="Upcoming" value={upcoming.length} sub="Scheduled to begin"  />
+            <StatCard label="All batches" value={batches.length}  />
           </div>
 
           {/* Two columns: courses + active batches */}
@@ -47,7 +47,7 @@ export default function AcademicsHub() {
               <div className="flex items-center justify-between mb-4">
                 <SectionLabel>Course catalogue</SectionLabel>
                 <Link href="/admin/courses" className="text-[12px] font-medium text-[var(--accent)] hover:underline flex items-center gap-1 mb-4">
-                  Manage <ArrowRight size={12} />
+                  Manage 
                 </Link>
               </div>
               {activeCourses.length === 0 ? (
@@ -83,7 +83,7 @@ export default function AcademicsHub() {
               <div className="flex items-center justify-between mb-4">
                 <SectionLabel>Current & upcoming classes</SectionLabel>
                 <Link href="/admin/classes" className="text-[12px] font-medium text-[var(--accent)] hover:underline flex items-center gap-1 mb-4">
-                  Manage <ArrowRight size={12} />
+                  Manage 
                 </Link>
               </div>
               {[...ongoing, ...upcoming].length === 0 ? (

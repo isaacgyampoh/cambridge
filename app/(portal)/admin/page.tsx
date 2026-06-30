@@ -75,14 +75,14 @@ export default function AdminDashboard() {
 
       {/* Metrics */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-3">
-        <StatCard label="Total leads" value={s.totalLeads} sub={`${s.todayLeads} added today`} icon={<TrendingUp size={18} />} trend={{ value: `${Math.abs(leadDelta)}%`, up: leadDelta >= 0 }} spark={leadsByDay} />
-        <StatCard label="Unassigned" value={s.unassigned} sub={s.unassigned > 0 ? 'Need attention' : 'All assigned'} icon={<Users size={18} />} />
-        <StatCard label="Ready to join" value={s.readyToJoin} sub="Awaiting admission" icon={<UserCheck size={18} />} spark={admByDay} />
-        <StatCard label="Revenue" value={formatGHS(s.revenue)} sub="Collected to date" icon={<DollarSign size={18} />} accent />
+        <StatCard label="Total leads" value={s.totalLeads} sub={`${s.todayLeads} added today`}  trend={{ value: `${Math.abs(leadDelta)}%`, up: leadDelta >= 0 }} spark={leadsByDay} />
+        <StatCard label="Unassigned" value={s.unassigned} sub={s.unassigned > 0 ? 'Need attention' : 'All assigned'}  />
+        <StatCard label="Ready to join" value={s.readyToJoin} sub="Awaiting admission"  spark={admByDay} />
+        <StatCard label="Revenue" value={formatGHS(s.revenue)} sub="Collected to date"  accent />
       </div>
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-10">
-        <StatCard label="Admitted" value={s.admitted} sub={`of ${s.totalAdmissions} cases`} icon={<GraduationCap size={18} />} />
-        <StatCard label="Active staff" value={s.activeStaff} sub="Across all roles" icon={<Users size={18} />} />
+        <StatCard label="Admitted" value={s.admitted} sub={`of ${s.totalAdmissions} cases`}  />
+        <StatCard label="Active staff" value={s.activeStaff} sub="Across all roles"  />
       </div>
 
       {/* Navigation sections */}
@@ -97,7 +97,7 @@ export default function AdminDashboard() {
       <Card className="p-1.5">
         {feed.length === 0 ? (
           <div className="py-14 text-center">
-            <Activity size={22} className="mx-auto text-[var(--ink-faint)] opacity-40 mb-2" />
+            
             <p className="text-sm text-[var(--ink-faint)]">No activity yet today</p>
           </div>
         ) : (
@@ -106,9 +106,6 @@ export default function AdminDashboard() {
               const Icon = FEED_ICON[e.icon] || Activity
               return (
                 <div key={i} className="flex items-start gap-3 px-3 py-3.5">
-                  <div className="w-9 h-9 rounded-full bg-[var(--line-soft)] flex items-center justify-center flex-shrink-0">
-                    <Icon size={15} className="text-[var(--ink-soft)]" />
-                  </div>
                   <div className="min-w-0 flex-1">
                     <div className="text-sm font-medium text-[var(--ink)] leading-snug">{e.title}</div>
                     {e.sub && <div className="text-xs text-[var(--ink-faint)] truncate mt-0.5">{e.sub}</div>}

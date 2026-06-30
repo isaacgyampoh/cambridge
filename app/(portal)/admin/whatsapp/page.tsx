@@ -81,7 +81,7 @@ export default function WhatsAppLinesPage() {
 
       <Card className="p-4 mb-6 bg-[var(--accent-soft)] border-[var(--accent-soft)]">
         <div className="flex items-start gap-3">
-          <Plug size={18} className="text-[var(--accent)] flex-shrink-0 mt-0.5" />
+          
           <div className="text-sm text-[var(--accent)]">
             <strong>How it works:</strong> create an instance for each person in your WAWP account (app.wawp.net), scan the QR with their phone, then paste the Instance ID and Access Token here. Once connected, the system sends that person’s lead messages through their own line. {connected} of {staff.length} connected.
           </div>
@@ -89,7 +89,7 @@ export default function WhatsAppLinesPage() {
       </Card>
 
       {loading ? <Spinner /> : staff.length === 0 ? (
-        <EmptyState icon={<MessageSquare size={20} />} title="No staff yet" description="Add staff members first, then connect their WhatsApp lines." />
+        <EmptyState  title="No staff yet" description="Add staff members first, then connect their WhatsApp lines." />
       ) : (
         <div className="space-y-2 stagger">
           {staff.map((s: any) => (
@@ -123,7 +123,7 @@ export default function WhatsAppLinesPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Connect WhatsApp</h2>
-              <button onClick={() => setEditing(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+              <button onClick={() => setEditing(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
             </div>
             <p className="text-sm text-[var(--ink-soft)] mb-6">{editing.full_name}</p>
 

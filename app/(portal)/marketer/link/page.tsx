@@ -105,10 +105,10 @@ export default function MarketerLink() {
                 {appUrl}
               </div>
               <button onClick={copy} className="flex-shrink-0 p-3 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition">
-                <Copy size={18} />
+                
               </button>
               <a href={appUrl} target="_blank" className="flex-shrink-0 p-3 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
-                <ExternalLink size={18} />
+                
               </a>
             </div>
             <a href={`https://wa.me/?text=${encodeURIComponent(`Hello, here is your registration link for Cambridge Centre of Excellence:\n\n${appUrl}\n\nClick it to fill in your details and pay your registration fee. Once that's done you're registered and we'll take it from there.`)}`}
@@ -154,7 +154,7 @@ export default function MarketerLink() {
         </div>
         {applications.length === 0 ? (
           <div className="text-center py-12 text-[var(--ink-faint)]">
-            <TrendingUp size={32} className="mx-auto mb-2 opacity-30" />
+            
             <p className="text-sm">No registrations yet. Share your link with a ready lead.</p>
           </div>
         ) : (

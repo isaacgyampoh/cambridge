@@ -115,7 +115,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
     <div className="w-full max-w-3xl mx-auto fade-in">
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/staff" className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
-          <ArrowLeft size={15}/> Staff
+           Staff
         </Link>
         <div>
           <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Portal Access — {staff.full_name}</h1>
@@ -143,7 +143,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
 
       {/* Info banner */}
       <div className="bg-[var(--accent-soft)] border border-blue-100 rounded-2xl p-4 mb-5 flex gap-3">
-        <Shield size={18} className="text-[var(--accent)] flex-shrink-0 mt-0.5"/>
+        
         <div className="text-sm text-[var(--accent)]">
           <strong>Note:</strong> You can give any staff member access to any portal, regardless of their role.
           For example, a finance officer can also be given the Leads portal to input and manage leads.
@@ -170,9 +170,6 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all
                         ${on ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-white hover:border-[var(--line)]'}
                         ${locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
-                      <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)]' : 'bg-[var(--line-soft)]'}`}>
-                        <Icon size={17} className={on ? 'text-white' : 'text-[var(--ink-faint)]'} />
-                      </div>
                       <div className="min-w-0 flex-1">
                         <div className={`text-sm font-bold truncate ${on ? 'text-[var(--accent)]' : 'text-[var(--ink-soft)]'}`}>{portal.label}</div>
                         <div className="text-[12px] text-[var(--ink-faint)] truncate">{PORTAL_DESC[portal.id] || ''}</div>
@@ -193,7 +190,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
       <div className="flex gap-3">
         <button onClick={save} disabled={saving}
           className="flex-1 h-12 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
-          <Save size={16}/> {saving ? 'Saving…' : 'Save Permissions'}
+           {saving ? 'Saving…' : 'Save Permissions'}
         </button>
         <button onClick={resetToDefaults}
           className="h-12 px-5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">

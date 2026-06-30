@@ -120,7 +120,7 @@ export default function BroadcastPage() {
         </div>
         <button onClick={() => setModal(true)}
           className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm flex-shrink-0">
-          <Plus size={15} /> New broadcast
+           New broadcast
         </button>
       </div>
 
@@ -130,7 +130,7 @@ export default function BroadcastPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-[var(--ink)]">New Broadcast</h2>
-              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"><X size={20} /></button>
+              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"></button>
             </div>
 
             <div className="space-y-4">
@@ -242,7 +242,7 @@ export default function BroadcastPage() {
             <div className="flex gap-2 mt-5">
               <button onClick={sendBroadcast} disabled={sending}
                 className="flex-1 h-12 bg-[var(--accent)] text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
-                <Send size={16} />
+                
                 {sending ? 'Sending...': form.scheduled_at ? 'Schedule Broadcast': 'Send Now'}
               </button>
               <button onClick={() => setModal(false)} className="flex-1 h-12 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
@@ -268,10 +268,10 @@ export default function BroadcastPage() {
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs text-[var(--ink-faint)]">
-                <span className="flex items-center gap-1"><Users size={12} /> {b.target_count} targeted</span>
-                <span className="flex items-center gap-1 text-[var(--ok)]"><CheckCircle size={12} /> {b.sent_count} sent</span>
-                {b.failed_count > 0 && <span className="flex items-center gap-1 text-[var(--danger)]"><XCircle size={12} /> {b.failed_count} failed</span>}
-                <span className="flex items-center gap-1"><Clock size={12} /> {formatDateTime(b.created_at)}</span>
+                <span className="flex items-center gap-1"> {b.target_count} targeted</span>
+                <span className="flex items-center gap-1 text-[var(--ok)]"> {b.sent_count} sent</span>
+                {b.failed_count > 0 && <span className="flex items-center gap-1 text-[var(--danger)]"> {b.failed_count} failed</span>}
+                <span className="flex items-center gap-1"> {formatDateTime(b.created_at)}</span>
                 <div className="flex gap-1 ml-auto items-center">
                   {(b.channels || []).map((ch: string) => (
                     <span key={ch} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ch === 'whatsapp'? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
@@ -290,7 +290,7 @@ export default function BroadcastPage() {
           ))}
           {broadcasts.length === 0 && (
             <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              <Send size={40} className="mx-auto mb-3 opacity-30" />
+              
               <p className="font-medium">No broadcasts yet</p>
               <p className="text-sm mt-1">Create your first bulk message campaign</p>
             </div>

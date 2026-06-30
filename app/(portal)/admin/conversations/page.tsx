@@ -40,9 +40,9 @@ export default function ConversationsPage() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Conversations today" value={todayCount} icon={<MessageSquare size={18} />} accent />
+        <StatCard label="Conversations today" value={todayCount}  accent />
         <StatCard label="Total exchanges" value={convos.length} />
-        <StatCard label="AI answered" value={aiAnswered} sub={`${convos.length ? Math.round(aiAnswered / convos.length * 100) : 0}% handled`} icon={<MessageSquare size={18} />} />
+        <StatCard label="AI answered" value={aiAnswered} sub={`${convos.length ? Math.round(aiAnswered / convos.length * 100) : 0}% handled`}  />
         <StatCard label="Active threads" value={Object.keys(threads).length} />
       </div>
 
@@ -50,11 +50,11 @@ export default function ConversationsPage() {
         {/* Thread list */}
         <div className="lg:col-span-1">
           <div className="relative mb-3">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search threads" className={inputClass.replace('h-11', 'h-10') + ' pl-9'} />
           </div>
           {loading ? <Spinner /> : threadList.length === 0 ? (
-            <EmptyState icon={<MessageSquare size={20} />} title="No conversations yet" description="Once leads start messaging, the assistant's replies appear here." />
+            <EmptyState  title="No conversations yet" description="Once leads start messaging, the assistant's replies appear here." />
           ) : (
             <div className="space-y-2 max-h-[600px] overflow-y-auto">
               {threadList.map((t: any) => (
@@ -76,7 +76,7 @@ export default function ConversationsPage() {
         <div className="lg:col-span-2">
           {!activeThread ? (
             <Card className="p-16 text-center">
-              <MessageSquare size={26} className="mx-auto text-[var(--ink-faint)] opacity-40 mb-3" />
+              
               <p className="text-sm text-[var(--ink-faint)]">Select a conversation to read the exchange</p>
             </Card>
           ) : (
@@ -93,7 +93,7 @@ export default function ConversationsPage() {
                     {/* Incoming */}
                     {m.incoming_text && (
                       <div className="flex gap-2.5">
-                        <div className="w-7 h-7 rounded-full bg-[var(--line-soft)] flex items-center justify-center flex-shrink-0"><User size={13} className="text-[var(--ink-soft)]" /></div>
+                        <div className="w-7 h-7 rounded-full bg-[var(--line-soft)] flex items-center justify-center flex-shrink-0"></div>
                         <div className="bg-[var(--line-soft)] rounded-2xl rounded-tl-sm px-3.5 py-2 max-w-[80%]">
                           <div className="text-sm text-[var(--ink)] whitespace-pre-line">{m.incoming_text}</div>
                           <div className="text-[10px] text-[var(--ink-faint)] mt-1">{formatDateTime(m.created_at)}</div>

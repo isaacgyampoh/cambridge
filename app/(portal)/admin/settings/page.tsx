@@ -143,8 +143,8 @@ export default function SettingsPage() {
                 <div className="text-xs text-[var(--ink-faint)] truncate">{i.desc}</div>
               </div>
               {i.ok
-                ? <span className="flex items-center gap-1 text-[var(--ok)] text-xs font-medium flex-shrink-0"><CheckCircle2 size={14} />{i.detail}</span>
-                : <span className="flex items-center gap-1 text-[var(--ink-faint)] text-xs font-medium flex-shrink-0"><AlertCircle size={14} />{i.detail}</span>}
+                ? <span className="flex items-center gap-1 text-[var(--ok)] text-xs font-medium flex-shrink-0">{i.detail}</span>
+                : <span className="flex items-center gap-1 text-[var(--ink-faint)] text-xs font-medium flex-shrink-0">{i.detail}</span>}
             </Card>
           ))}
         </div>
@@ -156,8 +156,8 @@ export default function SettingsPage() {
         <p className="text-sm text-[var(--ink-soft)] mb-4">Send a real test message to confirm your providers are working.</p>
         <div className="flex flex-col sm:flex-row gap-3 mb-3">
           <input value={testPhone} onChange={e => setTestPhone(e.target.value)} placeholder="Your phone, e.g. 0244 000 000" className={inputClass + ' flex-1'} />
-          <Button onClick={testSMS} disabled={testing === 'sms'} icon={<Send size={14} />}>{testing === 'sms' ? 'Sending…' : 'Test SMS'}</Button>
-          <Button variant="secondary" onClick={testWhatsApp} disabled={testing === 'wa'} icon={<MessageSquare size={14} />}>{testing === 'wa' ? 'Sending…' : 'Test WhatsApp'}</Button>
+          <Button onClick={testSMS} disabled={testing === 'sms'} >{testing === 'sms' ? 'Sending…' : 'Test SMS'}</Button>
+          <Button variant="secondary" onClick={testWhatsApp} disabled={testing === 'wa'} >{testing === 'wa' ? 'Sending…' : 'Test WhatsApp'}</Button>
         </div>
         {result && (
           <div className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-[var(--ok-soft)] text-emerald-800' : 'bg-[var(--warn-soft)] text-amber-800'}`}>
@@ -198,7 +198,7 @@ export default function SettingsPage() {
                 <div className="text-sm font-medium text-[var(--ink)]">{w.label}</div>
                 <code className="text-xs text-[var(--ink-faint)] font-mono break-all">{CONFIG.appUrl}{w.url}</code>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => copy(`${CONFIG.appUrl}${w.url}`)} icon={<Copy size={13} />}>Copy</Button>
+              <Button variant="ghost" size="sm" onClick={() => copy(`${CONFIG.appUrl}${w.url}`)} >Copy</Button>
             </div>
             {w.hint && <p className="text-[12px] text-[var(--ink-faint)] mt-2 leading-relaxed">{w.hint}</p>}
           </div>

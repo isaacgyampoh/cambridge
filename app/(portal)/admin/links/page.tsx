@@ -135,14 +135,14 @@ export default function AdminLinks() {
             )}
           </div>
 
-          <Button onClick={post} disabled={posting} icon={<Send size={15} />}>{posting ? 'Posting…' : 'Post link'}</Button>
+          <Button onClick={post} disabled={posting} >{posting ? 'Posting…' : 'Post link'}</Button>
         </div>
       </Card>
 
       {/* Active links */}
       <SectionLabel>Active links</SectionLabel>
       {loading ? <Spinner /> : links.length === 0 ? (
-        <EmptyState icon={<Link2 size={20} />} title="No active links" description="Post a link above and it appears here and in everyone's My Links." />
+        <EmptyState  title="No active links" description="Post a link above and it appears here and in everyone's My Links." />
       ) : (
         <div className="space-y-2 mt-3">
           {links.map((l: any) => {
@@ -150,14 +150,13 @@ export default function AdminLinks() {
             const Icon = T.icon
             return (
               <Card key={l.id} className="p-4 flex items-center gap-3">
-                <div className="w-9 h-9 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center flex-shrink-0"><Icon size={16} /></div>
                 <div className="min-w-0 flex-1">
                   <div className="font-medium text-[var(--ink)] truncate">{l.title}</div>
                   <div className="text-xs text-[var(--ink-faint)] truncate">{l.url}</div>
                 </div>
                 <Badge tone="neutral">{l.audience === 'all' ? 'Everyone' : l.audience === 'marketers' ? 'Marketers' : 'Staff'}</Badge>
                 {l.expires_at && <Badge tone="warning">Expires {new Date(l.expires_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</Badge>}
-                <button onClick={() => remove(l.id)} className="p-2 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={15} /></button>
+                <button onClick={() => remove(l.id)} className="p-2 text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
               </Card>
             )
           })}

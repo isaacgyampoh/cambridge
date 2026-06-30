@@ -31,7 +31,7 @@ export default function MarketerEarnings() {
         <div className="absolute bottom-0 right-20 w-32 h-32 rounded-full bg-white/5 -mb-12" />
         <div className="relative">
           <div className="flex items-center gap-2 text-white/60 text-[12px] mb-2">
-            <Trophy size={13} /> Current rank
+             Current rank
           </div>
           <div className="flex flex-wrap items-end gap-4 mb-1">
             <div className="font-display text-[40px] leading-none font-semibold">{rank?.name || 'Unranked'}</div>
@@ -52,7 +52,7 @@ export default function MarketerEarnings() {
             </div>
           ) : rank ? (
             <div className="mt-6 inline-flex items-center gap-2 bg-white/15 rounded-lg px-3 py-1.5 text-sm">
-              <Award size={15} /> Top rank achieved — outstanding work
+               Top rank achieved — outstanding work
             </div>
           ) : null}
         </div>
@@ -60,10 +60,10 @@ export default function MarketerEarnings() {
 
       {/* Earnings stats */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total points" value={data.totalPoints} sub={`${data.enrollmentCount} enrollments`} icon={<TrendingUp size={18} />} />
-        <StatCard label="Gross salary" value={formatGHS(data.grossSalary)} sub={rank?.name || 'Reach Alpha-1'} icon={<Wallet size={18} />} />
-        <StatCard label="Registration commission" value={formatGHS(data.registrationCommission)} sub="GHS 200 / student — yours" icon={<Wallet size={18} />} accent />
-        <StatCard label="To next rank" value={next ? data.pointsToNext : '—'} sub={next ? `points to ${next.name}` : 'Top rank'} icon={<Target size={18} />} />
+        <StatCard label="Total points" value={data.totalPoints} sub={`${data.enrollmentCount} enrollments`}  />
+        <StatCard label="Gross salary" value={formatGHS(data.grossSalary)} sub={rank?.name || 'Reach Alpha-1'}  />
+        <StatCard label="Registration commission" value={formatGHS(data.registrationCommission)} sub="GHS 200 / student — yours"  accent />
+        <StatCard label="To next rank" value={next ? data.pointsToNext : '—'} sub={next ? `points to ${next.name}` : 'Top rank'}  />
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">

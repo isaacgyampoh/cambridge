@@ -67,7 +67,7 @@ export default function StudentDashboard() {
           return (
             <div key={e.id} className="flex items-center gap-3 py-3 border-b border-[var(--line-soft)] last:border-0">
               <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0">
-                <BookOpen size={16} className="text-[var(--accent)]" />
+                
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-[var(--ink)]">{batch?.courses?.name}</div>

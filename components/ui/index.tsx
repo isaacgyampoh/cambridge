@@ -62,8 +62,9 @@ export function Button({
     danger:    'bg-white text-red-600 border border-red-200 hover:bg-red-50',
   }
   const cls = `${base} ${sizes[size]} ${variants[variant]} ${className}`
-  if (href) return <Link href={href} className={cls}>{icon}{children}</Link>
-  return <button type={type} onClick={onClick} disabled={disabled} className={cls}>{icon}{children}</button>
+  // Icons removed system-wide — text only.
+  if (href) return <Link href={href} className={cls}>{children}</Link>
+  return <button type={type} onClick={onClick} disabled={disabled} className={cls}>{children}</button>
 }
 
 /* ─────────────────────────────────────────────
@@ -111,7 +112,7 @@ export function StatCard({
         <div className={`text-[14px] font-medium ${accent ? 'text-white/80' : 'text-[var(--ink-soft)]'}`}>
           {label}
         </div>
-        {icon && (
+        {false && icon && (
           <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 -mr-1 -mt-1
             ${accent ? 'bg-white/15 text-white' : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
             {icon}
@@ -126,16 +127,15 @@ export function StatCard({
           {(sub || trend) && (
             <div className="flex items-center gap-2 mt-2">
               {trend && (
-                <span className={`inline-flex items-center gap-0.5 text-[12px] font-semibold px-1.5 py-0.5 rounded-md
+                <span className={`inline-flex items-center text-[12px] font-semibold px-1.5 py-0.5 rounded-md
                   ${accent ? 'bg-white/15 text-white' : trend.up ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
-                  {trend.up ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />} {trend.value}
+                  {trend.up ? '+' : '-'}{trend.value}
                 </span>
               )}
               {sub && <span className={`text-[13px] ${accent ? 'text-white/60' : 'text-[var(--ink-faint)]'}`}>{sub}</span>}
             </div>
           )}
         </div>
-        {spark && spark.length > 1 && <Sparkline data={spark} accent={accent} />}
       </div>
     </div>
   )
@@ -175,11 +175,6 @@ export function EmptyState({
 }) {
   return (
     <div className="border border-dashed border-[var(--line)] rounded-xl py-16 px-6 text-center bg-[var(--paper)]">
-      {icon && (
-        <div className="w-12 h-12 rounded-full bg-[var(--line-soft)] flex items-center justify-center mx-auto mb-4 text-[var(--ink-faint)]">
-          {icon}
-        </div>
-      )}
       <h3 className="font-display text-lg font-semibold text-[var(--ink)]">{title}</h3>
       {description && <p className="text-sm text-[var(--ink-soft)] mt-1.5 max-w-sm mx-auto">{description}</p>}
       {action && <div className="mt-5">{action}</div>}

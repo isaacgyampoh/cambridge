@@ -58,16 +58,16 @@ export default function ConversionsPage() {
       </div>
 
       {loading ? <Spinner /> : !data ? (
-        <EmptyState icon={<GraduationCap size={20} />} title="No data" description="Couldn't load the analysis." />
+        <EmptyState  title="No data" description="Couldn't load the analysis." />
       ) : (
         <>
           {/* Headline stats */}
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
-            <StatCard label={`Leads · ${periodLabel}`} value={data.totals.leads} icon={<TrendingUp size={18} />}
+            <StatCard label={`Leads · ${periodLabel}`} value={data.totals.leads} 
               spark={data.months.map((m: any) => m.leads)} />
-            <StatCard label="Registered" value={data.totals.registered} icon={<Award size={18} />}
+            <StatCard label="Registered" value={data.totals.registered} 
               sub="Converted to students" spark={data.months.map((m: any) => m.registered)} />
-            <StatCard label="Conversion rate" value={`${data.totals.convRate}%`} icon={<Target size={18} />} accent />
+            <StatCard label="Conversion rate" value={`${data.totals.convRate}%`}  accent />
           </div>
 
           {/* Per-course breakdown */}
@@ -76,7 +76,7 @@ export default function ConversionsPage() {
               <h3 className="font-semibold text-[var(--ink)]">By programme — {periodLabel}</h3>
             </div>
             {data.byCourse.length === 0 || data.byCourse.every((c: any) => c.leads === 0) ? (
-              <EmptyState icon={<GraduationCap size={20} />} title="No leads in this period"
+              <EmptyState  title="No leads in this period"
                 description="When leads come in tagged with a programme, the breakdown shows here." />
             ) : (
               <div className="overflow-x-auto">

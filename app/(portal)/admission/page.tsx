@@ -68,7 +68,7 @@ export default function AdmissionPage() {
         </div>
         <button onClick={() => { refetchA(); refetchApp() }}
           className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
-          <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
+          
         </button>
       </div>
 
@@ -115,7 +115,7 @@ export default function AdmissionPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center">
-              <UserCheck size={36} className="mx-auto mb-3 text-[var(--line)]" />
+              
               <p className="text-[var(--ink-faint)] text-sm font-medium">No admissions here</p>
               <p className="text-[var(--ink-faint)] text-xs mt-1">Admissions are created when leads are marked "Ready to Join"</p>
             </div>
@@ -173,7 +173,7 @@ export default function AdmissionPage() {
                         <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/[^0-9]/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name}, regarding your admission at Cambridge Centre of Excellence...`)}`}
                           target="_blank"rel="noopener noreferrer"
                           className="px-3 py-1.5 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition flex items-center gap-1">
-                          <MessageSquare size={12} /> WhatsApp
+                           WhatsApp
                         </a>
                       )}
                     </div>

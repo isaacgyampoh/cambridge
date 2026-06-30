@@ -66,14 +66,14 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-[var(--line)]">
           <div className="relative max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name or phone..."
               className={inputClass + ' pl-9'} />
           </div>
         </div>
 
         {loading ? <div className="p-8"><Spinner /></div> : courseLeads.length === 0 ? (
-          <EmptyState icon={<GraduationCap size={20} />} title="No leads for this course yet"
+          <EmptyState  title="No leads for this course yet"
             description={`When leads come in interested in ${courseName}, they'll appear here.`} />
         ) : (
           <div className="overflow-x-auto">
@@ -93,8 +93,8 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5 text-xs text-[var(--ink-soft)]">
-                        {l.phone && <span className="flex items-center gap-1"><Phone size={11} /> {String(l.phone).replace(/^233/, '0')}</span>}
-                        {l.email && <span className="flex items-center gap-1"><Mail size={11} /> {l.email}</span>}
+                        {l.phone && <span className="flex items-center gap-1"> {String(l.phone).replace(/^233/, '0')}</span>}
+                        {l.email && <span className="flex items-center gap-1"> {l.email}</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3">

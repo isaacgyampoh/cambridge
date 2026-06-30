@@ -42,7 +42,7 @@ export default function ReceptionistDashboard() {
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send personalised reminders in each marketer's name.</p>
         </div>
         <button onClick={refetch} className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
-          <RefreshCw size={14} className={loading ? 'animate-spin': ''} />
+          
         </button>
       </div>
 
@@ -55,7 +55,7 @@ export default function ReceptionistDashboard() {
         <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
       ) : batches.length === 0 ? (
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center text-[var(--ink-faint)]">
-          <Calendar size={36} className="mx-auto mb-3 opacity-50" />
+          
           <p>No upcoming or ongoing classes</p>
         </div>
       ) : (
@@ -97,7 +97,7 @@ export default function ReceptionistDashboard() {
                         disabled={!!sending}
                         onClick={() => sendReminders(batch.id, r.type)}
                         className={`flex items-center gap-1.5 px-4 py-2 ${r.color} text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition`}>
-                        <Send size={12} />
+                        
                         {sending === batch.id + r.type ? 'Sending...': r.label}
                       </button>
                     ))}

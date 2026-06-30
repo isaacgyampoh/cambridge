@@ -46,7 +46,7 @@ export default function TransfersPage() {
         <>
           <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Pending ({pending.length})</p>
           {pending.length === 0 ? (
-            <EmptyState icon={<ArrowLeftRight size={20} />} title="No pending requests" description="Transfer requests from marketers will appear here." />
+            <EmptyState  title="No pending requests" description="Transfer requests from marketers will appear here." />
           ) : (
             <div className="space-y-3 mb-8">
               {pending.map(r => (
@@ -55,7 +55,7 @@ export default function TransfersPage() {
                     <div>
                       <div className="font-semibold text-[var(--ink)]">{r.lead?.full_name || 'Lead'}</div>
                       <div className="text-xs text-[var(--ink-soft)] flex items-center gap-2 mt-0.5">
-                        {r.lead?.phone && <span className="flex items-center gap-1"><Phone size={11} /> {String(r.lead.phone).replace(/^233/, '0')}</span>}
+                        {r.lead?.phone && <span className="flex items-center gap-1"> {String(r.lead.phone).replace(/^233/, '0')}</span>}
                         {r.lead?.course_interest && <span>· {r.lead.course_interest}</span>}
                       </div>
                     </div>
@@ -64,14 +64,14 @@ export default function TransfersPage() {
                   <div className="rounded-xl bg-[var(--canvas)] p-3 text-sm mb-3">
                     <div className="flex items-center gap-2 text-[var(--ink-soft)] mb-1">
                       <span className="font-medium text-[var(--ink)]">{r.requester?.full_name || 'A marketer'}</span>
-                      <ArrowLeftRight size={13} />
+                      
                       <span>currently {r.owner?.full_name || 'unassigned'}</span>
                     </div>
                     {r.reason && <p className="text-[var(--ink-soft)] mt-1.5">"{r.reason}"</p>}
                   </div>
                   <div className="flex gap-2">
-                    <Button size="sm" disabled={acting === r.id} onClick={() => decide(r.id, 'approve')} icon={<Check size={14} />}>Approve transfer</Button>
-                    <Button size="sm" variant="secondary" disabled={acting === r.id} onClick={() => decide(r.id, 'decline')} icon={<X size={14} />}>Decline</Button>
+                    <Button size="sm" disabled={acting === r.id} onClick={() => decide(r.id, 'approve')} >Approve transfer</Button>
+                    <Button size="sm" variant="secondary" disabled={acting === r.id} onClick={() => decide(r.id, 'decline')} >Decline</Button>
                   </div>
                 </Card>
               ))}

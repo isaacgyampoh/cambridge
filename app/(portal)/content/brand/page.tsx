@@ -76,7 +76,7 @@ export default function BrandKit() {
               <span className="text-sm text-[var(--ink-soft)]">{profile.primary_color}</span>
             </div>
           </Field>
-          <Button onClick={save} disabled={saving} icon={<Save size={15} />}>{saving ? 'Saving…' : 'Save brand guidelines'}</Button>
+          <Button onClick={save} disabled={saving} >{saving ? 'Saving…' : 'Save brand guidelines'}</Button>
         </Card>
 
         {/* RIGHT: brand assets */}
@@ -87,7 +87,7 @@ export default function BrandKit() {
           </div>
 
           {assets.length === 0 ? (
-            <EmptyState icon={<ImageIcon size={20} />} title="No assets yet" description="Upload your logos and approved graphics so the team always uses the right files." />
+            <EmptyState  title="No assets yet" description="Upload your logos and approved graphics so the team always uses the right files." />
           ) : (
             <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
               {assets.map(a => (
@@ -98,8 +98,8 @@ export default function BrandKit() {
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs text-[var(--ink-soft)] truncate">{a.name}</span>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => { navigator.clipboard.writeText(a.url); toast.success('Link copied') }} className="p-1 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={13} /></button>
-                      <button onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={13} /></button>
+                      <button onClick={() => { navigator.clipboard.writeText(a.url); toast.success('Link copied') }} className="p-1 text-[var(--ink-faint)] hover:text-[var(--accent)]"></button>
+                      <button onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
                     </div>
                   </div>
                 </Card>

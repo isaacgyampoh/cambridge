@@ -120,7 +120,7 @@ export default function AlumniPage() {
           <p className="text-[var(--ink-faint)] text-sm mt-0.5">{alumni.length} alumni · {alumni.filter(a => a.is_featured).length} featured</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
-          <Plus size={16} /> Add Alumni
+           Add Alumni
         </button>
       </div>
 
@@ -130,15 +130,15 @@ export default function AlumniPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-[var(--ink)]">{editId ? 'Edit': 'Add'} Alumni</h2>
-              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"><X size={20} /></button>
+              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"></button>
             </div>
 
             {/* Photo */}
             <div className="flex items-center gap-4 mb-5 pb-5 border-b border-[var(--line-soft)]">
               <div className="w-20 h-20 rounded-full bg-[var(--line-soft)] flex items-center justify-center overflow-hidden flex-shrink-0">
                 {form.photo_url
-                  ? <img src={form.photo_url} alt=""className="w-full h-full object-cover" />
-                  : <GraduationCap size={32} className="text-[var(--ink-faint)]" />}
+                  ? <img src={form.photo_url} alt="" className="w-full h-full object-cover" />
+                  : <span className="text-[var(--ink-faint)] text-xs">Photo</span>}
               </div>
               <div>
                 <input ref={photoRef} type="file"accept="image/*"className="hidden"
@@ -229,7 +229,7 @@ export default function AlumniPage() {
               <div className="h-24 bg-[var(--accent)] relative flex items-end px-4 pb-3">
                 {a.is_featured && (
                   <div className="absolute top-2 right-2 bg-yellow-400 rounded-full p-1">
-                    <Star size={14} className="text-yellow-900"fill="currentColor" />
+                    
                   </div>
                 )}
                 <div className="w-14 h-14 rounded-full border-3 border-white overflow-hidden bg-blue-200 flex-shrink-0 absolute -bottom-7 left-4">
@@ -243,12 +243,12 @@ export default function AlumniPage() {
                 <h3 className="font-semibold text-[var(--ink)]">{a.full_name}</h3>
                 {(a.current_job_title || a.current_company) && (
                   <div className="flex items-center gap-1 text-xs text-[var(--ink-faint)] mt-0.5">
-                    <Briefcase size={11} />
+                    
                     <span>{[a.current_job_title, a.current_company].filter(Boolean).join('at ')}</span>
                   </div>
                 )}
                 <div className="flex items-center gap-1 text-xs text-[var(--accent)] mt-0.5">
-                  <GraduationCap size={11} />
+                  
                   <span>{a.course_completed} · {formatDate(a.graduation_date)}</span>
                 </div>
 
@@ -263,11 +263,11 @@ export default function AlumniPage() {
                     className="flex-1 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">Edit</button>
                   <button onClick={() => toggleFeatured(a.id, a.is_featured)}
                     className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-[var(--warn-soft)] text-[var(--warn)] hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
-                    <Star size={15} fill={a.is_featured ? 'currentColor': 'none'} />
+                    
                   </button>
                   <button onClick={() => togglePublish(a.id, a.is_published)}
                     className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-green-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
-                    {a.is_published ? <Eye size={15} /> : <EyeOff size={15} />}
+                    {a.is_published ? null : null}
                   </button>
                   <button onClick={() => del(a.id)}
                     className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition text-xs"></button>
@@ -277,7 +277,7 @@ export default function AlumniPage() {
           ))}
           {alumni.length === 0 && (
             <div className="col-span-3 bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              <GraduationCap size={40} className="mx-auto mb-3 opacity-30" />
+              
               <p className="font-medium">No alumni yet</p>
               <p className="text-sm mt-1">Add your first success story to inspire prospective students</p>
             </div>

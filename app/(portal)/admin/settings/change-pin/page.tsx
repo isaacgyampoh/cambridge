@@ -63,7 +63,7 @@ export default function ChangePINPage() {
     <div className="fade-in w-full">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
-          <Shield size={20} className="text-[var(--accent)]" />
+          
         </div>
         <div>
           <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Change PIN</h1>
@@ -87,7 +87,7 @@ export default function ChangePINPage() {
 
         <button onClick={() => setShowPin(!showPin)}
           className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
-          {showPin ? <EyeOff size={12} /> : <Eye size={12} />}
+          {showPin ? null : null}
           {showPin ? 'Hide PINs' : 'Show PINs'}
         </button>
 

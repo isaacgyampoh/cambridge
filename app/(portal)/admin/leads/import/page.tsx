@@ -140,7 +140,7 @@ export default function ImportLeadsPage() {
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/leads"
           className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
-          <ArrowLeft size={15} /> Leads
+           Leads
         </Link>
         <div>
           <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Import Leads</h1>
@@ -152,7 +152,7 @@ export default function ImportLeadsPage() {
         /* ── Success state ── */
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-10 text-center max-w-md mx-auto shadow-sm">
           <div className="w-16 h-16 bg-[var(--ok-soft)] rounded-full flex items-center justify-center mx-auto mb-4">
-            <CheckCircle size={32} className="text-[var(--ok)]" />
+            
           </div>
           <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-2">Import Complete!</h2>
           <div className="flex justify-center gap-6 mb-6 text-sm">
@@ -184,14 +184,14 @@ export default function ImportLeadsPage() {
           <div className="space-y-4">
             {/* Template download */}
             <div className="bg-[var(--accent-soft)] border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
-              <FileText size={20} className="text-[var(--accent)] flex-shrink-0" />
+              
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-blue-900">Need a template?</div>
                 <div className="text-xs text-[var(--accent)]">Columns: full_name, phone, email, course_interest, source, city, notes</div>
               </div>
               <button onClick={downloadTemplate}
                 className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-bold hover:brightness-110 transition flex-shrink-0">
-                <Download size={13} /> Template
+                 Template
               </button>
             </div>
 
@@ -201,7 +201,7 @@ export default function ImportLeadsPage() {
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
               <button onClick={() => fileRef.current?.click()}
                 className="w-full h-28 border-2 border-dashed border-[var(--line)] rounded-2xl flex flex-col items-center justify-center gap-2 text-[var(--ink-faint)] hover:border-blue-400 hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-all">
-                <Upload size={24} />
+                
                 <span className="text-sm font-semibold">Click to upload CSV file</span>
                 <span className="text-xs">or drag & drop</span>
               </button>
@@ -226,7 +226,7 @@ export default function ImportLeadsPage() {
           <div className="space-y-4">
             {parsed.length === 0 ? (
               <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-12 text-center text-[var(--ink-faint)] shadow-sm">
-                <FileText size={36} className="mx-auto mb-3 opacity-50" />
+                
                 <p className="font-medium">Preview will appear here</p>
                 <p className="text-sm mt-1">Upload or paste your CSV data</p>
               </div>
@@ -270,8 +270,7 @@ export default function ImportLeadsPage() {
                           <tr key={i} className={`border-t border-[var(--line-soft)] ${row.status === 'error' ? 'bg-[var(--danger-soft)]' : 'hover:bg-[var(--line-soft)]'}`}>
                             <td className="px-3 py-2">
                               {row.status === 'valid'
-                                ? <CheckCircle size={13} className="text-green-500" />
-                                : <XCircle size={13} className="text-[var(--danger)]" />}
+                                ? null : null}
                             </td>
                             <td className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-red-400 italic">missing</span>}</td>
                             <td className="px-3 py-2 text-xs text-[var(--ink-faint)]">{row.phone || '—'}</td>
@@ -291,7 +290,7 @@ export default function ImportLeadsPage() {
                 {errorCount > 0 && (
                   <div className="bg-[var(--warn-soft)] border border-yellow-200 rounded-xl p-3">
                     <div className="flex items-center gap-2 text-sm font-bold text-[var(--warn)] mb-2">
-                      <AlertTriangle size={15} /> {errorCount} row{errorCount > 1 ? 's' : ''} will be skipped:
+                       {errorCount} row{errorCount > 1 ? 's' : ''} will be skipped:
                     </div>
                     {parsed.filter(p => p.status === 'error').map((p, i) => (
                       <div key={i} className="text-xs text-[var(--warn)]">{p.error}</div>
@@ -304,7 +303,7 @@ export default function ImportLeadsPage() {
                   className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
                   {importing
                     ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Importing {validCount} leads...</>
-                    : <><Upload size={16} /> Import {validCount} Lead{validCount !== 1 ? 's' : ''}</>}
+                    : <> Import {validCount} Lead{validCount !== 1 ? 's' : ''}</>}
                 </button>
               </>
             )}

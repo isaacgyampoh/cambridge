@@ -91,11 +91,11 @@ export default function SequencesPage() {
         eyebrow="Automation"
         title="Follow-up sequences"
         description="Automated message series that nurture leads over days — sent on each lead's own WhatsApp line, in their marketer's voice."
-        actions={<Button onClick={openNew} icon={<Plus size={15} />}>New sequence</Button>}
+        actions={<Button onClick={openNew} >New sequence</Button>}
       />
 
       {loading ? <Spinner /> : sequences.length === 0 ? (
-        <EmptyState icon={<Zap size={20} />} title="No sequences yet"
+        <EmptyState  title="No sequences yet"
           description="Build a drip series to automatically follow up with leads who go quiet."
           action={<Button onClick={openNew}>Create your first sequence</Button>} />
       ) : (
@@ -120,7 +120,7 @@ export default function SequencesPage() {
                 </div>
                 <div className="flex gap-2">
                   <Button size="sm" variant="secondary" onClick={() => openEdit(seq)}>Edit</Button>
-                  <Button size="sm" variant="ghost" onClick={() => remove(seq)} icon={<Trash2 size={13} />}>Delete</Button>
+                  <Button size="sm" variant="ghost" onClick={() => remove(seq)} >Delete</Button>
                 </div>
               </Card>
             )
@@ -133,7 +133,7 @@ export default function SequencesPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">{editing ? 'Edit sequence' : 'New sequence'}</h2>
-            <button onClick={() => setCreating(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            <button onClick={() => setCreating(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -157,7 +157,7 @@ export default function SequencesPage() {
                     Step {i + 1}
                   </div>
                   {steps.length > 1 && (
-                    <button onClick={() => removeStep(i)} className="text-[var(--ink-faint)] hover:text-[var(--danger)]"><Trash2 size={15} /></button>
+                    <button onClick={() => removeStep(i)} className="text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -180,7 +180,7 @@ export default function SequencesPage() {
               </div>
             ))}
           </div>
-          <Button variant="secondary" size="sm" onClick={addStep} icon={<Plus size={14} />}>Add step</Button>
+          <Button variant="secondary" size="sm" onClick={addStep} >Add step</Button>
 
           <div className="flex gap-2 mt-6 pt-5 border-t border-[var(--line)]">
             <Button onClick={save} disabled={saving}>{saving ? 'Saving…' : editing ? 'Save changes' : 'Create sequence'}</Button>

@@ -80,12 +80,12 @@ export default function PMDashboard() {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <div className="relative">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search" className="h-10 pl-8 pr-3 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] w-44" />
           </div>
           <button onClick={refetch} className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            
           </button>
         </div>
       </div>
@@ -141,7 +141,7 @@ export default function PMDashboard() {
               <tbody>
                 {filtered.length === 0 ? (
                   <tr><td colSpan={7} className="text-center py-16 text-[var(--ink-faint)]">
-                    <Users size={32} className="mx-auto mb-2 opacity-50" />
+                    
                     <p>No leads in this view</p>
                   </td></tr>
                 ) : filtered.map(lead => (

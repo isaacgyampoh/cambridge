@@ -147,10 +147,10 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         description="Enroll registered students, track full-fee payment, and mark completion."
         actions={
           <div className="flex gap-2">
-            <Button variant="secondary" onClick={sendSigninLink} disabled={blasting} icon={<Send size={15} />}>
+            <Button variant="secondary" onClick={sendSigninLink} disabled={blasting} >
               {blasting ? 'Sending…' : 'Send sign-in link'}
             </Button>
-            <Button onClick={() => setAddOpen(true)} icon={<Plus size={15} />}>Enroll student</Button>
+            <Button onClick={() => setAddOpen(true)} >Enroll student</Button>
           </div>
         }
       />
@@ -205,7 +205,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
       )}
 
       {loading ? <Spinner /> : enrolled.length === 0 ? (
-        <EmptyState icon={<Users size={20} />} title="No students enrolled yet"
+        <EmptyState  title="No students enrolled yet"
           description="Enroll registered students into this class to send them Zoom links, materials, and certificates."
           action={<Button onClick={() => setAddOpen(true)}>Enroll a student</Button>} />
       ) : (
@@ -246,7 +246,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
                           <Button size="sm" variant="ghost" disabled={acting === e.id}
                             onClick={() => markComplete(e, false)}>Reopen</Button>
                         )}
-                        <button disabled={acting === e.id} onClick={() => remove(e)} className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"><UserMinus size={15} /></button>
+                        <button disabled={acting === e.id} onClick={() => remove(e)} className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
                       </div>
                     </td>
                   </tr>
@@ -262,10 +262,10 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Enroll a student</h2>
-            <button onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            <button onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
           <div className="relative mb-4">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search registered students..." className={inputClass + ' pl-9'} autoFocus />
           </div>
           <div className="max-h-80 overflow-y-auto -mx-2 px-2">

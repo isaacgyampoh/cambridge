@@ -61,15 +61,15 @@ export default function KnowledgeBasePage() {
         description="The facts your WhatsApp assistant uses to answer leads. Add FAQs and centre information here — the assistant only answers from what you provide."
         actions={
           <>
-            <Button variant="secondary" onClick={() => openNew('info')} icon={<Info size={14} />}>Add info</Button>
-            <Button onClick={() => openNew('faq')} icon={<Plus size={15} />}>Add FAQ</Button>
+            <Button variant="secondary" onClick={() => openNew('info')} >Add info</Button>
+            <Button onClick={() => openNew('faq')} >Add FAQ</Button>
           </>
         }
       />
 
       <Card className="p-4 mb-8 bg-[var(--accent-soft)] border-[var(--accent-soft)]">
         <div className="flex items-start gap-3">
-          <Sparkles size={18} className="text-[var(--accent)] flex-shrink-0 mt-0.5" />
+          
           <div className="text-sm text-[var(--accent)]">
             <strong>How the assistant works:</strong> when a lead messages a marketer on WhatsApp and no one replies, the assistant answers in that marketer's voice using only these entries. If something isn't covered here, it won't make things up — it tells the lead the marketer will call them with details. Keep these accurate and up to date.
           </div>
@@ -81,7 +81,7 @@ export default function KnowledgeBasePage() {
           {/* FAQs */}
           <SectionLabel>Frequently asked questions ({faqs.length})</SectionLabel>
           {faqs.length === 0 ? (
-            <EmptyState icon={<MessageCircleQuestion size={20} />} title="No FAQs yet" description="Add the questions leads commonly ask — fees, schedule, location, requirements." action={<Button onClick={() => openNew('faq')}>Add FAQ</Button>} />
+            <EmptyState  title="No FAQs yet" description="Add the questions leads commonly ask — fees, schedule, location, requirements." action={<Button onClick={() => openNew('faq')}>Add FAQ</Button>} />
           ) : (
             <div className="space-y-2 mb-10 stagger">
               {faqs.map((e: any) => (
@@ -97,8 +97,8 @@ export default function KnowledgeBasePage() {
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
                       <button onClick={() => toggle(e)} className="text-xs font-medium px-2 py-1 rounded-md text-[var(--ink-soft)] hover:bg-[var(--line-soft)]">{e.is_active ? 'Disable' : 'Enable'}</button>
-                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"><Pencil size={14} /></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"><Trash2 size={14} /></button>
+                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
+                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
                     </div>
                   </div>
                 </Card>
@@ -109,7 +109,7 @@ export default function KnowledgeBasePage() {
           {/* Centre info */}
           <SectionLabel>Centre information ({infos.length})</SectionLabel>
           {infos.length === 0 ? (
-            <EmptyState icon={<Info size={20} />} title="No info snippets yet" description="Add general facts: address, opening hours, payment options, contact details." action={<Button variant="secondary" onClick={() => openNew('info')}>Add info</Button>} />
+            <EmptyState  title="No info snippets yet" description="Add general facts: address, opening hours, payment options, contact details." action={<Button variant="secondary" onClick={() => openNew('info')}>Add info</Button>} />
           ) : (
             <div className="space-y-2 stagger">
               {infos.map((e: any) => (
@@ -124,8 +124,8 @@ export default function KnowledgeBasePage() {
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
                       <button onClick={() => toggle(e)} className="text-xs font-medium px-2 py-1 rounded-md text-[var(--ink-soft)] hover:bg-[var(--line-soft)]">{e.is_active ? 'Disable' : 'Enable'}</button>
-                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"><Pencil size={14} /></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"><Trash2 size={14} /></button>
+                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
+                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
                     </div>
                   </div>
                 </Card>
@@ -141,7 +141,7 @@ export default function KnowledgeBasePage() {
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">
               {editing ? 'Edit entry' : form.kind === 'faq' ? 'New FAQ' : 'New info'}
             </h2>
-            <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
           <div className="space-y-4">
             <Field label="Category" hint="optional, e.g. Fees / Schedule">

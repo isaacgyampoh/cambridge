@@ -81,12 +81,12 @@ export default function StudentFeesPage() {
         <Card className="overflow-hidden">
           <div className="p-4 border-b border-[var(--line)]">
             <div className="relative max-w-xs">
-              <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+              
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students…" className={inputClass + ' pl-9'} />
             </div>
           </div>
           {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-            <EmptyState icon={<Wallet size={20} />} title="No registered students yet" description="Students appear here automatically once they register." />
+            <EmptyState  title="No registered students yet" description="Students appear here automatically once they register." />
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -117,7 +117,7 @@ export default function StudentFeesPage() {
         </Card>
       ) : (
         pending.length === 0 ? (
-          <EmptyState icon={<Check size={20} />} title="Nothing to verify" description="Bank and cash payments awaiting your confirmation will appear here." />
+          <EmptyState  title="Nothing to verify" description="Bank and cash payments awaiting your confirmation will appear here." />
         ) : (
           <div className="space-y-3">
             {pending.map(p => (
@@ -132,15 +132,15 @@ export default function StudentFeesPage() {
                 <div className="flex items-center gap-4 mb-3">
                   <div className="text-sm"><span className="text-[var(--ink-faint)]">Claimed: </span><span className="font-semibold">GHS {Number(p.amount).toFixed(2)}</span></div>
                   {p.fee && <div className="text-sm text-[var(--ink-faint)]">Balance: GHS {Number(p.fee.balance ?? 0).toFixed(2)}</div>}
-                  {p.screenshot_url && <a href={p.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[var(--accent)] font-medium ml-auto"><ExternalLink size={13} /> Screenshot</a>}
+                  {p.screenshot_url && <a href={p.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[var(--accent)] font-medium ml-auto"> Screenshot</a>}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex items-center gap-1.5">
                     <span className="text-xs text-[var(--ink-faint)]">Confirm GHS</span>
                     <input value={amounts[p.id] ?? String(p.amount)} onChange={e => setAmounts(a => ({ ...a, [p.id]: e.target.value }))} type="number" className={inputClass + ' w-24 h-9'} />
                   </div>
-                  <Button size="sm" disabled={acting === p.id} onClick={() => decide(p, 'verify')} icon={<Check size={14} />}>Verify</Button>
-                  <Button size="sm" variant="secondary" disabled={acting === p.id} onClick={() => decide(p, 'reject')} icon={<X size={14} />}>Reject</Button>
+                  <Button size="sm" disabled={acting === p.id} onClick={() => decide(p, 'verify')} >Verify</Button>
+                  <Button size="sm" variant="secondary" disabled={acting === p.id} onClick={() => decide(p, 'reject')} >Reject</Button>
                 </div>
               </Card>
             ))}

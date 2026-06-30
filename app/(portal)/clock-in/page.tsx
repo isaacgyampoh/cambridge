@@ -111,28 +111,28 @@ export default function ClockInPage() {
 
         {/* Action */}
         {!clockedIn ? (
-          <Button onClick={() => clock('in')} disabled={busy} className="w-full h-12" icon={<LogIn size={16} />}>
+          <Button onClick={() => clock('in')} disabled={busy} className="w-full h-12" >
             {busy ? (geoState === 'locating' ? 'Checking your location…' : 'Signing in…') : 'Sign in'}
           </Button>
         ) : !clockedOut ? (
-          <Button onClick={() => clock('out')} disabled={busy} variant="secondary" className="w-full h-12" icon={<LogOut size={16} />}>
+          <Button onClick={() => clock('out')} disabled={busy} variant="secondary" className="w-full h-12" >
             {busy ? 'Signing out…' : 'Sign out'}
           </Button>
         ) : (
           <div className="flex items-center justify-center gap-2 text-[var(--accent)] py-3">
-            <CheckCircle2 size={18} />
+            
             <span className="text-sm font-medium">You have completed today</span>
           </div>
         )}
 
         {/* Location note */}
         <div className="flex items-start gap-2 mt-5 text-xs text-[var(--ink-faint)]">
-          <MapPin size={13} className="flex-shrink-0 mt-0.5" />
+          
           <span>Your location is checked at sign-in. You must be at the office for it to be accepted — this prevents remote sign-ins.</span>
         </div>
         {geoState === 'denied' && (
           <div className="flex items-start gap-2 mt-3 text-xs text-[var(--danger)] bg-[var(--danger-soft)] rounded-lg p-3">
-            <AlertTriangle size={13} className="flex-shrink-0 mt-0.5" />
+            
             <span>Location access is blocked. Enable it in your browser settings to sign in.</span>
           </div>
         )}

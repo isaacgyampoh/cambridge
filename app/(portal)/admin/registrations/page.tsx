@@ -50,7 +50,7 @@ export default function AdminRegistrations() {
         eyebrow="Records"
         title="Student records"
         description="Every registration submitted through the system, with the full details each applicant provided."
-        actions={<button onClick={exportAll} className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)]"><Download size={15} /> Export</button>}
+        actions={<button onClick={exportAll} className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)]"> Export</button>}
       />
 
       <div className="flex flex-wrap gap-2 mb-5">
@@ -61,13 +61,13 @@ export default function AdminRegistrations() {
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-[var(--line)]">
           <div className="relative max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search name, email, phone, course..." className={inputClass + ' pl-9'} />
           </div>
         </div>
 
         {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-          <EmptyState icon={<FileText size={20} />} title="No registrations yet"
+          <EmptyState  title="No registrations yet"
             description="When students register through a marketer link, their full records appear here." />
         ) : (
           <div className="overflow-x-auto">
@@ -85,8 +85,8 @@ export default function AdminRegistrations() {
                     <td className="px-4 py-3 font-medium text-[var(--ink)]">{a.full_name}</td>
                     <td className="px-4 py-3">
                       <div className="flex flex-col gap-0.5 text-xs text-[var(--ink-soft)]">
-                        {a.phone && <span className="flex items-center gap-1"><Phone size={11} /> {String(a.phone).replace(/^233/, '0')}</span>}
-                        {a.email && <span className="flex items-center gap-1"><Mail size={11} /> {a.email}</span>}
+                        {a.phone && <span className="flex items-center gap-1"> {String(a.phone).replace(/^233/, '0')}</span>}
+                        {a.email && <span className="flex items-center gap-1"> {a.email}</span>}
                       </div>
                     </td>
                     <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.course?.name || '—'}</td>
@@ -110,7 +110,7 @@ export default function AdminRegistrations() {
                 <h2 className="font-display text-xl font-semibold text-[var(--ink)]">{selected.full_name}</h2>
                 <p className="text-sm text-[var(--ink-faint)]">{selected.course?.name || 'No programme'} · Registered {new Date(selected.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'long', year: 'numeric' })}</p>
               </div>
-              <button onClick={() => setSelected(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+              <button onClick={() => setSelected(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
             </div>
 
             {[

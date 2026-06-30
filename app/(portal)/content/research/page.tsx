@@ -44,10 +44,10 @@ export default function CompetitorResearch() {
             className={inputClass + ' mt-2 mb-4'} />
           <div className="flex flex-col gap-2">
             <a href={metaUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-[var(--accent)] text-white text-[15px] font-medium">
-              <Eye size={16} /> Meta Ad Library <ExternalLink size={13} />
+               Meta Ad Library 
             </a>
             <a href={googleUrl} target="_blank" rel="noopener noreferrer" className="inline-flex items-center justify-center gap-1.5 h-11 px-4 rounded-xl bg-white border border-[var(--line)] text-[var(--ink-soft)] text-[15px] font-medium">
-              <Eye size={16} /> Google Ads Transparency <ExternalLink size={13} />
+               Google Ads Transparency 
             </a>
           </div>
           <p className="text-[13px] text-[var(--ink-faint)] mt-4 leading-relaxed">These are official public ad libraries — every ad running on Facebook/Instagram and Google. Search a competitor to see exactly what they're publishing in Ghana.</p>
@@ -59,11 +59,11 @@ export default function CompetitorResearch() {
           <p className="text-[14px] text-[var(--ink-soft)] mt-1 mb-3">Paste the text of a competitor ad you found, and the AI will tell you what works and how to beat it.</p>
           <textarea value={adText} onChange={e => setAdText(e.target.value)} rows={12} placeholder="Paste the competitor's ad copy here…"
             className={textareaClass + ' mb-3 min-h-[280px]'} />
-          <Button onClick={analyze} disabled={busy} icon={<Sparkles size={16} />}>{busy ? 'Analyzing…' : 'Analyze & advise'}</Button>
+          <Button onClick={analyze} disabled={busy} >{busy ? 'Analyzing…' : 'Analyze & advise'}</Button>
 
           {analysis && (
             <div className="mt-5 rounded-xl bg-[var(--accent-soft)] p-5">
-              <div className="flex items-center gap-2 mb-2"><Sparkles size={16} className="text-[var(--accent)]" /><span className="text-[15px] font-semibold text-[var(--ink)]">Analysis &amp; recommendations</span></div>
+              <div className="flex items-center gap-2 mb-2"><span className="text-[15px] font-semibold text-[var(--ink)]">Analysis &amp; recommendations</span></div>
               <div className="text-[15px] text-[var(--ink-soft)] whitespace-pre-wrap leading-relaxed">{analysis}</div>
             </div>
           )}

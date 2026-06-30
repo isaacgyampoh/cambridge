@@ -75,7 +75,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   return (
     <div className="fade-in w-full">
       <Link href="/pm" className="inline-flex items-center gap-2 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
-        <ArrowLeft size={16} /> Back to inbox
+         Back to inbox
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -120,15 +120,15 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             {lead.phone && (
               <div className="flex gap-2 mt-4 pt-4 border-t border-[var(--line-soft)]">
                 <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 transition">
-                  <Phone size={13} /> Call
+                   Call
                 </a>
                 <a href={`https://wa.me/${lead.phone.replace(/^0/, '233')}`} target="_blank"
                   className="flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition">
-                  <MessageSquare size={13} /> WhatsApp
+                   WhatsApp
                 </a>
                 {lead.email && (
                   <a href={`mailto:${lead.email}`} className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
-                    <Mail size={13} /> Email
+                     Email
                   </a>
                 )}
               </div>

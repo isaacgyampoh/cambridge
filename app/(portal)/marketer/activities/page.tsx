@@ -85,7 +85,7 @@ export default function ActivitiesPage() {
 
       {overdue.length > 0 && (
         <div className="bg-[var(--danger-soft)] border border-[var(--danger)]/20 rounded-2xl p-4 mb-5 flex items-center gap-3">
-          <AlertTriangle size={20} className="text-[var(--danger)] flex-shrink-0" />
+          
           <div>
             <div className="text-sm font-bold text-red-700">{overdue.length} overdue follow-up{overdue.length > 1 ? 's': ''}!</div>
             <div className="text-xs text-[var(--danger)]">These should have been done already. Take action now.</div>
@@ -111,7 +111,7 @@ export default function ActivitiesPage() {
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
       ) : queue.length === 0 ? (
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-          <CheckCircle size={40} className="mx-auto mb-3 opacity-30 text-green-500" />
+          
           <p className="font-medium">All caught up! </p>
           <p className="text-sm mt-1">No follow-ups due. Keep up the great work!</p>
         </div>
@@ -134,7 +134,7 @@ export default function ActivitiesPage() {
                     {lead?.course_interest && <div className="text-xs text-[var(--accent)] mb-1"> {lead.course_interest}</div>}
                     {item.reason && <div className="text-xs text-[var(--ink-faint)] mb-2 line-clamp-2">{item.reason}</div>}
                     <div className="flex items-center gap-1 text-xs text-[var(--ink-faint)]">
-                      <Clock size={11} />
+                      
                       <span className={isOverdue ? 'text-[var(--danger)] font-semibold': ''}>{formatDateTime(item.follow_up_at)}</span>
                     </div>
                   </div>
@@ -144,17 +144,17 @@ export default function ActivitiesPage() {
                       <div className="flex gap-1">
                         <a href={`tel:${lead.phone}`}
                           className="w-9 h-9 rounded-xl bg-[var(--ok-soft)] flex items-center justify-center hover:bg-green-200 transition">
-                          <Phone size={14} className="text-[var(--ok)]" />
+                          
                         </a>
                         <a href={`https://wa.me/${lead.phone.replace(/^0/, '233')}`} target="_blank"
                           className="w-9 h-9 rounded-xl bg-[#25D366]/10 flex items-center justify-center hover:bg-[#25D366]/20 transition">
-                          <MessageSquare size={14} className="text-[#25D366]" />
+                          
                         </a>
                       </div>
                     )}
                     <button onClick={() => markDone(item.id)}
                       className="flex items-center gap-1 px-3 py-1.5 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
-                      <CheckCircle size={12} /> Done
+                       Done
                     </button>
                     <div className="flex gap-1">
                       {[1, 4, 24].map(h => (

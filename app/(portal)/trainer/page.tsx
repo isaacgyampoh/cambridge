@@ -92,7 +92,7 @@ export default function TrainerDashboard() {
                 className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected===b.id?'border-blue-600':'border-[var(--line-soft)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
-                    <BookOpen size={16} className="text-[var(--accent)]" />
+                    
                   </div>
                   <div className="min-w-0">
                     <div className="text-sm font-semibold text-[var(--ink)] truncate">{b.name}</div>
@@ -108,7 +108,7 @@ export default function TrainerDashboard() {
           <div className="lg:col-span-2">
             {!selected ? (
               <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center text-[var(--ink-faint)]">
-                <CheckSquare size={36} className="mx-auto mb-3 opacity-50" />
+                
                 <p>Select a class to take attendance</p>
               </div>
             ) : (

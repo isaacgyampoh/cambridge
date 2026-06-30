@@ -262,7 +262,7 @@ export default function MarketerPerformancePage() {
             <div className="flex gap-2">
               <button onClick={() => sendAlert(selected)} disabled={sendingAlert || !alertMsg.trim()}
                 className="flex-1 h-11 bg-orange-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-orange-600 transition flex items-center justify-center gap-2">
-                <Bell size={16} />
+                
                 {sendingAlert ? 'Sending...': 'Send Alert'}
               </button>
               <button onClick={() => { setSelected(null); setAlertMsg('') }}
@@ -300,7 +300,7 @@ export default function MarketerPerformancePage() {
                     )}
                     <button onClick={() => setSelected(m)}
                       className="flex items-center gap-1.5 px-3 py-2 bg-[var(--warn-soft)] text-[var(--warn)] rounded-xl text-xs font-semibold hover:bg-orange-200 transition">
-                      <Bell size={13} /> Alert
+                       Alert
                     </button>
                   </div>
                 </div>
@@ -377,7 +377,7 @@ export default function MarketerPerformancePage() {
           })}
           {marketers.length === 0 && !loading && (
             <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              <Users size={40} className="mx-auto mb-3 opacity-30" />
+              
               <p>No marketing officers found</p>
             </div>
           )}

@@ -68,7 +68,7 @@ export default function CertificatesPage() {
         eyebrow="Academics"
         title="Certificate registry"
         description="Issue certificates to students who completed their class and paid full fees. Online students get a download link automatically."
-        actions={<button onClick={exportRegistry} className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)]"><Download size={15} /> Export registry</button>}
+        actions={<button onClick={exportRegistry} className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)]"> Export registry</button>}
       />
 
       {/* Ready to issue */}
@@ -82,7 +82,7 @@ export default function CertificatesPage() {
                   <div className="text-sm font-medium text-[var(--ink)]">{e.full_name}</div>
                   <div className="text-[12px] text-[var(--ink-faint)]">{e.batch?.course?.name || e.batch?.name} · completed</div>
                 </div>
-                <Button size="sm" onClick={() => openIssue(e)} icon={<Award size={13} />}>Issue certificate</Button>
+                <Button size="sm" onClick={() => openIssue(e)} >Issue certificate</Button>
               </div>
             ))}
           </div>
@@ -93,12 +93,12 @@ export default function CertificatesPage() {
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-[var(--line)]">
           <div className="relative max-w-xs">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search certificates..." className={inputClass + ' pl-9'} />
           </div>
         </div>
         {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-          <EmptyState icon={<Award size={20} />} title="No certificates issued yet"
+          <EmptyState  title="No certificates issued yet"
             description="When students complete a class and pay full fees, issue their certificates here." />
         ) : (
           <div className="overflow-x-auto">
@@ -122,7 +122,7 @@ export default function CertificatesPage() {
                       {c.download_token && (
                         <button onClick={() => { navigator.clipboard.writeText(`${CONFIG.appUrl}/certificate/${c.download_token}`); toast.success('Download link copied') }}
                           className="inline-flex items-center gap-1 text-xs text-[var(--accent)] font-medium hover:underline">
-                          <Copy size={12} /> Link
+                           Link
                         </button>
                       )}
                     </td>
@@ -140,7 +140,7 @@ export default function CertificatesPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Issue certificate</h2>
-              <button onClick={() => setIssueFor(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+              <button onClick={() => setIssueFor(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
             </div>
             <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4">
               <div className="text-sm font-semibold text-[var(--ink)]">{issueFor.full_name}</div>
@@ -159,7 +159,7 @@ export default function CertificatesPage() {
               <p className="text-xs text-[var(--ink-faint)]">The student gets a page where they can download this. Upload the file or paste a link.</p>
             </div>
             <div className="flex gap-2 mt-6">
-              <Button onClick={() => issue(true)} disabled={issuing} icon={<Send size={15} />}>
+              <Button onClick={() => issue(true)} disabled={issuing} >
                 {issuing ? 'Issuing…' : 'Issue & send to student'}
               </Button>
               <Button variant="secondary" onClick={() => issue(false)} disabled={issuing}>Save to registry only</Button>

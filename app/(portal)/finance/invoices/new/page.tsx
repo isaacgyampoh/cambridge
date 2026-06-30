@@ -46,7 +46,7 @@ export default function NewInvoice() {
   return (
     <div className="fade-in w-full">
       <Link href="/finance" className="inline-flex items-center gap-2 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
-        <ArrowLeft size={16} /> Back to invoices
+         Back to invoices
       </Link>
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6">
         <h1 className="font-semibold text-[var(--ink)] mb-5">Create Invoice</h1>

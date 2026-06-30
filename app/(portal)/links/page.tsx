@@ -26,7 +26,7 @@ export default function MyLinksPage() {
       <Card className="p-5 mb-5">
         <div className="flex items-start gap-3">
           <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0">
-            <MessageSquareQuote size={18} className="text-[var(--accent)]" />
+            
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-[var(--ink)] text-sm">Testimonial collection link</div>
@@ -35,7 +35,7 @@ export default function MyLinksPage() {
               <code className="flex-1 text-xs bg-[var(--canvas)] rounded-lg px-3 py-2 text-[var(--ink-soft)] truncate">{testimonialLink}</code>
               <button onClick={() => { navigator.clipboard.writeText(testimonialLink); toast.success('Testimonial link copied') }}
                 className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[var(--accent)] text-white text-xs font-medium flex-shrink-0">
-                <Copy size={13} /> Copy
+                 Copy
               </button>
             </div>
           </div>
@@ -44,7 +44,7 @@ export default function MyLinksPage() {
 
       <SharedLinks />
       {hasLinks === false && (
-        <EmptyState icon={<Link2 size={20} />} title="No links right now"
+        <EmptyState  title="No links right now"
           description="When the office shares a link, it shows up here." />
       )}
     </div>

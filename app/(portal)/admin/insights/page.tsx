@@ -51,10 +51,10 @@ export default function InsightsPage() {
       {loading || !data ? <Spinner /> : (
         <>
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-            <StatCard label="Leads" value={data.totals.leads} sub={`last ${days} days`} icon={<TrendingUp size={18} />} />
-            <StatCard label="Conversion rate" value={`${data.totals.convRate}%`} sub={`${data.totals.conversions} converted`} icon={<Target size={18} />} accent />
-            <StatCard label="Revenue" value={formatGHS(data.totals.revenue)} sub="collected" icon={<DollarSign size={18} />} />
-            <StatCard label="Active students" value={data.totals.students} sub={`${data.totals.activeStaff} staff`} icon={<Users size={18} />} />
+            <StatCard label="Leads" value={data.totals.leads} sub={`last ${days} days`}  />
+            <StatCard label="Conversion rate" value={`${data.totals.convRate}%`} sub={`${data.totals.conversions} converted`}  accent />
+            <StatCard label="Revenue" value={formatGHS(data.totals.revenue)} sub="collected"  />
+            <StatCard label="Active students" value={data.totals.students} sub={`${data.totals.activeStaff} staff`}  />
           </div>
 
           {/* Trend chart */}

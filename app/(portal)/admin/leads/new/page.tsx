@@ -102,7 +102,7 @@ export default function NewLeadPage() {
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/leads"
           className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
-          <ArrowLeft size={15} /> Leads
+           Leads
         </Link>
         <div>
           <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Add New Lead</h1>
@@ -217,7 +217,7 @@ export default function NewLeadPage() {
               className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
               {saving
                 ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving...</>
-                : <><UserPlus size={16} /> Add Lead</>}
+                : <> Add Lead</>}
             </button>
             <Link href="/admin/leads"
               className="w-full h-11 flex items-center justify-center bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">

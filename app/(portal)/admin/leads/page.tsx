@@ -65,10 +65,10 @@ export default function AdminLeads() {
         description="Every prospective student, with their source, stage and owner."
         actions={
           <>
-            <Button variant="secondary" href="/admin/leads/import" icon={<Upload size={14} />}>Import</Button>
-            <Button variant="secondary" onClick={exportExcel} icon={<FileSpreadsheet size={14} />}>Excel</Button>
-            <Button variant="secondary" onClick={exportCSV} icon={<Download size={14} />}>CSV</Button>
-            <Button href="/admin/leads/new" icon={<Plus size={15} />}>Add lead</Button>
+            <Button variant="secondary" href="/admin/leads/import" >Import</Button>
+            <Button variant="secondary" onClick={exportExcel} >Excel</Button>
+            <Button variant="secondary" onClick={exportCSV} >CSV</Button>
+            <Button href="/admin/leads/new" >Add lead</Button>
           </>
         }
       />
@@ -76,7 +76,7 @@ export default function AdminLeads() {
       {/* Filters */}
       <div className="flex flex-wrap gap-3 mb-5">
         <div className="flex-1 min-w-56 relative">
-          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+          
           <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email or phone"
             className={inputClass.replace('h-11', 'h-10') + ' pl-9'} />
         </div>
@@ -95,7 +95,7 @@ export default function AdminLeads() {
       <Card className="overflow-hidden">
         {loading ? <Spinner /> : filtered.length === 0 ? (
           <div className="py-16">
-            <EmptyState icon={<Search size={20} />} title="No leads match" description="Try adjusting your search or filters, or add a new lead." />
+            <EmptyState  title="No leads match" description="Try adjusting your search or filters, or add a new lead." />
           </div>
         ) : (
           <div className="overflow-x-auto">

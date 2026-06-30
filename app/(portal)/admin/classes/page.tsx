@@ -112,14 +112,14 @@ export default function ClassesPage() {
         eyebrow="Academics"
         title="Classes"
         description="Class batches running against your courses, with trainers, schedules and venues."
-        actions={<Button onClick={() => setModal(true)} icon={<Plus size={15} />}>New class</Button>}
+        actions={<Button onClick={() => setModal(true)} >New class</Button>}
       />
 
       <Modal open={modal} onClose={() => setModal(false)} maxWidth="max-w-md">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">New class</h2>
-            <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition"><X size={20} /></button>
+            <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition"></button>
           </div>
           <div className="space-y-4">
             <Field label="Class name" required>
@@ -172,10 +172,10 @@ export default function ClassesPage() {
 
       {loading ? <Spinner /> : batches.length === 0 ? (
         <EmptyState
-          icon={<GraduationCap size={22} />}
+          
           title="No classes yet"
           description="Create a class batch from one of your courses to begin enrolling students."
-          action={<Button onClick={() => setModal(true)} icon={<Plus size={15} />}>New class</Button>}
+          action={<Button onClick={() => setModal(true)} >New class</Button>}
         />
       ) : (
         <div className="space-y-3 stagger">
@@ -187,16 +187,16 @@ export default function ClassesPage() {
                 <div className="flex items-start justify-between gap-4">
                   <div className="flex items-start gap-4 min-w-0">
                     <div className="w-11 h-11 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0">
-                      <GraduationCap size={20} className="text-[var(--accent)]" />
+                      
                     </div>
                     <div className="min-w-0">
                       <h3 className="font-display text-lg font-semibold text-[var(--ink)] leading-snug">{b.name}</h3>
                       <p className="text-sm text-[var(--ink-soft)]">{course?.name}</p>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2.5 text-xs text-[var(--ink-faint)]">
-                        {b.start_date && <span className="flex items-center gap-1.5"><Calendar size={12} />{formatDate(b.start_date)}</span>}
-                        {b.schedule && <span className="flex items-center gap-1.5"><Clock size={12} />{b.schedule}</span>}
-                        {trainer && <span className="flex items-center gap-1.5"><User size={12} />{trainer.full_name}</span>}
-                        {b.venue && <span className="flex items-center gap-1.5"><MapPin size={12} />{b.venue}</span>}
+                        {b.start_date && <span className="flex items-center gap-1.5">{formatDate(b.start_date)}</span>}
+                        {b.schedule && <span className="flex items-center gap-1.5">{b.schedule}</span>}
+                        {trainer && <span className="flex items-center gap-1.5">{trainer.full_name}</span>}
+                        {b.venue && <span className="flex items-center gap-1.5">{b.venue}</span>}
                         <Badge tone={b.class_type === 'online' ? 'accent' : 'neutral'}>{b.class_type === 'online' ? 'Online' : 'In person'}</Badge>
                       </div>
                     </div>
@@ -218,7 +218,7 @@ export default function ClassesPage() {
                         placeholder="https://zoom.us/j/..."
                         className="flex-1 min-w-[200px] h-10 px-3 rounded-lg border border-[var(--line)] text-sm font-mono focus:outline-none focus:border-[var(--accent)]" />
                       <Button size="sm" variant="secondary" disabled={zoomSending === b.id} onClick={() => saveZoomOnly(b.id, b.zoom_link || '')}>Save</Button>
-                      <Button size="sm" disabled={zoomSending === b.id} onClick={() => sendZoom(b.id, b.zoom_link || '')} icon={<Send size={13} />}>
+                      <Button size="sm" disabled={zoomSending === b.id} onClick={() => sendZoom(b.id, b.zoom_link || '')} >
                         {zoomSending === b.id ? 'Sending…' : 'Send to students'}
                       </Button>
                     </div>
@@ -230,7 +230,7 @@ export default function ClassesPage() {
                 <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
                   <Link href={`/admin/classes/${b.id}/students`}
                     className="inline-flex items-center gap-1.5 h-9 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
-                    <Users size={14} /> Manage students
+                     Manage students
                   </Link>
                 </div>
 
@@ -249,14 +249,14 @@ export default function ClassesPage() {
                         placeholder="Optional note to students..." rows={2}
                         className="w-full px-3 py-2 rounded-lg border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
                       <div className="flex gap-2">
-                        <Button size="sm" disabled={matSending} onClick={() => sendMaterials(b.id)} icon={<Send size={13} />}>
+                        <Button size="sm" disabled={matSending} onClick={() => sendMaterials(b.id)} >
                           {matSending ? 'Sending…' : 'Send to students'}
                         </Button>
                         <Button size="sm" variant="secondary" onClick={() => { setMatOpen(null); setMatForm({ title: '', link: '', note: '' }) }}>Cancel</Button>
                       </div>
                     </div>
                   ) : (
-                    <Button size="sm" variant="secondary" onClick={() => setMatOpen(b.id)} icon={<Send size={13} />}>Send course materials</Button>
+                    <Button size="sm" variant="secondary" onClick={() => setMatOpen(b.id)} >Send course materials</Button>
                   )}
                   <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">Shares materials with every enrolled student by WhatsApp (SMS fallback) and email.</p>
                 </div>

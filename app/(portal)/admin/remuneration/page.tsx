@@ -43,19 +43,19 @@ export default function AdminRemuneration() {
         eyebrow={`${year} remuneration`}
         title="Marketer ranks & salaries"
         description="Live standings from converted enrollments. Points, ranks and salary bands per the CCE Remuneration System."
-        actions={<Button variant="secondary" onClick={() => setSettingsOpen(true)} icon={<Settings2 size={14} />}>Point values</Button>}
+        actions={<Button variant="secondary" onClick={() => setSettingsOpen(true)} >Point values</Button>}
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Marketers ranked" value={ranked.length} sub={`of ${board.length}`} icon={<Users size={18} />} />
-        <StatCard label="Annual salary commitment" value={formatGHS(totals.commitment)} sub="across all ranked staff" icon={<Wallet size={18} />} accent />
-        <StatCard label="Top performer" value={topRank?.name?.split(' ')[0] || '—'} sub={topRank ? `${topRank.points} pts · ${topRank.rank}` : 'No data'} icon={<Trophy size={18} />} />
-        <StatCard label="Total points" value={board.reduce((a, m) => a + m.points, 0)} sub="earned this year" icon={<Award size={18} />} />
+        <StatCard label="Marketers ranked" value={ranked.length} sub={`of ${board.length}`}  />
+        <StatCard label="Annual salary commitment" value={formatGHS(totals.commitment)} sub="across all ranked staff"  accent />
+        <StatCard label="Top performer" value={topRank?.name?.split(' ')[0] || '—'} sub={topRank ? `${topRank.points} pts · ${topRank.rank}` : 'No data'}  />
+        <StatCard label="Total points" value={board.reduce((a, m) => a + m.points, 0)} sub="earned this year"  />
       </div>
 
       <SectionLabel>Leaderboard</SectionLabel>
       {loading ? <Spinner /> : board.length === 0 ? (
-        <EmptyState icon={<Trophy size={20} />} title="No marketers yet" description="Add marketing staff and credit enrollments to see standings." />
+        <EmptyState  title="No marketers yet" description="Add marketing staff and credit enrollments to see standings." />
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
@@ -106,7 +106,7 @@ export default function AdminRemuneration() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Programme point values</h2>
-            <button onClick={() => setSettingsOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            <button onClick={() => setSettingsOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
           <p className="text-sm text-[var(--ink-soft)] mb-5">Points each enrolled student earns the marketer. Corporate is a 40–200 valuation entered per deal.</p>
           <div className="space-y-3">

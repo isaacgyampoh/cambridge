@@ -62,24 +62,24 @@ export default function FinancePage() {
         actions={
           <>
             <Button variant="secondary" href="/finance/reports">Reports</Button>
-            <Button variant="secondary" href="/finance/invoices/new" icon={<FileText size={14} />}>Invoice</Button>
-            <Button onClick={() => setShowModal(true)} icon={<Plus size={15} />}>Record payment</Button>
+            <Button variant="secondary" href="/finance/invoices/new" >Invoice</Button>
+            <Button onClick={() => setShowModal(true)} >Record payment</Button>
           </>
         }
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-        <StatCard label="Total revenue" value={formatGHS(totalRevenue)} sub="collected to date" icon={<TrendingUp size={18} />} accent />
-        <StatCard label="Today" value={formatGHS(todayRev)} icon={<DollarSign size={18} />} />
-        <StatCard label="Transactions" value={paidPayments.length} sub="paid" icon={<Receipt size={18} />} />
-        <StatCard label="Outstanding" value={formatGHS(outstanding)} sub={outstanding > 0 ? 'across invoices' : 'all settled'} icon={<AlertCircle size={18} />} />
+        <StatCard label="Total revenue" value={formatGHS(totalRevenue)} sub="collected to date"  accent />
+        <StatCard label="Today" value={formatGHS(todayRev)}  />
+        <StatCard label="Transactions" value={paidPayments.length} sub="paid"  />
+        <StatCard label="Outstanding" value={formatGHS(outstanding)} sub={outstanding > 0 ? 'across invoices' : 'all settled'}  />
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} maxWidth="max-w-sm">
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Record payment</h2>
-            <button onClick={() => setShowModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><X size={20} /></button>
+            <button onClick={() => setShowModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
           <div className="space-y-4">
             <Field label="Student" required>
@@ -125,7 +125,7 @@ export default function FinancePage() {
       <Card className="overflow-hidden">
         {loading ? <Spinner /> : tab === 'payments' ? (
           payments.length === 0 ? (
-            <div className="py-12"><EmptyState icon={<Receipt size={20} />} title="No payments yet" description="Record your first payment to start tracking revenue." action={<Button onClick={() => setShowModal(true)}>Record payment</Button>} /></div>
+            <div className="py-12"><EmptyState  title="No payments yet" description="Record your first payment to start tracking revenue." action={<Button onClick={() => setShowModal(true)}>Record payment</Button>} /></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">
@@ -154,7 +154,7 @@ export default function FinancePage() {
           )
         ) : (
           invoices.length === 0 ? (
-            <div className="py-12"><EmptyState icon={<FileText size={20} />} title="No invoices yet" description="Create an invoice to bill a student." action={<Button href="/finance/invoices/new">Create invoice</Button>} /></div>
+            <div className="py-12"><EmptyState  title="No invoices yet" description="Create an invoice to bill a student." action={<Button href="/finance/invoices/new">Create invoice</Button>} /></div>
           ) : (
             <div className="overflow-x-auto">
               <table className="w-full">

@@ -59,15 +59,15 @@ export default function FinanceRegistrations() {
       />
 
       <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-8">
-        <StatCard label="Registered students" value={data.totals.students} icon={<GraduationCap size={18} />} accent />
-        <StatCard label="Total registration fees" value={formatGHS(data.totals.commission)} sub="GHS 200 each" icon={<Wallet size={18} />} />
-        <StatCard label="Marketers earning" value={data.byMarketer.length} icon={<Users size={18} />} />
+        <StatCard label="Registered students" value={data.totals.students}  accent />
+        <StatCard label="Total registration fees" value={formatGHS(data.totals.commission)} sub="GHS 200 each"  />
+        <StatCard label="Marketers earning" value={data.byMarketer.length}  />
       </div>
 
       {/* Commission by marketer — whose money is whose */}
       <SectionLabel>Registration commission by marketer</SectionLabel>
       {data.byMarketer.length === 0 ? (
-        <EmptyState icon={<Wallet size={20} />} title="No registrations yet" description="Registered students will appear here grouped by their marketer." />
+        <EmptyState  title="No registrations yet" description="Registered students will appear here grouped by their marketer." />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
           {data.byMarketer.map((m: any) => (
@@ -90,11 +90,11 @@ export default function FinanceRegistrations() {
                     </div>
                     <button onClick={() => markPaid(m.id, m.name, m.unpaidCommission)} disabled={payingId === m.id}
                       className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md bg-[var(--accent)] text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition">
-                      <Check size={12} /> {payingId === m.id ? 'Saving…' : 'Mark paid'}
+                       {payingId === m.id ? 'Saving…' : 'Mark paid'}
                     </button>
                   </>
                 ) : (
-                  <div className="flex items-center gap-1 text-xs text-[var(--ok)] font-medium"><Check size={12} /> All paid out</div>
+                  <div className="flex items-center gap-1 text-xs text-[var(--ok)] font-medium"> All paid out</div>
                 )}
               </div>
             </div>
@@ -107,18 +107,18 @@ export default function FinanceRegistrations() {
         <SectionLabel>{marketerFilter === 'all' ? 'All registrations' : `${data.byMarketer.find((m: any) => m.id === marketerFilter)?.name}'s registrations`}</SectionLabel>
         <div className="flex gap-2">
           <div className="relative">
-            <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+            
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search" className={inputClass.replace('h-11', 'h-9') + ' pl-9 w-44'} />
           </div>
           <button onClick={exportRows} className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[var(--line)] text-sm font-medium text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition">
-            <Download size={14} /> Excel
+             Excel
           </button>
         </div>
       </div>
 
       <Card className="overflow-hidden">
         {rows.length === 0 ? (
-          <div className="py-12"><EmptyState icon={<GraduationCap size={20} />} title="No registrations" description="Nothing matches your filter." /></div>
+          <div className="py-12"><EmptyState  title="No registrations" description="Nothing matches your filter." /></div>
         ) : (
           <div className="overflow-x-auto">
             <table className="w-full">

@@ -175,7 +175,7 @@ export default function DocumentsPage() {
           onChange={e => { const f = e.target.files?.[0]; if (f) upload(f) }} />
         <button onClick={() => fileRef.current?.click()} disabled={uploading || !form.name}
           className="flex items-center gap-2 px-5 py-2.5 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition">
-          <Upload size={16} />
+          
           {uploading ? 'Uploading...' : 'Choose PDF & Upload'}
         </button>
       </div>
@@ -186,7 +186,7 @@ export default function DocumentsPage() {
           <div className="p-6 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-[var(--ink)]">Send to Students</h2>
-              <button onClick={() => setSendModal(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"><X size={20} /></button>
+              <button onClick={() => setSendModal(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"></button>
             </div>
             <p className="text-sm text-[var(--ink-faint)] mb-4">Select students to send <strong>{sendModal?.name}</strong> via email.</p>
 
@@ -220,7 +220,7 @@ export default function DocumentsPage() {
             <div className="flex gap-2">
               <button onClick={sendToStudents} disabled={sending || !selectedStudents.length}
                 className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
-                <Send size={16} />
+                
                 {sending ? 'Sending...' : `Send to ${selectedStudents.length} student${selectedStudents.length !== 1 ? 's' : ''}`}
               </button>
               <button onClick={() => setSendModal(null)} className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
@@ -234,7 +234,7 @@ export default function DocumentsPage() {
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
       ) : docs.length === 0 ? (
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-          <FileText size={40} className="mx-auto mb-3 opacity-30" />
+          
           <p>No documents yet. Upload your first PDF above.</p>
         </div>
       ) : (
@@ -243,7 +243,7 @@ export default function DocumentsPage() {
             <div key={doc.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-10 h-10 rounded-xl bg-[var(--danger-soft)] flex items-center justify-center flex-shrink-0">
-                  <FileText size={20} className="text-[var(--danger)]" />
+                  
                 </div>
                 <div className="flex gap-1 ml-2">
                   {doc.is_template && (
@@ -262,15 +262,15 @@ export default function DocumentsPage() {
               <div className="flex gap-2">
                 <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
                   className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">
-                  <Download size={13} /> View
+                   View
                 </a>
                 <button onClick={() => openSendModal(doc)}
                   className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
-                  <Send size={13} /> Send
+                   Send
                 </button>
                 <button onClick={() => deleteDoc(doc.id, doc.file_url)}
                   className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition">
-                  <Trash2 size={13} />
+                  
                 </button>
               </div>
             </div>

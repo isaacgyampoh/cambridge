@@ -39,9 +39,9 @@ export default function CourseLeadsHub() {
       />
 
       {loading ? <Spinner /> : activeCourses.length === 0 ? (
-        <EmptyState icon={<GraduationCap size={20} />} title="No courses yet"
+        <EmptyState  title="No courses yet"
           description={isAdmin ? "Create a course first — its lead page appears here automatically." : "No course pages are available yet. Your administrator will set these up."}
-          action={isAdmin ? <Link href="/admin/courses" className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium"><Plus size={15} /> Add a course</Link> : undefined} />
+          action={isAdmin ? <Link href="/admin/courses" className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium"> Add a course</Link> : undefined} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {activeCourses.map((course: any) => {
@@ -52,9 +52,9 @@ export default function CourseLeadsHub() {
                 <Card hover className="p-5 h-full">
                   <div className="flex items-start justify-between mb-4">
                     <div className="w-11 h-11 rounded-xl bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center">
-                      <GraduationCap size={20} />
+                      
                     </div>
-                    <ArrowRight size={16} className="text-[var(--ink-faint)]" />
+                    
                   </div>
                   <div className="font-semibold text-[var(--ink)] mb-1">{course.name}</div>
                   {course.code && <div className="text-[12px] text-[var(--ink-faint)] mb-3">{course.code}</div>}

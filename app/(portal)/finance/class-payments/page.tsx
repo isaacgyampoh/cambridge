@@ -44,7 +44,7 @@ export default function ClassPaymentsPage() {
         <>
           <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Pending ({pending.length})</p>
           {pending.length === 0 ? (
-            <EmptyState icon={<Banknote size={20} />} title="Nothing to verify" description="Bank and cash payments from sign-in will appear here." />
+            <EmptyState  title="Nothing to verify" description="Bank and cash payments from sign-in will appear here." />
           ) : (
             <div className="space-y-3 mb-8">
               {pending.map(p => (
@@ -66,7 +66,7 @@ export default function ClassPaymentsPage() {
                     )}
                     {p.screenshot_url && (
                       <a href={p.screenshot_url} target="_blank" rel="noopener noreferrer" className="inline-flex items-center gap-1 text-xs text-[var(--accent)] font-medium ml-auto">
-                        <ExternalLink size={13} /> View screenshot
+                         View screenshot
                       </a>
                     )}
                   </div>
@@ -76,8 +76,8 @@ export default function ClassPaymentsPage() {
                       <input value={amounts[p.id] ?? String(p.amount)} onChange={e => setAmounts(a => ({ ...a, [p.id]: e.target.value }))}
                         type="number" className={inputClass + ' w-24 h-9'} />
                     </div>
-                    <Button size="sm" disabled={acting === p.id} onClick={() => decide(p, 'verify')} icon={<Check size={14} />}>Verify</Button>
-                    <Button size="sm" variant="secondary" disabled={acting === p.id} onClick={() => decide(p, 'reject')} icon={<X size={14} />}>Reject</Button>
+                    <Button size="sm" disabled={acting === p.id} onClick={() => decide(p, 'verify')} >Verify</Button>
+                    <Button size="sm" variant="secondary" disabled={acting === p.id} onClick={() => decide(p, 'reject')} >Reject</Button>
                   </div>
                 </Card>
               ))}

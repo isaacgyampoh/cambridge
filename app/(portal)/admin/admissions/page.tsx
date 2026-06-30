@@ -78,7 +78,7 @@ export default function AdminAdmissions() {
       </div>
 
       {loading ? <Spinner /> : filtered.length === 0 ? (
-        <EmptyState icon={<UserCheck size={20} />} title="Nothing here" description="No admissions in this category yet." />
+        <EmptyState  title="Nothing here" description="No admissions in this category yet." />
       ) : (
         <div className="space-y-3 stagger">
           {filtered.map((a: any) => {
@@ -94,8 +94,8 @@ export default function AdminAdmissions() {
                       <div className="font-medium text-[var(--ink)]">{lead?.full_name || 'Unknown'}</div>
                       <div className="text-sm text-[var(--ink-soft)]">{a.course?.name || lead?.course_interest || 'No course set'}</div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-[var(--ink-faint)]">
-                        {lead?.phone && <span className="flex items-center gap-1.5"><Phone size={12} />{lead.phone.replace(/^233/, '0')}</span>}
-                        {lead?.email && <span className="flex items-center gap-1.5"><Mail size={12} />{lead.email}</span>}
+                        {lead?.phone && <span className="flex items-center gap-1.5">{lead.phone.replace(/^233/, '0')}</span>}
+                        {lead?.email && <span className="flex items-center gap-1.5">{lead.email}</span>}
                         <span>{formatDateTime(a.created_at)}</span>
                         {lead?.assignee?.full_name && <span className="flex items-center gap-1.5 text-[var(--accent)] font-medium">Registered by {lead.assignee.full_name.split(' ')[0]}</span>}
                       </div>

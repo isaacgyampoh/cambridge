@@ -45,7 +45,7 @@ export default function PrepActivityPage() {
       </div>
 
       {loading ? <Spinner /> : activity.length === 0 ? (
-        <EmptyState icon={<Activity size={20} />} title="No activity yet"
+        <EmptyState  title="No activity yet"
           description="When coordinators add students, leave comments, or update records, it shows here." />
       ) : (
         <Card className="overflow-hidden">
@@ -55,9 +55,6 @@ export default function PrepActivityPage() {
               const Icon = meta.icon
               return (
                 <div key={a.id} className="flex items-start gap-3 px-4 py-3.5">
-                  <div className="w-8 h-8 rounded-lg bg-[var(--canvas)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                    <Icon size={15} className="text-[var(--ink-soft)]" />
-                  </div>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium text-[var(--ink)]">{a.actor_name || 'Coordinator'}</span>

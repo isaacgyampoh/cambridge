@@ -180,7 +180,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   return (
     <div className="fade-in w-full">
       <Link href="/marketer"className="inline-flex items-center gap-2 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
-        <ArrowLeft size={16} /> Back to my leads
+         Back to my leads
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
@@ -234,18 +234,18 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 <>
                   <a href={`tel:${lead.phone}`}
                     className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
-                    <Phone size={14} /> Call
+                     Call
                   </a>
                   <a href={`https://wa.me/${lead.phone.replace(/^0/, '233').replace(/^\+/, '')}`} target="_blank"
                     className="flex items-center gap-1.5 px-4 py-2 bg-[#25D366] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition">
-                    <MessageSquare size={14} /> WhatsApp
+                     WhatsApp
                   </a>
                 </>
               )}
               {lead.email && (
                 <a href={`mailto:${lead.email}`}
                   className="flex items-center gap-1.5 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
-                  <Mail size={14} /> Email
+                   Email
                 </a>
               )}
             </div>
@@ -301,7 +301,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
               <button onClick={logActivity} disabled={savingAct}
                 className="w-full h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
-                <Plus size={16} />
+                
                 {savingAct ? 'Saving...': 'Log Activity'}
               </button>
             </div>
@@ -327,7 +327,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                         {a.outcome && <div className="text-xs text-[var(--accent)] mt-1 font-medium">Result: {a.outcome}</div>}
                         {a.next_follow_up && (
                           <div className="text-xs text-orange-600 mt-1 flex items-center gap-1">
-                            <Clock size={10} /> Follow up: {formatDateTime(a.next_follow_up)}
+                             Follow up: {formatDateTime(a.next_follow_up)}
                           </div>
                         )}
                         <div className="text-[10px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)} · {(a as any).creator?.full_name || 'You'}</div>
@@ -397,7 +397,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
         <div className="p-6">
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Register student</h2>
-            <button onClick={() => setRegOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"><Plus size={20} className="rotate-45" /></button>
+            <button onClick={() => setRegOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
           </div>
           <p className="text-sm text-[var(--ink-soft)] mb-5">{lead?.full_name}</p>
 
