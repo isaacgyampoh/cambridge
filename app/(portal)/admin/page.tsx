@@ -69,9 +69,8 @@ export default function AdminDashboard() {
     <div className="fade-in w-full">
       {/* Header */}
       <div className="mb-8">
-        <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">{dateStr}</div>
-        <h1 className="font-display text-[30px] leading-tight font-semibold text-[var(--ink)]">{greeting}</h1>
-        <p className="text-[var(--ink-soft)] text-sm mt-1.5">Here is where things stand across the centre today.</p>
+        <h1 className="font-display text-[28px] sm:text-[32px] font-semibold text-[var(--ink)]">{greeting}</h1>
+        <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">Here's what's happening across the centre today.</p>
       </div>
 
       {/* Metrics */}

@@ -105,8 +105,8 @@ export function StatCard({
   return (
     <div className={`relative rounded-2xl border p-5 overflow-hidden transition-all duration-200
       ${accent
-        ? 'bg-[var(--accent)] border-[var(--accent)] text-white shadow-[0_4px_20px_rgba(47,128,214,0.20)]'
-        : 'bg-[var(--paper)] border-[var(--line)] shadow-[0_1px_2px_rgba(31,29,26,0.04)]'}`}>
+        ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
+        : 'bg-[var(--paper)] border-[var(--line)]'}`}>
       <div className="flex items-start justify-between mb-3">
         <div className={`text-[14px] font-medium ${accent ? 'text-white/80' : 'text-[var(--ink-soft)]'}`}>
           {label}
@@ -126,12 +126,12 @@ export function StatCard({
           {(sub || trend) && (
             <div className="flex items-center gap-2 mt-2">
               {trend && (
-                <span className={`inline-flex items-center gap-0.5 text-[11px] font-semibold px-1.5 py-0.5 rounded-md
-                  ${accent ? 'bg-white/15 text-white' : trend.up ? 'bg-emerald-50 text-emerald-600' : 'bg-red-50 text-red-500'}`}>
-                  {trend.up ? <ArrowUpRight size={11} strokeWidth={2.5} /> : <ArrowDownRight size={11} strokeWidth={2.5} />} {trend.value}
+                <span className={`inline-flex items-center gap-0.5 text-[12px] font-semibold px-1.5 py-0.5 rounded-md
+                  ${accent ? 'bg-white/15 text-white' : trend.up ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
+                  {trend.up ? <ArrowUpRight size={12} strokeWidth={2.5} /> : <ArrowDownRight size={12} strokeWidth={2.5} />} {trend.value}
                 </span>
               )}
-              {sub && <span className={`text-xs ${accent ? 'text-white/60' : 'text-[var(--ink-faint)]'}`}>{sub}</span>}
+              {sub && <span className={`text-[13px] ${accent ? 'text-white/60' : 'text-[var(--ink-faint)]'}`}>{sub}</span>}
             </div>
           )}
         </div>
