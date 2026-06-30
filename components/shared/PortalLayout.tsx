@@ -6,6 +6,7 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import CommandPalette from '@/components/shared/CommandPalette'
 import NotificationBell from '@/components/shared/NotificationBell'
+import GyampohAI from '@/components/shared/GyampohAI'
 import {
   LayoutDashboard, Users, UserCheck, DollarSign, BookOpen,
   Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
@@ -419,6 +420,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--canvas)' }}>
       <CommandPalette />
+      <GyampohAI />
 
       {/* ── Desktop sidebar — always full width with labels (stable, clear) ── */}
       <div
