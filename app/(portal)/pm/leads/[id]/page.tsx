@@ -201,7 +201,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <div key={l.id} className="text-xs">
                     <div className="flex items-center gap-1.5">
                       <span className="text-[var(--ink-faint)] line-through">{l.old_status?.replace(/_/g,' ')}</span>
-                      <span className="text-[var(--ink-faint)]">→</span>
+                      <span className="text-[var(--ink-faint)]">to</span>
                       <span className={`font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[l.new_status]}`}>{l.new_status.replace(/_/g,' ')}</span>
                     </div>
                     <div className="text-[var(--ink-faint)] mt-0.5">{formatDateTime(l.created_at)}</div>

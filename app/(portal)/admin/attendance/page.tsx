@@ -148,8 +148,8 @@ export default function AttendanceDashboard() {
       {/* No batches warning */}
       {batches.length === 0 && (
         <div className="bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-2xl p-4 mb-5 text-sm text-amber-800">
-          <strong>No classes/batches found.</strong> Go to <span className="font-semibold">Academics → Courses</span> to add a course,
-          then <span className="font-semibold">Academics → Classes</span> to create a batch. Once a batch exists, it will appear here.
+          <strong>No classes/batches found.</strong> Go to <span className="font-semibold">Academics, then Courses</span> to add a course,
+          then <span className="font-semibold">Academics, then Classes</span> to create a batch. Once a batch exists, it will appear here.
         </div>
       )}
 
@@ -170,7 +170,7 @@ export default function AttendanceDashboard() {
                   {batches.map((b: any) => <option key={b.id} value={b.id}>{b.name} — {b.courses?.name}</option>)}
                 </select>
                 {batches.length === 0 && (
-                  <p className="text-xs text-[var(--danger)] mt-1">No batches available. Create one in Academics → Classes first.</p>
+                  <p className="text-xs text-[var(--danger)] mt-1">No batches available. Create one in Academics, then Classes first.</p>
                 )}
               </div>
               <div>

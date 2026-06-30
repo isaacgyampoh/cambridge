@@ -80,7 +80,7 @@ export default function AdminRemuneration() {
                     <td className="px-4 py-3"><Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge></td>
                     <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(m.grossSalary)}</td>
                     <td className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(m.registrationCommission)}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{m.nextRank ? `${m.pointsToNext} → ${m.nextRank}` : 'Top rank'}</td>
+                    <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{m.nextRank ? `${m.pointsToNext} to ${m.nextRank}` : 'Top rank'}</td>
                   </tr>
                 ))}
               </tbody>

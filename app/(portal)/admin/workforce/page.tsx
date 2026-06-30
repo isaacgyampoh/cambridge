@@ -72,7 +72,7 @@ export default function WorkforcePage() {
           <div className="flex items-start gap-3">
             
             <div className="text-sm text-amber-800">
-              <strong>No office location set.</strong> Staff cannot sign in until you set one. Stand at your office and use “Office location → Use my current location”.
+              <strong>No office location set.</strong> Staff cannot sign in until you set one. Stand at your office and use “Office location, then Use my current location”.
             </div>
           </div>
         </Card>
