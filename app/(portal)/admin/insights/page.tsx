@@ -68,7 +68,7 @@ export default function InsightsPage() {
                     <stop offset="95%" stopColor={ACCENT} stopOpacity={0} />
                   </linearGradient>
                 </defs>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
                 <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   tick={{ fontSize: 11, fill: '#a1a1aa' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={40} />
                 <YAxis tick={{ fontSize: 11, fill: '#a1a1aa' }} axisLine={false} tickLine={false} width={36} />
@@ -132,7 +132,7 @@ export default function InsightsPage() {
             <SectionLabel>Daily revenue</SectionLabel>
             <ResponsiveContainer width="100%" height={220}>
               <BarChart data={data.trend} margin={{ top: 10, right: 10, left: -10, bottom: 0 }}>
-                <CartesianGrid strokeDasharray="3 3" stroke="#eee" vertical={false} />
+                <CartesianGrid strokeDasharray="3 3" stroke="var(--line)" vertical={false} />
                 <XAxis dataKey="date" tickFormatter={(d) => new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
                   tick={{ fontSize: 11, fill: '#a1a1aa' }} axisLine={false} tickLine={false} interval="preserveStartEnd" minTickGap={40} />
                 <YAxis tick={{ fontSize: 11, fill: '#a1a1aa' }} axisLine={false} tickLine={false} width={44} tickFormatter={(v) => v >= 1000 ? `${v / 1000}k` : v} />

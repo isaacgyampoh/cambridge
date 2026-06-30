@@ -343,8 +343,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
             <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-8 text-center">
               <div className="w-16 h-16 rounded-full flex items-center justify-center mx-auto mb-5" style={{ background: "var(--accent-soft)" }}>
                 <svg width="32" height="32" viewBox="0 0 32 32" fill="none">
-                  <path d="M4 16C4 9.37 9.37 4 16 4s12 5.37 12 12-5.37 12-12 12S4 22.63 4 16z" stroke="#2563eb" strokeWidth="2"/>
-                  <path d="M10 16h12M16 10v12" stroke="#2563eb" strokeWidth="2" strokeLinecap="round"/>
+                  <path d="M4 16C4 9.37 9.37 4 16 4s12 5.37 12 12-5.37 12-12 12S4 22.63 4 16z" stroke="var(--accent)" strokeWidth="2"/>
+                  <path d="M10 16h12M16 10v12" stroke="var(--accent)" strokeWidth="2" strokeLinecap="round"/>
                 </svg>
               </div>
               <h2 className="text-xl font-bold text-[var(--ink)] mb-2">Pay Registration Fee</h2>
