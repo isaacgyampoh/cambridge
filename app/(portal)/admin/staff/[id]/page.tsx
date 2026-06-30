@@ -168,7 +168,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                   return (
                     <button key={portal.id} onClick={() => toggle(portal.id)} disabled={locked}
                       className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all
-                        ${on ? 'border-blue-500 bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-white hover:border-gray-300'}
+                        ${on ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-white hover:border-[var(--line)]'}
                         ${locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                       <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)]' : 'bg-[var(--line-soft)]'}`}>
                         <Icon size={17} className={on ? 'text-white' : 'text-[var(--ink-faint)]'} />
@@ -177,7 +177,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                         <div className={`text-sm font-bold truncate ${on ? 'text-[var(--accent)]' : 'text-[var(--ink-soft)]'}`}>{portal.label}</div>
                         <div className="text-[12px] text-[var(--ink-faint)] truncate">{PORTAL_DESC[portal.id] || ''}</div>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${on ? 'border-blue-600 bg-[var(--accent)]' : 'border-gray-300'}`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${on ? 'border-blue-600 bg-[var(--accent)]' : 'border-[var(--line)]'}`}>
                         {on && <div className="w-2 h-2 bg-white rounded-full"/>}
                       </div>
                     </button>

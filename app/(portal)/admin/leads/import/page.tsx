@@ -200,7 +200,7 @@ export default function ImportLeadsPage() {
               <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
               <button onClick={() => fileRef.current?.click()}
-                className="w-full h-28 border-2 border-dashed border-gray-300 rounded-2xl flex flex-col items-center justify-center gap-2 text-[var(--ink-faint)] hover:border-blue-400 hover:text-blue-500 hover:bg-[var(--accent-soft)] transition-all">
+                className="w-full h-28 border-2 border-dashed border-[var(--line)] rounded-2xl flex flex-col items-center justify-center gap-2 text-[var(--ink-faint)] hover:border-blue-400 hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-all">
                 <Upload size={24} />
                 <span className="text-sm font-semibold">Click to upload CSV file</span>
                 <span className="text-xs">or drag & drop</span>

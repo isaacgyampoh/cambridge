@@ -64,10 +64,10 @@ export default function TrainerDashboard() {
   }
 
   const ATT_OPTS = [
-    { key: 'present', label: 'P', color: 'bg-green-500' },
+    { key: 'present', label: 'P', color: 'bg-[var(--ok)]' },
     { key: 'absent', label: 'A', color: 'bg-red-500' },
     { key: 'late', label: 'L', color: 'bg-yellow-500' },
-    { key: 'excused', label: 'E', color: 'bg-blue-500' },
+    { key: 'excused', label: 'E', color: 'bg-[var(--accent)]' },
   ]
 
   return (
@@ -147,7 +147,7 @@ export default function TrainerDashboard() {
                             {ATT_OPTS.map(opt => (
                               <button key={opt.key}
                                 onClick={() => setAttendance(a => ({...a, [s.id]: opt.key}))}
-                                className={`w-8 h-8 rounded-lg text-xs font-bold text-white transition ${(attendance[s.id]||'present')===opt.key?opt.color:'bg-gray-200 text-[var(--ink-faint)] hover:bg-gray-300'}`}>
+                                className={`w-8 h-8 rounded-lg text-xs font-bold text-white transition ${(attendance[s.id]||'present')===opt.key?opt.color:'bg-[var(--line)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                                 {opt.label}
                               </button>
                             ))}

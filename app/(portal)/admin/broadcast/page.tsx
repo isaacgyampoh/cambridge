@@ -148,7 +148,7 @@ export default function BroadcastPage() {
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {TARGET_TYPES.map(t => (
                     <button key={t.value} onClick={() => setForm(f => ({ ...f, target_type: t.value, target_filters: {} }))}
-                      className={`text-left p-3 rounded-xl border-2 transition ${form.target_type === t.value ? 'border-blue-600 bg-[var(--accent-soft)]': 'border-[var(--line)] hover:border-gray-300'}`}>
+                      className={`text-left p-3 rounded-xl border-2 transition ${form.target_type === t.value ? 'border-blue-600 bg-[var(--accent-soft)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
                       <div className="text-sm font-semibold text-[var(--ink)]">{t.label}</div>
                       <div className="text-xs text-[var(--ink-faint)]">{t.desc}</div>
                     </button>
@@ -186,7 +186,7 @@ export default function BroadcastPage() {
                   <div className="mt-2 p-3 bg-[var(--accent-soft)] rounded-xl text-sm">
                     <span className="font-bold text-[var(--accent)]">{preview.count} recipients</span>
                     {preview.names?.length > 0 && (
-                      <span className="text-blue-500 ml-2">({preview.names.slice(0, 3).join(', ')}{preview.count > 3 ? ` +${preview.count - 3} more` : ''})</span>
+                      <span className="text-[var(--accent)] ml-2">({preview.names.slice(0, 3).join(', ')}{preview.count > 3 ? ` +${preview.count - 3} more` : ''})</span>
                     )}
                   </div>
                 )}

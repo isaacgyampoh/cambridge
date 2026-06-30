@@ -331,18 +331,18 @@ export default function MarketerPerformancePage() {
                     </div>
                     <div className="h-2 bg-[var(--line-soft)] rounded-full overflow-hidden flex">
                       {m.totalLeads > 0 && <>
-                        <div className="h-full bg-green-500"style={{ width: `${m.convertedLeads/m.totalLeads*100}%` }} title="Converted" />
+                        <div className="h-full bg-[var(--ok)]"style={{ width: `${m.convertedLeads/m.totalLeads*100}%` }} title="Converted" />
                         <div className="h-full bg-blue-400"style={{ width: `${m.interestedLeads/m.totalLeads*100}%` }} title="Interested" />
                         <div className="h-full bg-yellow-400"style={{ width: `${m.contactedLeads/m.totalLeads*100}%` }} title="Contacted" />
-                        <div className="h-full bg-gray-200"style={{ width: `${m.uncontactedLeads/m.totalLeads*100}%` }} title="New/Uncontacted" />
+                        <div className="h-full bg-[var(--line)]"style={{ width: `${m.uncontactedLeads/m.totalLeads*100}%` }} title="New/Uncontacted" />
                       </>}
                     </div>
                     <div className="flex gap-3 mt-1">
                       {[
-                        { color: 'bg-green-500', label: 'Converted'},
+                        { color: 'bg-[var(--ok)]', label: 'Converted'},
                         { color: 'bg-blue-400', label: 'Interested'},
                         { color: 'bg-yellow-400', label: 'Contacted'},
-                        { color: 'bg-gray-200', label: 'New'},
+                        { color: 'bg-[var(--line)]', label: 'New'},
                       ].map(l => (
                         <div key={l.label} className="flex items-center gap-1 text-[9px] text-[var(--ink-faint)]">
                           <div className={`w-2 h-2 rounded-full ${l.color}`} />

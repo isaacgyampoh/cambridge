@@ -199,7 +199,7 @@ export default function AttendanceDashboard() {
           <div className="space-y-2">
             {sessions.map((s: any) => (
               <button key={s.id} onClick={() => selectSession(s)}
-                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600': 'border-[var(--line)] hover:border-gray-300'}`}>
+                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between mb-1">
                   <div className="text-sm font-semibold text-[var(--ink)] truncate">{s.batches?.name}</div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>

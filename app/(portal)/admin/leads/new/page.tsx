@@ -128,7 +128,7 @@ export default function NewLeadPage() {
                       value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       placeholder={f.placeholder}
-                      className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-blue-50 transition"
+                      className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition"
                     />
                   </div>
                 </div>
@@ -156,7 +156,7 @@ export default function NewLeadPage() {
                   className={`h-10 px-3 rounded-xl text-sm font-medium border-2 transition text-left truncate ${
                     form.course_interest === c
                       ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
-                      : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300 hover:bg-[var(--line-soft)]'
+                      : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-[var(--line-soft)]'
                   }`}>
                   {c}
                 </button>
@@ -189,11 +189,11 @@ export default function NewLeadPage() {
                   className={`w-full flex items-center gap-3 h-11 px-4 rounded-xl text-sm font-semibold border-2 transition capitalize ${
                     form.source === s
                       ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
-                      : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'
+                      : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'
                   }`}>
                   <div className={`w-2.5 h-2.5 rounded-full flex-shrink-0 ${
-                    s==='facebook'?'bg-blue-500':s==='google'?'bg-red-500':s==='linkedin'?'bg-blue-800':
-                    s==='website'?'bg-purple-500':s==='referral'?'bg-green-500':'bg-gray-400'}`} />
+                    s==='facebook'?'bg-[var(--accent)]':s==='google'?'bg-red-500':s==='linkedin'?'bg-blue-800':
+                    s==='website'?'bg-[var(--gold)]':s==='referral'?'bg-[var(--ok)]':'bg-[var(--ink-faint)]'}`} />
                   {s}
                 </button>
               ))}

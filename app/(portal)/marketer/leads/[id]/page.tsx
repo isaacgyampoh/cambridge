@@ -274,7 +274,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div className="flex flex-wrap gap-2 mb-4">
               {ACTIVITY_TYPES.map(t => (
                 <button key={t.key} onClick={() => setActType(t.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'}`}>
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'}`}>
                   {t.label}
                 </button>
               ))}
@@ -370,7 +370,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               {STATUSES.map(s => (
                 <button key={s.key} onClick={() => setNewStatus(s.key)}
                   className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold border-2 transition ${
-                    newStatus === s.key ? STATUS_COLORS[s.key] + 'border-current': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'
+                    newStatus === s.key ? STATUS_COLORS[s.key] + 'border-current': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'
                   }`}>
                   {s.label}
                 </button>

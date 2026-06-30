@@ -99,7 +99,7 @@ export default function AdminReports() {
                   <span className="font-bold">{cnt} ({data.totalLeads ? Math.round(cnt/data.totalLeads*100) : 0}%)</span>
                 </div>
                 <div className="h-1.5 bg-[var(--line-soft)] rounded-full">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: `${data.totalLeads ? Math.round(cnt/data.totalLeads*100) : 0}%` }} />
+                  <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: `${data.totalLeads ? Math.round(cnt/data.totalLeads*100) : 0}%` }} />
                 </div>
               </div>
             ))}

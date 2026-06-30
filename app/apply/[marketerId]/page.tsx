@@ -435,7 +435,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
       <div className={card}>
         <div className="text-center mb-6">
           <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-soft)" }}>
-            <svg width="34" height="34" viewBox="0 0 40 40" fill="none"><path d="M8 20L16 28L32 12" stroke="#2f80d6" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
+            <svg width="34" height="34" viewBox="0 0 40 40" fill="none"><path d="M8 20L16 28L32 12" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-1">You're registered, {firstName}!</h1>
           <p className="text-sm text-[var(--ink-soft)]">Your admission letter is on its way by WhatsApp.</p>

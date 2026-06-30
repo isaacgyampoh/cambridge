@@ -96,10 +96,10 @@ export default function FinanceReports() {
         <div className="flex items-end gap-1 h-32">
           {Object.entries(data.daily).slice(-30).map(([date, amount]: any) => (
             <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-gray-900 text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 transition">
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[var(--ink)] text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 transition">
                 {date.slice(5)}: GHS {amount.toFixed(0)}
               </div>
-              <div className="w-full bg-blue-500 rounded-t transition-all hover:bg-[var(--accent)]"
+              <div className="w-full bg-[var(--accent)] rounded-t transition-all hover:bg-[var(--accent)]"
                 style={{ height: `${Math.round((amount / maxDaily) * 100)}%`, minHeight: amount > 0 ? '4px': '0'}} />
             </div>
           ))}
@@ -122,7 +122,7 @@ export default function FinanceReports() {
                   <span className="font-semibold text-[var(--ink)]">{formatGHS(amt)}</span>
                 </div>
                 <div className="h-2 bg-[var(--line-soft)] rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.round(amt / data.totalRevenue * 100)}%` }} />
+                  <div className="h-full bg-[var(--ok)] rounded-full" style={{ width: `${Math.round(amt / data.totalRevenue * 100)}%` }} />
                 </div>
               </div>
             ))}

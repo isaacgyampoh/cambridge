@@ -116,7 +116,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
           <>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.04em' }}>Type your name</label>
             <input value={name} onChange={e => setName(e.target.value)} placeholder="Your full name" style={{ ...inp, margin: '8px 0 16px' }} />
-            <button onClick={() => signIn(false)} disabled={busy} style={{ ...btn, background: '#2f80d6', color: '#fff', opacity: busy ? 0.6 : 1 }}>
+            <button onClick={() => signIn(false)} disabled={busy} style={{ ...btn, background: 'var(--accent)', color: '#fff', opacity: busy ? 0.6 : 1 }}>
               {busy ? 'Signing in…' : 'Sign in'}
             </button>
             {geoError && <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 10, textAlign: 'center' }}>Location is off. If you're in class, please enable location so we can sign you in.</p>}
@@ -126,7 +126,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
         {step === 'offer_online' && (
           <>
             <p style={{ color: '#4a5568', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>You don't appear to be at the class venue. Are you joining online today?</p>
-            <button onClick={() => signIn(true)} disabled={busy} style={{ ...btn, background: '#2f80d6', color: '#fff', marginBottom: 10, opacity: busy ? 0.6 : 1 }}>
+            <button onClick={() => signIn(true)} disabled={busy} style={{ ...btn, background: 'var(--accent)', color: '#fff', marginBottom: 10, opacity: busy ? 0.6 : 1 }}>
               {busy ? 'Switching…' : 'Yes, I\'m joining online'}
             </button>
             <button onClick={() => { setStep('name'); setError('') }} style={{ ...btn, background: '#f1f5f9', color: '#4a5568' }}>Back</button>
@@ -170,7 +170,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
             <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>How much are you paying?</label>
             <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 8px' }}>You can pay all or part of your GHS {result.balance.toFixed(2)} balance.</p>
             <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} style={{ ...inp, marginBottom: 16 }} />
-            <button onClick={() => { if (Number(payAmount) > 0) { setError(''); setStep('pay_method') } else setError('Enter an amount') }} style={{ ...btn, background: '#2f80d6', color: '#fff' }}>Continue</button>
+            <button onClick={() => { if (Number(payAmount) > 0) { setError(''); setStep('pay_method') } else setError('Enter an amount') }} style={{ ...btn, background: 'var(--accent)', color: '#fff' }}>Continue</button>
           </>
         )}
 
@@ -207,7 +207,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadShot(f) }} />
               </label>
             )}
-            <button onClick={() => recordPayment('bank', Number(payAmount), undefined, screenshot)} disabled={busy || !screenshot} style={{ ...btn, background: '#2f80d6', color: '#fff', opacity: (busy || !screenshot) ? 0.5 : 1 }}>
+            <button onClick={() => recordPayment('bank', Number(payAmount), undefined, screenshot)} disabled={busy || !screenshot} style={{ ...btn, background: 'var(--accent)', color: '#fff', opacity: (busy || !screenshot) ? 0.5 : 1 }}>
               {busy ? 'Submitting…' : 'Submit for verification'}
             </button>
           </>

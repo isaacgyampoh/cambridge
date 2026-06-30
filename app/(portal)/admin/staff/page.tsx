@@ -259,7 +259,7 @@ export default function StaffPage() {
                           className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left ${
                             form.role === r.value
                               ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
-                              : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300 hover:bg-[var(--line-soft)]'
+                              : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-[var(--line-soft)]'
                           }`}>
                           {r.label}
                         </button>
@@ -268,7 +268,7 @@ export default function StaffPage() {
                         className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left col-span-2 ${
                           form.role === 'super_admin'
                             ? 'border-purple-600 bg-purple-50 text-[var(--gold)]'
-                            : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-gray-300'
+                            : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'
                         }`}>
                          Super Admin (full access)
                       </button>

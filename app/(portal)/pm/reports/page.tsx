@@ -88,7 +88,7 @@ export default function PMReports() {
                   <span className="font-semibold text-[var(--ink)]">{count}</span>
                 </div>
                 <div className="h-2 bg-[var(--line-soft)] rounded-full overflow-hidden">
-                  <div className="h-full bg-blue-500 rounded-full" style={{ width: `${Math.round(count / data.total * 100)}%` }} />
+                  <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: `${Math.round(count / data.total * 100)}%` }} />
                 </div>
               </div>
             ))}
@@ -106,7 +106,7 @@ export default function PMReports() {
                   <span className="font-semibold text-[var(--ink)]">{count}</span>
                 </div>
                 <div className="h-2 bg-[var(--line-soft)] rounded-full overflow-hidden">
-                  <div className="h-full bg-green-500 rounded-full" style={{ width: `${Math.round(count / data.total * 100)}%` }} />
+                  <div className="h-full bg-[var(--ok)] rounded-full" style={{ width: `${Math.round(count / data.total * 100)}%` }} />
                 </div>
               </div>
             ))}

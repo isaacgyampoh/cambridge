@@ -103,7 +103,7 @@ export default function AdmissionPage() {
           <div className="flex flex-wrap gap-1.5 mb-4">
             {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`h-8 px-3 rounded-xl text-xs font-semibold transition capitalize ${filter===f?'bg-gray-900 text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
+                className={`h-8 px-3 rounded-xl text-xs font-semibold transition capitalize ${filter===f?'bg-[var(--ink)] text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
                 {f.replace(/_/g, ' ')}
               </button>
             ))}
@@ -115,7 +115,7 @@ export default function AdmissionPage() {
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center">
-              <UserCheck size={36} className="mx-auto mb-3 text-gray-200" />
+              <UserCheck size={36} className="mx-auto mb-3 text-[var(--line)]" />
               <p className="text-[var(--ink-faint)] text-sm font-medium">No admissions here</p>
               <p className="text-[var(--ink-faint)] text-xs mt-1">Admissions are created when leads are marked "Ready to Join"</p>
             </div>

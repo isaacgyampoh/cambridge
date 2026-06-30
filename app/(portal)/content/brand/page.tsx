@@ -6,7 +6,7 @@ import { Palette, Save, Trash2, ImageIcon, Copy } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function BrandKit() {
-  const [profile, setProfile] = useState<any>({ voice: '', tagline: '', do_say: '', dont_say: '', primary_color: '#2f80d6' })
+  const [profile, setProfile] = useState<any>({ voice: '', tagline: '', do_say: '', dont_say: '', primary_color: 'var(--accent)' })
   const [assets, setAssets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -72,7 +72,7 @@ export default function BrandKit() {
           </div>
           <Field label="Primary colour">
             <div className="flex items-center gap-3">
-              <input type="color" value={profile.primary_color || '#2f80d6'} onChange={e => set('primary_color', e.target.value)} className="w-12 h-10 rounded-lg border border-[var(--line)] cursor-pointer" />
+              <input type="color" value={profile.primary_color || 'var(--accent)'} onChange={e => set('primary_color', e.target.value)} className="w-12 h-10 rounded-lg border border-[var(--line)] cursor-pointer" />
               <span className="text-sm text-[var(--ink-soft)]">{profile.primary_color}</span>
             </div>
           </Field>
