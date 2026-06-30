@@ -488,9 +488,6 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
           <div className="text-center">
             {receipt ? (
               <>
-                <div className="w-12 h-12 rounded-full bg-emerald-50 flex items-center justify-center mx-auto mb-3">
-                  <Check size={24} className="text-emerald-600" strokeWidth={2.5} />
-                </div>
                 <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">{receipt.verified ? 'Payment received' : receipt.message}</h2>
                 {receipt.receiptNo && <p className="text-sm text-[var(--ink-soft)]">Receipt: {receipt.receiptNo}</p>}
                 {receipt.verified && <p className="text-sm text-[var(--ink-soft)] mt-1">{receipt.balance > 0 ? `Balance: GHS ${receipt.balance.toFixed(2)}` : 'Fully paid — thank you!'}</p>}
