@@ -47,7 +47,7 @@ export const ALL_PORTALS = [
   { id: 'admissions',  label: 'Admissions',   icon: UserCheck,       href: '/admin/admissions',
     children: [
       { label: 'All Admissions', href: '/admin/admissions' },
-      { label: 'Applications',   href: '/admission' },
+      { label: 'Applications',   href: '/admission/process' },
     ]},
   { id: 'finance',     label: 'Finance',      icon: DollarSign,      href: '/admin/finance',
     children: [

@@ -19,7 +19,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   my_link:     ['/marketer/link'],
   pm_leads:    ['/pm', '/pm/assign'],
   grp_socials: ['/content'],
-  admissions:  ['/admin/admissions', '/admission', '/admin/registrations'],
+  admissions:  ['/admin/admissions', '/admission', '/admission/process', '/admin/registrations'],
   finance:     ['/admin/finance', '/finance'],
   broadcast:   ['/admin/broadcast', '/admin/links'],
   attendance:  ['/admin/attendance'],
