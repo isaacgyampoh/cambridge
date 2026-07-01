@@ -39,6 +39,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   my_earnings: ['/marketer/earnings'],
   registrations: ['/finance/registrations'],
   clock_in:    ['/clock-in'],
+  messages:    ['/messages'],
   my_links:    ['/links'],
   my_attendance: ['/marketer/attendance'],
   prep:        ['/coordinator'],
@@ -46,15 +47,15 @@ export const PORTAL_PATHS: Record<string, string[]> = {
 }
 
 export const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
-  project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in'],
-  admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in'],
-  accountant:        ['dashboard','finance','registrations','leads','my_leads','my_earnings','my_links','clock_in'],
-  receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in'],
-  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in'],
-  exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in'],
-  content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in'],
+  super_admin:       ['messages','dashboard','insights','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
+  project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in','messages'],
+  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in','messages'],
+  admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
+  accountant:        ['dashboard','finance','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
+  receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
+  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
+  exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in','messages'],
+  content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
   student:           ['dashboard','my_payments'],
 }
 
