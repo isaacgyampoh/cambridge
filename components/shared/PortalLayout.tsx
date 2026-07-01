@@ -71,7 +71,7 @@ export const ALL_PORTALS = [
       { label: 'All Staff', href: '/admin/staff' },
       { label: 'Reports',   href: '/admin/reports' },
     ]},
-  { id: 'my_classes',  label: 'My Classes',   icon: BookOpen,        href: '/trainer' },
+  { id: 'my_classes',  label: 'My Classes',   icon: BookOpen,        href: '/trainer/classes' },
   { id: 'my_payments', label: 'My Payments',  icon: DollarSign,      href: '/student' },
   { id: 'reminders',   label: 'Reminders',    icon: Bell,            href: '/receptionist' },
   { id: 'workforce',   label: 'Workforce',    icon: CalendarCheck,   href: '/admin/workforce' },

@@ -28,7 +28,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   marketers:   ['/admin/marketers'],
   alumni:      ['/admin/alumni'],
   staff:       ['/admin/staff', '/admin/reports'],
-  my_classes:  ['/trainer'],
+  my_classes:  ['/trainer', '/trainer/classes'],
   my_payments: ['/student'],
   reminders:   ['/receptionist'],
   workforce:   ['/admin/workforce'],
