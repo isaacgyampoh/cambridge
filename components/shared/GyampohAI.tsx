@@ -8,8 +8,17 @@ export default function GyampohAI() {
   const [messages, setMessages] = useState<Msg[]>([])
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
+  const [alerts, setAlerts] = useState<string[]>([])
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+
+  useEffect(() => {
+    if (open && alerts.length === 0) {
+      fetch('/api/assistant/briefing').then(r => r.json()).then(d => {
+        if (d.alerts?.length) setAlerts(d.alerts)
+      }).catch(() => {})
+    }
+  }, [open])
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight
@@ -81,6 +90,18 @@ export default function GyampohAI() {
               <div className="text-center mt-8">
                 <div className="font-display text-lg font-semibold text-[var(--ink)] mb-1">Hello, I'm Gyampoh AI</div>
                 <p className="text-sm text-[var(--ink-soft)] max-w-[260px] mx-auto leading-relaxed">Ask me about our data, get advice, or help writing. I can look things up in the system for you.</p>
+
+                {alerts.length > 0 && (
+                  <div className="mt-5 text-left bg-[var(--warn-soft)] rounded-xl p-3.5">
+                    <div className="text-[12px] font-semibold text-[var(--warn)] mb-1.5">Things needing attention</div>
+                    <ul className="space-y-1">
+                      {alerts.map((a, i) => (
+                        <li key={i} className="text-[13px] text-[var(--ink-soft)] leading-snug">{a}</li>
+                      ))}
+                    </ul>
+                  </div>
+                )}
+
                 <div className="mt-5 space-y-2">
                   {['How many leads have I converted?', 'Help me convince a lead who is hesitant to join', 'What are the PMP course fees?'].map(s => (
                     <button key={s} onClick={() => setInput(s)}
