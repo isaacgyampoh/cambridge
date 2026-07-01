@@ -150,7 +150,7 @@ export const ALL_PORTALS = [
 // organised into visual GROUPS (grp_*), while access control uses flat
 // portal ids. ROLE_HOME and the access rules come from the shared module.
 const NAV_BY_ROLE: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content','grp_socials'],
+  super_admin:       ['dashboard','insights','messages','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content','grp_socials'],
   project_manager:   ['dashboard','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in','messages'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_attendance','clock_in','messages'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
