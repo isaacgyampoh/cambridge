@@ -91,7 +91,9 @@ export default function GyampohAI() {
 
       {/* Chat panel */}
       {open && (
-        <div className="fixed bottom-5 right-5 z-50 w-[calc(100vw-2.5rem)] sm:w-[400px] h-[600px] max-h-[calc(100vh-2.5rem)] bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-2xl flex flex-col overflow-hidden">
+        <div className="fixed z-50 bg-[var(--paper)] flex flex-col overflow-hidden
+          inset-0 rounded-none
+          sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)] sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-2xl">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--canvas)]">
             <div>
