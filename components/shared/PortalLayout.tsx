@@ -28,9 +28,9 @@ export const ALL_PORTALS = [
       { label: 'Add Lead',        href: '/admin/leads/new' },
       { label: 'Import Leads',    href: '/admin/leads/import' },
     ]},
-  { id: 'my_leads',    label: 'My Leads',     icon: TrendingUp,      href: '/marketer',
+  { id: 'my_leads',    label: 'My Leads',     icon: TrendingUp,      href: '/marketer/leads',
     children: [
-      { label: 'My Leads',        href: '/marketer' },
+      { label: 'My Leads',        href: '/marketer/leads' },
       { label: 'Leads by Course', href: '/admin/leads/courses' },
       { label: 'My Conversions',  href: '/admin/conversions' },
       { label: 'Add a Lead',      href: '/marketer/leads/new' },
