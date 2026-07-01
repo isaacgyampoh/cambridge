@@ -38,9 +38,9 @@ export const ALL_PORTALS = [
     ]},
   { id: 'my_link',     label: 'My Link',      icon: Radio,           href: '/marketer/link' },
   { id: 'my_attendance', label: 'Class Attendance', icon: Users,      href: '/marketer/attendance' },
-  { id: 'pm_leads',    label: 'Lead Inbox',   icon: TrendingUp,      href: '/pm',
+  { id: 'pm_leads',    label: 'Lead Inbox',   icon: TrendingUp,      href: '/pm/assign',
     children: [
-      { label: 'Lead Inbox', href: '/pm' },
+      { label: 'Lead Inbox', href: '/pm/assign' },
       { label: 'Reports',    href: '/pm/reports' },
       { label: 'Coordinator Activity', href: '/pm/prep-activity' },
     ]},
