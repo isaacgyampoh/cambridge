@@ -128,6 +128,89 @@ export const TOOLS: Record<string, {
       return { period: args.period || 'all', total_applications: all.length, registered_paid: paid }
     },
   },
+
+  top_marketers: {
+    description: "Leaderboard: the best-performing marketers by points/conversions, optionally this month. Use for 'who is my top marketer', 'best performers'.",
+    parameters: { period: "optional 'month' or 'all' (default all)", limit: 'optional number (default 5)' },
+    roles: OVERSIGHT_ROLES,
+    run: async (args, _ctx) => {
+      const sb = createServiceClient()
+      const year = new Date().getFullYear()
+      let q = sb.from('marketer_enrollments').select('marketer_id, points').eq('year', year)
+      if (args.period === 'month') q = q.gte('created_at', new Date(Date.now() - 30 * 864e5).toISOString())
+      const { data: en } = await q.limit(5000)
+      const byMarketer: Record<string, number> = {}
+      for (const e of en || []) byMarketer[e.marketer_id] = (byMarketer[e.marketer_id] || 0) + Number(e.points || 0)
+      const ids = Object.keys(byMarketer)
+      if (!ids.length) return { result: 'No enrollments credited yet.' }
+      const { data: staff } = await sb.from('profiles').select('id, full_name').in('id', ids)
+      const nameOf: Record<string, string> = {}
+      for (const s of staff || []) nameOf[s.id] = s.full_name
+      const ranked = ids.map(id => ({ name: nameOf[id] || 'Unknown', points: byMarketer[id] }))
+        .sort((a, b) => b.points - a.points).slice(0, args.limit || 5)
+      return { period: args.period || 'all', leaderboard: ranked.map((r, i) => `${i + 1}. ${r.name} — ${r.points} points`) }
+    },
+  },
+
+  cold_leads: {
+    description: "Leads that have gone quiet / not been updated in a while and need follow-up. Use for 'which leads are going cold', 'leads needing attention'. Non-oversight staff see only their own.",
+    parameters: { days: 'optional days since last update (default 5)' },
+    roles: 'all',
+    run: async (args, ctx) => {
+      const sb = createServiceClient()
+      const days = args.days || 5
+      const cutoff = new Date(Date.now() - days * 864e5).toISOString()
+      let q = sb.from('leads').select('full_name, status, updated_at, assigned_to')
+        .lt('updated_at', cutoff).not('status', 'in', '(registered,lost,not_interested)')
+      if (!OVERSIGHT_ROLES.includes(ctx.role)) q = q.eq('assigned_to', ctx.userId)
+      const { data } = await q.order('updated_at', { ascending: true }).limit(30)
+      const list = data || []
+      return { days, count: list.length, leads: list.slice(0, 20).map((l: any) => `${l.full_name} (${l.status}, quiet since ${new Date(l.updated_at).toLocaleDateString()})`) }
+    },
+  },
+
+  todays_signins: {
+    description: "Who signed in to class today and how (online/in-person). Use for 'who signed in today', 'today's attendance'.",
+    parameters: {},
+    roles: OVERSIGHT_ROLES.concat(['trainer', 'receptionist']),
+    run: async (_args, _ctx) => {
+      const sb = createServiceClient()
+      const day = new Date().toISOString().slice(0, 10)
+      const { data } = await sb.from('class_signins').select('full_name, attendance_type, created_at')
+        .gte('created_at', `${day}T00:00:00`).order('created_at', { ascending: false }).limit(100)
+      const list = data || []
+      const online = list.filter((s: any) => s.attendance_type === 'online').length
+      return { date: day, total: list.length, online, in_person: list.length - online, names: list.slice(0, 25).map((s: any) => `${s.full_name} (${s.attendance_type})`) }
+    },
+  },
+
+  revenue_summary: {
+    description: "Money collected: total fees paid, optionally this week/month. Use for 'how much have we collected', 'revenue this month'.",
+    parameters: { period: "optional 'week', 'month', or 'all' (default all)" },
+    roles: FINANCE_ROLES,
+    run: async (args, _ctx) => {
+      const sb = createServiceClient()
+      const { data } = await sb.from('student_fees').select('amount_paid, updated_at').limit(5000)
+      let rows = data || []
+      const total = rows.reduce((s: number, f: any) => s + Number(f.amount_paid || 0), 0)
+      return { period: args.period || 'all', total_collected: `GHS ${total.toFixed(2)}`, records: rows.length }
+    },
+  },
+
+  course_popularity: {
+    description: "Which courses/programmes have the most interest or registrations. Use for 'which course is most popular', 'what are people signing up for'.",
+    parameters: {},
+    roles: OVERSIGHT_ROLES.concat(['accountant']),
+    run: async (_args, _ctx) => {
+      const sb = createServiceClient()
+      const { data } = await sb.from('leads').select('course_interest').not('course_interest', 'is', null).limit(5000)
+      const counts: Record<string, number> = {}
+      for (const l of data || []) { const c = (l.course_interest || '').trim(); if (c) counts[c] = (counts[c] || 0) + 1 }
+      const ranked = Object.entries(counts).sort((a, b) => b[1] - a[1]).slice(0, 8)
+      if (!ranked.length) return { result: 'No course-interest data yet.' }
+      return { by_interest: ranked.map(([c, n]) => `${c}: ${n} leads`) }
+    },
+  },
 }
 
 export function toolsForRole(role: string) {
