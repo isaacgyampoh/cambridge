@@ -211,6 +211,25 @@ export const TOOLS: Record<string, {
       return { by_interest: ranked.map(([c, n]) => `${c}: ${n} leads`) }
     },
   },
+
+  admissions_status: {
+    description: "Admissions pipeline: how many pending / awaiting payment / admitted. Use for 'do we have pending admissions', 'how many admissions', 'any new admissions'.",
+    parameters: { status: "optional: 'pending', 'awaiting_payment', 'admitted' — omit for a full breakdown" },
+    roles: OVERSIGHT_ROLES.concat(['admissions_officer', 'accountant']),
+    run: async (args, _ctx) => {
+      const sb = createServiceClient()
+      const { data } = await sb.from('admissions').select('status, admission_number, created_at').limit(5000)
+      const all = data || []
+      if (args.status) {
+        const n = all.filter((a: any) => a.status === args.status).length
+        return { status: args.status, count: n }
+      }
+      const pending = all.filter((a: any) => a.status === 'pending').length
+      const awaiting = all.filter((a: any) => a.status === 'awaiting_payment').length
+      const admitted = all.filter((a: any) => a.status === 'admitted').length
+      return { total: all.length, pending, awaiting_payment: awaiting, admitted }
+    },
+  },
 }
 
 export function toolsForRole(role: string) {
