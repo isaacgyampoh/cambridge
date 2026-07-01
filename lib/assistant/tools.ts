@@ -4,6 +4,7 @@ type Ctx = { userId: string; role: string; fullName?: string }
 
 const FINANCE_ROLES = ['super_admin', 'project_manager', 'accountant']
 const OVERSIGHT_ROLES = ['super_admin', 'project_manager']
+const SUPER_ONLY = ['super_admin']
 
 async function findStaffByName(sb: any, name: string) {
   const { data } = await sb.from('profiles').select('id, full_name, role')
@@ -228,6 +229,46 @@ export const TOOLS: Record<string, {
       const awaiting = all.filter((a: any) => a.status === 'awaiting_payment').length
       const admitted = all.filter((a: any) => a.status === 'admitted').length
       return { total: all.length, pending, awaiting_payment: awaiting, admitted }
+    },
+  },
+
+  content_activity: {
+    description: "What the content team has produced: content posts and brand-kit assets created, optionally this week. Use for 'have we made any brand kit this week', 'what content have we created', 'is the content team working'.",
+    parameters: { period: "optional 'week' or 'all' (default all)", type: "optional 'posts' or 'brand'" },
+    roles: SUPER_ONLY.concat(['project_manager', 'content_manager']),
+    run: async (args, _ctx) => {
+      const sb = createServiceClient()
+      const since = args.period === 'week' ? new Date(Date.now() - 7 * 864e5).toISOString() : null
+      let postsQ = sb.from('content_posts').select('title, status, created_at')
+      let brandQ = sb.from('brand_assets').select('name, created_at')
+      if (since) { postsQ = postsQ.gte('created_at', since); brandQ = brandQ.gte('created_at', since) }
+      const [{ data: posts }, { data: brand }] = await Promise.all([postsQ.limit(500), brandQ.limit(500)])
+      return {
+        period: args.period || 'all',
+        content_posts: (posts || []).length,
+        brand_assets: (brand || []).length,
+        note: (posts || []).length === 0 && (brand || []).length === 0
+          ? 'The content team has not produced anything in this period.'
+          : undefined,
+      }
+    },
+  },
+
+  pm_activity: {
+    description: "Whether project managers have been active with the team — recent lead assignments, transfers, or oversight actions. Use for 'has the PM been in touch with marketers', 'is the PM working'.",
+    parameters: {},
+    roles: SUPER_ONLY,
+    run: async (_args, _ctx) => {
+      const sb = createServiceClient()
+      const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString()
+      const { count: assigned } = await sb.from('leads').select('id', { count: 'exact', head: true })
+        .not('assigned_by', 'is', null).gte('assigned_at', weekAgo)
+      let transfers = 0
+      try {
+        const { count } = await sb.from('lead_transfer_requests').select('id', { count: 'exact', head: true }).gte('created_at', weekAgo)
+        transfers = count || 0
+      } catch {}
+      return { leads_assigned_this_week: assigned || 0, transfer_requests_this_week: transfers, note: (assigned || 0) === 0 ? 'No lead assignments by PMs in the last 7 days.' : undefined }
     },
   },
 }
