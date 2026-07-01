@@ -421,7 +421,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   return (
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--canvas)' }}>
       <CommandPalette />
-      <GyampohAI />
+      {!pathname.startsWith('/messages') && <GyampohAI />}
 
       {/* ── Desktop sidebar — always full width with labels (stable, clear) ── */}
       <div
