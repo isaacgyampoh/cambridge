@@ -9,8 +9,30 @@ export default function GyampohAI() {
   const [input, setInput] = useState('')
   const [busy, setBusy] = useState(false)
   const [alerts, setAlerts] = useState<string[]>([])
+  const [listening, setListening] = useState(false)
   const scrollRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLTextAreaElement>(null)
+  const recognitionRef = useRef<any>(null)
+
+  // Voice input via the browser's Web Speech API (no extra service needed)
+  function toggleVoice() {
+    const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
+    if (!SR) { alert('Voice input is not supported on this browser. Try Chrome.'); return }
+    if (listening) { recognitionRef.current?.stop(); setListening(false); return }
+    const rec = new SR()
+    rec.lang = 'en-GH'
+    rec.interimResults = true
+    rec.continuous = false
+    rec.onresult = (e: any) => {
+      const transcript = Array.from(e.results).map((r: any) => r[0].transcript).join('')
+      setInput(transcript)
+    }
+    rec.onend = () => setListening(false)
+    rec.onerror = () => setListening(false)
+    recognitionRef.current = rec
+    rec.start()
+    setListening(true)
+  }
 
   useEffect(() => {
     if (open && alerts.length === 0) {
@@ -142,8 +164,12 @@ export default function GyampohAI() {
                 onChange={e => setInput(e.target.value)}
                 onKeyDown={onKey}
                 rows={1}
-                placeholder="Ask Gyampoh AI anything…"
+                placeholder={listening ? 'Listening… speak now' : 'Ask Gyampoh AI anything…'}
                 className="flex-1 resize-none max-h-32 px-3.5 py-2.5 rounded-xl border border-[var(--line)] bg-white text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]" />
+              <button onClick={toggleVoice} title="Speak"
+                className={`h-11 px-3 rounded-xl text-sm font-semibold flex-shrink-0 transition ${listening ? 'bg-[var(--danger)] text-white' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] hover:bg-[var(--line)]'}`}>
+                {listening ? 'Stop' : 'Speak'}
+              </button>
               <button onClick={send} disabled={busy || !input.trim()}
                 className="h-11 px-4 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold disabled:opacity-40 hover:brightness-110 transition flex-shrink-0">
                 Send
