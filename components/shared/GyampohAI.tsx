@@ -80,9 +80,9 @@ export default function GyampohAI() {
             {messages.length === 0 && (
               <div className="text-center mt-8">
                 <div className="font-display text-lg font-semibold text-[var(--ink)] mb-1">Hello, I'm Gyampoh AI</div>
-                <p className="text-sm text-[var(--ink-soft)] max-w-[260px] mx-auto leading-relaxed">Ask me about our courses, fees and schedules, get help writing a message, or research anything you need.</p>
+                <p className="text-sm text-[var(--ink-soft)] max-w-[260px] mx-auto leading-relaxed">Ask me about our data, get advice, or help writing. I can look things up in the system for you.</p>
                 <div className="mt-5 space-y-2">
-                  {['What are the PMP course fees?', 'Help me write a follow-up message to a lead', 'Explain what PHRi certification is'].map(s => (
+                  {['How many leads have I converted?', 'Help me convince a lead who is hesitant to join', 'What are the PMP course fees?'].map(s => (
                     <button key={s} onClick={() => setInput(s)}
                       className="block w-full text-left text-[13px] text-[var(--ink-soft)] bg-[var(--canvas)] hover:bg-[var(--line-soft)] rounded-xl px-3 py-2.5 transition-colors">
                       {s}
