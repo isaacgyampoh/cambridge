@@ -1,36 +1,30 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { Download, X, Share } from 'lucide-react'
 
 /**
- * Shows an "Install app" affordance so staff can add the app to their phone.
- * - Android/Chrome: captures the beforeinstallprompt event and offers a
- *   one-tap install button.
- * - iOS Safari: shows the manual "Share -> Add to Home Screen" hint, since
- *   iOS has no programmatic install.
+ * Shows a small "Install app" button when the browser reports the PWA is
+ * installable (Android/Chrome/Edge fire beforeinstallprompt). iOS Safari
+ * doesn't fire it, so we show a short hint there instead.
  */
 export default function InstallPrompt() {
   const [deferred, setDeferred] = useState<any>(null)
   const [show, setShow] = useState(false)
-  const [isIOS, setIsIOS] = useState(false)
-  const [dismissed, setDismissed] = useState(false)
+  const [iosHint, setIosHint] = useState(false)
 
   useEffect(() => {
     // Already installed? Don't show.
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || (window.navigator as any).standalone
-    if (standalone) return
-
-    const ios = /iphone|ipad|ipod/i.test(window.navigator.userAgent)
-    setIsIOS(ios)
+    if (window.matchMedia('(display-mode: standalone)').matches) return
 
     const onPrompt = (e: any) => { e.preventDefault(); setDeferred(e); setShow(true) }
     window.addEventListener('beforeinstallprompt', onPrompt)
 
-    // On iOS there's no event; show the hint after a moment if not dismissed
-    if (ios) {
-      const seen = sessionStorage?.getItem?.('ios-install-hint')
-      if (!seen) setTimeout(() => setShow(true), 2500)
+    // iOS Safari detection (no beforeinstallprompt there)
+    const isIOS = /iphone|ipad|ipod/i.test(navigator.userAgent)
+    const isSafari = /safari/i.test(navigator.userAgent) && !/crios|fxios/i.test(navigator.userAgent)
+    if (isIOS && isSafari && !localStorage.getItem('ios-install-dismissed')) {
+      setTimeout(() => setIosHint(true), 3000)
     }
+
     return () => window.removeEventListener('beforeinstallprompt', onPrompt)
   }, [])
 
@@ -41,36 +35,29 @@ export default function InstallPrompt() {
     setDeferred(null); setShow(false)
   }
 
-  function close() {
-    setShow(false); setDismissed(true)
-    try { sessionStorage.setItem('ios-install-hint', '1') } catch {}
+  if (show) {
+    return (
+      <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-80 z-[60] bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-2xl p-4">
+        <div className="font-semibold text-[var(--ink)] text-[15px]">Install Cambridge portal</div>
+        <p className="text-[13px] text-[var(--ink-soft)] mt-1 leading-relaxed">Add the portal to your home screen for quick access, like a normal app.</p>
+        <div className="flex gap-2 mt-3">
+          <button onClick={install} className="h-9 px-4 rounded-lg bg-[var(--accent)] text-white text-sm font-semibold">Install</button>
+          <button onClick={() => setShow(false)} className="h-9 px-4 rounded-lg text-[var(--ink-soft)] text-sm font-medium">Not now</button>
+        </div>
+      </div>
+    )
   }
 
-  if (!show || dismissed) return null
-
-  return (
-    <div className="fixed bottom-4 inset-x-4 z-[60] mx-auto max-w-md">
-      <div className="bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-lg p-4 flex items-start gap-3">
-        <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0">
-          <Download size={18} className="text-[var(--accent)]" />
-        </div>
-        <div className="flex-1 min-w-0">
-          <div className="font-semibold text-[var(--ink)] text-sm">Install the app</div>
-          {isIOS ? (
-            <p className="text-xs text-[var(--ink-soft)] mt-0.5">
-              Tap <Share size={12} className="inline -mt-0.5" /> Share, then “Add to Home Screen”.
-            </p>
-          ) : (
-            <p className="text-xs text-[var(--ink-soft)] mt-0.5">Add Cambridge CCE to your home screen for quick access.</p>
-          )}
-          {!isIOS && (
-            <button onClick={install} className="mt-2 h-9 px-4 rounded-lg bg-[var(--accent)] text-white text-sm font-medium">
-              Install now
-            </button>
-          )}
-        </div>
-        <button onClick={close} className="text-[var(--ink-faint)] hover:text-[var(--ink)] flex-shrink-0"><X size={18} /></button>
+  if (iosHint) {
+    return (
+      <div className="fixed bottom-4 left-4 right-4 z-[60] bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-2xl p-4">
+        <div className="font-semibold text-[var(--ink)] text-[15px]">Install this app</div>
+        <p className="text-[13px] text-[var(--ink-soft)] mt-1 leading-relaxed">Tap the Share button below, then choose <b>Add to Home Screen</b>.</p>
+        <button onClick={() => { localStorage.setItem('ios-install-dismissed', '1'); setIosHint(false) }}
+          className="h-9 px-4 rounded-lg text-[var(--ink-soft)] text-sm font-medium mt-2">Got it</button>
       </div>
-    </div>
-  )
+    )
+  }
+
+  return null
 }
