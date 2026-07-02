@@ -5,6 +5,7 @@ import { toast } from 'sonner'
 import { STATUS_COLORS, formatGHS } from '@/lib/utils'
 import { Phone, MessageSquare, ChevronDown, ChevronUp, Plus, Clock, ArrowLeftRight, X } from 'lucide-react'
 import Link from 'next/link'
+import CallButton from '@/components/shared/CallButton'
 import { useRouter } from 'next/navigation'
 import { changeLeadStatus } from '@/lib/leadStatus'
 
@@ -256,11 +257,11 @@ export default function MarketerLeads() {
       )}
 
       {/* Mini pipeline */}
-      <div className="grid grid-cols-4 lg:grid-cols-7 gap-1.5 mb-5">
+      <div className="grid grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
         {statusOrder.filter(s => byStatus[s]?.length > 0).map(s => (
-          <div key={s} className={`rounded-xl p-2 text-center ${COLORS[s]}`}>
-            <div className="text-lg font-bold">{byStatus[s]?.length}</div>
-            <div className="text-[9px] font-semibold capitalize leading-tight mt-0.5">{s.replace(/_/g, ' ')}</div>
+          <div key={s} className={`rounded-xl px-3 py-3 text-center ${COLORS[s]}`}>
+            <div className="text-[22px] font-semibold leading-none font-display">{byStatus[s]?.length}</div>
+            <div className="text-[11px] font-medium capitalize leading-tight mt-1.5">{s.replace(/_/g, ' ')}</div>
           </div>
         ))}
       </div>
@@ -280,21 +281,20 @@ export default function MarketerLeads() {
           {leads.map(lead => {
             const isExpanded = expanded === lead.id
             return (
-              <div key={lead.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] overflow-hidden hover:border-[var(--ink-faint)] transition-colors">
+              <div key={lead.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] overflow-hidden hover:border-[var(--ink-faint)] transition-colors">
                 {/* Header row */}
-                <div className="flex items-center px-4 py-3 cursor-pointer"
+                <div className="flex items-center px-4 py-3.5 cursor-pointer"
                   onClick={() => setExpanded(isExpanded ? null : lead.id)}>
-                  <div className="w-9 h-9 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-sm flex-shrink-0 mr-3">
-                    {lead.full_name?.charAt(0)}
+                  <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-[15px] flex-shrink-0 mr-3">
+                    {lead.full_name?.charAt(0).toUpperCase()}
                   </div>
                   <div className="flex-1 min-w-0">
-                    <div className="font-medium text-sm text-[var(--ink)] truncate">{lead.full_name}</div>
-                    <div className="text-[12px] text-[var(--ink-faint)]">{lead.phone} {lead.course_interest ? `· ${lead.course_interest}` : ''}</div>
+                    <div className="font-medium text-[14px] text-[var(--ink)] truncate">{lead.full_name}</div>
+                    <div className="text-[13px] text-[var(--ink-faint)] truncate">{lead.phone}{lead.course_interest ? ` · ${lead.course_interest}` : ''}</div>
                   </div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full mx-2 flex-shrink-0 ${COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+                  <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ml-2 flex-shrink-0 ${COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                     {lead.status?.replace(/_/g, ' ')}
                   </span>
-                  {isExpanded ? null : null}
                 </div>
 
                 {/* Expanded actions */}
@@ -303,17 +303,15 @@ export default function MarketerLeads() {
                     {/* Quick contact */}
                     {lead.phone && (
                       <div className="flex gap-2 mb-3">
-                        <a href={`tel:${lead.phone}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-green-600 text-white rounded-lg text-xs font-semibold hover:bg-green-700 transition">
-                           Call
-                        </a>
+                        <CallButton leadId={lead.id} phone={lead.phone} onLogged={() => refetch?.()}
+                          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[var(--accent)] text-white rounded-lg text-[13px] font-semibold hover:brightness-110 transition disabled:opacity-60" />
                         <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split(' ')[0]}, this is from Cambridge Centre of Excellence...`)}`}
                           target="_blank" rel="noopener noreferrer"
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-[#25D366] text-white rounded-lg text-xs font-semibold hover:opacity-90 transition">
-                           WhatsApp
+                          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[#25D366] text-white rounded-lg text-[13px] font-semibold hover:opacity-90 transition">
+                          WhatsApp
                         </a>
                         <Link href={`/marketer/leads/${lead.id}`}
-                          className="flex items-center gap-1.5 px-3 py-1.5 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-xs font-semibold hover:bg-[var(--line-soft)] transition">
+                          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-[13px] font-semibold hover:bg-[var(--canvas)] transition">
                           Full view
                         </Link>
                       </div>
