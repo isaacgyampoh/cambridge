@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { ArrowLeft, Phone, MessageSquare, Mail, Calendar, Plus, Clock } from 'lucide-react'
 import Link from 'next/link'
 import Modal from '@/components/shared/Modal'
+import CallButton from '@/components/shared/CallButton'
 import { changeLeadStatus } from '@/lib/leadStatus'
 
 const STATUSES = [
@@ -232,10 +233,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--line-soft)]">
               {lead.phone && (
                 <>
-                  <a href={`tel:${lead.phone}`}
-                    className="flex items-center gap-1.5 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-semibold hover:bg-green-700 transition">
-                     Call
-                  </a>
+                  <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()} />
                   <a href={`https://wa.me/${lead.phone.replace(/^0/, '233').replace(/^\+/, '')}`} target="_blank"
                     className="flex items-center gap-1.5 px-4 py-2 bg-[#25D366] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition">
                      WhatsApp

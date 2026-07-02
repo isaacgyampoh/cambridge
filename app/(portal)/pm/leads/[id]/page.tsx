@@ -6,6 +6,7 @@ import type { Lead, LeadActivity, LeadStatusLog, Profile } from '@/types'
 import { toast } from 'sonner'
 import { ArrowLeft, Phone, MessageSquare, Mail, MapPin, BookOpen, Clock } from 'lucide-react'
 import Link from 'next/link'
+import CallButton from '@/components/shared/CallButton'
 
 const STATUSES = ['new','contacted','interested','follow_up','ready_to_join','registered','not_interested','lost']
 
@@ -119,9 +120,8 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
             {lead.phone && (
               <div className="flex gap-2 mt-4 pt-4 border-t border-[var(--line-soft)]">
-                <a href={`tel:${lead.phone}`} className="flex items-center gap-1.5 px-3 py-2 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 transition">
-                   Call
-                </a>
+                <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()}
+                  className="flex items-center gap-1.5 px-3 py-2 bg-[var(--ok)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition disabled:opacity-60" />
                 <a href={`https://wa.me/${lead.phone.replace(/^0/, '233')}`} target="_blank"
                   className="flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition">
                    WhatsApp
