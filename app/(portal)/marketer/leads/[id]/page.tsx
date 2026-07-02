@@ -180,83 +180,81 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
   return (
     <div className="fade-in w-full">
-      <Link href="/marketer"className="inline-flex items-center gap-2 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
-         Back to my leads
+      <Link href="/marketer/leads" className="inline-flex items-center gap-1.5 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
+        <ArrowLeft size={15} /> Back to my leads
       </Link>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Left col */}
         <div className="lg:col-span-2 space-y-4">
-          {/* Lead card */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-            <div className="flex items-start justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="w-14 h-14 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-xl font-bold">
-                  {lead.full_name.charAt(0)}
-                </div>
-                <div>
-                  <h1 className="font-display text-xl font-semibold text-[var(--ink)]">{lead.full_name}</h1>
-                  <div className="flex gap-2 mt-1 flex-wrap">
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, ' ')}</span>
-                  </div>
+          {/* Lead hero card */}
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] overflow-hidden">
+            {/* Top band */}
+            <div className="px-6 pt-6 pb-5 flex items-start gap-4">
+              <div className="w-16 h-16 rounded-2xl bg-[var(--accent)] flex items-center justify-center text-white text-2xl font-semibold flex-shrink-0">
+                {lead.full_name.charAt(0).toUpperCase()}
+              </div>
+              <div className="min-w-0 flex-1">
+                <h1 className="font-display text-[22px] font-semibold text-[var(--ink)] truncate">{lead.full_name}</h1>
+                <div className="flex gap-2 mt-1.5 flex-wrap">
+                  <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, ' ')}</span>
+                  <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
+                  {lead.course_interest && (
+                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">{lead.course_interest}</span>
+                  )}
                 </div>
               </div>
             </div>
 
-            <div className="grid grid-cols-2 gap-3 text-sm mb-4">
-              {[
-                { icon: Phone, label: 'Phone', value: formatPhone(lead.phone), href: `tel:${lead.phone}` },
-                { icon: Mail, label: 'Email', value: lead.email || '—', href: lead.email ? `mailto:${lead.email}` : undefined },
-                { icon: Calendar, label: 'Added', value: formatDateTime(lead.created_at) },
-                { icon: Clock, label: 'Last Update', value: formatDateTime(lead.updated_at) },
-              ].map(item => (
-                <div key={item.label} className="flex items-start gap-2">
-                  <item.icon size={14} className="text-[var(--ink-faint)] mt-0.5 flex-shrink-0" />
-                  <div>
-                    <div className="text-xs text-[var(--ink-faint)]">{item.label}</div>
-                    {item.href
-                      ? <a href={item.href} className="font-medium text-[var(--accent)] hover:underline">{item.value}</a>
-                      : <div className="font-medium text-[var(--ink)]">{item.value}</div>}
-                  </div>
-                </div>
-              ))}
-            </div>
-
-            {lead.course_interest && (
-              <div className="bg-[var(--accent-soft)] rounded-xl px-3 py-2 text-sm text-[var(--accent)] mb-4">
-                 Interested in: <strong>{lead.course_interest}</strong>
+            {/* Primary actions — the call is the hero action */}
+            {(lead.phone || lead.email) && (
+              <div className="px-6 pb-5 flex flex-wrap gap-2">
+                {lead.phone && (
+                  <>
+                    <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()}
+                      className="inline-flex items-center gap-2 px-5 h-11 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-110 transition disabled:opacity-60" />
+                    <a href={`https://wa.me/${lead.phone.replace(/^0/, '233').replace(/^\+/, '')}`} target="_blank"
+                      className="inline-flex items-center gap-2 px-5 h-11 bg-[#25D366] text-white rounded-xl text-[15px] font-semibold hover:opacity-90 transition">
+                      WhatsApp
+                    </a>
+                  </>
+                )}
+                {lead.email && (
+                  <a href={`mailto:${lead.email}`}
+                    className="inline-flex items-center gap-2 px-5 h-11 border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-[15px] font-medium hover:bg-[var(--canvas)] transition">
+                    Email
+                  </a>
+                )}
               </div>
             )}
 
-            {/* Quick actions */}
-            <div className="flex flex-wrap gap-2 pt-4 border-t border-[var(--line-soft)]">
-              {lead.phone && (
-                <>
-                  <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()} />
-                  <a href={`https://wa.me/${lead.phone.replace(/^0/, '233').replace(/^\+/, '')}`} target="_blank"
-                    className="flex items-center gap-1.5 px-4 py-2 bg-[#25D366] text-white rounded-xl text-sm font-semibold hover:opacity-90 transition">
-                     WhatsApp
-                  </a>
-                </>
-              )}
-              {lead.email && (
-                <a href={`mailto:${lead.email}`}
-                  className="flex items-center gap-1.5 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
-                   Email
-                </a>
-              )}
+            {/* Detail rows */}
+            <div className="border-t border-[var(--line-soft)] px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5">
+              {[
+                { label: 'Phone', value: formatPhone(lead.phone), href: lead.phone ? `tel:${lead.phone}` : undefined },
+                { label: 'Email', value: lead.email || '—', href: lead.email ? `mailto:${lead.email}` : undefined },
+                { label: 'Added', value: formatDateTime(lead.created_at) },
+                { label: 'Last update', value: formatDateTime(lead.updated_at) },
+              ].map(item => (
+                <div key={item.label} className="flex flex-col gap-0.5">
+                  <span className="text-[12px] text-[var(--ink-faint)]">{item.label}</span>
+                  {item.href
+                    ? <a href={item.href} className="text-[14px] font-medium text-[var(--accent)] hover:underline">{item.value}</a>
+                    : <span className="text-[14px] font-medium text-[var(--ink)]">{item.value}</span>}
+                </div>
+              ))}
             </div>
           </div>
 
           {/* Quick WhatsApp templates */}
           {lead.phone && (
-            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-              <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Quick WhatsApp Messages</h3>
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
+              <h3 className="text-[15px] font-semibold text-[var(--ink)] mb-1">Quick messages</h3>
+              <p className="text-[13px] text-[var(--ink-faint)] mb-4">Tap to open WhatsApp with the message ready to send.</p>
               <div className="space-y-2">
                 {WA_TEMPLATES.map((t, i) => (
                   <button key={i} onClick={() => sendQuickWA(t)}
-                    className="w-full text-left p-3 bg-[var(--line-soft)] rounded-xl text-xs text-[var(--ink-soft)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)] hover:border-[var(--ok)]/20 border border-transparent transition line-clamp-2">
+                    className="w-full text-left px-4 py-3 bg-[var(--canvas)] rounded-xl text-[13px] text-[var(--ink-soft)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)] border border-transparent hover:border-[var(--ok)]/20 transition line-clamp-2">
                     {t.replace('{{name}}', lead.full_name.split(' ')[0])}
                   </button>
                 ))}
@@ -265,8 +263,8 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           )}
 
           {/* Log activity */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-            <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Log Activity</h3>
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
+            <h3 className="text-[15px] font-semibold text-[var(--ink)] mb-4">Log Activity</h3>
 
             {/* Activity type */}
             <div className="flex flex-wrap gap-2 mb-4">
@@ -300,39 +298,33 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <button onClick={logActivity} disabled={savingAct}
                 className="w-full h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
                 
-                {savingAct ? 'Saving...': 'Log Activity'}
+                {savingAct ? 'Saving…' : 'Log activity'}
               </button>
             </div>
           </div>
 
           {/* Activity timeline */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-            <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Activity Timeline ({activities.length})</h3>
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
+            <h3 className="text-[15px] font-semibold text-[var(--ink)] mb-4">Activity timeline</h3>
             {activities.length === 0 ? (
-              <p className="text-sm text-[var(--ink-faint)] text-center py-6">No activities yet. Log your first interaction.</p>
+              <p className="text-sm text-[var(--ink-faint)] py-4">No activity yet. Your calls, messages and notes will appear here.</p>
             ) : (
-              <div className="space-y-3">
-                {activities.map(a => {
-                  const at = ACTIVITY_TYPES.find(t => t.key === a.activity_type)
-                  return (
-                    <div key={a.id} className="flex gap-3">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 mt-0.5 text-xs ${at?.color || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
-                        {at?.label.split(' ')[0]}
-                      </div>
-                      <div className="flex-1 pb-3 border-b border-[var(--line-soft)] last:border-0">
-                        <div className="text-sm font-semibold text-[var(--ink)]">{a.subject}</div>
-                        {a.description && <div className="text-xs text-[var(--ink-soft)] mt-0.5">{a.description}</div>}
-                        {a.outcome && <div className="text-xs text-[var(--accent)] mt-1 font-medium">Result: {a.outcome}</div>}
-                        {a.next_follow_up && (
-                          <div className="text-xs text-orange-600 mt-1 flex items-center gap-1">
-                             Follow up: {formatDateTime(a.next_follow_up)}
-                          </div>
-                        )}
-                        <div className="text-[10px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)} · {(a as any).creator?.full_name || 'You'}</div>
-                      </div>
+              <div className="relative pl-5">
+                <div className="absolute left-1.5 top-1 bottom-1 w-px bg-[var(--line)]" />
+                <div className="space-y-4">
+                  {activities.map(a => (
+                    <div key={a.id} className="relative">
+                      <div className="absolute -left-[15px] top-1.5 w-2.5 h-2.5 rounded-full bg-[var(--accent)] ring-4 ring-[var(--paper)]" />
+                      <div className="text-[14px] font-medium text-[var(--ink)]">{a.subject}</div>
+                      {a.description && <div className="text-[13px] text-[var(--ink-soft)] mt-0.5 leading-relaxed">{a.description}</div>}
+                      {a.outcome && <div className="text-[13px] text-[var(--accent)] mt-1 font-medium">Result: {a.outcome}</div>}
+                      {a.next_follow_up && (
+                        <div className="text-[13px] text-[var(--warn)] mt-1">Follow up: {formatDateTime(a.next_follow_up)}</div>
+                      )}
+                      <div className="text-[12px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)} · {(a as any).creator?.full_name || 'You'}</div>
                     </div>
-                  )
-                })}
+                  ))}
+                </div>
               </div>
             )}
           </div>
@@ -362,8 +354,8 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           )}
 
           {/* Update status */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
-            <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Update Status</h3>
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
+            <h3 className="text-[15px] font-semibold text-[var(--ink)] mb-3">Update status</h3>
             <div className="space-y-2 mb-4">
               {STATUSES.map(s => (
                 <button key={s.key} onClick={() => setNewStatus(s.key)}
@@ -382,7 +374,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
           {/* Lead notes */}
           {lead.notes && (
-            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
               <h3 className="text-sm font-semibold text-[var(--ink)] mb-2">Notes</h3>
               <p className="text-sm text-[var(--ink-soft)]">{lead.notes}</p>
             </div>
