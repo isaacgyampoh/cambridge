@@ -53,13 +53,13 @@ type BtnProps = {
 export function Button({
   children, onClick, href, variant = 'primary', size = 'md', icon, disabled, type = 'button', className = '',
 }: BtnProps) {
-  const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap'
-  const sizes = { sm: 'h-8 px-3 text-[13px]', md: 'h-10 px-4 text-sm' }
+  const base = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap select-none'
+  const sizes = { sm: 'h-9 px-3.5 text-[13px]', md: 'h-11 px-5 text-[14px]' }
   const variants = {
-    primary:   'bg-[var(--accent)] text-white hover:brightness-110 active:brightness-95 shadow-sm',
-    secondary: 'bg-white text-[var(--ink)] border border-[var(--line)] hover:border-[var(--ink-faint)] hover:bg-[var(--line-soft)]',
+    primary:   'bg-[var(--accent)] text-white hover:brightness-[1.08] active:brightness-95 shadow-[0_1px_2px_rgba(26,122,133,0.25)]',
+    secondary: 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--ink-faint)] hover:bg-[var(--canvas)]',
     ghost:     'text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]',
-    danger:    'bg-white text-red-600 border border-red-200 hover:bg-red-50',
+    danger:    'bg-[var(--paper)] text-[var(--danger)] border border-[var(--danger)]/25 hover:bg-[var(--danger-soft)]',
   }
   const cls = `${base} ${sizes[size]} ${variants[variant]} ${className}`
   // Icons removed system-wide — text only.
@@ -174,10 +174,10 @@ export function EmptyState({
   action?: React.ReactNode
 }) {
   return (
-    <div className="border border-dashed border-[var(--line)] rounded-xl py-16 px-6 text-center bg-[var(--paper)]">
-      <h3 className="font-display text-lg font-semibold text-[var(--ink)]">{title}</h3>
-      {description && <p className="text-sm text-[var(--ink-soft)] mt-1.5 max-w-sm mx-auto">{description}</p>}
-      {action && <div className="mt-5">{action}</div>}
+    <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--canvas)] py-16 px-6 text-center">
+      <h3 className="font-display text-[17px] font-semibold text-[var(--ink)]">{title}</h3>
+      {description && <p className="text-[14px] text-[var(--ink-soft)] mt-2 max-w-sm mx-auto leading-relaxed">{description}</p>}
+      {action && <div className="mt-6">{action}</div>}
     </div>
   )
 }
