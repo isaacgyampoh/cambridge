@@ -127,13 +127,16 @@ export default function Messages() {
           </div>
         </Card>
 
-        {/* Conversation — full screen on mobile when open; hidden on mobile when browsing list */}
-        <Card className={`p-0 overflow-hidden flex-col ${active ? 'flex' : 'hidden lg:flex'}`}>
+        {/* Conversation — fixed full-screen overlay on mobile (uses dvh so the
+            input stays above the keyboard); normal panel on desktop */}
+        <Card className={`p-0 overflow-hidden flex-col
+          ${active ? 'flex' : 'hidden lg:flex'}
+          ${active ? 'fixed inset-0 z-50 rounded-none lg:static lg:z-auto lg:rounded-2xl' : ''}`}>
           {!active ? (
             <div className="flex-1 flex items-center justify-center text-[var(--ink-faint)] text-sm">Select a colleague to start chatting</div>
           ) : (
-            <>
-              <div className="px-4 py-3 border-b border-[var(--line)] flex items-center gap-3">
+            <div className="flex flex-col h-[100dvh] lg:h-full">
+              <div className="px-4 py-3 border-b border-[var(--line)] flex items-center gap-3 flex-shrink-0">
                 {/* Back button — mobile only */}
                 <button onClick={() => setActive(null)} className="lg:hidden text-[var(--accent)] text-sm font-medium">Back</button>
                 <div>
@@ -160,7 +163,7 @@ export default function Messages() {
                   )
                 })}
               </div>
-              <div className="border-t border-[var(--line)] p-3 flex items-end gap-2">
+              <div className="border-t border-[var(--line)] p-3 flex items-end gap-2 flex-shrink-0 bg-[var(--paper)]">
                 <textarea value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                   rows={1} placeholder={recording ? 'Recording… tap Stop to send' : 'Type a message…'}
@@ -175,7 +178,7 @@ export default function Messages() {
                   </button>
                 )}
               </div>
-            </>
+            </div>
           )}
         </Card>
       </div>
