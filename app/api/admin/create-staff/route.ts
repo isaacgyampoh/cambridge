@@ -2,6 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, getSessionFromCookies } from '@/lib/auth/pin'
 
+export const runtime = 'nodejs'
+
 export async function POST(req: NextRequest) {
   const session = await getSessionFromCookies()
   if (!session.valid || !['super_admin', 'project_manager'].includes(session.role || '')) {
@@ -72,13 +74,32 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: profileErr.message }, { status: 500 })
   }
 
+  // ── Onboarding SMS: send the new staff their login details + portal link ──
+  let smsSent = false
+  try {
+    const { sendSMS } = await import('@/lib/integrations/sms')
+    const portalUrl = 'https://portal.cambridge.edu.gh'
+    const firstName = full_name.trim().split(' ')[0]
+    const roleLabel = role.replace(/_/g, ' ')
+    const msg =
+      `Hi ${firstName}, welcome to Cambridge Centre of Excellence!\n` +
+      `You've been added as ${roleLabel}.\n` +
+      `Portal: ${portalUrl}\n` +
+      `Login with your phone (${rawPhone}) and PIN: ${pin}\n` +
+      `Please change your PIN after your first login.`
+    smsSent = await sendSMS(phone233, msg)
+  } catch { smsSent = false }
+
   return NextResponse.json({
     success: true,
     userId,
+    smsSent,
     credentials: {
       phone: rawPhone,           // show the original format they typed
       initial_pin: pin,
-      note: 'Staff logs in with phone number + PIN. They must change PIN on first login.',
+      note: smsSent
+        ? 'Login details sent by SMS. Staff logs in with phone + PIN and must change PIN on first login.'
+        : 'Staff logs in with phone number + PIN. They must change PIN on first login. (SMS could not be sent — share the details manually.)',
     },
   })
 }

@@ -38,8 +38,10 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Too many attempts. Try again in ${mins} minute${mins !== 1 ? 's' : ''}.` }, { status: 429 })
   }
 
-  // ── OTP disabled → log in directly after a correct PIN ──
-  if (!CONFIG.otpEnabled) {
+  // ── OTP disabled globally, OR this user is super_admin → log in directly
+  //    after a correct PIN. Super admin is exempt because during onboarding
+  //    their email may not be a real address to receive codes. ──
+  if (!CONFIG.otpEnabled || profile.role === 'super_admin') {
     await sb.from('profiles').update({
       login_attempts: 0, locked_until: null, last_login_at: new Date().toISOString(),
     }).eq('id', profile.id)
