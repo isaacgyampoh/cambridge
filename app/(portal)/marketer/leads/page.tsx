@@ -177,9 +177,8 @@ export default function MarketerLeads() {
     <div className="fade-in w-full">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
-          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">My work</div>
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My leads</h1>
-          <p className="text-[var(--ink-soft)] text-sm mt-1.5">{leads.length} assigned to you</p>
+          <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">{leads.length} assigned to you</p>
         </div>
         <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
           <Link href="/marketer/leads/new"
@@ -240,8 +239,7 @@ export default function MarketerLeads() {
       {dueFollowUps.length > 0 && (
         <div className="mb-6 rounded-2xl border border-[var(--warn)]/20 bg-[var(--warn-soft)] p-4">
           <div className="flex items-center gap-2 mb-3">
-            
-            <span className="text-sm font-semibold text-amber-800">{dueFollowUps.length} follow-up{dueFollowUps.length === 1 ? '' : 's'} due today</span>
+            <span className="text-sm font-semibold text-[var(--warn)]">{dueFollowUps.length} follow-up{dueFollowUps.length === 1 ? '' : 's'} due today</span>
           </div>
           <div className="flex flex-wrap gap-2">
             {dueFollowUps.slice(0, 8).map((l: any) => (
