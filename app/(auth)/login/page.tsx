@@ -154,39 +154,41 @@ function LoginForm() {
 
       {/* Left panel — branding */}
       <div className="hidden lg:flex flex-col justify-between flex-1 relative overflow-hidden px-14 py-12"
-        style={{ background: 'var(--accent)' }}>
-        {/* soft texture rings */}
-        <div className="absolute -top-32 -right-32 w-96 h-96 rounded-full" style={{ background: 'rgba(255,255,255,0.04)' }} />
-        <div className="absolute top-40 -right-10 w-64 h-64 rounded-full" style={{ background: 'rgba(255,255,255,0.03)' }} />
-        <div className="absolute -bottom-24 -left-24 w-80 h-80 rounded-full" style={{ background: 'rgba(255,255,255,0.03)' }} />
+        style={{ background: 'linear-gradient(155deg, #14636c 0%, #1a7a85 55%, #17707a 100%)' }}>
+        {/* depth: soft radial glow */}
+        <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 85% 0%, rgba(255,255,255,0.10), transparent 60%)' }} />
+        <div className="absolute -bottom-32 -left-24 w-[420px] h-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.05), transparent 70%)' }} />
 
         {/* top — mark */}
         <div className="relative">
           <div className="flex items-center gap-3">
-            <div className="w-11 h-11 rounded-xl bg-white flex items-center justify-center overflow-hidden p-0.5">
+            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center overflow-hidden p-1 shadow-lg">
               <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" className="w-full h-full object-contain" />
             </div>
-            <div className="text-white/70 text-sm font-medium tracking-wide">Cambridge Centre of Excellence</div>
+            <div className="text-white text-[15px] font-semibold tracking-tight">Cambridge Centre of Excellence</div>
           </div>
         </div>
 
         {/* middle — statement */}
         <div className="relative max-w-md">
-          <h1 className="font-display text-white text-[42px] leading-[1.1] font-semibold mb-5">
+          <div className="text-white/50 text-[13px] font-medium mb-4 tracking-wide uppercase">Staff portal</div>
+          <h1 className="font-display text-white text-[44px] leading-[1.08] font-semibold mb-5 tracking-[-0.02em]">
             Where every lead becomes a graduate.
           </h1>
-          <p className="text-white/70 text-[15px] leading-relaxed">
+          <p className="text-white/65 text-[15px] leading-relaxed">
             One place for your team to nurture leads, register students, track admissions and manage the work — built around how Cambridge actually runs.
           </p>
         </div>
 
         {/* bottom — quiet feature line */}
-        <div className="relative flex items-center gap-8 text-white/60 text-[13px]">
-          <span>CRM &amp; Pipeline</span>
+        <div className="relative flex items-center gap-5 text-white/55 text-[13px] font-medium">
+          <span>CRM &amp; pipeline</span>
           <span className="w-1 h-1 rounded-full bg-white/30" />
           <span>Admissions</span>
           <span className="w-1 h-1 rounded-full bg-white/30" />
           <span>Finance</span>
+          <span className="w-1 h-1 rounded-full bg-white/30" />
+          <span>Messaging</span>
         </div>
       </div>
 
