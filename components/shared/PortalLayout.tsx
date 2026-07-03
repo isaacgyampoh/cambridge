@@ -7,6 +7,7 @@ import { usePathname, useRouter } from 'next/navigation'
 import CommandPalette from '@/components/shared/CommandPalette'
 import NotificationBell from '@/components/shared/NotificationBell'
 import GyampohAI from '@/components/shared/GyampohAI'
+import InstallButton from '@/components/shared/InstallButton'
 import {
   LayoutDashboard, Users, UserCheck, DollarSign, BookOpen,
   Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
@@ -395,6 +396,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 <div className="text-[10px] text-[var(--ink-faint)]">{ROLE_LABEL[profile?.role || '']}</div>
               </div>
             </div>
+            <InstallButton />
             <div className="flex gap-1.5">
               <Link href="/admin/settings/change-pin" className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] transition-colors">
                 <Shield size={11} /> PIN
