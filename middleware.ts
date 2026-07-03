@@ -11,6 +11,8 @@ const PUBLIC = [
   '/testimonial/', '/api/testimonials/',
   '/login', '/setup', '/apply/', '/signin/', '/public-alumni',
   '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/classes/pay', '/api/fees/pay', '/api/webhooks/', '/api/applications/', '/_next', '/favicon',
+  // PWA essentials — MUST be reachable without auth or the browser won't install the app
+  '/manifest.json', '/sw.js', '/icons/', '/brand/',
 ]
 
 // Portal ID → path prefixes it grants access to
@@ -84,5 +86,5 @@ export async function middleware(request: NextRequest) {
 }
 
 export const config = {
-  matcher: ['/((?!_next/static|_next/image|favicon.ico|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
+  matcher: ['/((?!_next/static|_next/image|favicon.ico|manifest.json|sw.js|icons/|brand/|.*\\.(?:svg|png|jpg|jpeg|gif|webp)$).*)'],
 }
