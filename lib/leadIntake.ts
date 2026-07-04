@@ -26,6 +26,7 @@ export type IncomingLead = {
   landing_source?: string | null
   raw_payload?: any
   extra?: Record<string, any>    // source-specific columns (e.g. fb_lead_id)
+  preferredMarketerId?: string | null  // assign straight to this marketer (personal referral link)
 }
 
 function normalizePhone(p?: string | null): string | null {
@@ -81,7 +82,7 @@ export async function intakeLead(input: IncomingLead): Promise<{ leadId: string 
 
   // 3) Auto-assign (fires AI opening message + nurture sequence inside)
   let assignedTo: string | null = null
-  try { assignedTo = await autoAssignLead(lead.id) } catch (e) { console.error('[intakeLead] assign failed', e) }
+  try { assignedTo = await autoAssignLead(lead.id, input.preferredMarketerId) } catch (e) { console.error('[intakeLead] assign failed', e) }
 
   // 4) Notify project managers
   try {

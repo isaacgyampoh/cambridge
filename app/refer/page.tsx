@@ -4,8 +4,11 @@ import { useSearchParams } from 'next/navigation'
 
 function ReferInner() {
   const params = useSearchParams()
-  const code = params.get('code')  // if present, this is a friend arriving via a link
-  return code ? <FriendForm code={code} /> : <GetLink />
+  const code = params.get('code')        // generic referral code
+  const marketerCode = params.get('m')   // a marketer's personal link
+  // A friend arriving via either link sees the interest form; otherwise the
+  // generic "get your own link" flow.
+  return (code || marketerCode) ? <FriendForm code={code} marketerCode={marketerCode} /> : <GetLink />
 }
 
 /* A referrer generates their shareable link */
@@ -53,7 +56,7 @@ function GetLink() {
 }
 
 /* A referred friend submits their interest */
-function FriendForm({ code }: { code: string }) {
+function FriendForm({ code, marketerCode }: { code: string | null; marketerCode: string | null }) {
   const [form, setForm] = useState({ full_name: '', phone: '', email: '', course_interest: '' })
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
@@ -61,7 +64,7 @@ function FriendForm({ code }: { code: string }) {
   async function submit() {
     if (!form.full_name.trim() || (!form.phone.trim() && !form.email.trim())) return
     setBusy(true)
-    const d = await fetch('/api/referrals/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, code }) }).then(r => r.json())
+    const d = await fetch('/api/referrals/submit', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ ...form, code, marketerCode }) }).then(r => r.json())
     setBusy(false)
     if (d.success) setDone(true)
   }

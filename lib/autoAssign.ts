@@ -11,8 +11,22 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
  * Controlled by the 'auto_assign_leads' setting (defaults ON). When off,
  * leads stay unassigned for a PM to distribute manually.
  */
-export async function autoAssignLead(leadId: string): Promise<string | null> {
+export async function autoAssignLead(leadId: string, preferredMarketerId?: string | null): Promise<string | null> {
   const sb = createServiceClient()
+
+  // If a specific marketer owns this lead (e.g. their personal referral/flyer
+  // link), assign straight to them — skip round-robin — but still fire the AI
+  // opening + nurture below.
+  if (preferredMarketerId) {
+    const { data: pref } = await sb.from('profiles')
+      .select('id, is_active').eq('id', preferredMarketerId).maybeSingle()
+    if (pref?.is_active) {
+      await sb.from('leads').update({ assigned_to: preferredMarketerId, assigned_at: new Date().toISOString() }).eq('id', leadId)
+      await fireLeadOnboarding(sb, leadId, preferredMarketerId)
+      return preferredMarketerId
+    }
+    // if the preferred marketer is invalid/inactive, fall through to round-robin
+  }
 
   // Respect the toggle (defaults ON if the setting/table isn't present)
   try {
@@ -55,14 +69,26 @@ export async function autoAssignLead(leadId: string): Promise<string | null> {
     assigned_at: new Date().toISOString(),
   }).eq('id', leadId)
 
+  await fireLeadOnboarding(sb, leadId, chosen.id)
+  return chosen.id
+}
+
+/**
+ * After a lead is assigned to a marketer (round-robin OR a specific marketer),
+ * notify the marketer, enroll in the new-lead nurture sequence, and fire the
+ * AI WhatsApp opening message through that marketer's line.
+ */
+async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
+  const { data: marketer } = await sb.from('profiles').select('full_name').eq('id', marketerId).maybeSingle()
+
   // Notify the marketer
   const { data: lead } = await sb.from('leads').select('full_name, source').eq('id', leadId).maybeSingle()
   await sb.from('notifications').insert({
-    user_id: chosen.id, type: 'lead',
+    user_id: marketerId, type: 'lead',
     title: 'New lead assigned to you',
     body: `${lead?.full_name || 'A new lead'} (${lead?.source || 'system'}) was assigned to you. Reach out soon.`,
     link: `/marketer/leads/${leadId}`,
-  })
+  }).then(() => {}, () => {})
 
   // Auto-enroll into any active "new lead" nurture sequence
   try {
@@ -80,29 +106,25 @@ export async function autoAssignLead(leadId: string): Promise<string | null> {
     }
   } catch { /* sequences optional */ }
 
-  // AI auto-conversation: the system starts the chat with the lead through
-  // the assigned marketer's WhatsApp line, before the marketer even opens
-  // it. The WhatsApp webhook then handles the lead's replies with AI.
+  // AI auto-conversation: start the WhatsApp chat through the marketer's line.
   try {
     const { data: full } = await sb.from('leads')
       .select('full_name, phone, course_interest').eq('id', leadId).maybeSingle()
     if (full?.phone) {
       const opening = await generateOpeningMessage({
         leadName: full.full_name,
-        marketerName: chosen.full_name,
+        marketerName: marketer?.full_name || 'Cambridge',
         courseInterest: full.course_interest,
       })
       if (opening) {
-        const sent = await sendWhatsAppText(full.phone, opening, chosen.id)
+        const sent = await sendWhatsAppText(full.phone, opening, marketerId)
         if (sent) {
           await sb.from('ai_conversations').insert({
-            lead_id: leadId, phone: full.phone, marketer_id: chosen.id,
+            lead_id: leadId, phone: full.phone, marketer_id: marketerId,
             incoming_text: null, reply_text: opening, answered_by: 'ai_opening',
           }).then(() => {}, () => {})
         }
       }
     }
   } catch { /* AI opening optional — never block assignment */ }
-
-  return chosen.id
 }

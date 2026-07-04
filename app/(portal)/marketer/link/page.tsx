@@ -133,6 +133,35 @@ export default function MarketerLink() {
         </p>
       </div>
 
+      {/* Referral / flyer link — for casual sharing (status, flyers). Friend
+          leaves interest first, becomes YOUR lead, AI engages them on WhatsApp. */}
+      {profile?.marketer_code && (
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">
+          <p className="text-[12px] font-semibold text-[var(--accent)] mb-1">Your referral link (for flyers & status)</p>
+          <p className="text-[13px] text-[var(--ink-soft)] mb-3">Post this anywhere. Anyone who clicks it and leaves their details becomes <b>your</b> lead — our WhatsApp AI greets them, answers their questions, and sends the registration form when they're ready.</p>
+          {(() => {
+            const referUrl = `${CONFIG.appUrl}/refer?m=${profile.marketer_code}`
+            return (
+              <div>
+                <div className="flex items-center gap-2">
+                  <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-4 py-3 text-sm text-[var(--ink-soft)] font-mono break-all">{referUrl}</div>
+                  <button onClick={() => { navigator.clipboard.writeText(referUrl); toast.success('Referral link copied!') }}
+                    className="flex-shrink-0 h-11 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold hover:brightness-110 transition">Copy</button>
+                </div>
+                <a href={`https://wa.me/?text=${encodeURIComponent(`Interested in professional training with Cambridge Centre of Excellence? Tap here and I'll get you all the details:\n\n${referUrl}`)}`}
+                  target="_blank" rel="noopener noreferrer"
+                  className="inline-flex items-center gap-2 mt-3 h-10 px-4 bg-[#25D366] text-white rounded-lg text-sm font-medium hover:opacity-90 transition">
+                  Share on WhatsApp
+                </a>
+              </div>
+            )
+          })()}
+          <p className="text-xs text-[var(--ink-faint)] mt-3">
+            Difference: the <b>registration link</b> goes straight to the payment form. This <b>referral link</b> is softer — for people who want to ask questions first. Both count toward your numbers.
+          </p>
+        </div>
+      )}
+
       {/* Stats */}
       <div className="grid grid-cols-3 gap-4 mb-5">
         {[
