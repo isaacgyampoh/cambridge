@@ -4,12 +4,13 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PageHeader, Card, Button, Field, inputClass } from '@/components/ui'
 
-const COURSES = ['PMP','SPHRi/PHRi','aPHRi','CAPM','NGO Management','Project Financing','MS Project','Commercial Law','Instructor-led','Corporate Training','Other']
+const FALLBACK_COURSES = ['PMP','SPHRi/PHRi','aPHRi','CAPM','NGO Management','Project Financing','MS Project','Commercial Law','Instructor-led','Corporate Training','Other']
 
 export default function MarketerNewLead() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [myId, setMyId] = useState<string | null>(null)
+  const [courses, setCourses] = useState<string[]>(FALLBACK_COURSES)
   const [form, setForm] = useState({
     full_name: '', phone: '', email: '', gender: '',
     city: '', course_interest: '', notes: '',
@@ -17,6 +18,9 @@ export default function MarketerNewLead() {
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setMyId(s.userId) })
+    fetch('/api/courses/public').then(r => r.json()).then(d => {
+      if (d.courses?.length) setCourses([...d.courses, 'Other'])
+    }).catch(() => {})
   }, [])
 
   function set(key: string, val: string) { setForm(f => ({ ...f, [key]: val })) }
@@ -107,7 +111,7 @@ export default function MarketerNewLead() {
             <Field label="Programme of interest">
               <select value={form.course_interest} onChange={e => set('course_interest', e.target.value)} className={inputClass}>
                 <option value="">Select a programme</option>
-                {COURSES.map(c => <option key={c} value={c}>{c}</option>)}
+                {courses.map(c => <option key={c} value={c}>{c}</option>)}
               </select>
             </Field>
           </div>

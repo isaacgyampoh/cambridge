@@ -58,8 +58,13 @@ function GetLink() {
 /* A referred friend submits their interest */
 function FriendForm({ code, marketerCode }: { code: string | null; marketerCode: string | null }) {
   const [form, setForm] = useState({ full_name: '', phone: '', email: '', course_interest: '' })
+  const [courses, setCourses] = useState<string[]>([])
   const [busy, setBusy] = useState(false)
   const [done, setDone] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/courses/public').then(r => r.json()).then(d => setCourses(d.courses || [])).catch(() => {})
+  }, [])
 
   async function submit() {
     if (!form.full_name.trim() || (!form.phone.trim() && !form.email.trim())) return
@@ -81,7 +86,7 @@ function FriendForm({ code, marketerCode }: { code: string | null; marketerCode:
         <Input label="Full name" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Your name" />
         <Input label="Phone" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="024 000 0000" />
         <Input label="Email (optional)" value={form.email} onChange={v => setForm(f => ({ ...f, email: v }))} placeholder="you@email.com" />
-        <Input label="Course of interest (optional)" value={form.course_interest} onChange={v => setForm(f => ({ ...f, course_interest: v }))} placeholder="e.g. PMP" />
+        <Select label="Course of interest (optional)" value={form.course_interest} onChange={v => setForm(f => ({ ...f, course_interest: v }))} options={courses} placeholder="Select a course…" />
         <button onClick={submit} disabled={busy || !form.full_name.trim()}
           className="w-full h-12 rounded-xl bg-[var(--accent)] text-white font-semibold text-[15px] hover:brightness-110 disabled:opacity-50 transition">
           {busy ? 'Submitting…' : 'Register my interest'}
@@ -117,6 +122,19 @@ function Input({ label, value, onChange, placeholder }: { label: string; value: 
       <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
         className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
+    </div>
+  )
+}
+
+function Select({ label, value, onChange, options, placeholder }: { label: string; value: string; onChange: (v: string) => void; options: string[]; placeholder?: string }) {
+  return (
+    <div>
+      <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{label}</label>
+      <select value={value} onChange={e => onChange(e.target.value)}
+        className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
+        <option value="">{placeholder || 'Select…'}</option>
+        {options.map(o => <option key={o} value={o}>{o}</option>)}
+      </select>
     </div>
   )
 }
