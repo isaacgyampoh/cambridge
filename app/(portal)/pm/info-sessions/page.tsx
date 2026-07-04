@@ -8,6 +8,21 @@ export default function InfoSessions() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ title: '', link: '', description: '', scheduled_at: '', notify_at: '', audience: 'all_leads', channels: ['sms', 'whatsapp'] })
+  const [preview, setPreview] = useState<any>(null)
+
+  // Live preview: reach count + message, updates as the form changes
+  useEffect(() => {
+    const t = setTimeout(async () => {
+      try {
+        const d = await fetch('/api/info-sessions/preview', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ title: form.title, link: form.link, description: form.description, scheduled_at: form.scheduled_at, audience: form.audience }),
+        }).then(r => r.json())
+        setPreview(d)
+      } catch {}
+    }, 400)
+    return () => clearTimeout(t)
+  }, [form.title, form.link, form.description, form.scheduled_at, form.audience])
 
   async function load() {
     const d = await fetch('/api/info-sessions').then(r => r.json())
@@ -124,6 +139,22 @@ export default function InfoSessions() {
                 ))}
               </div>
             </div>
+            {/* Live preview */}
+            {preview && (
+              <div className="rounded-xl bg-[var(--canvas)] border border-[var(--line)] p-4">
+                <div className="flex items-baseline justify-between mb-2">
+                  <span className="text-[13px] font-semibold text-[var(--ink)]">Reach</span>
+                  <span className="text-[13px] text-[var(--accent)] font-semibold">{preview.leadCount} lead{preview.leadCount === 1 ? '' : 's'}</span>
+                </div>
+                <p className="text-[12px] text-[var(--ink-faint)] mb-3">
+                  {form.channels.includes('email') ? `${preview.withEmail} also have an email. ` : ''}
+                  Each lead gets the message by {form.channels.map(c => c === 'sms' ? 'SMS' : c === 'whatsapp' ? 'WhatsApp' : 'email').join(' + ') || '—'}.
+                </p>
+                <div className="text-[12px] font-semibold text-[var(--ink-soft)] mb-1">Message preview</div>
+                <div className="text-[13px] text-[var(--ink-soft)] whitespace-pre-wrap bg-[var(--paper)] rounded-lg p-3 border border-[var(--line-soft)] leading-relaxed">{preview.message}</div>
+              </div>
+            )}
+
             <Button onClick={create} disabled={saving} className="w-full">{saving ? 'Scheduling…' : 'Schedule session'}</Button>
           </div>
         </Card>
