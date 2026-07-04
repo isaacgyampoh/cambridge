@@ -4,7 +4,7 @@ import { broadcastPaymentReminders } from '@/lib/paymentReminderBroadcast'
 
 export const runtime = 'nodejs'
 
-const ALLOWED = ['super_admin', 'project_manager', 'accountant']
+const ALLOWED = ['super_admin', 'accountant']
 
 /** Finance-triggered: send reminders to everyone owing, right now. */
 export async function POST(req: NextRequest) {

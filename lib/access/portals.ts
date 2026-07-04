@@ -54,7 +54,7 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
-  trainer:           ['dashboard','my_classes','grp_automation','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
+  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
   exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in','messages'],
   content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
   student:           ['dashboard','my_payments'],
@@ -79,5 +79,17 @@ export function resolvePortals(role: string | undefined, savedPortals?: string[]
 
 /** All URL paths a user may visit, derived from their resolved portals. */
 export function allowedPathsFor(role: string | undefined, savedPortals?: string[] | null): string[] {
-  return resolvePortals(role, savedPortals).flatMap(pid => PORTAL_PATHS[pid] || [])
+  const paths = resolvePortals(role, savedPortals).flatMap(pid => {
+    // Automation sub-pages are department-scoped, not shared by everyone who
+    // has the Automation group. Grant only the pages this role actually owns.
+    if (pid === 'grp_automation') {
+      const p: string[] = []
+      if (['super_admin', 'project_manager'].includes(role || '')) p.push('/pm/info-sessions')
+      if (['super_admin', 'project_manager', 'accountant'].includes(role || '')) p.push('/classes/reminders')
+      if (['super_admin', 'accountant'].includes(role || '')) p.push('/finance/reminders')
+      return p
+    }
+    return PORTAL_PATHS[pid] || []
+  })
+  return paths
 }

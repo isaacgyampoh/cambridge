@@ -40,9 +40,9 @@ export const ALL_PORTALS = [
   { id: 'my_link',     label: 'My Link',      icon: Radio,           href: '/marketer/link' },
   { id: 'my_attendance', label: 'Class Attendance', icon: Users,      href: '/marketer/attendance' },
   { id: 'grp_automation', label: 'Automation', icon: Radio, href: '/pm/info-sessions', children: [
-    { label: 'Info Sessions',    href: '/pm/info-sessions' },
-    { label: 'Class Reminders',  href: '/classes/reminders' },
-    { label: 'Payment Reminders', href: '/finance/reminders' },
+    { label: 'Info Sessions',     href: '/pm/info-sessions',   roles: ['super_admin', 'project_manager'] },
+    { label: 'Class Reminders',   href: '/classes/reminders',  roles: ['super_admin', 'project_manager', 'accountant'] },
+    { label: 'Payment Reminders', href: '/finance/reminders',  roles: ['super_admin', 'accountant'] },
   ]},
   { id: 'pm_leads',    label: 'Lead Inbox',   icon: TrendingUp,      href: '/pm/assign',
     children: [
@@ -162,7 +162,7 @@ const NAV_BY_ROLE: Record<string, string[]> = {
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
-  trainer:           ['dashboard','my_classes','grp_automation','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
+  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
   exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in','messages'],
   content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
   student:           ['dashboard','my_payments'],
@@ -193,6 +193,14 @@ function getNavItems(profile: any) {
     const p = ALL_PORTALS.find(x => x.id === id)
     if (!p) return null
     const href = p.href === '/__home__' ? (ROLE_HOME[profile?.role] || '/admin') : p.href
+    // Filter any role-restricted children (e.g. Automation sub-items differ by
+    // department: Finance sees Payment Reminders, PM sees Info Sessions, etc.)
+    if ((p as any).children) {
+      const kids = (p as any).children.filter((c: any) => !c.roles || c.roles.includes(profile?.role))
+      if (kids.length === 0) return null           // no visible children -> hide the whole group
+      // Point the group's own href at the first child this role can actually open
+      return { ...p, href: kids[0].href, children: kids }
+    }
     return { ...p, href }
   }).filter(Boolean) as typeof ALL_PORTALS
 }

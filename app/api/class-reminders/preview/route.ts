@@ -3,7 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
-const ALLOWED = ['super_admin', 'project_manager', 'trainer']
+const ALLOWED = ['super_admin', 'project_manager', 'accountant']
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value

@@ -4,7 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
-const ALLOWED = ['super_admin', 'project_manager', 'trainer']
+const ALLOWED = ['super_admin', 'project_manager', 'accountant']
 
 // GET — list reminders + the batches available to schedule for
 export async function GET(req: NextRequest) {
@@ -15,8 +15,8 @@ export async function GET(req: NextRequest) {
   const sb = createServiceClient()
 
   // Trainers only see their own batches; PM/admin see all active batches
+  // PM / Finance / Admin all see every active class
   let bq: any = sb.from('batches').select('id, name, zoom_link, status').in('status', ['upcoming', 'ongoing'])
-  if (session.role === 'trainer') bq = bq.eq('trainer_id', session.userId)
   const { data: batches } = await bq.order('name').limit(200)
 
   const { data: reminders } = await sb.from('class_reminders')
