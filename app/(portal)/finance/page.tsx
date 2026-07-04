@@ -14,6 +14,18 @@ const METHOD_TONE: Record<string, any> = {
 export default function FinancePage() {
   const [tab, setTab] = useState<'payments' | 'invoices'>('payments')
   const [showModal, setShowModal] = useState(false)
+  const [sendingReminders, setSendingReminders] = useState(false)
+
+  async function sendReminders() {
+    if (!confirm('Send a payment reminder (SMS + WhatsApp) to every student who currently owes a balance?')) return
+    setSendingReminders(true)
+    try {
+      const d = await fetch('/api/payment-reminders/send', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({}) }).then(r => r.json())
+      if (d.success) toast.success(`Reminders sent to ${d.students_notified} of ${d.total_owing} students owing`)
+      else toast.error(d.error || 'Could not send reminders')
+    } catch { toast.error('Could not send reminders') }
+    setSendingReminders(false)
+  }
   const [form, setForm] = useState({ student_id: '', amount: '', method: 'cash', notes: '' })
   const [saving, setSaving] = useState(false)
 
@@ -62,6 +74,7 @@ export default function FinancePage() {
         actions={
           <>
             <Button variant="secondary" href="/finance/reports">Reports</Button>
+            <Button variant="secondary" onClick={sendReminders} disabled={sendingReminders}>{sendingReminders ? 'Sending…' : 'Send payment reminders'}</Button>
             <Button variant="secondary" href="/finance/invoices/new" >Invoice</Button>
             <Button onClick={() => setShowModal(true)} >Record payment</Button>
           </>
