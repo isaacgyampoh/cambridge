@@ -106,6 +106,7 @@ export const ALL_PORTALS = [
     { label: 'All Leads',       href: '/admin/leads' },
     { label: 'Leads by Course', href: '/admin/leads/courses' },
     { label: 'Conversions',     href: '/admin/conversions' },
+    { label: 'Referrals',       href: '/admin/referrals' },
     { label: 'Transfer Requests', href: '/admin/transfers' },
     { label: 'Add Lead',        href: '/admin/leads/new' },
     { label: 'Import',          href: '/admin/leads/import' },

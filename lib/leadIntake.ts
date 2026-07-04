@@ -39,7 +39,7 @@ function normalizePhone(p?: string | null): string | null {
 
 const PRETTY: Record<string, string> = {
   facebook: 'Facebook', instagram: 'Instagram', google: 'Google',
-  linkedin: 'LinkedIn', tiktok: 'TikTok', website: 'Website', whatsapp: 'WhatsApp',
+  linkedin: 'LinkedIn', tiktok: 'TikTok', website: 'Website', whatsapp: 'WhatsApp', referral: 'Referral',
 }
 
 export async function intakeLead(input: IncomingLead): Promise<{ leadId: string | null; assignedTo: string | null; duplicate: boolean }> {

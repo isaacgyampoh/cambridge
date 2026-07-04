@@ -14,7 +14,7 @@
 export const PORTAL_PATHS: Record<string, string[]> = {
   dashboard:   ['/admin', '/pm', '/marketer', '/admission', '/finance', '/receptionist', '/trainer', '/student', '/coordinator'],
   insights:    ['/admin/insights'],
-  leads:       ['/admin/leads', '/admin/conversions', '/admin/transfers'],
+  leads:       ['/admin/leads', '/admin/conversions', '/admin/transfers', '/admin/referrals'],
   my_leads:    ['/marketer', '/marketer/leads', '/admin/conversions', '/admin/leads/courses', '/admin/leads/course'],
   my_link:     ['/marketer/link'],
   pm_leads:    ['/pm', '/pm/assign'],
