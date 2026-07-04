@@ -64,7 +64,7 @@ export async function middleware(request: NextRequest) {
       '/api/auth', '/api/data', '/api/leads', '/api/admissions',
       '/api/reminders', '/api/attendance', '/api/finance', '/api/broadcast',
       '/api/documents', '/api/sms', '/api/test',
-      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links', '/api/prep', '/api/fees', '/api/content', '/api/facebook', '/api/webhook-debug', '/api/assistant', '/api/messages', '/api/info-sessions', '/api/payment-reminders/send', '/api/class-reminders',
+      '/api/staff-attendance', '/api/whatsapp', '/clock-in', '/api/analytics', '/api/activity-feed', '/api/config-status', '/api/leads', '/api/remuneration', '/api/registrations', '/api/marketer', '/api/sequences', '/api/admissions', '/api/classes', '/api/certificates', '/api/links', '/api/prep', '/api/fees', '/api/content', '/api/facebook', '/api/webhook-debug', '/api/assistant', '/api/messages', '/api/info-sessions', '/api/payment-reminders/send', '/api/payment-reminders/preview', '/finance/reminders', '/api/class-reminders',
       ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
     ]
 
