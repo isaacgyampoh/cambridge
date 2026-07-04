@@ -9,7 +9,7 @@ export default function ClassReminders() {
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
   const [preview, setPreview] = useState<any>(null)
-  const [form, setForm] = useState({ batch_id: '', class_at: '', notify_at: '', channels: ['sms', 'whatsapp'], note: '' })
+  const [form, setForm] = useState({ batch_id: '', class_at: '', offsets: [1440, 120], channels: ['sms', 'whatsapp'], note: '' })
 
   async function load() {
     const d = await fetch('/api/class-reminders').then(r => r.json())
@@ -36,15 +36,19 @@ export default function ClassReminders() {
   }
 
   async function create() {
-    if (!form.batch_id || !form.class_at || !form.notify_at) { toast.error('Pick a class, class time and reminder time.'); return }
+    if (!form.batch_id || !form.class_at || form.offsets.length === 0) { toast.error('Pick a class, class time and at least one reminder.'); return }
     setSaving(true)
     const d = await fetch('/api/class-reminders', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ ...form, channels: form.channels.join(',') }),
     }).then(r => r.json())
     setSaving(false)
-    if (d.reminder) { toast.success('Reminder scheduled. It will send automatically.'); setForm({ batch_id: '', class_at: '', notify_at: '', channels: ['sms', 'whatsapp'], note: '' }); load() }
+    if (d.created) { toast.success(`${d.created} reminder${d.created === 1 ? '' : 's'} scheduled. They'll send automatically.`); setForm({ batch_id: '', class_at: '', offsets: [1440, 120], channels: ['sms', 'whatsapp'], note: '' }); load() }
     else toast.error(d.error || 'Could not schedule.')
+  }
+
+  function toggleOffset(mins: number) {
+    setForm(f => ({ ...f, offsets: f.offsets.includes(mins) ? f.offsets.filter(x => x !== mins) : [...f.offsets, mins] }))
   }
 
   async function act(id: string, action: string, title: string) {
@@ -112,7 +116,25 @@ export default function ClassReminders() {
                 </select>
               </Field>
               <Field label="When is the class?"><input type="datetime-local" className={inputClass} value={form.class_at} onChange={e => set('class_at', e.target.value)} /></Field>
-              <Field label="When to send the reminder?"><input type="datetime-local" className={inputClass} value={form.notify_at} onChange={e => set('notify_at', e.target.value)} /></Field>
+              <div>
+                <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Send reminders</label>
+                <div className="grid grid-cols-2 gap-2">
+                  {[
+                    { mins: 10080, label: '1 week before' },
+                    { mins: 4320,  label: '3 days before' },
+                    { mins: 1440,  label: '1 day before' },
+                    { mins: 180,   label: '3 hours before' },
+                    { mins: 120,   label: '2 hours before' },
+                    { mins: 30,    label: '30 min before' },
+                  ].map(o => (
+                    <button key={o.mins} onClick={() => toggleOffset(o.mins)}
+                      className={`h-10 rounded-xl text-[13px] font-medium border transition ${form.offsets.includes(o.mins) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
+                      {o.label}
+                    </button>
+                  ))}
+                </div>
+                <p className="text-[12px] text-[var(--ink-faint)] mt-2">Pick one or more. Each becomes an automatic send before the class.</p>
+              </div>
               <Field label="Note (optional)"><textarea className={textareaClass} rows={2} placeholder="Have your materials ready." value={form.note} onChange={e => set('note', e.target.value)} /></Field>
               <div>
                 <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Send by</label>
@@ -138,7 +160,7 @@ export default function ClassReminders() {
                 </div>
               )}
 
-              <Button onClick={create} disabled={saving} className="w-full">{saving ? 'Scheduling…' : 'Schedule reminder'}</Button>
+              <Button onClick={create} disabled={saving} className="w-full">{saving ? "Scheduling…" : `Schedule ${form.offsets.length} reminder${form.offsets.length === 1 ? "" : "s"}`}</Button>
             </div>
           )}
         </Card>
