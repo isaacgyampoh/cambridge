@@ -5,6 +5,20 @@ import { CONFIG } from '@/lib/config'
 export const runtime = 'nodejs'
 
 /**
+ * GET — simple health check so you can confirm the endpoint is live
+ * (open it in a browser; Google itself only ever POSTs here).
+ */
+export async function GET() {
+  return NextResponse.json({
+    ok: true,
+    endpoint: 'google-lead-webhook',
+    ready: true,
+    keyConfigured: !!CONFIG.googleLeadKey,
+    note: 'Google Lead Form Extensions should POST here. Leads auto-assign to a marketer on arrival.',
+  })
+}
+
+/**
  * Google Lead Form Extensions webhook.
  * Google sends: { lead_id, campaign_id, user_column_data: [{column_name, string_value}], google_key }
  * Set a shared secret in the form ("key") and check it here.
