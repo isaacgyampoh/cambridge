@@ -41,6 +41,16 @@ export default function InfoSessions() {
     toast.success('Cancelled'); load()
   }
 
+  async function sendNow(id: string, title: string) {
+    if (!confirm(`Send "${title}" to all targeted leads right now? This cannot be undone.`)) return
+    toast.loading('Sending…', { id: 'sn' })
+    const res = await fetch('/api/info-sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'send_now' }) })
+    const d = await res.json()
+    if (d.success) toast.success(`Sent to ${d.leads_notified} leads · ${d.marketers_notified} marketers notified`, { id: 'sn' })
+    else toast.error(d.error || 'Could not send', { id: 'sn' })
+    load()
+  }
+
   function toggleChannel(c: string) {
     setForm(f => ({ ...f, channels: f.channels.includes(c) ? f.channels.filter(x => x !== c) : [...f.channels, c] }))
   }
@@ -66,7 +76,7 @@ export default function InfoSessions() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-display text-[16px] font-semibold text-[var(--ink)]">{s.title}</h3>
-                          <Badge tone={s.status === 'sent' ? 'ok' : s.status === 'cancelled' ? 'danger' : 'info'}>{s.status}</Badge>
+                          <Badge tone={s.status === 'sent' ? 'success' : s.status === 'cancelled' ? 'danger' : 'accent'}>{s.status}</Badge>
                         </div>
                         <p className="text-[13px] text-[var(--ink-soft)] mt-1">Session: {when}</p>
                         {s.status === 'scheduled' && <p className="text-[13px] text-[var(--ink-faint)]">Auto-sends: {sendWhen}</p>}
@@ -74,7 +84,10 @@ export default function InfoSessions() {
                         <a href={s.link} target="_blank" className="text-[13px] text-[var(--accent)] hover:underline break-all">{s.link}</a>
                       </div>
                       {s.status === 'scheduled' && (
-                        <button onClick={() => cancel(s.id)} className="text-[13px] text-[var(--danger)] font-medium flex-shrink-0">Cancel</button>
+                        <div className="flex flex-col gap-2 flex-shrink-0">
+                          <button onClick={() => sendNow(s.id, s.title)} className="text-[13px] text-white bg-[var(--accent)] px-3 py-1.5 rounded-lg font-semibold hover:brightness-110">Send now</button>
+                          <button onClick={() => cancel(s.id)} className="text-[13px] text-[var(--danger)] font-medium">Cancel</button>
+                        </div>
                       )}
                     </div>
                   </Card>
@@ -103,10 +116,10 @@ export default function InfoSessions() {
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Send by</label>
               <div className="flex gap-2">
-                {['sms', 'whatsapp'].map(c => (
+                {['sms', 'whatsapp', 'email'].map(c => (
                   <button key={c} onClick={() => toggleChannel(c)}
                     className={`flex-1 h-10 rounded-xl text-[13px] font-semibold border transition ${form.channels.includes(c) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
-                    {c === 'sms' ? 'SMS' : 'WhatsApp'}
+                    {c === 'sms' ? 'SMS' : c === 'whatsapp' ? 'WhatsApp' : 'Email'}
                   </button>
                 ))}
               </div>

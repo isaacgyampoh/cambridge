@@ -51,6 +51,13 @@ export async function PATCH(req: NextRequest) {
   const sb = createServiceClient()
   if (action === 'cancel') {
     await sb.from('info_sessions').update({ status: 'cancelled' }).eq('id', id).eq('status', 'scheduled')
+    return NextResponse.json({ success: true })
+  }
+  if (action === 'send_now') {
+    const { broadcastInfoSession } = await import('@/lib/infoSessionBroadcast')
+    const result = await broadcastInfoSession(id)
+    if ((result as any).error) return NextResponse.json(result, { status: 400 })
+    return NextResponse.json({ success: true, ...result })
   }
   return NextResponse.json({ success: true })
 }
