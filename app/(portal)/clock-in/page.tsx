@@ -99,12 +99,12 @@ export default function ClockInPage() {
         {/* Times */}
         <div className="grid grid-cols-2 gap-3 mb-6">
           <div className="bg-[var(--line-soft)] rounded-lg p-3 text-center">
-            <div className="text-[12px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock in</div>
+            <div className="text-[13px] text-[var(--ink-faint)] mb-1">Clock in</div>
             <div className="font-display text-xl font-semibold text-[var(--ink)]">{today?.clock_in_at ? fmt(today.clock_in_at) : '—'}</div>
             {today?.status === 'late' && <div className="text-[10px] text-[var(--warn)] font-medium mt-0.5">Late</div>}
           </div>
           <div className="bg-[var(--line-soft)] rounded-lg p-3 text-center">
-            <div className="text-[12px] text-[var(--ink-faint)] uppercase tracking-wide mb-1">Clock out</div>
+            <div className="text-[13px] text-[var(--ink-faint)] mb-1">Clock out</div>
             <div className="font-display text-xl font-semibold text-[var(--ink)]">{today?.clock_out_at ? fmt(today.clock_out_at) : '—'}</div>
           </div>
         </div>

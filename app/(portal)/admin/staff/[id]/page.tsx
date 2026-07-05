@@ -89,7 +89,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
     router.push('/admin/staff')
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin"/></div>
+  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin"/></div>
   if (!staff) return <div className="text-center py-20 text-[var(--ink-faint)]">Staff member not found</div>
 
   const ROLE_COLOR: Record<string, string> = {
@@ -158,7 +158,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
           return (
             <div key={group.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-[var(--line-soft)] bg-[var(--line-soft)]">
-                <span className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide">{group.label}</span>
+                <span className="text-xs font-bold text-[var(--ink-faint)]">{group.label}</span>
               </div>
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {portalsInGroup.map((portal: any) => {
@@ -174,7 +174,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                         <div className={`text-sm font-bold truncate ${on ? 'text-[var(--accent)]' : 'text-[var(--ink-soft)]'}`}>{portal.label}</div>
                         <div className="text-[12px] text-[var(--ink-faint)] truncate">{PORTAL_DESC[portal.id] || ''}</div>
                       </div>
-                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${on ? 'border-blue-600 bg-[var(--accent)]' : 'border-[var(--line)]'}`}>
+                      <div className={`w-5 h-5 rounded-full border-2 flex items-center justify-center flex-shrink-0 ${on ? 'border-[var(--accent)] bg-[var(--accent)]' : 'border-[var(--line)]'}`}>
                         {on && <div className="w-2 h-2 bg-white rounded-full"/>}
                       </div>
                     </button>

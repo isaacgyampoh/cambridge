@@ -134,7 +134,7 @@ export default function StaffPage() {
                       
                     </div>
                     <div>
-                      <div className="text-sm font-bold text-green-800">Account Created!</div>
+                      <div className="text-sm font-bold text-[var(--ok)]">Account Created!</div>
                       <div className="text-xs text-[var(--ok)]">Share these credentials with the staff member</div>
                     </div>
                   </div>
@@ -142,7 +142,7 @@ export default function StaffPage() {
                   <div className="space-y-3">
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] font-bold text-[var(--ink-faint)] uppercase tracking-wide">Phone (Login)</div>
+                        <div className="text-[10px] font-bold text-[var(--ink-faint)]">Phone (Login)</div>
                         <div className="text-sm font-semibold text-[var(--ink)]">{creds.phone}</div>
                       </div>
                       <button onClick={() => copyText(creds.phone, 'Phone')}
@@ -153,7 +153,7 @@ export default function StaffPage() {
 
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] font-bold text-[var(--ink-faint)] uppercase tracking-wide">Initial PIN</div>
+                        <div className="text-[10px] font-bold text-[var(--ink-faint)]">Initial PIN</div>
                         <div className="text-2xl font-bold tracking-[0.3em] text-[var(--accent)]">{creds.initial_pin}</div>
                       </div>
                       <button onClick={() => copyText(creds.initial_pin, 'PIN')}
@@ -185,7 +185,7 @@ export default function StaffPage() {
                 <div className="space-y-4">
                   {/* Name */}
                   <div>
-                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">
                       Full Name *
                     </label>
                     <div className="relative">
@@ -198,7 +198,7 @@ export default function StaffPage() {
 
                   {/* Email */}
                   <div>
-                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">
                       Email <span className="text-[10px] text-[var(--danger)] normal-case font-normal">(required — for login codes &amp; documents)</span>
                     </label>
                     <div className="relative">
@@ -211,7 +211,7 @@ export default function StaffPage() {
 
                   {/* Phone */}
                   <div>
-                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">
                       Phone Number * <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(used for WhatsApp notifications in their name)</span>
                     </label>
                     <div className="relative">
@@ -225,7 +225,7 @@ export default function StaffPage() {
                   {/* Department + PIN row */}
                   <div className="grid grid-cols-2 gap-3">
                     <div>
-                      <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Department</label>
+                      <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">Department</label>
                       <div className="relative">
                         
                         <input value={form.department} onChange={e => set('department', e.target.value)}
@@ -234,7 +234,7 @@ export default function StaffPage() {
                       </div>
                     </div>
                     <div>
-                      <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                      <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">
                         Initial PIN <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(blank = last 4 of phone)</span>
                       </label>
                       <div className="relative">
@@ -252,13 +252,13 @@ export default function StaffPage() {
 
                   {/* Role */}
                   <div>
-                    <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Role *</label>
+                    <label className="block text-xs font-bold text-[var(--ink-faint)] mb-2">Role *</label>
                     <div className="grid grid-cols-2 gap-2">
                       {ROLES.filter(r => r.value !== 'super_admin').map(r => (
                         <button key={r.value} type="button" onClick={() => set('role', r.value)}
                           className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left ${
                             form.role === r.value
-                              ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
+                              ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
                               : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-[var(--line-soft)]'
                           }`}>
                           {r.label}
@@ -277,7 +277,7 @@ export default function StaffPage() {
 
                   {form.role === 'exam_coordinator' && (
                     <div>
-                      <label className="block text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Programme they coordinate *</label>
+                      <label className="block text-xs font-bold text-[var(--ink-faint)] mb-2">Programme they coordinate *</label>
                       <input value={form.coordinator_program} onChange={e => set('coordinator_program', e.target.value.toUpperCase())}
                         placeholder="e.g. PMP or SPHRI (the course code)"
                         className="w-full h-11 px-4 rounded-xl border-2 border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
@@ -336,7 +336,7 @@ export default function StaffPage() {
 
         {loading ? (
           <div className="flex justify-center py-16">
-            <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+            <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
           </div>
         ) : filtered.length === 0 ? (
           <div className="text-center py-16 text-[var(--ink-faint)]">

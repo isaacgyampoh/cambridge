@@ -210,7 +210,7 @@ export default function ClassesPage() {
                 {/* Zoom link — send to enrolled students */}
                 {b.class_type === 'online' && (
                   <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
-                    <p className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Zoom / meeting link</p>
+                    <p className="text-[13px] font-semibold text-[var(--ink-faint)] mb-2">Zoom / meeting link</p>
                     <div className="flex flex-wrap items-center gap-2">
                       <input
                         value={zoomEdits[b.id] ?? b.zoom_link ?? ''}
@@ -236,7 +236,7 @@ export default function ClassesPage() {
 
                 {/* Course materials — send to enrolled students after a session */}
                 <div className="mt-4 pt-4 border-t border-[var(--line-soft)]">
-                  <p className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Course materials</p>
+                  <p className="text-[13px] font-semibold text-[var(--ink-faint)] mb-2">Course materials</p>
                   {matOpen === b.id ? (
                     <div className="space-y-2">
                       <input value={matForm.title} onChange={e => setMatForm(f => ({ ...f, title: e.target.value }))}

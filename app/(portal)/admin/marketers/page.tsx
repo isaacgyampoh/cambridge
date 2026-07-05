@@ -169,7 +169,7 @@ export default function MarketerPerformancePage() {
     top_performer: { label: 'Top Performer', color: 'bg-[var(--warn-soft)] text-[var(--warn)] border-yellow-200', bg: 'border-yellow-300'},
     active: { label: 'Active', color: 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/20', bg: 'border-[var(--ok)]/20'},
     at_risk: { label: 'At Risk', color: 'bg-[var(--warn-soft)] text-[var(--warn)] border-orange-200', bg: 'border-orange-300'},
-    inactive: { label: 'Inactive', color: 'bg-[var(--danger-soft)] text-red-700 border-[var(--danger)]/20', bg: 'border-red-300'},
+    inactive: { label: 'Inactive', color: 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger)]/20', bg: 'border-red-300'},
   }
 
   const summary = {
@@ -274,7 +274,7 @@ export default function MarketerPerformancePage() {
 
       {/* Marketer cards */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
       ) : (
         <div className="space-y-4">
           {marketers.map(m => {
@@ -332,7 +332,7 @@ export default function MarketerPerformancePage() {
                     <div className="h-2 bg-[var(--line-soft)] rounded-full overflow-hidden flex">
                       {m.totalLeads > 0 && <>
                         <div className="h-full bg-[var(--ok)]"style={{ width: `${m.convertedLeads/m.totalLeads*100}%` }} title="Converted" />
-                        <div className="h-full bg-blue-400"style={{ width: `${m.interestedLeads/m.totalLeads*100}%` }} title="Interested" />
+                        <div className="h-full bg-[var(--accent)]"style={{ width: `${m.interestedLeads/m.totalLeads*100}%` }} title="Interested" />
                         <div className="h-full bg-yellow-400"style={{ width: `${m.contactedLeads/m.totalLeads*100}%` }} title="Contacted" />
                         <div className="h-full bg-[var(--line)]"style={{ width: `${m.uncontactedLeads/m.totalLeads*100}%` }} title="New/Uncontacted" />
                       </>}
@@ -340,7 +340,7 @@ export default function MarketerPerformancePage() {
                     <div className="flex gap-3 mt-1">
                       {[
                         { color: 'bg-[var(--ok)]', label: 'Converted'},
-                        { color: 'bg-blue-400', label: 'Interested'},
+                        { color: 'bg-[var(--accent)]', label: 'Interested'},
                         { color: 'bg-yellow-400', label: 'Contacted'},
                         { color: 'bg-[var(--line)]', label: 'New'},
                       ].map(l => (

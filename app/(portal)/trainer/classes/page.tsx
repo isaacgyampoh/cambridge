@@ -65,7 +65,7 @@ export default function TrainerClasses() {
 
   const ATT_OPTS = [
     { key: 'present', label: 'P', color: 'bg-[var(--ok)]' },
-    { key: 'absent', label: 'A', color: 'bg-red-500' },
+    { key: 'absent', label: 'A', color: 'bg-[var(--danger)]' },
     { key: 'late', label: 'L', color: 'bg-yellow-500' },
     { key: 'excused', label: 'E', color: 'bg-[var(--accent)]' },
   ]
@@ -84,12 +84,12 @@ export default function TrainerClasses() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
           {/* Batch list */}
           <div className="space-y-2">
-            <h2 className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-wide">My Classes</h2>
+            <h2 className="text-xs font-bold text-[var(--ink-faint)]">My Classes</h2>
             {batches.length === 0 ? (
               <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-8 text-center text-[var(--ink-faint)] text-sm">No classes assigned</div>
             ) : batches.map(b => (
               <button key={b.id} onClick={() => setSelected(b.id)}
-                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected===b.id?'border-blue-600':'border-[var(--line-soft)] hover:border-[var(--line)]'}`}>
+                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected===b.id?'border-[var(--accent)]':'border-[var(--line-soft)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
                     

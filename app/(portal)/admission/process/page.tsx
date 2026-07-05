@@ -111,7 +111,7 @@ export default function AdmissionProcess() {
 
           {loading ? (
             <div className="flex justify-center py-16">
-              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
             <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center">
@@ -159,7 +159,7 @@ export default function AdmissionProcess() {
                       </>}
                       {['awaiting_forms','awaiting_payment'].includes(a.status) && (
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'admitted')}
-                          className="px-3 py-1.5 bg-green-600 text-white rounded-xl text-xs font-semibold hover:bg-green-700 disabled:opacity-50 transition">
+                          className="px-3 py-1.5 bg-[var(--ok)] text-white rounded-xl text-xs font-semibold hover:bg-[var(--ok)] disabled:opacity-50 transition">
                            Admit Student
                         </button>
                       )}
@@ -189,7 +189,7 @@ export default function AdmissionProcess() {
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
           {loadApp ? (
             <div className="flex justify-center py-16">
-              <div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" />
+              <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
             <div className="overflow-x-auto">

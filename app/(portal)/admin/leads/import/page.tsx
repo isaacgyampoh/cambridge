@@ -186,7 +186,7 @@ export default function ImportLeadsPage() {
             <div className="bg-[var(--accent-soft)] border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
               
               <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-blue-900">Need a template?</div>
+                <div className="text-sm font-bold text-[var(--accent)]">Need a template?</div>
                 <div className="text-xs text-[var(--accent)]">Columns: full_name, phone, email, course_interest, source, city, notes</div>
               </div>
               <button onClick={downloadTemplate}
@@ -209,7 +209,7 @@ export default function ImportLeadsPage() {
 
             {/* Paste area */}
             <div>
-              <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">
+              <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-2">
                 Or paste CSV data directly
               </label>
               <textarea
@@ -272,7 +272,7 @@ export default function ImportLeadsPage() {
                               {row.status === 'valid'
                                 ? null : null}
                             </td>
-                            <td className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-red-400 italic">missing</span>}</td>
+                            <td className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-[var(--danger)] italic">missing</span>}</td>
                             <td className="px-3 py-2 text-xs text-[var(--ink-faint)]">{row.phone || '—'}</td>
                             <td className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-32 truncate">{row.email || '—'}</td>
                             <td className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-28 truncate">{row.course_interest || '—'}</td>

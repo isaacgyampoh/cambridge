@@ -169,7 +169,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     } catch {}
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
   if (!lead) return <div className="text-center py-20 text-[var(--ink-faint)]">Lead not found</div>
 
   const WA_TEMPLATES = [
@@ -270,7 +270,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div className="flex flex-wrap gap-2 mb-4">
               {ACTIVITY_TYPES.map(t => (
                 <button key={t.key} onClick={() => setActType(t.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'}`}>
+                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'}`}>
                   {t.label}
                 </button>
               ))}

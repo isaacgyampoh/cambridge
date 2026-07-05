@@ -68,7 +68,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     }
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
   if (!lead) return <div className="text-center py-20 text-[var(--ink-faint)]">Lead not found</div>
 
   const assignee = (lead as any).assignee

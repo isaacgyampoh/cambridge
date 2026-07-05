@@ -74,7 +74,7 @@ export default function CertificatesPage() {
       {/* Ready to issue */}
       {toIssue.length > 0 && (
         <Card className="p-5 mb-6">
-          <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-3">Ready to certify ({toIssue.length})</p>
+          <p className="text-[13px] font-medium text-[var(--accent)] mb-3">Ready to certify ({toIssue.length})</p>
           <div className="space-y-2">
             {toIssue.slice(0, 20).map((e: any) => (
               <div key={e.id} className="flex items-center justify-between gap-3 py-2 border-b border-[var(--line-soft)] last:border-0">

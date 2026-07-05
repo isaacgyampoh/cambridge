@@ -52,7 +52,7 @@ export default function NewInvoice() {
         <h1 className="font-semibold text-[var(--ink)] mb-5">Create Invoice</h1>
         <div className="space-y-4">
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Student *</label>
+            <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Student *</label>
             <select value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })}
               className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
               <option value="">Select student...</option>
@@ -60,7 +60,7 @@ export default function NewInvoice() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Course</label>
+            <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Course</label>
             <select value={form.course_id} onChange={e => {
               const c = courses.find(x => x.id === e.target.value)
               setForm({ ...form, course_id: e.target.value, total_amount: c ? String(c.course_fee) : form.total_amount })
@@ -71,17 +71,17 @@ export default function NewInvoice() {
             </select>
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Amount (GHS) *</label>
+            <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Amount (GHS) *</label>
             <input type="number" step="0.01" min="0" value={form.total_amount} onChange={e => setForm({ ...form, total_amount: e.target.value })}
               placeholder="0.00" className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Due Date</label>
+            <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Due Date</label>
             <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
               className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
           </div>
           <div>
-            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Notes</label>
+            <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Notes</label>
             <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2}
               className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
           </div>

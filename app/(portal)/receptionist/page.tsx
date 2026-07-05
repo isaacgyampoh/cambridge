@@ -30,7 +30,7 @@ export default function ReceptionistDashboard() {
     { type: '1_week', label: '1 Week Before', color: 'bg-[var(--accent)] hover:brightness-110'},
     { type: '2_days', label: '2 Days Before', color: 'bg-orange-500 hover:bg-orange-600'},
     { type: 'day', label: 'Day Before', color: 'bg-purple-600 hover:bg-purple-700'},
-    { type: 'class_day', label: 'Class Day ', color: 'bg-red-500 hover:bg-red-600'},
+    { type: 'class_day', label: 'Class Day ', color: 'bg-[var(--danger)] hover:bg-[var(--danger)]'},
   ]
 
   return (
@@ -52,7 +52,7 @@ export default function ReceptionistDashboard() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full animate-spin" /></div>
+        <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>
       ) : batches.length === 0 ? (
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center text-[var(--ink-faint)]">
           
@@ -90,7 +90,7 @@ export default function ReceptionistDashboard() {
                 </div>
 
                 <div className="border-t border-[var(--line-soft)] pt-4">
-                  <p className="text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Send Reminders via WhatsApp + SMS</p>
+                  <p className="text-[13px] font-semibold text-[var(--ink-faint)] mb-2">Send Reminders via WhatsApp + SMS</p>
                   <div className="flex flex-wrap gap-2">
                     {REMINDER_TYPES.map(r => (
                       <button key={r.type}

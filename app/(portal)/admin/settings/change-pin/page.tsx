@@ -44,7 +44,7 @@ export default function ChangePINPage() {
 
   const PinRow = ({ label, value, onChange, refs, onKeyDown }: any) => (
     <div>
-      <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">{label}</label>
+      <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-2">{label}</label>
       <div className="flex gap-3">
         {value.map((digit: string, i: number) => (
           <input key={i} ref={refs[i]}
@@ -52,7 +52,7 @@ export default function ChangePINPage() {
             onChange={e => onChange(e.target.value, i)}
             onKeyDown={e => onKeyDown(e, i)}
             className={`w-14 h-14 text-center text-xl font-bold rounded-xl border-2 focus:outline-none transition
-              ${digit ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--line)] bg-[var(--line-soft)]'}
+              ${digit ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--line)] bg-[var(--line-soft)]'}
               focus:border-[var(--accent)] focus:bg-white`} />
         ))}
       </div>

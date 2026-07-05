@@ -136,7 +136,7 @@ export default function BroadcastPage() {
             <div className="space-y-4">
               {/* Title */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Campaign Title</label>
+                <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Campaign Title</label>
                 <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. PMP June Intake Announcement"
                   className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
@@ -144,11 +144,11 @@ export default function BroadcastPage() {
 
               {/* Target */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Target Audience</label>
+                <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Target Audience</label>
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {TARGET_TYPES.map(t => (
                     <button key={t.value} onClick={() => setForm(f => ({ ...f, target_type: t.value, target_filters: {} }))}
-                      className={`text-left p-3 rounded-xl border-2 transition ${form.target_type === t.value ? 'border-blue-600 bg-[var(--accent-soft)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
+                      className={`text-left p-3 rounded-xl border-2 transition ${form.target_type === t.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
                       <div className="text-sm font-semibold text-[var(--ink)]">{t.label}</div>
                       <div className="text-xs text-[var(--ink-faint)]">{t.desc}</div>
                     </button>
@@ -179,7 +179,7 @@ export default function BroadcastPage() {
                 )}
 
                 {/* Preview */}
-                <button onClick={getPreview} className="mt-2 text-xs text-[var(--accent)] hover:text-blue-800 font-semibold">
+                <button onClick={getPreview} className="mt-2 text-xs text-[var(--accent)] hover:text-[var(--accent)] font-semibold">
                   Preview audience
                 </button>
                 {preview && (
@@ -194,7 +194,7 @@ export default function BroadcastPage() {
 
               {/* Channels */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-2">Send via</label>
+                <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-2">Send via</label>
                 <div className="flex gap-2">
                   {[
                     { key: 'whatsapp', label: 'WhatsApp', color: 'border-green-400 bg-[var(--ok-soft)] text-[var(--ok)]'},
@@ -211,7 +211,7 @@ export default function BroadcastPage() {
               {/* Message */}
               <div>
                 <div className="flex items-center justify-between mb-1.5">
-                  <label className="text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide">Message</label>
+                  <label className="text-[13px] font-medium text-[var(--ink-faint)]">Message</label>
                   <span className="text-xs text-[var(--ink-faint)]">{form.message.length} chars · Use {'{{name}}'} for personalization</span>
                 </div>
                 <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
@@ -230,7 +230,7 @@ export default function BroadcastPage() {
 
               {/* Schedule */}
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">
+                <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">
                   Schedule (leave blank to send now)
                 </label>
                 <input type="datetime-local" value={form.scheduled_at}
@@ -253,7 +253,7 @@ export default function BroadcastPage() {
 
       {/* Broadcasts list */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
       ) : (
         <div className="space-y-3">
           {broadcasts.map(b => (

@@ -156,7 +156,7 @@ export default function AlumniPage() {
             {/* Field groups */}
             {FIELD_GROUPS.map(group => (
               <div key={group.title} className="mb-5">
-                <h3 className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-widest mb-3">{group.title}</h3>
+                <h3 className="text-xs font-bold text-[var(--ink-faint)]st mb-3">{group.title}</h3>
                 <div className="grid grid-cols-2 gap-3">
                   {group.fields.map(f => (
                     <div key={f.key} className={f.half ? '': 'col-span-2'}>
@@ -172,7 +172,7 @@ export default function AlumniPage() {
 
             {/* Story & Testimonial */}
             <div className="mb-5">
-              <h3 className="text-xs font-bold text-[var(--ink-faint)] uppercase tracking-widest mb-3">Story & Testimonial</h3>
+              <h3 className="text-xs font-bold text-[var(--ink-faint)]st mb-3">Story & Testimonial</h3>
               <div className="space-y-3">
                 <div>
                   <label className="block text-xs font-semibold text-[var(--ink-faint)] mb-1">Success Story</label>
@@ -220,7 +220,7 @@ export default function AlumniPage() {
 
       {/* Alumni grid */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {alumni.map(a => (
@@ -232,7 +232,7 @@ export default function AlumniPage() {
                     
                   </div>
                 )}
-                <div className="w-14 h-14 rounded-full border-3 border-white overflow-hidden bg-blue-200 flex-shrink-0 absolute -bottom-7 left-4">
+                <div className="w-14 h-14 rounded-full border-3 border-white overflow-hidden bg-[var(--accent-soft)] flex-shrink-0 absolute -bottom-7 left-4">
                   {a.photo_url
                     ? <img src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center text-[var(--accent)] font-bold text-xl">{a.full_name.charAt(0)}</div>}
@@ -266,7 +266,7 @@ export default function AlumniPage() {
                     
                   </button>
                   <button onClick={() => togglePublish(a.id, a.is_published)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-green-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-[var(--ok-soft)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                     {a.is_published ? null : null}
                   </button>
                   <button onClick={() => del(a.id)}

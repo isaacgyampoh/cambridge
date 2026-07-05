@@ -121,7 +121,7 @@ export default function AdminRegistrations() {
               { title: 'Registration', rows: [['Programme', selected.course?.name], ['Registered by', selected.marketer?.full_name], ['Payment status', selected.payment_status], ['Payment method', selected.payment_method]] },
             ].map(section => (
               <div key={section.title} className="mb-5">
-                <p className="text-xs font-semibold text-[var(--accent)] uppercase tracking-wide mb-2">{section.title}</p>
+                <p className="text-[13px] font-medium text-[var(--accent)] mb-2">{section.title}</p>
                 <div className="rounded-xl border border-[var(--line)] divide-y divide-[var(--line-soft)]">
                   {section.rows.map(([label, val]) => (
                     <div key={label} className="flex items-center justify-between px-4 py-2.5">

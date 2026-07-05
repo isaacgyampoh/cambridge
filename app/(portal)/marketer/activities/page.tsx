@@ -87,7 +87,7 @@ export default function ActivitiesPage() {
         <div className="bg-[var(--danger-soft)] border border-[var(--danger)]/20 rounded-2xl p-4 mb-5 flex items-center gap-3">
           
           <div>
-            <div className="text-sm font-bold text-red-700">{overdue.length} overdue follow-up{overdue.length > 1 ? 's': ''}!</div>
+            <div className="text-sm font-bold text-[var(--danger)]">{overdue.length} overdue follow-up{overdue.length > 1 ? 's': ''}!</div>
             <div className="text-xs text-[var(--danger)]">These should have been done already. Take action now.</div>
           </div>
         </div>
@@ -108,7 +108,7 @@ export default function ActivitiesPage() {
       </div>
 
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-blue-600 border-t-transparent rounded-full spin" /></div>
+        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
       ) : queue.length === 0 ? (
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
           
@@ -143,7 +143,7 @@ export default function ActivitiesPage() {
                     {lead?.phone && (
                       <div className="flex gap-1">
                         <a href={`tel:${lead.phone}`}
-                          className="w-9 h-9 rounded-xl bg-[var(--ok-soft)] flex items-center justify-center hover:bg-green-200 transition">
+                          className="w-9 h-9 rounded-xl bg-[var(--ok-soft)] flex items-center justify-center hover:bg-[var(--ok-soft)] transition">
                           
                         </a>
                         <a href={`https://wa.me/${lead.phone.replace(/^0/, '233')}`} target="_blank"

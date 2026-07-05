@@ -383,7 +383,7 @@ export default function MarketerLeads() {
             </div>
             <p className="text-sm text-[var(--ink-soft)] mb-4">If a lead reached you but is assigned to someone else, enter their number to request the lead. Your manager will review it.</p>
 
-            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Lead's phone number</label>
+            <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Lead's phone number</label>
             <div className="flex gap-2 mb-4">
               <input value={reqPhone} onChange={e => setReqPhone(e.target.value)} placeholder="024 000 0000"
                 className="flex-1 h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />

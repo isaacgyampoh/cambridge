@@ -163,7 +163,7 @@ export default function AttendanceDashboard() {
             <h2 className="font-semibold text-[var(--ink)] mb-4">Create Sign-in Session</h2>
             <div className="space-y-3 mb-5">
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Batch</label>
+                <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Batch</label>
                 <select value={newSession.batch_id} onChange={e => setNewSession(s => ({ ...s, batch_id: e.target.value }))}
                   className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
                   <option value="">Select batch...</option>
@@ -174,7 +174,7 @@ export default function AttendanceDashboard() {
                 )}
               </div>
               <div>
-                <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide mb-1.5">Class Code (write this on the board)</label>
+                <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Class Code (write this on the board)</label>
                 <input value={newSession.class_code} onChange={e => setNewSession(s => ({ ...s, class_code: e.target.value.toUpperCase() }))}
                   placeholder="e.g. CCE-AB25" maxLength={12}
                   className="w-full h-14 px-4 rounded-xl border border-[var(--line)] text-xl font-bold text-center tracking-widest uppercase focus:outline-none focus:border-[var(--accent)]" />
@@ -199,7 +199,7 @@ export default function AttendanceDashboard() {
           <div className="space-y-2">
             {sessions.map((s: any) => (
               <button key={s.id} onClick={() => selectSession(s)}
-                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected?.id === s.id ? 'border-blue-600': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
+                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected?.id === s.id ? 'border-[var(--accent)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between mb-1">
                   <div className="text-sm font-semibold text-[var(--ink)] truncate">{s.batches?.name}</div>
                   <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
@@ -243,7 +243,7 @@ export default function AttendanceDashboard() {
                     <p className="text-sm font-mono text-[var(--accent)] mt-1">Code: <strong>{selected.class_code}</strong></p>
                   </div>
                   <button onClick={() => toggleSession(selected.id, selected.signin_open)}
-                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${selected.signin_open ? 'bg-[var(--danger-soft)] text-red-700 hover:bg-red-200': 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-green-200'}`}>
+                    className={`px-3 py-1.5 rounded-xl text-xs font-bold transition ${selected.signin_open ? 'bg-[var(--danger-soft)] text-[var(--danger)] hover:bg-[var(--danger-soft)]': 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-[var(--ok-soft)]'}`}>
                     {selected.signin_open ? 'Close Sign-in': 'Reopen Sign-in'}
                   </button>
                 </div>
