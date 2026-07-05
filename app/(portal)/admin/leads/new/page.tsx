@@ -6,12 +6,13 @@ import { ArrowLeft, UserPlus, Phone, Mail, BookOpen, Globe, MessageSquare } from
 import Link from 'next/link'
 
 const SOURCES = ['manual','facebook','google','linkedin','website','referral']
-const COURSES = ['PMP','PRINCE2','Agile/Scrum','Data Analytics','Cyber Security','Cloud Computing','Business Analysis','Digital Marketing','Project Management','Other']
+const FALLBACK_COURSES = ['PMP','SPHRi/PHRi','aPHRi','CAPM','NGO Management','Project Financing','MS Project','Commercial Law','Corporate Training','Other']
 
 export default function NewLeadPage() {
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [marketers, setMarketers] = useState<any[]>([])
+  const [courses, setCourses] = useState<string[]>(FALLBACK_COURSES)
   const [form, setForm] = useState({
     full_name: '', email: '', phone: '', gender: '',
     country: 'Ghana', city: '',
@@ -25,6 +26,9 @@ export default function NewLeadPage() {
       { col: 'is_active', op: 'eq', val: true },
     ])) + '&orderBy=full_name&orderAsc=true')
       .then(r => r.json()).then(d => setMarketers(d.data || []))
+    fetch('/api/courses/public').then(r => r.json()).then(d => {
+      if (d.courses?.length) setCourses([...d.courses, 'Other'])
+    }).catch(() => {})
   }, [])
 
   function set(key: string, val: string) { setForm(f => ({ ...f, [key]: val })) }
@@ -149,22 +153,11 @@ export default function NewLeadPage() {
           {/* Course interest */}
           <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] uppercase tracking-wide mb-4">Course Interest</h2>
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {COURSES.map(c => (
-                <button key={c} type="button"
-                  onClick={() => set('course_interest', c)}
-                  className={`h-10 px-3 rounded-xl text-sm font-medium border-2 transition text-left truncate ${
-                    form.course_interest === c
-                      ? 'border-blue-600 bg-[var(--accent-soft)] text-[var(--accent)]'
-                      : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-[var(--line-soft)]'
-                  }`}>
-                  {c}
-                </button>
-              ))}
-            </div>
-            <input value={form.course_interest} onChange={e => set('course_interest', e.target.value)}
-              placeholder="Or type custom course..."
-              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition mt-3" />
+            <select value={form.course_interest} onChange={e => set('course_interest', e.target.value)}
+              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
+              <option value="">Select a course…</option>
+              {courses.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
           </div>
 
           {/* Notes */}
