@@ -10,7 +10,7 @@ const PUBLIC = [
   '/certificate/',
   '/testimonial/', '/api/testimonials/',
   '/login', '/setup', '/apply/', '/refer', '/signin/', '/public-alumni',
-  '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/classes/pay', '/api/fees/pay', '/api/webhooks/', '/api/applications/', '/api/referrals/', '/api/courses/public', '/_next', '/favicon',
+  '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/classes/pay', '/api/fees/pay', '/api/webhooks/', '/api/applications/', '/api/referrals/', '/api/courses/public', '/api/social/', '/_next', '/favicon',
   // PWA essentials — MUST be reachable without auth or the browser won't install the app
   '/manifest.json', '/sw.js', '/icons/', '/brand/',
 ]
