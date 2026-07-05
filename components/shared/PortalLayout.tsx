@@ -85,7 +85,7 @@ export const ALL_PORTALS = [
   { id: 'knowledge',   label: 'AI Knowledge', icon: Sparkles,         href: '/admin/knowledge' },
   { id: 'conversations', label: 'AI Conversations', icon: MessageSquare, href: '/admin/conversations' },
   { id: 'remuneration', label: 'Remuneration', icon: Trophy,          href: '/admin/remuneration' },
-  { id: 'grp_socials', label: 'Content Studio', icon: Sparkles, href: '/content',
+  { id: 'grp_socials', label: 'Social Media', icon: Sparkles, href: '/content',
     children: [
       { label: 'Content Studio',      href: '/content' },
       { label: 'Competitor Research', href: '/content/research' },
