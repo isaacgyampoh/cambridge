@@ -8,7 +8,6 @@ import { toast } from 'sonner'
 import Script from 'next/script'
 import { Check } from 'lucide-react'
 
-const PROGRAMS = ['PMP', 'PRINCE2', 'Agile/Scrum', 'Data Analytics', 'Cyber Security', 'Cloud Computing', 'Business Analysis', 'Other']
 
 // Map a UTM source slug to a friendly platform label.
 function prettySource(s?: string): string {

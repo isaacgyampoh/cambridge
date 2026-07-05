@@ -43,6 +43,23 @@ export async function POST(req: NextRequest) {
 
   const sb = createServiceClient()
 
+  // ── Idempotency guard ──
+  // WhatsApp providers (WAWP) frequently deliver the same message webhook more
+  // than once. Without this, the lead gets the same reply twice. If we've
+  // already handled this exact message (same phone + same text) in the last
+  // 60 seconds, skip it silently.
+  const msgId = pick('id', 'message_id', 'data.id', 'messageId', 'key.id')
+  try {
+    const since = new Date(Date.now() - 60000).toISOString()
+    const { data: recent } = await sb.from('ai_conversations')
+      .select('id, incoming_text')
+      .eq('phone', phone)
+      .gte('created_at', since)
+      .limit(5)
+    const seen = (recent || []).some((r: any) => (r.incoming_text || '').trim() === text.trim())
+    if (seen) return NextResponse.json({ ok: true, duplicate: true })
+  } catch { /* if the check fails, continue — better to risk a dup than drop a real message */ }
+
   // Find the lead by phone
   const { data: leads } = await sb.from('leads')
     .select('id, full_name, phone, course_interest, assigned_to')

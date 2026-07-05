@@ -4,7 +4,7 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PageHeader, Card, Button, Field, inputClass } from '@/components/ui'
 
-const FALLBACK_COURSES = ['PMP','SPHRi/PHRi','aPHRi','CAPM','NGO Management','Project Financing','MS Project','Commercial Law','Instructor-led','Corporate Training','Other']
+const FALLBACK_COURSES = ['Projects Management Professional','Corporate Training','Professional in Human Resources','Senior Professional in Human Resources','Software Agile Projects Management','Results-Based Monitoring and Evaluation','Other']
 
 export default function MarketerNewLead() {
   const router = useRouter()

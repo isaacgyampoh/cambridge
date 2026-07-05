@@ -6,7 +6,7 @@ import { ArrowLeft, UserPlus, Phone, Mail, BookOpen, Globe, MessageSquare } from
 import Link from 'next/link'
 
 const SOURCES = ['manual','facebook','google','linkedin','website','referral']
-const FALLBACK_COURSES = ['PMP','SPHRi/PHRi','aPHRi','CAPM','NGO Management','Project Financing','MS Project','Commercial Law','Corporate Training','Other']
+const FALLBACK_COURSES = ['Projects Management Professional','Corporate Training','Professional in Human Resources','Senior Professional in Human Resources','Software Agile Projects Management','Results-Based Monitoring and Evaluation','Other']
 
 export default function NewLeadPage() {
   const router = useRouter()

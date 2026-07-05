@@ -19,8 +19,8 @@ interface ParsedLead {
 
 const TEMPLATE_CSV = `full_name,phone,email,course_interest,source,city,notes
 Kwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes
-Abena Owusu,0551234567,abena@email.com,Data Analytics,google,Kumasi,
-John Doe,0201234567,,PRINCE2,manual,Takoradi,Called office`
+Abena Owusu,0551234567,abena@email.com,Corporate Training,google,Kumasi,
+John Doe,0201234567,,PHRI,manual,Takoradi,Called office`
 
 export default function ImportLeadsPage() {
   const router  = useRouter()
@@ -216,7 +216,7 @@ export default function ImportLeadsPage() {
                 value={raw}
                 onChange={e => handleText(e.target.value)}
                 rows={12}
-                placeholder={`full_name,phone,email,course_interest,source,city,notes\nKwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes\nAbena Owusu,0551234567,,Data Analytics,google,Kumasi,`}
+                placeholder={`full_name,phone,email,course_interest,source,city,notes\nKwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes\nAbena Owusu,0551234567,,PHRI,google,Kumasi,`}
                 className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm font-mono resize-none focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-white transition"
               />
             </div>
