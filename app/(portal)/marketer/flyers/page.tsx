@@ -43,7 +43,7 @@ export default function MyFlyers() {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: form.title, course: form.course, image_url: up.secure_url }),
       })
-      const d = await saveRes.json().catch(() => ({ error: 'The flyers feature needs a quick database setup. Ask your admin to run the latest schema.' }))
+      const d = await saveRes.json().catch(() => ({ error: 'Could not save the flyer. Please try again.' }))
       if (d.flyer) { toast.success('Flyer uploaded! Your link is ready to share.'); setForm({ title: '', course: '' }); setPreview(''); load() }
       else toast.error(d.error || 'Could not save flyer')
     } catch (err: any) { toast.error(err.message || 'Upload failed') }
