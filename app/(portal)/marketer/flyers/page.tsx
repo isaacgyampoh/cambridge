@@ -14,8 +14,15 @@ export default function MyFlyers() {
   const [preview, setPreview] = useState<string>('')
 
   async function load() {
-    const d = await fetch('/api/flyers').then(r => r.json())
-    setFlyers(d.flyers || []); setLoading(false)
+    try {
+      const res = await fetch('/api/flyers')
+      const d = await res.json().catch(() => ({ flyers: [] }))
+      setFlyers(d.flyers || [])
+    } catch {
+      setFlyers([])
+    } finally {
+      setLoading(false)
+    }
   }
   useEffect(() => { load() }, [])
 
@@ -32,10 +39,11 @@ export default function MyFlyers() {
       const up = await res.json()
       if (!up.secure_url) throw new Error('Upload failed')
       // save flyer
-      const d = await fetch('/api/flyers', {
+      const saveRes = await fetch('/api/flyers', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ title: form.title, course: form.course, image_url: up.secure_url }),
-      }).then(r => r.json())
+      })
+      const d = await saveRes.json().catch(() => ({ error: 'The flyers feature needs a quick database setup. Ask your admin to run the latest schema.' }))
       if (d.flyer) { toast.success('Flyer uploaded! Your link is ready to share.'); setForm({ title: '', course: '' }); setPreview(''); load() }
       else toast.error(d.error || 'Could not save flyer')
     } catch (err: any) { toast.error(err.message || 'Upload failed') }

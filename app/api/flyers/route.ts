@@ -9,7 +9,12 @@ export async function GET(req: NextRequest) {
   const s: any = token ? await verifySession(token) : { valid: false }
   if (!s.valid) return NextResponse.json({ error: 'unauth' }, { status: 401 })
   const sb = createServiceClient()
-  const { data } = await sb.from('flyers').select('*').eq('marketer_id', s.userId).order('created_at', { ascending: false }).limit(50)
+  const { data, error } = await sb.from('flyers').select('*').eq('marketer_id', s.userId).order('created_at', { ascending: false }).limit(50)
+  if (error) {
+    // Table may not exist yet (schema not run). Return empty rather than 500
+    // so the UI shows the empty state instead of hanging.
+    return NextResponse.json({ flyers: [], setup: error.message.includes('does not exist') })
+  }
   return NextResponse.json({ flyers: data || [] })
 }
 
@@ -23,7 +28,12 @@ export async function POST(req: NextRequest) {
   const { data, error } = await sb.from('flyers').insert({
     marketer_id: s.userId, title: title?.trim() || null, course: course || null, image_url,
   }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    const msg = error.message.includes('does not exist')
+      ? 'The flyers feature needs a database update. Please run the latest schema (FEATURES-SCHEMA.sql).'
+      : error.message
+    return NextResponse.json({ error: msg }, { status: 500 })
+  }
   return NextResponse.json({ flyer: data })
 }
 
