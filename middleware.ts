@@ -9,8 +9,8 @@ const SERVICE_KEY  = process.env.SUPABASE_SERVICE_KEY || 'eyJhbGciOiJIUzI1NiIsIn
 const PUBLIC = [
   '/certificate/',
   '/testimonial/', '/api/testimonials/',
-  '/login', '/setup', '/apply/', '/refer', '/signin/', '/public-alumni',
-  '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/classes/pay', '/api/fees/pay', '/api/webhooks/', '/api/applications/', '/api/referrals/', '/api/courses/public', '/api/social/', '/_next', '/favicon',
+  '/login', '/setup', '/apply/', '/refer', '/f/', '/signin/', '/public-alumni',
+  '/api/auth/', '/api/setup/', '/api/signin/', '/api/classes/signin', '/api/classes/pay', '/api/fees/pay', '/api/webhooks/', '/api/applications/', '/api/referrals/', '/api/courses/public', '/api/social/', '/api/flyers/public', '/api/flyers/submit', '/_next', '/favicon',
   // PWA essentials — MUST be reachable without auth or the browser won't install the app
   '/manifest.json', '/sw.js', '/icons/', '/brand/',
 ]
