@@ -60,6 +60,38 @@ export default function PMDashboard() {
           )}
         </Card>
       </div>
+
+      {/* Sub-PMs / people reporting to this PM */}
+      {s.subTeam && s.subTeam.length > 0 && (
+        <Card className="p-6 mt-4">
+          <div className="text-[15px] font-semibold text-[var(--ink)] mb-1">Your team</div>
+          <p className="text-[13px] text-[var(--ink-soft)] mb-4">People who report to you and everything they're working on.</p>
+          <div className="overflow-x-auto">
+            <table className="w-full text-[14px]">
+              <thead>
+                <tr className="text-left text-[12px] text-[var(--ink-faint)] border-b border-[var(--line)]">
+                  <th className="py-2.5 font-medium">Name</th>
+                  <th className="py-2.5 font-medium">Tier</th>
+                  <th className="py-2.5 font-medium text-center">Leads</th>
+                  <th className="py-2.5 font-medium text-center">Converted</th>
+                  <th className="py-2.5 font-medium text-center">Rate</th>
+                </tr>
+              </thead>
+              <tbody>
+                {s.subTeam.map((m: any) => (
+                  <tr key={m.id} className="border-b border-[var(--line-soft)] last:border-0">
+                    <td className="py-3 font-medium text-[var(--ink)]">{m.full_name}</td>
+                    <td className="py-3 text-[var(--ink-soft)] capitalize">{m.tier || 'mid'}</td>
+                    <td className="py-3 text-center text-[var(--ink)]">{m.leads}</td>
+                    <td className="py-3 text-center font-semibold text-[var(--ok)]">{m.converted}</td>
+                    <td className="py-3 text-center text-[var(--ink-soft)]">{m.rate}%</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
     </div>
   )
 }

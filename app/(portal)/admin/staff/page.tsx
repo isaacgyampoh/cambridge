@@ -20,7 +20,7 @@ const ROLES = [
 const ROLE_COLOR: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.color]))
 const ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.label]))
 
-const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: '', performance_tier: 'mid', also_markets: false }
+const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: '', performance_tier: 'mid', also_markets: false, reports_to: '', is_team_lead: false }
 
 export default function StaffPage() {
   const [showModal, setShowModal] = useState(false)
@@ -321,6 +321,34 @@ export default function StaffPage() {
                         ))}
                       </div>
                       <p className="text-[12px] text-[var(--ink-faint)] mt-2">Higher tiers receive a larger share of incoming leads. This adjusts automatically over time based on conversions.</p>
+                    </div>
+                  )}
+
+                  {/* Reporting hierarchy — mark a team lead, or set who this
+                      person reports to (e.g. a sub-PM reports to the main PM) */}
+                  {form.role !== 'super_admin' && (
+                    <div className="p-4 rounded-xl border border-[var(--line)] space-y-3">
+                      <label className="flex items-start gap-3 cursor-pointer">
+                        <input type="checkbox" checked={form.is_team_lead} onChange={e => set('is_team_lead', e.target.checked)}
+                          className="mt-0.5 w-4 h-4 accent-[var(--accent)]" />
+                        <div>
+                          <div className="text-[14px] font-medium text-[var(--ink)]">Team lead for their role</div>
+                          <div className="text-[13px] text-[var(--ink-soft)]">e.g. the main Project Manager who oversees the sub-PMs.</div>
+                        </div>
+                      </label>
+                      {!form.is_team_lead && (
+                        <div>
+                          <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Reports to (optional)</label>
+                          <select value={form.reports_to} onChange={e => set('reports_to', e.target.value)}
+                            className="w-full h-11 px-4 rounded-xl border-2 border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                            <option value="">No one — reports to admin</option>
+                            {staff.filter((s: any) => s.is_team_lead || s.role === 'project_manager').map((s: any) => (
+                              <option key={s.id} value={s.id}>{s.full_name} ({ROLE_LABEL[s.role] || s.role})</option>
+                            ))}
+                          </select>
+                          <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">Their manager sees everything they do. Leave empty if they report directly to admin.</p>
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>
