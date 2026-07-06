@@ -20,7 +20,7 @@ const ROLES = [
 const ROLE_COLOR: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.color]))
 const ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.label]))
 
-const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: ''}
+const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: '', performance_tier: 'mid', also_markets: false }
 
 export default function StaffPage() {
   const [showModal, setShowModal] = useState(false)
@@ -37,7 +37,7 @@ export default function StaffPage() {
     filters: [{ col: 'role', op: 'neq', val: 'student'}],
   })
 
-  function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
+  function set(k: string, v: string | boolean) { setForm(f => ({ ...f, [k]: v })) }
 
   function openModal() { setForm({ ...EMPTY }); setCreds(null); setShowModal(true) }
 
@@ -282,6 +282,45 @@ export default function StaffPage() {
                         placeholder="e.g. PMP or SPHRI (the course code)"
                         className="w-full h-11 px-4 rounded-xl border-2 border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                       <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">Must match the course code. All students of this programme are auto-assigned to this coordinator.</p>
+                    </div>
+                  )}
+
+                  {/* Also markets — for staff who aren't primarily marketers but
+                      also convert leads (e.g. a PM or accountant who markets) */}
+                  {form.role !== 'marketing_officer' && form.role !== 'super_admin' && (
+                    <label className="flex items-start gap-3 p-4 rounded-xl border border-[var(--line)] cursor-pointer hover:bg-[var(--canvas)] transition">
+                      <input type="checkbox" checked={form.also_markets} onChange={e => set('also_markets', e.target.checked)}
+                        className="mt-0.5 w-4 h-4 accent-[var(--accent)]" />
+                      <div>
+                        <div className="text-[14px] font-medium text-[var(--ink)]">This person also markets</div>
+                        <div className="text-[13px] text-[var(--ink-soft)]">They'll get their own marketer link and receive leads to convert, on top of their main role.</div>
+                      </div>
+                    </label>
+                  )}
+
+                  {/* Performance tier — shown for anyone who receives leads */}
+                  {(form.role === 'marketing_officer' || form.also_markets) && (
+                    <div>
+                      <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Performance tier</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {[
+                          { v: 'high', l: 'High performer', d: 'Gets the most leads' },
+                          { v: 'mid', l: 'Mid performer', d: 'Standard share' },
+                          { v: 'low', l: 'Low performer', d: 'Fewer leads' },
+                          { v: 'support', l: 'Support', d: 'Smallest share' },
+                        ].map(t => (
+                          <button key={t.v} type="button" onClick={() => set('performance_tier', t.v)}
+                            className={`text-left px-3 py-2.5 rounded-xl border-2 transition ${
+                              form.performance_tier === t.v
+                                ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                                : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
+                            }`}>
+                            <div className={`text-[13px] font-semibold ${form.performance_tier === t.v ? 'text-[var(--accent)]' : 'text-[var(--ink)]'}`}>{t.l}</div>
+                            <div className="text-[11px] text-[var(--ink-faint)]">{t.d}</div>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[12px] text-[var(--ink-faint)] mt-2">Higher tiers receive a larger share of incoming leads. This adjusts automatically over time based on conversions.</p>
                     </div>
                   )}
                 </div>

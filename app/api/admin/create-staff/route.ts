@@ -10,7 +10,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { full_name, email, phone, role, initial_pin, department, coordinator_program } = await req.json()
+  const { full_name, email, phone, role, initial_pin, department, coordinator_program, performance_tier, also_markets } = await req.json()
 
   if (!full_name?.trim() || !phone?.trim() || !role) {
     return NextResponse.json({ error: 'Full name, phone number and role are required' }, { status: 400 })
@@ -50,9 +50,18 @@ export async function POST(req: NextRequest) {
   if (authErr) return NextResponse.json({ error: authErr.message }, { status: 400 })
 
   const userId = authData.user.id
-  const marketerCode = role === 'marketing_officer'
+  // A person markets if their primary role is marketing_officer OR the
+  // "also markets" toggle is on (e.g. a PM or accountant who also converts
+  // leads). Marketing staff get a shareable code and enter the lead pool.
+  const marketsLeads = role === 'marketing_officer' || also_markets === true
+  const marketerCode = marketsLeads
     ? full_name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 6)
     : null
+
+  // Tier: marketers default 'mid'; pure non-marketing staff default 'support'.
+  const tier = ['high', 'mid', 'low', 'support'].includes(performance_tier)
+    ? performance_tier
+    : (marketsLeads ? 'mid' : 'support')
 
   const { error: profileErr } = await sb.from('profiles').insert({
     id: userId,
@@ -66,6 +75,8 @@ export async function POST(req: NextRequest) {
     pin_set_at: new Date().toISOString(),
     must_change_pin: true,
     marketer_code: marketerCode,
+    performance_tier: tier,
+    in_lead_pool: marketsLeads,      // only market-enabled staff receive leads
     is_active: true,
   })
 
