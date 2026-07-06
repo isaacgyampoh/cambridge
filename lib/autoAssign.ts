@@ -39,12 +39,12 @@ export async function autoAssignLead(leadId: string, preferredMarketerId?: strin
   // staff get leads to work on, not just marketing officers. A person can
   // opt out by setting in_lead_pool = false on their profile.
   const { data: marketers } = await sb.from('profiles')
-    .select('id, full_name, in_lead_pool')
+    .select('id, full_name, in_lead_pool, performance_tier')
     .neq('role', 'super_admin').eq('is_active', true)
   const pool = (marketers || []).filter(m => m.in_lead_pool !== false)
   if (pool.length === 0) return null
 
-  // Count each marketer's current OPEN leads (not closed/registered/lost)
+  // Count each person's current OPEN leads (for tie-breaking within a tier)
   const { data: openLeads } = await sb.from('leads')
     .select('assigned_to')
     .not('assigned_to', 'is', null)
@@ -56,11 +56,25 @@ export async function autoAssignLead(leadId: string, preferredMarketerId?: strin
     if (l.assigned_to in load) load[l.assigned_to]++
   })
 
-  // Pick the marketer with the fewest open leads (ties -> first)
+  // ── Weighted-by-tier lottery ──
+  // high=4, mid=3, low=2, support=1. A high performer is 4x as likely as
+  // support to receive any given lead (≈40/30/20/10 across tiers over time).
+  const TIER_WEIGHT: Record<string, number> = { high: 4, mid: 3, low: 2, support: 1 }
+  const weightOf = (m: any) => TIER_WEIGHT[m.performance_tier as string] ?? 3  // default mid
+
+  // Build a weighted pool, then pick proportionally. To also keep things fair
+  // for people who are behind, we lightly favour the less-loaded person within
+  // the same weight by using weight / (1 + openLeads) as the effective ticket.
+  const tickets = pool.map(m => ({ m, ticket: weightOf(m) / (1 + (load[m.id] ?? 0)) }))
+  const totalTickets = tickets.reduce((sum, t) => sum + t.ticket, 0)
+
   let chosen = pool[0]
-  let min = load[chosen.id] ?? 0
-  for (const m of pool) {
-    if ((load[m.id] ?? 0) < min) { chosen = m; min = load[m.id] ?? 0 }
+  if (totalTickets > 0) {
+    let r = Math.random() * totalTickets
+    for (const t of tickets) {
+      r -= t.ticket
+      if (r <= 0) { chosen = t.m; break }
+    }
   }
 
   // Assign
@@ -81,7 +95,7 @@ export async function autoAssignLead(leadId: string, preferredMarketerId?: strin
 async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
   const { data: marketer } = await sb.from('profiles').select('full_name').eq('id', marketerId).maybeSingle()
 
-  // Notify the marketer
+  // Notify the marketer in-app
   const { data: lead } = await sb.from('leads').select('full_name, source').eq('id', leadId).maybeSingle()
   await sb.from('notifications').insert({
     user_id: marketerId, type: 'lead',
@@ -89,6 +103,17 @@ async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
     body: `${lead?.full_name || 'A new lead'} (${lead?.source || 'system'}) was assigned to you. Reach out soon.`,
     link: `/marketer/leads/${leadId}`,
   }).then(() => {}, () => {})
+
+  // Increment the pending-SMS counter (a cron sends ONE consolidated SMS per
+  // marketer, so 20 leads = 1 text, not 20). Never blocks assignment.
+  try {
+    const { data: p } = await sb.from('lead_assign_pending').select('pending').eq('marketer_id', marketerId).maybeSingle()
+    if (p) {
+      await sb.from('lead_assign_pending').update({ pending: (p.pending || 0) + 1, last_lead_at: new Date().toISOString() }).eq('marketer_id', marketerId)
+    } else {
+      await sb.from('lead_assign_pending').insert({ marketer_id: marketerId, pending: 1, last_lead_at: new Date().toISOString() })
+    }
+  } catch { /* table optional */ }
 
   // Auto-enroll into any active "new lead" nurture sequence
   try {
