@@ -18,6 +18,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   my_leads:    ['/marketer', '/marketer/leads', '/admin/conversions', '/admin/leads/courses', '/admin/leads/course'],
   my_link:     ['/marketer/link'],
   my_flyers:   ['/marketer/flyers'],
+  reports:     ['/reports'],
   pm_leads:    ['/pm', '/pm/assign'],
   grp_automation: ['/pm/info-sessions', '/classes/reminders', '/finance/reminders'],
   grp_socials: ['/content'],
@@ -49,9 +50,9 @@ export const PORTAL_PATHS: Record<string, string[]> = {
 }
 
 export const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['messages','dashboard','insights','grp_automation','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
-  project_manager:   ['dashboard','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in','messages'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','my_attendance','clock_in','messages'],
+  super_admin:       ['messages','dashboard','insights','reports','grp_automation','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
+  project_manager:   ['dashboard','reports','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in','messages'],
+  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','reports','my_attendance','clock_in','messages'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
