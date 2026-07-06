@@ -11,7 +11,9 @@ interface MarketerStats {
   full_name: string
   email: string
   phone: string | null
-  marketer_code: string | null
+  marketer_code: string
+  performance_tier?: string
+  tier_locked?: boolean | null
   // Lead stats
   totalLeads: number
   contactedLeads: number
@@ -112,6 +114,8 @@ export default function MarketerPerformancePage() {
         email: m.email,
         phone: m.phone,
         marketer_code: m.marketer_code,
+        performance_tier: m.performance_tier || 'mid',
+        tier_locked: m.tier_locked || false,
         totalLeads: total,
         contactedLeads: l.filter((x: any) => x.status !== 'new').length,
         interestedLeads: l.filter((x: any) => ['interested','follow_up'].includes(x.status)).length,
@@ -293,6 +297,24 @@ export default function MarketerPerformancePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
+                    <select value={(m as any).performance_tier || 'mid'}
+                      onChange={async (e) => {
+                        const tier = e.target.value
+                        await fetch('/api/marketer/set-tier', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ marketer_id: m.id, tier }) })
+                        toast.success(`${m.full_name.split(' ')[0]} set to ${tier} performer`)
+                        load()
+                      }}
+                      className={`text-[12px] font-semibold rounded-lg border px-2 py-1.5 ${
+                        (m as any).performance_tier === 'high' ? 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/20' :
+                        (m as any).performance_tier === 'low' ? 'bg-[var(--warn-soft)] text-[var(--warn)] border-[var(--warn)]/20' :
+                        (m as any).performance_tier === 'support' ? 'bg-[var(--line-soft)] text-[var(--ink-soft)] border-[var(--line)]' :
+                        'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/20'
+                      }`}>
+                      <option value="high">High performer</option>
+                      <option value="mid">Mid performer</option>
+                      <option value="low">Low performer</option>
+                      <option value="support">Support</option>
+                    </select>
                     {m.status === 'inactive'&& (
                       <div className="text-xs font-bold text-[var(--danger)] bg-[var(--danger-soft)] px-3 py-1 rounded-full">
                         {m.daysSinceActivity === 999 ? 'Never active': `${m.daysSinceActivity} days idle`}
