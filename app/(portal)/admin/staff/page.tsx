@@ -11,7 +11,6 @@ const ROLES = [
   { value: 'content_manager', label: 'Content Manager', color: 'bg-[var(--gold-soft)] text-[var(--gold)]'},
   { value: 'admissions_officer',label: 'Admissions Officer', color: 'bg-[var(--info-soft)] text-[var(--info)]'},
   { value: 'accountant', label: 'Accountant', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
-  { value: 'receptionist', label: 'Receptionist', color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]'},
   { value: 'trainer', label: 'Trainer', color: 'bg-[var(--gold-soft)] text-[var(--gold)]'},
   { value: 'exam_coordinator', label: 'Exam Prep Coordinator', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
   { value: 'super_admin', label: 'Super Admin', color: 'bg-[var(--ink)] text-white'},

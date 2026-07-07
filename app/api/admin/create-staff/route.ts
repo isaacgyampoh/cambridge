@@ -63,7 +63,8 @@ export async function POST(req: NextRequest) {
     ? performance_tier
     : (marketsLeads ? 'mid' : 'support')
 
-  const { error: profileErr } = await sb.from('profiles').insert({
+  // Base columns that always exist
+  const baseProfile: any = {
     id: userId,
     full_name: full_name.trim(),
     email: email?.trim() || null,
@@ -75,12 +76,30 @@ export async function POST(req: NextRequest) {
     pin_set_at: new Date().toISOString(),
     must_change_pin: true,
     marketer_code: marketerCode,
+    is_active: true,
+  }
+  // Newer columns (only present if the latest schema has been run). Included
+  // when available; if the DB doesn't have them yet we retry without them so
+  // onboarding never breaks mid-launch.
+  const extendedProfile = {
+    ...baseProfile,
     performance_tier: tier,
-    in_lead_pool: marketsLeads,      // only market-enabled staff receive leads
+    in_lead_pool: marketsLeads,
     reports_to: reports_to || null,
     is_team_lead: is_team_lead === true,
-    is_active: true,
-  })
+  }
+
+  let profileErr: any = null
+  {
+    const { error } = await sb.from('profiles').insert(extendedProfile)
+    if (error && /column .* does not exist|performance_tier|in_lead_pool|reports_to|is_team_lead/i.test(error.message)) {
+      // Schema not fully applied — fall back to the base columns.
+      const { error: baseError } = await sb.from('profiles').insert(baseProfile)
+      profileErr = baseError
+    } else {
+      profileErr = error
+    }
+  }
 
   if (profileErr) {
     await sb.auth.admin.deleteUser(userId)

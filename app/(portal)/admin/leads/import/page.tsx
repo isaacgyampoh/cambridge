@@ -93,35 +93,34 @@ export default function ImportLeadsPage() {
     let success = 0, failed = 0
     const BATCH = 20
 
+    let assignedTotal = 0, dupTotal = 0
     for (let i = 0; i < valid.length; i += BATCH) {
       const batch = valid.slice(i, i + BATCH)
       try {
-        const res = await fetch('/api/data', {
+        const res = await fetch('/api/leads/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
-            table: 'leads',
-            data: batch.map(l => ({
+            leads: batch.map(l => ({
               full_name: l.full_name,
               phone: l.phone || null,
               email: l.email || null,
               course_interest: l.course_interest || null,
               source: l.source,
-              status: 'new',
               city: l.city || null,
               notes: l.notes || null,
             })),
           }),
         })
-        const d = await res.json()
+        const d = await res.json().catch(() => ({ error: 'bad response' }))
         if (d.error) { failed += batch.length }
-        else { success += batch.length }
+        else { success += (d.imported || 0); assignedTotal += (d.assigned || 0); dupTotal += (d.duplicates || 0); failed += (d.failed || 0) }
       } catch { failed += batch.length }
     }
 
     setImporting(false)
     setDone({ success, failed })
-    toast.success(`Import complete! ${success} leads imported.`)
+    toast.success(`Import complete — ${success} imported${assignedTotal ? `, ${assignedTotal} auto-assigned` : ''}${dupTotal ? `, ${dupTotal} duplicates skipped` : ''}.`)
   }
 
   function downloadTemplate() {

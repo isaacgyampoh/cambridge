@@ -33,7 +33,6 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   staff:       ['/admin/staff', '/admin/reports'],
   my_classes:  ['/trainer', '/trainer/classes'],
   my_payments: ['/student'],
-  reminders:   ['/receptionist'],
   workforce:   ['/admin/workforce'],
   wa_lines:    ['/admin/whatsapp'],
   knowledge:   ['/admin/knowledge'],
@@ -55,7 +54,6 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','reports','my_attendance','clock_in','messages'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
-  receptionist:      ['dashboard','reminders','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
   trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
   exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in','messages'],
   content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
@@ -64,7 +62,7 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
 
 export const ROLE_HOME: Record<string, string> = {
   super_admin: '/admin', project_manager: '/pm', marketing_officer: '/marketer', content_manager: '/content',
-  admissions_officer: '/admission', accountant: '/finance', receptionist: '/receptionist',
+  admissions_officer: '/admission', accountant: '/finance',
   trainer: '/trainer', exam_coordinator: '/coordinator', student: '/student',
 }
 
