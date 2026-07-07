@@ -63,7 +63,7 @@ export const ALL_PORTALS = [
       { label: 'Invoices', href: '/finance/invoices/new' },
       { label: 'Reports',  href: '/finance/reports' },
     ]},
-  { id: 'broadcast',   label: 'Broadcast',    icon: Radio,           href: '/admin/broadcast' },
+  { id: 'broadcast',   label: 'Broadcast & links', icon: Radio,      href: '/admin/broadcast' },
   { id: 'attendance',  label: 'Attendance',   icon: CalendarCheck,   href: '/admin/attendance' },
   { id: 'academics',   label: 'Academics',    icon: BookOpen,        href: '/admin/academics',
     children: [
@@ -137,8 +137,7 @@ export const ALL_PORTALS = [
     { label: 'Alumni',       href: '/admin/alumni' },
   ]},
   { id: 'grp_messaging', label: 'Messaging & AI', icon: MessageSquare, href: '/admin/broadcast', children: [
-    { label: 'Broadcast',        href: '/admin/broadcast' },
-    { label: 'Post a Link',      href: '/admin/links' },
+    { label: 'Broadcast & links', href: '/admin/broadcast' },
     { label: 'Follow-up Sequences', href: '/admin/sequences' },
     { label: 'WhatsApp Lines',   href: '/admin/whatsapp' },
     { label: 'AI Knowledge',     href: '/admin/knowledge' },

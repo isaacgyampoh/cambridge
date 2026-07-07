@@ -1,10 +1,19 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Send, Users, Clock, CheckCircle, XCircle, Plus, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
+import { Card, Button, Badge, Field, inputClass, SectionLabel, EmptyState, Spinner } from '@/components/ui'
+import { Video, Calendar, Megaphone, Link2 } from 'lucide-react'
+
+const LINK_TYPES: Record<string, { label: string; icon: any }> = {
+  zoom: { label: 'Online class / Zoom', icon: Video },
+  info_session: { label: 'Info session', icon: Calendar },
+  announcement: { label: 'Announcement', icon: Megaphone },
+  general: { label: 'General', icon: Link2 },
+}
 
 const TARGET_TYPES = [
   { value: 'all_leads', label: 'All Leads', desc: 'Every lead in the system'},
@@ -20,6 +29,8 @@ const STATUS_OPTS = ['new', 'contacted', 'interested', 'follow_up', 'not_interes
 const SOURCE_OPTS = ['facebook', 'google', 'linkedin', 'website', 'referral', 'manual']
 
 export default function BroadcastPage() {
+  const [tab, setTab] = useState<'message' | 'link'>('message')
+
   const { data: broadcasts, loading, refetch: load } = useData<any>({
     table: 'broadcasts', orderBy: 'created_at', orderAsc: false, limit: 20,
   })
@@ -30,6 +41,56 @@ export default function BroadcastPage() {
   const [modal, setModal] = useState(false)
   const [sending, setSending] = useState(false)
   const [sendingId, setSendingId] = useState<string | null>(null)
+
+  // ── Post-a-link state ──
+  const [links, setLinks] = useState<any[]>([])
+  const [linksLoading, setLinksLoading] = useState(true)
+  const [posting, setPosting] = useState(false)
+  const [linkForm, setLinkForm] = useState({ title: '', url: '', link_type: 'zoom', description: '', audience: 'all', expires_at: '' })
+  const [sendToLeads, setSendToLeads] = useState(false)
+  const [leadAudience, setLeadAudience] = useState<'active' | 'all'>('active')
+
+  async function loadLinks() {
+    setLinksLoading(true)
+    const d = await fetch('/api/links').then(r => r.json()).catch(() => ({ links: [] }))
+    setLinks(d.links || [])
+    setLinksLoading(false)
+  }
+  useEffect(() => { loadLinks() }, [])
+
+  async function postLink() {
+    if (!linkForm.title.trim() || !linkForm.url.trim()) { toast.error('Add a title and the link'); return }
+    setPosting(true)
+    try {
+      const res = await fetch('/api/links', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'post', ...linkForm, expires_at: linkForm.expires_at || null }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      toast.success(
+        res.studentsSent > 0
+          ? `Posted to marketers — auto-sent to ${res.studentsSent} online students via their marketers' WhatsApp.`
+          : `Link posted — ${res.notified} people notified. It's now in everyone's My Links.`
+      )
+      if (sendToLeads) {
+        const lr = await fetch('/api/links/broadcast', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: linkForm.url, title: linkForm.title, audience: leadAudience }),
+        }).then(r => r.json()).catch(() => null)
+        if (lr?.success) toast.success(`Invite sent to ${lr.sent} of ${lr.total} leads`)
+      }
+      setLinkForm({ title: '', url: '', link_type: 'zoom', description: '', audience: 'all', expires_at: '' })
+      setSendToLeads(false)
+      loadLinks()
+    } catch (e: any) { toast.error(e.message) }
+    finally { setPosting(false) }
+  }
+
+  async function removeLink(id: string) {
+    if (!confirm('Remove this link from everyone\'s My Links?')) return
+    await fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove', id }) })
+    toast.success('Link removed'); loadLinks()
+  }
 
   async function sendNow(broadcastId: string) {
     setSendingId(broadcastId)
@@ -112,12 +173,24 @@ export default function BroadcastPage() {
 
   return (
     <div className="fade-in w-full">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-        <div>
-          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Messaging</div>
-          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Broadcasts</h1>
-          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send bulk WhatsApp and SMS to any segment of leads or students.</p>
-        </div>
+      <div className="mb-6">
+        <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Outreach</div>
+        <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Broadcast &amp; links</h1>
+        <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send a bulk message, or post a link that lands in every worker's My Links. One place for everything you push out.</p>
+      </div>
+
+      <div className="flex gap-1 mb-6 border-b border-[var(--line)]">
+        {([['message', 'Send a message'], ['link', 'Post a link']] as ['message' | 'link', string][]).map(([k, label]) => (
+          <button key={k} onClick={() => setTab(k)}
+            className={`px-4 py-2.5 text-[14px] font-medium border-b-2 -mb-px transition ${tab === k ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-soft)]'}`}>
+            {label}
+          </button>
+        ))}
+      </div>
+
+      {tab === 'message' && (
+      <div>
+      <div className="flex justify-end mb-5">
         <button onClick={() => setModal(true)}
           className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm flex-shrink-0">
            New broadcast
@@ -296,6 +369,97 @@ export default function BroadcastPage() {
             </div>
           )}
         </div>
+      )}
+      </div>
+      )}
+
+      {tab === 'link' && (
+      <div>
+        {/* Post form */}
+        <Card className="p-6 mb-6">
+          <SectionLabel>New link</SectionLabel>
+          <div className="space-y-4 mt-3">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <Field label="Type">
+                <select value={linkForm.link_type} onChange={e => setLinkForm(f => ({ ...f, link_type: e.target.value }))} className={inputClass}>
+                  {Object.entries(LINK_TYPES).map(([k, v]) => <option key={k} value={k}>{v.label}</option>)}
+                </select>
+              </Field>
+              <Field label="Who sees it">
+                {linkForm.link_type === 'zoom' ? (
+                  <div className="h-11 px-4 rounded-xl border border-[var(--line)] bg-[var(--line-soft)] text-sm text-[var(--ink-soft)] flex items-center">Marketers (auto)</div>
+                ) : (
+                  <select value={linkForm.audience} onChange={e => setLinkForm(f => ({ ...f, audience: e.target.value }))} className={inputClass}>
+                    <option value="all">Everyone</option>
+                    <option value="marketers">Marketers only</option>
+                    <option value="staff">Staff (non-marketers)</option>
+                  </select>
+                )}
+              </Field>
+            </div>
+
+            {linkForm.link_type === 'zoom' && (
+              <div className="rounded-xl bg-[var(--accent-soft)] border border-[var(--accent)]/15 px-4 py-3">
+                <p className="text-sm text-[var(--ink)]">This online-class link goes to all marketers, and is <strong>automatically sent by WhatsApp to every online-registered student</strong> through their own marketer's line — no manual sharing needed.</p>
+              </div>
+            )}
+            <Field label="Title" required>
+              <input value={linkForm.title} onChange={e => setLinkForm(f => ({ ...f, title: e.target.value }))} placeholder="e.g. PMP Class — Saturday Zoom" className={inputClass} />
+            </Field>
+            <Field label="Link / URL" required>
+              <input value={linkForm.url} onChange={e => setLinkForm(f => ({ ...f, url: e.target.value }))} placeholder="https://zoom.us/j/..." className={inputClass} />
+            </Field>
+            <Field label="Note (optional)">
+              <input value={linkForm.description} onChange={e => setLinkForm(f => ({ ...f, description: e.target.value }))} placeholder="e.g. Join 10 mins early" className={inputClass} />
+            </Field>
+            <Field label="Auto-remove on (optional)">
+              <input type="datetime-local" value={linkForm.expires_at} onChange={e => setLinkForm(f => ({ ...f, expires_at: e.target.value }))} className={inputClass} />
+            </Field>
+
+            <div className="rounded-xl border border-[var(--line)] p-4">
+              <label className="flex items-center gap-3 cursor-pointer">
+                <button type="button" role="switch" aria-checked={sendToLeads} onClick={() => setSendToLeads(s => !s)}
+                  className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${sendToLeads ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
+                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${sendToLeads ? 'translate-x-5' : ''}`} />
+                </button>
+                <div>
+                  <div className="text-sm font-medium text-[var(--ink)]">Also send this link to leads</div>
+                  <div className="text-xs text-[var(--ink-faint)]">Blast it by WhatsApp/SMS — useful for info-session invites</div>
+                </div>
+              </label>
+              {sendToLeads && (
+                <div className="flex gap-2 mt-3 pl-14">
+                  <button type="button" onClick={() => setLeadAudience('active')}
+                    className={`h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'active' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Active leads</button>
+                  <button type="button" onClick={() => setLeadAudience('all')}
+                    className={`h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'all' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All leads</button>
+                </div>
+              )}
+            </div>
+
+            <Button onClick={postLink} disabled={posting}>{posting ? 'Posting…' : 'Post link'}</Button>
+          </div>
+        </Card>
+
+        <SectionLabel>Active links</SectionLabel>
+        {linksLoading ? <Spinner /> : links.length === 0 ? (
+          <EmptyState title="No active links" description="Post a link above and it appears here and in everyone's My Links." />
+        ) : (
+          <div className="space-y-2 mt-3">
+            {links.map((l: any) => (
+              <Card key={l.id} className="p-4 flex items-center gap-3">
+                <div className="min-w-0 flex-1">
+                  <div className="font-medium text-[var(--ink)] truncate">{l.title}</div>
+                  <div className="text-xs text-[var(--ink-faint)] truncate">{l.url}</div>
+                </div>
+                <Badge tone="neutral">{l.audience === 'all' ? 'Everyone' : l.audience === 'marketers' ? 'Marketers' : 'Staff'}</Badge>
+                {l.expires_at && <Badge tone="warning">Expires {new Date(l.expires_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</Badge>}
+                <button onClick={() => removeLink(l.id)} className="p-2 text-[var(--ink-faint)] hover:text-[var(--danger)]">Remove</button>
+              </Card>
+            ))}
+          </div>
+        )}
+      </div>
       )}
     </div>
   )
