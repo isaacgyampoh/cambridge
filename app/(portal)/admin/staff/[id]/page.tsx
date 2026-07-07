@@ -45,8 +45,8 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
 
-  useEffect(() => {
-    fetch(`/api/data?table=profiles&select=*&filters=${encodeURIComponent(JSON.stringify([{col:'id',op:'eq',val:id}]))}`)
+  function reload() {
+    return fetch(`/api/data?table=profiles&select=*&filters=${encodeURIComponent(JSON.stringify([{col:'id',op:'eq',val:id}]))}`)
       .then(r => r.json())
       .then(d => {
         const s = d.data?.[0]
@@ -56,7 +56,8 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         setSelected(new Set(portals))
         setLoading(false)
       })
-  }, [id])
+  }
+  useEffect(() => { reload() }, [id])
 
   function toggle(portalId: string) {
     if (portalId === 'dashboard') return // always on
@@ -141,6 +142,9 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         </div>
       </div>
 
+      {/* Edit details / reset PIN (super admin) */}
+      <EditStaffPanel staff={staff} onSaved={reload} />
+
       {/* Info banner */}
       <div className="bg-[var(--accent-soft)] border border-blue-100 rounded-2xl p-4 mb-5 flex gap-3">
         
@@ -200,6 +204,77 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
           Cancel
         </Link>
       </div>
+    </div>
+  )
+}
+
+function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void }) {
+  const [open, setOpen] = useState(false)
+  const [saving, setSaving] = useState(false)
+  const [form, setForm] = useState({ full_name: '', phone: '', email: '', new_pin: '' })
+
+  useEffect(() => {
+    if (staff) setForm({ full_name: staff.full_name || '', phone: (staff.phone || '').replace(/^233/, '0'), email: staff.email || '', new_pin: '' })
+  }, [staff])
+
+  async function save() {
+    setSaving(true)
+    const d = await fetch('/api/admin/edit-staff', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id: staff.id, ...form }),
+    }).then(r => r.json()).catch(() => ({ error: 'Request failed' }))
+    setSaving(false)
+    if (d.success) {
+      const { toast } = await import('sonner')
+      toast.success(d.pinReset ? 'Saved. New PIN set — they\'ll be asked to change it on next login.' : 'Staff details updated.')
+      setForm(f => ({ ...f, new_pin: '' }))
+      onSaved()
+    } else {
+      const { toast } = await import('sonner')
+      toast.error(d.error || 'Could not save')
+    }
+  }
+
+  return (
+    <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] mb-5 overflow-hidden">
+      <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--canvas)] transition">
+        <div className="text-left">
+          <div className="text-[15px] font-semibold text-[var(--ink)]">Edit details &amp; reset PIN</div>
+          <div className="text-[13px] text-[var(--ink-soft)]">Change their phone, email, name, or set a new login PIN if they're locked out.</div>
+        </div>
+        <span className="text-[var(--ink-faint)] text-lg">{open ? '−' : '+'}</span>
+      </button>
+      {open && (
+        <div className="px-5 pb-5 pt-1 space-y-3 border-t border-[var(--line-soft)]">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+            <div>
+              <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Full name</label>
+              <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
+                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+            </div>
+            <div>
+              <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Phone</label>
+              <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="024 000 0000"
+                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+            </div>
+            <div>
+              <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Email</label>
+              <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="name@email.com"
+                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+            </div>
+            <div>
+              <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Set new PIN (optional)</label>
+              <input value={form.new_pin} onChange={e => setForm(f => ({ ...f, new_pin: e.target.value.replace(/[^0-9]/g, '') }))} placeholder="4-6 digits" maxLength={6}
+                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+            </div>
+          </div>
+          <p className="text-[12px] text-[var(--ink-faint)]">Leave the PIN blank to keep it unchanged. Setting a new one lets a locked-out staff log in; they'll be asked to choose their own on first login.</p>
+          <button onClick={save} disabled={saving}
+            className="h-11 px-5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+            {saving ? 'Saving…' : 'Save changes'}
+          </button>
+        </div>
+      )}
     </div>
   )
 }
