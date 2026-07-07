@@ -63,6 +63,32 @@ export default function Messages() {
     }
   }
 
+  async function uploadFile(file: File) {
+    if (!active) return
+    // Cloudinary raw upload handles docs; images go to image endpoint for previews
+    const isImage = file.type.startsWith('image/')
+    const endpoint = isImage ? 'image' : 'raw'
+    setUploading(true)
+    try {
+      const fd = new FormData()
+      fd.append('file', file)
+      fd.append('upload_preset', 'cce_uploads')
+      const res = await fetch(`https://api.cloudinary.com/v1_1/dafiojcq6/${endpoint}/upload`, { method: 'POST', body: fd })
+      const data = await res.json()
+      if (data.secure_url) {
+        const meta = { file_url: data.secure_url, file_name: file.name, file_type: isImage ? 'image' : 'document', file_size: file.size }
+        const optimistic = { id: 'tmp' + Date.now(), sender_id: me, recipient_id: active.id, ...meta, created_at: new Date().toISOString() }
+        setThread(t => [...t, optimistic])
+        setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
+        await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, ...meta }) })
+      } else { alert('Upload failed. Try again.') }
+    } catch {
+      alert('Could not send the file. Try again.')
+    } finally {
+      setUploading(false)
+    }
+  }
+
   async function loadList() {
     const d = await fetch('/api/messages').then(r => r.json())
     setStaff(d.staff || [])
@@ -154,6 +180,23 @@ export default function Messages() {
                         <div className={`max-w-[80%] rounded-2xl px-2 py-2 ${mine ? 'bg-[var(--accent)]' : 'bg-[var(--canvas)]'}`}>
                           <audio controls src={m.audio_url} className="h-9" style={{ maxWidth: '220px' }} />
                         </div>
+                      ) : m.file_url ? (
+                        m.file_type === 'image' ? (
+                          <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="max-w-[70%] block">
+                            <img src={m.file_url} alt={m.file_name || 'image'} className="rounded-2xl max-h-64 object-cover" />
+                          </a>
+                        ) : (
+                          <a href={m.file_url} target="_blank" rel="noopener noreferrer"
+                            className={`max-w-[80%] flex items-center gap-3 rounded-2xl px-3.5 py-3 ${mine ? 'bg-[var(--accent)] text-white' : 'bg-[var(--canvas)] text-[var(--ink)]'}`}>
+                            <div className={`w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 text-[11px] font-bold ${mine ? 'bg-white/20' : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+                              {(m.file_name?.split('.').pop() || 'FILE').toUpperCase().slice(0, 4)}
+                            </div>
+                            <div className="min-w-0">
+                              <div className="text-[13px] font-medium truncate">{m.file_name || 'Document'}</div>
+                              <div className={`text-[11px] ${mine ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>{m.file_size ? `${Math.round(m.file_size / 1024)} KB · ` : ''}Tap to open</div>
+                            </div>
+                          </a>
+                        )
                       ) : (
                         <div className={`max-w-[80%] rounded-2xl px-3.5 py-2 text-[14px] leading-relaxed whitespace-pre-wrap ${mine ? 'bg-[var(--accent)] text-white' : 'bg-[var(--canvas)] text-[var(--ink)]'}`}>
                           {m.body}
@@ -164,6 +207,11 @@ export default function Messages() {
                 })}
               </div>
               <div className="border-t border-[var(--line)] p-3 flex items-end gap-2 flex-shrink-0 bg-[var(--paper)]">
+                <label className={`h-11 w-11 flex items-center justify-center rounded-xl bg-[var(--line-soft)] text-[var(--ink-soft)] cursor-pointer flex-shrink-0 hover:bg-[var(--line)] transition ${uploading ? 'opacity-50 pointer-events-none' : ''}`} title="Attach a file">
+                  <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48" /></svg>
+                  <input type="file" className="hidden" disabled={uploading}
+                    onChange={e => { const f = e.target.files?.[0]; if (f) uploadFile(f); e.target.value = '' }} />
+                </label>
                 <textarea value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                   rows={1} placeholder={recording ? 'Recording… tap Stop to send' : 'Type a message…'}

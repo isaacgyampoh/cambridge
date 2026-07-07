@@ -17,7 +17,7 @@ export async function GET(req: NextRequest) {
 
   if (withUser) {
     const { data } = await sb.from('staff_messages')
-      .select('id, sender_id, recipient_id, body, audio_url, created_at, read_at')
+      .select('id, sender_id, recipient_id, body, audio_url, file_url, file_name, file_type, file_size, created_at, read_at')
       .or(`and(sender_id.eq.${me},recipient_id.eq.${withUser}),and(sender_id.eq.${withUser},recipient_id.eq.${me})`)
       .order('created_at', { ascending: true }).limit(200)
     // Mark their messages to me as read
@@ -44,12 +44,12 @@ export async function POST(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value
   const session: any = token ? await verifySession(token) : { valid: false }
   if (!session.valid) return NextResponse.json({ error: 'unauth' }, { status: 401 })
-  const { to, body, audio_url } = await req.json()
-  if (!to || (!body?.trim() && !audio_url)) return NextResponse.json({ error: 'Missing recipient or message' }, { status: 400 })
+  const { to, body, audio_url, file_url, file_name, file_type, file_size } = await req.json()
+  if (!to || (!body?.trim() && !audio_url && !file_url)) return NextResponse.json({ error: 'Missing recipient or message' }, { status: 400 })
 
   const sb = createServiceClient()
   const { data, error } = await sb.from('staff_messages')
-    .insert({ sender_id: session.userId, recipient_id: to, body: body?.trim() || null, audio_url: audio_url || null }).select().single()
+    .insert({ sender_id: session.userId, recipient_id: to, body: body?.trim() || null, audio_url: audio_url || null, file_url: file_url || null, file_name: file_name || null, file_type: file_type || null, file_size: file_size || null }).select().single()
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
   // Notify the recipient in-app
@@ -57,7 +57,7 @@ export async function POST(req: NextRequest) {
     await sb.from('notifications').insert({
       user_id: to, type: 'message',
       title: `Message from ${session.fullName || 'a colleague'}`,
-      body: (body?.trim() || 'Voice note').slice(0, 80),
+      body: (body?.trim() || (file_url ? (file_name || 'Sent a file') : 'Voice note')).slice(0, 80),
       data: { from: session.userId },
     })
   } catch {}
