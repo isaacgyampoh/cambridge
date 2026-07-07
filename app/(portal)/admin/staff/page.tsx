@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { useData } from '@/hooks/useData'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
@@ -29,6 +29,11 @@ export default function StaffPage() {
   const [creds, setCreds] = useState<any>(null)
   const [showPin, setShowPin] = useState(false)
   const [search, setSearch] = useState('')
+  const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setIsSuperAdmin(s.role === 'super_admin') }).catch(() => {})
+  }, [])
 
   const { data: staff, loading, refetch } = useData({
     table: 'profiles',
@@ -92,6 +97,27 @@ export default function StaffPage() {
     })
     toast.success(current ? 'Removed from lead pool': 'Added to lead pool')
     refetch()
+  }
+
+  async function deleteStaff(id: string, name: string) {
+    if (!confirm(`Permanently delete ${name}? This cannot be undone. Their leads will be kept and unassigned so you can re-distribute them.`)) return
+    const d = await fetch('/api/admin/delete-staff', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id }),
+    }).then(r => r.json()).catch(() => ({ error: 'Request failed' }))
+    if (d.success) { toast.success(`${name} deleted`); refetch() }
+    else toast.error(d.error || 'Could not delete')
+  }
+
+  async function clearAllStaff() {
+    const typed = prompt('This permanently deletes EVERY staff member except super admins. Leads are kept (unassigned).\n\nType exactly:  DELETE ALL STAFF')
+    if (typed !== 'DELETE ALL STAFF') { if (typed !== null) toast.error('Confirmation did not match. Nothing deleted.'); return }
+    const d = await fetch('/api/admin/clear-staff', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'DELETE ALL STAFF' }),
+    }).then(r => r.json()).catch(() => ({ error: 'Request failed' }))
+    if (d.success) { toast.success(`Removed ${d.removed} staff. Only super admin remains.`); refetch() }
+    else toast.error(d.error || 'Could not clear staff')
   }
 
   function copyText(text: string, label: string) {
@@ -377,10 +403,18 @@ export default function StaffPage() {
           <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Staff</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{staff.length} team members across all roles</p>
         </div>
-        <button onClick={openModal}
-          className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm">
-           Add staff
-        </button>
+        <div className="flex items-center gap-2">
+          {isSuperAdmin && staff.filter((s: any) => s.role !== 'super_admin').length > 0 && (
+            <button onClick={clearAllStaff}
+              className="inline-flex items-center gap-2 h-10 px-4 border border-[var(--danger)]/30 text-[var(--danger)] rounded-lg text-sm font-medium hover:bg-[var(--danger-soft)] transition">
+              Clear all staff
+            </button>
+          )}
+          <button onClick={openModal}
+            className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm">
+             Add staff
+          </button>
+        </div>
       </div>
 
       {/* ── Role summary pills ── */}
@@ -470,6 +504,12 @@ export default function StaffPage() {
                                 : 'text-[var(--ink-faint)] bg-[var(--line-soft)] hover:brightness-95'
                             }`}>
                             {s.in_lead_pool !== false ? 'In lead pool' : 'Not in pool'}
+                          </button>
+                        )}
+                        {s.role !== 'super_admin' && (
+                          <button onClick={() => deleteStaff(s.id, s.full_name)}
+                            className="text-xs font-semibold px-3 py-1.5 rounded-xl transition text-[var(--danger)] border border-[var(--danger)]/30 hover:bg-[var(--danger-soft)]">
+                            Delete
                           </button>
                         )}
                       </div>
