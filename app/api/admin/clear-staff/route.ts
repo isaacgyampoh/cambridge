@@ -30,9 +30,23 @@ export async function POST(req: NextRequest) {
   // Preserve leads and clear hierarchy pointers
   await sb.from('leads').update({ assigned_to: null }).in('assigned_to', ids)
   await sb.from('profiles').update({ reports_to: null }).in('reports_to', ids)
+  await sb.from('leads').update({ created_by: null }).in('created_by', ids)
+
+  // Best-effort clear of child-table rows that would block deletes
+  const childTables = ['flyers', 'lead_assign_pending', 'marketer_reports', 'staff_messages', 'notifications', 'staff_attendance']
+  await Promise.allSettled(childTables.flatMap(t => [
+    sb.from(t).delete().in('marketer_id', ids),
+    sb.from(t).delete().in('user_id', ids),
+    sb.from(t).delete().in('sender_id', ids),
+    sb.from(t).delete().in('recipient_id', ids),
+    sb.from(t).delete().in('staff_id', ids),
+  ]))
 
   const { error } = await sb.from('profiles').delete().in('id', ids)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+
+  // Free up the auth logins too
+  await Promise.allSettled(ids.map((uid: string) => sb.auth.admin.deleteUser(uid)))
 
   return NextResponse.json({ success: true, removed: ids.length })
 }
