@@ -32,9 +32,13 @@ export async function POST(req: NextRequest) {
   const fromRaw = pick('from', 'sender', 'phone', 'number', 'data.from', 'data.sender', 'contact.wa_id', 'wa_id')
   const text = pick('message', 'text', 'body', 'data.message', 'data.body', 'message.text', 'text.body')
   const fromMe = pick('fromMe', 'from_me', 'data.fromMe') === 'true'
+  // Media type (voice note, image, document) — the AI can't process these,
+  // so they trigger a human handoff.
+  const mediaType = pick('type', 'data.type', 'message.type', 'messageType', 'media_type')
+  const isMedia = /audio|voice|ptt|image|video|document|sticker/i.test(mediaType)
 
-  // Ignore our own outbound messages and empty payloads
-  if (!fromRaw || !text || fromMe) {
+  // Ignore our own outbound messages and empty payloads (unless it's media)
+  if (!fromRaw || fromMe || (!text && !isMedia)) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
@@ -56,13 +60,13 @@ export async function POST(req: NextRequest) {
       .eq('phone', phone)
       .gte('created_at', since)
       .limit(5)
-    const seen = (recent || []).some((r: any) => (r.incoming_text || '').trim() === text.trim())
+    const seen = (recent || []).some((r: any) => text && (r.incoming_text || '').trim() === text.trim())
     if (seen) return NextResponse.json({ ok: true, duplicate: true })
   } catch { /* if the check fails, continue — better to risk a dup than drop a real message */ }
 
   // Find the lead by phone
   const { data: leads } = await sb.from('leads')
-    .select('id, full_name, phone, course_interest, assigned_to')
+    .select('id, full_name, phone, course_interest, assigned_to, ai_paused')
     .limit(3000)
   const lead = (leads || []).find((l: any) => l.phone && variants.includes(l.phone.replace(/[^0-9]/g, '')))
 
@@ -72,6 +76,70 @@ export async function POST(req: NextRequest) {
     const { data: m } = await sb.from('profiles')
       .select('id, full_name, wa_intro, marketer_code').eq('id', lead.assigned_to).maybeSingle()
     marketer = m
+  }
+
+  // ── Human-in-the-loop handoff ──
+  const lower0 = (text || '').toLowerCase()
+  const asksForHuman = /\b(speak|talk|call me|call back|human|agent|real person|someone|representative|customer service|manager)\b/.test(lower0)
+  const frustrated = /\b(useless|stop|not helpful|nonsense|annoying|frustrat|complain|refund|angry|disappointed)\b/.test(lower0)
+
+  async function handOff(reason: string) {
+    if (lead?.id) {
+      await sb.from('leads').update({ ai_paused: true, needs_human: true, needs_human_at: new Date().toISOString() }).eq('id', lead.id).then(() => {}, () => {})
+    }
+    const note = {
+      type: 'handoff', title: 'A chat needs you',
+      body: `${lead?.full_name || phone} ${reason}. Jump into WhatsApp to continue.`,
+      link: lead?.id ? `/marketer/leads/${lead.id}` : '/marketer/leads',
+    }
+    if (marketer?.id) {
+      await sb.from('notifications').insert({ user_id: marketer.id, ...note }).then(() => {}, () => {})
+      try {
+        const { data: mp } = await sb.from('profiles').select('phone, full_name').eq('id', marketer.id).maybeSingle()
+        if (mp?.phone) {
+          const { sendSMS } = await import('@/lib/integrations/sms')
+          await sendSMS(mp.phone, `${(mp.full_name || '').split(' ')[0] || 'Hi'}, ${lead?.full_name || 'a lead'} needs a human reply on WhatsApp. Open your portal to continue.`)
+        }
+      } catch {}
+    } else {
+      const { data: mgrs } = await sb.from('profiles').select('id').in('role', ['super_admin', 'project_manager']).eq('is_active', true).limit(10)
+      for (const mgr of mgrs || []) await sb.from('notifications').insert({ user_id: mgr.id, ...note }).then(() => {}, () => {})
+    }
+    await sb.from('ai_conversations').insert({
+      phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
+      incoming_text: text || `[${mediaType || 'media'}]`, reply_text: null, answered_by: 'handoff',
+    }).then(() => {}, () => {})
+  }
+
+  // 1) Voice note / image / document — AI can't process it.
+  if (isMedia && !text) {
+    await handOff('sent a voice note or file')
+    await sendWhatsAppText(phone, `Thanks! I've passed this to ${(marketer?.full_name || 'our team').split(' ')[0]}, who'll get back to you shortly.`, marketer?.id || null).catch(() => {})
+    return NextResponse.json({ ok: true, handoff: 'media' })
+  }
+
+  // 2) Lead already handled by a human — don't let the AI butt in.
+  if (lead?.ai_paused) {
+    if (marketer?.id) {
+      await sb.from('notifications').insert({
+        user_id: marketer.id, type: 'message',
+        title: `New WhatsApp from ${lead?.full_name || phone}`,
+        body: (text || 'New message').slice(0, 80),
+        link: lead?.id ? `/marketer/leads/${lead.id}` : '/marketer/leads',
+      }).then(() => {}, () => {})
+    }
+    await sb.from('ai_conversations').insert({
+      phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
+      incoming_text: text, reply_text: null, answered_by: 'human_handling',
+    }).then(() => {}, () => {})
+    return NextResponse.json({ ok: true, humanHandling: true })
+  }
+
+  // 3) Lead explicitly wants a person, or is frustrated → hand off.
+  if (asksForHuman || frustrated) {
+    await handOff(asksForHuman ? 'asked to speak with someone' : 'seems frustrated')
+    await sendWhatsAppText(phone, `Of course — I'm connecting you with ${(marketer?.full_name || 'a colleague').split(' ')[0]}, who'll continue with you here shortly.`, marketer?.id || null).catch(() => {})
+    return NextResponse.json({ ok: true, handoff: 'requested' })
   }
 
   // ── Registration intent: send the link automatically ──
@@ -130,7 +198,7 @@ export async function POST(req: NextRequest) {
     .select('incoming_text, reply_text')
     .eq('phone', phone)
     .order('created_at', { ascending: false })
-    .limit(3)
+    .limit(8)
   const history: { role: 'user' | 'assistant'; content: string }[] = []
   ;(prior || []).reverse().forEach((p: any) => {
     if (p.incoming_text) history.push({ role: 'user', content: p.incoming_text })
