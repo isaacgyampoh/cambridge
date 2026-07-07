@@ -92,6 +92,17 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     setLoading(false)
   }
 
+  async function resumeAI() {
+    try {
+      await fetch('/api/data', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ table: 'leads', data: { ai_paused: false, needs_human: false }, filters: [{ col: 'id', val: id }] }),
+      })
+      toast.success('AI resumed — it will handle new messages again.')
+      load()
+    } catch { toast.error('Could not resume AI') }
+  }
+
   async function logActivity() {
     if (!actNote.trim()) { toast.error('Add a note about this activity'); return }
     setSavingAct(true)
@@ -206,7 +217,19 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               </div>
             </div>
 
-            {/* Primary actions — the call is the hero action */}
+            {/* Human handoff banner */}
+            {lead.needs_human && (
+              <div className="mt-4 rounded-xl bg-[var(--warn-soft)] border border-[var(--warn)]/25 p-4 flex items-start gap-3">
+                <div className="flex-1">
+                  <div className="text-[14px] font-semibold text-[var(--ink)]">This chat needs you</div>
+                  <div className="text-[13px] text-[var(--ink-soft)] mt-0.5">The AI stepped aside (a voice note, a question it couldn't handle, or the lead asked for a person). Reply to them on WhatsApp, then resume the AI when you're done.</div>
+                </div>
+                <button onClick={resumeAI}
+                  className="flex-shrink-0 h-9 px-3 rounded-lg bg-[var(--paper)] border border-[var(--line)] text-[13px] font-semibold text-[var(--ink)] hover:bg-white transition">
+                  Resume AI
+                </button>
+              </div>
+            )}
             {(lead.phone || lead.email) && (
               <div className="px-6 pb-5 flex flex-wrap gap-2">
                 {lead.phone && (
