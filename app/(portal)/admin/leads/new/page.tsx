@@ -50,40 +50,58 @@ export default function NewLeadPage() {
           if (!proceed) { setSaving(false); return }
         }
       }
-      const res = await fetch('/api/data', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          table: 'leads',
-          data: {
+      // If admin manually picked a marketer, insert directly and notify them.
+      // Otherwise route through the intake pipeline so the lead is AUTO-ASSIGNED
+      // (weighted lottery) + AI-greeted + nurtured, like a webhook lead.
+      if (form.assigned_to) {
+        const res = await fetch('/api/data', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            table: 'leads',
+            data: {
+              full_name: form.full_name.trim(),
+              email: form.email.trim() || null,
+              phone: form.phone.trim().replace(/^0/, '233') || null,
+              gender: form.gender || null,
+              country: form.country || 'Ghana',
+              city: form.city || null,
+              source: form.source,
+              status: 'new',
+              course_interest: form.course_interest || null,
+              notes: form.notes || null,
+              assigned_to: form.assigned_to,
+              assigned_at: new Date().toISOString(),
+            },
+          }),
+        })
+        const d = await res.json()
+        if (d.error) throw new Error(d.error)
+        if (d.data?.[0]?.id) {
+          await fetch('/api/leads/assign', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ leadId: d.data[0].id, marketerId: form.assigned_to }),
+          })
+        }
+        toast.success(`Lead "${form.full_name}" added and assigned.`)
+      } else {
+        // No marketer chosen → auto-assign via the intake pipeline
+        const res = await fetch('/api/leads/import', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ leads: [{
             full_name: form.full_name.trim(),
             email: form.email.trim() || null,
             phone: form.phone.trim().replace(/^0/, '233') || null,
-            gender: form.gender || null,
-            country: form.country || 'Ghana',
-            city: form.city || null,
-            source: form.source,
-            status: 'new',
             course_interest: form.course_interest || null,
+            source: form.source,
+            city: form.city || null,
             notes: form.notes || null,
-            assigned_to: form.assigned_to || null,
-            assigned_at: form.assigned_to ? new Date().toISOString() : null,
-          },
-        }),
-      })
-      const d = await res.json()
-      if (d.error) throw new Error(d.error)
-
-      // If assigned, trigger notification
-      if (form.assigned_to && d.data?.[0]?.id) {
-        await fetch('/api/leads/assign', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leadId: d.data[0].id, marketerId: form.assigned_to }),
+          }] }),
         })
+        const d = await res.json()
+        if (d.error) throw new Error(d.error)
+        toast.success(d.assigned ? `Lead "${form.full_name}" added and auto-assigned.` : `Lead "${form.full_name}" added.`)
       }
-
-      toast.success(`Lead "${form.full_name}" added successfully!`)
       router.push('/admin/leads')
     } catch (e: any) {
       toast.error(e.message)

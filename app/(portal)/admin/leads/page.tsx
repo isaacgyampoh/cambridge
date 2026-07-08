@@ -7,6 +7,7 @@ import { Search, Download, Plus, Upload, FileSpreadsheet } from 'lucide-react'
 import Link from 'next/link'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
 import { exportToExcel } from '@/lib/utils/export'
+import { toast } from 'sonner'
 
 const STATUS_TONE: Record<string, any> = {
   new: 'neutral', contacted: 'accent', interested: 'accent', follow_up: 'warning',
@@ -14,7 +15,7 @@ const STATUS_TONE: Record<string, any> = {
 }
 
 export default function AdminLeads() {
-  const { data: leads, loading } = useData<Lead>({
+  const { data: leads, loading, refetch } = useData<Lead>({
     table: 'leads',
     select: '*, assignee:assigned_to(full_name), assigner:assigned_by(full_name)',
     orderBy: 'created_at', orderAsc: false, limit: 500,
@@ -29,6 +30,19 @@ export default function AdminLeads() {
     const matchStatus = statusFilter === 'all' || l.status === statusFilter
     return matchSearch && matchSource && matchStatus
   })
+
+  async function assignUnassigned() {
+    // First check the pool so we can explain if nothing happens
+    const diag = await fetch('/api/leads/assign-unassigned').then(r => r.json()).catch(() => null)
+    if (!diag) { toast.error('Could not check leads.'); return }
+    if (diag.unassigned === 0) { toast.info('No unassigned leads to distribute.'); return }
+    if (diag.poolSize === 0) { toast.error(diag.reason || 'No one is in the lead pool. Add an active marketer first.'); return }
+    if (!confirm(`Distribute ${diag.unassigned} unassigned lead(s) across ${diag.poolSize} marketer(s)?`)) return
+    toast.loading('Assigning…', { id: 'assign' })
+    const d = await fetch('/api/leads/assign-unassigned', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+    if (d.success) { toast.success(`Assigned ${d.assigned} lead(s).`, { id: 'assign' }); refetch() }
+    else toast.error(d.error || 'Could not assign', { id: 'assign' })
+  }
 
   function exportExcel() {
     const rows = filtered.map((l: any) => ({
@@ -65,6 +79,7 @@ export default function AdminLeads() {
         description="Every prospective student, with their source, stage and owner."
         actions={
           <>
+            <Button variant="secondary" onClick={assignUnassigned} >Assign unassigned</Button>
             <Button variant="secondary" href="/admin/leads/import" >Import</Button>
             <Button variant="secondary" onClick={exportExcel} >Excel</Button>
             <Button variant="secondary" onClick={exportCSV} >CSV</Button>
