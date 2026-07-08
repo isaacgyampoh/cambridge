@@ -44,6 +44,18 @@ export default function AdminLeads() {
     else toast.error(d.error || 'Could not assign', { id: 'assign' })
   }
 
+  async function clearAllLeads() {
+    const typed = prompt('This permanently deletes EVERY lead (and their activity/chat history) so you can import fresh. Students, staff and courses are NOT affected.\n\nType exactly:  DELETE ALL LEADS')
+    if (typed !== 'DELETE ALL LEADS') { if (typed !== null) toast.error('Confirmation did not match. Nothing deleted.'); return }
+    toast.loading('Deleting all leads…', { id: 'clr' })
+    const d = await fetch('/api/admin/clear-leads', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ confirm: 'DELETE ALL LEADS' }),
+    }).then(r => r.json()).catch(() => ({ error: 'Request failed' }))
+    if (d.success) { toast.success(`Deleted ${d.deleted} lead(s). You can import fresh now.`, { id: 'clr' }); refetch() }
+    else toast.error(d.error || 'Could not delete leads', { id: 'clr' })
+  }
+
   function exportExcel() {
     const rows = filtered.map((l: any) => ({
       Name: l.full_name,
@@ -80,6 +92,7 @@ export default function AdminLeads() {
         actions={
           <>
             <Button variant="secondary" onClick={assignUnassigned} >Assign unassigned</Button>
+            <Button variant="secondary" onClick={clearAllLeads} >Delete all</Button>
             <Button variant="secondary" href="/admin/leads/import" >Import</Button>
             <Button variant="secondary" onClick={exportExcel} >Excel</Button>
             <Button variant="secondary" onClick={exportCSV} >CSV</Button>
