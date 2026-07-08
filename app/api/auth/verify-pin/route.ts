@@ -38,10 +38,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: `Too many attempts. Try again in ${mins} minute${mins !== 1 ? 's' : ''}.` }, { status: 429 })
   }
 
-  // ── OTP disabled globally, OR this user is super_admin → log in directly
-  //    after a correct PIN. Super admin is exempt because during onboarding
-  //    their email may not be a real address to receive codes. ──
-  if (!CONFIG.otpEnabled || profile.role === 'super_admin') {
+  // ── OTP disabled globally, OR this user is super_admin, OR they logged in
+  //    within the last hour → log in directly after a correct PIN. The 1-hour
+  //    grace means logging out and back in quickly doesn't re-prompt for OTP;
+  //    after an hour, a fresh OTP is required again. ──
+  const lastLogin = profile.last_login_at ? new Date(profile.last_login_at).getTime() : 0
+  const withinGrace = lastLogin > 0 && (Date.now() - lastLogin) < 60 * 60 * 1000
+  if (!CONFIG.otpEnabled || profile.role === 'super_admin' || withinGrace) {
     await sb.from('profiles').update({
       login_attempts: 0, locked_until: null, last_login_at: new Date().toISOString(),
     }).eq('id', profile.id)
