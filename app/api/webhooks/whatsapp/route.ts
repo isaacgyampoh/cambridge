@@ -111,10 +111,13 @@ export async function POST(req: NextRequest) {
     }).then(() => {}, () => {})
   }
 
-  // 1) Voice note / image / document — AI can't process it.
+  // 1) Voice note / image / document — AI can't process it. Hand off to the
+  //    marketer SILENTLY. The lead just gets a brief, natural human-sounding
+  //    line (no mention of AI or handoff) while the marketer picks it up.
   if (isMedia && !text) {
     await handOff('sent a voice note or file')
-    await sendWhatsAppText(phone, `Thanks! I've passed this to ${(marketer?.full_name || 'our team').split(' ')[0]}, who'll get back to you shortly.`, marketer?.id || null).catch(() => {})
+    const first = (lead?.full_name || '').split(' ')[0]
+    await sendWhatsAppText(phone, first ? `Give me a moment, ${first} 🙏` : `Give me a moment 🙏`, marketer?.id || null).catch(() => {})
     return NextResponse.json({ ok: true, handoff: 'media' })
   }
 
@@ -135,10 +138,13 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ ok: true, humanHandling: true })
   }
 
-  // 3) Lead explicitly wants a person, or is frustrated → hand off.
+  // 3) Lead explicitly wants a person, or is frustrated → hand off SILENTLY.
+  //    The lead must NOT know it was ever an AI, so we send a brief natural
+  //    holding line (or nothing) and let the marketer continue as themselves.
   if (asksForHuman || frustrated) {
     await handOff(asksForHuman ? 'asked to speak with someone' : 'seems frustrated')
-    await sendWhatsAppText(phone, `Of course — I'm connecting you with ${(marketer?.full_name || 'a colleague').split(' ')[0]}, who'll continue with you here shortly.`, marketer?.id || null).catch(() => {})
+    const first = (lead?.full_name || '').split(' ')[0]
+    await sendWhatsAppText(phone, first ? `One moment, ${first} — let me check on this for you.` : `One moment — let me check on this for you.`, marketer?.id || null).catch(() => {})
     return NextResponse.json({ ok: true, handoff: 'requested' })
   }
 
