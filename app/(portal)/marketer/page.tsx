@@ -35,8 +35,8 @@ export default function MarketerDashboard() {
         <StatCard label="Converted" value={s.registered ?? 0} sub={`${s.conversionRate ?? 0}% conversion`} />
         {showFee
           ? <StatCard label="Registration fees earned" value={formatGHS(s.regFees ?? 0)} sub="Your commission this year" accent />
-          : <StatCard label="Points" value={s.points ?? 0} sub="Toward your rank" accent />}
-        {showFee && <StatCard label="Points" value={s.points ?? 0} sub="Toward your rank" />}
+          : <StatCard label="Registered students" value={s.registered ?? 0} sub="Your registrations this year" accent />}
+        <StatCard label="Points" value={s.points ?? 0} sub="Toward your rank" />
       </div>
 
       {/* Attention + quick links */}

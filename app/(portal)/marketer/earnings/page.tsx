@@ -8,14 +8,34 @@ export default function MarketerEarnings() {
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
 
+  const [role, setRole] = useState('')
+
   useEffect(() => {
     fetch('/api/remuneration?scope=me').then(r => r.json()).then(d => { setData(d); setLoading(false) })
+    fetch('/api/auth/me').then(r => r.json()).then(d => setRole(d.role || '')).catch(() => {})
   }, [])
 
   if (loading || !data) return <Spinner />
 
   const rank = data.currentRank
   const next = data.nextRank
+  const isFullMarketer = role === 'marketing_officer'
+
+  // Staff who market as a secondary duty are not on the salary/commission
+  // scheme — they see their registration COUNT (to collect in person), never
+  // the cedi amounts.
+  if (!isFullMarketer) {
+    return (
+      <div className="fade-in w-full max-w-3xl mx-auto">
+        <PageHeader eyebrow={`${data.year} performance`} title="My registrations"
+          description="The students you've registered this year. Registration payments are settled with you directly." />
+        <div className="grid grid-cols-2 gap-4">
+          <StatCard label="Registered students" value={data.enrollmentCount ?? 0} sub={`in ${data.year}`} accent />
+          <StatCard label="Points" value={data.totalPoints ?? 0} sub="Toward your rank" />
+        </div>
+      </div>
+    )
+  }
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
