@@ -43,6 +43,7 @@ export default function StaffPage() {
   const [showPin, setShowPin] = useState(false)
   const [search, setSearch] = useState('')
   const [isSuperAdmin, setIsSuperAdmin] = useState(false)
+  const [openMenu, setOpenMenu] = useState<string | null>(null)
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setIsSuperAdmin(s.role === 'super_admin') }).catch(() => {})
@@ -489,77 +490,85 @@ export default function StaffPage() {
             <p className="font-medium text-sm">{search ? 'No staff match your search': 'No staff yet — add your first team member'}</p>
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <div className="overflow-visible">
             <table className="w-full">
-              <thead className="bg-[var(--line-soft)]">
-                <tr>
-                  {['Staff Member', 'Contact', 'Role', 'Dept', 'Status', 'Actions'].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
+              <thead>
+                <tr className="border-b border-[var(--line)]">
+                  {['Staff member', 'Role', 'Department', 'Status', ''].map(h => (
+                    <th key={h} className="text-left text-[12px] font-medium text-[var(--ink-faint)] px-4 py-3">{h}</th>
                   ))}
                 </tr>
               </thead>
               <tbody>
-                {filtered.map(s => (
-                  <tr key={s.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
-                    <td className="px-4 py-3">
+                {filtered.map(s => {
+                  const roleColor = ROLE_COLOR[s.role] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'
+                  const markets = s.role === 'marketing_officer' || (s.in_lead_pool !== false && s.marketer_code)
+                  return (
+                  <tr key={s.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--canvas)] transition-colors">
+                    {/* Staff member */}
+                    <td className="px-4 py-3.5">
                       <div className="flex items-center gap-3">
-                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-bold flex-shrink-0 ${ROLE_COLOR[s.role]?.replace('text-', 'bg-').replace('-100', '-600').replace('-700','') || 'bg-[var(--canvas)]0'}`}>
-                          {s.full_name?.charAt(0) || '?'}
+                        <div className={`w-9 h-9 rounded-full flex items-center justify-center text-[13px] font-semibold flex-shrink-0 ${roleColor}`}>
+                          {s.full_name?.charAt(0)?.toUpperCase() || '?'}
                         </div>
-                        <div>
-                          <div className="text-sm font-medium text-[var(--ink)]">{s.full_name}</div>
-                          <div className="text-[12px] text-[var(--ink-faint)]">{s.email}</div>
+                        <div className="min-w-0">
+                          <div className="text-[14px] font-medium text-[var(--ink)] truncate">{s.full_name}</div>
+                          <div className="text-[12px] text-[var(--ink-faint)] truncate">{s.phone?.replace(/^233/, '0') || s.email || '—'}</div>
                         </div>
                       </div>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="text-sm text-[var(--ink-soft)]">{s.phone?.replace(/^233/, '0') || '—'}</div>
-                    </td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ${ROLE_COLOR[s.role] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+                    {/* Role + duties */}
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-block text-[12px] font-medium px-2.5 py-1 rounded-lg ${roleColor}`}>
                         {ROLE_LABEL[s.role] || s.role}
                       </span>
+                      {s.is_team_lead && <span className="ml-1.5 text-[11px] font-medium text-[var(--accent)]">· Lead</span>}
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-faint)]">{(s as any).department || '—'}</td>
-                    <td className="px-4 py-3">
-                      <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${s.is_active ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
-                        {s.is_active ? '● Active': '○ Inactive'}
+                    {/* Department */}
+                    <td className="px-4 py-3.5 text-[13px] text-[var(--ink-soft)]">{(s as any).department || '—'}</td>
+                    {/* Status */}
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${s.is_active ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'}`}>
+                        <span className={`w-1.5 h-1.5 rounded-full ${s.is_active ? 'bg-[var(--ok)]' : 'bg-[var(--ink-faint)]'}`} />
+                        {s.is_active ? 'Active' : 'Inactive'}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
-                      <div className="flex gap-2">
-                        <a href={`/admin/staff/${s.id}`}
-                          className="text-xs font-medium px-3 py-1.5 rounded-lg text-[var(--accent)] bg-[var(--accent-soft)] hover:brightness-95 transition">
-                          Manage Access
-                        </a>
-                        <button onClick={() => toggleActive(s.id, s.is_active)}
-                          className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition ${
-                            s.is_active
-                              ? 'text-[var(--danger)] bg-[var(--danger-soft)] hover:brightness-95'
-                              : 'text-[var(--ok)] bg-[var(--ok-soft)] hover:brightness-95'
-                          }`}>
-                          {s.is_active ? 'Deactivate': 'Activate'}
-                        </button>
-                        {s.role !== 'super_admin' && (
-                          <button onClick={() => toggleLeadPool(s.id, s.in_lead_pool !== false)}
-                            className={`text-xs font-semibold px-3 py-1.5 rounded-xl transition ${
-                              s.in_lead_pool !== false
-                                ? 'text-[var(--accent)] bg-[var(--accent-soft)] hover:brightness-95'
-                                : 'text-[var(--ink-faint)] bg-[var(--line-soft)] hover:brightness-95'
-                            }`}>
-                            {s.in_lead_pool !== false ? 'In lead pool' : 'Not in pool'}
-                          </button>
-                        )}
-                        {s.role !== 'super_admin' && (
-                          <button onClick={() => deleteStaff(s.id, s.full_name)}
-                            className="text-xs font-semibold px-3 py-1.5 rounded-xl transition text-[var(--danger)] border border-[var(--danger)]/30 hover:bg-[var(--danger-soft)]">
-                            Delete
-                          </button>
-                        )}
-                      </div>
+                    {/* Actions menu */}
+                    <td className="px-4 py-3.5 text-right relative">
+                      <button onClick={() => setOpenMenu(openMenu === s.id ? null : s.id)}
+                        className="w-8 h-8 rounded-lg hover:bg-[var(--line-soft)] text-[var(--ink-soft)] inline-flex items-center justify-center transition">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
+                      </button>
+                      {openMenu === s.id && (
+                        <>
+                          <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
+                          <div className="absolute right-4 top-12 z-20 w-52 bg-[var(--paper)] rounded-xl border border-[var(--line)] shadow-[0_8px_30px_rgba(26,34,48,0.12)] py-1.5">
+                            <a href={`/admin/staff/${s.id}`}
+                              className="block px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">Edit details &amp; access</a>
+                            <button onClick={() => { toggleActive(s.id, s.is_active); setOpenMenu(null) }}
+                              className="block w-full text-left px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">
+                              {s.is_active ? 'Deactivate' : 'Activate'}
+                            </button>
+                            {s.role !== 'super_admin' && (
+                              <button onClick={() => { toggleLeadPool(s.id, s.in_lead_pool !== false); setOpenMenu(null) }}
+                                className="block w-full text-left px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">
+                                {s.in_lead_pool !== false ? 'Remove from lead pool' : 'Add to lead pool'}
+                              </button>
+                            )}
+                            {s.role !== 'super_admin' && (
+                              <>
+                                <div className="h-px bg-[var(--line-soft)] my-1.5" />
+                                <button onClick={() => { deleteStaff(s.id, s.full_name); setOpenMenu(null) }}
+                                  className="block w-full text-left px-4 py-2.5 text-[13px] text-[var(--danger)] hover:bg-[var(--danger-soft)] transition">Delete staff</button>
+                              </>
+                            )}
+                          </div>
+                        </>
+                      )}
                     </td>
                   </tr>
-                ))}
+                  )
+                })}
               </tbody>
             </table>
           </div>
