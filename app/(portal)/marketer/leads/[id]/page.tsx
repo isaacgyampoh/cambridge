@@ -14,7 +14,6 @@ const STATUSES = [
   { key: 'contacted', label: 'Contacted'},
   { key: 'interested', label: 'Interested'},
   { key: 'follow_up', label: 'Follow Up'},
-  { key: 'ready_to_join', label: 'Ready to Join '},
   { key: 'not_interested', label: 'Not Interested'},
   { key: 'lost', label: 'Lost'},
 ]
@@ -47,6 +46,9 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const [actOutcome, setActOutcome] = useState('')
   const [followUpDate, setFollowUpDate] = useState('')
   const [savingAct, setSavingAct] = useState(false)
+  const [comments, setComments] = useState<any[]>([])
+  const [commentText, setCommentText] = useState('')
+  const [postingComment, setPostingComment] = useState(false)
   const [newStatus, setNewStatus] = useState('')
   const [regOpen, setRegOpen] = useState(false)
   const [programs, setPrograms] = useState<any[]>([])
@@ -90,6 +92,26 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     setLead(l); setActivities(acts)
     setNewStatus(l?.status || '')
     setLoading(false)
+    loadComments()
+  }
+
+  async function loadComments() {
+    try {
+      const d = await fetch(`/api/leads/comments?lead_id=${id}`).then(r => r.json())
+      setComments(d.comments || [])
+    } catch {}
+  }
+
+  async function postComment() {
+    if (!commentText.trim()) return
+    setPostingComment(true)
+    const d = await fetch('/api/leads/comments', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ lead_id: id, comment: commentText }),
+    }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+    setPostingComment(false)
+    if (d.success) { toast.success('Comment posted — your PM has been notified.'); setCommentText(''); loadComments() }
+    else toast.error(d.error || 'Could not post comment')
   }
 
   async function resumeAI() {
@@ -230,6 +252,32 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 </button>
               </div>
             )}
+
+            {/* Quick comment — instant heads-up to the PM */}
+            <div className="mt-4 rounded-xl border border-[var(--line)] p-4">
+              <div className="text-[14px] font-semibold text-[var(--ink)] mb-1">Quick comment</div>
+              <div className="text-[13px] text-[var(--ink-soft)] mb-3">Something the PM should know right away (e.g. this lead needs a scholarship). They're notified instantly by SMS.</div>
+              <div className="flex gap-2">
+                <input value={commentText} onChange={e => setCommentText(e.target.value)}
+                  onKeyDown={e => { if (e.key === 'Enter') postComment() }}
+                  placeholder="Type a quick note for the PM…"
+                  className="flex-1 h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                <button onClick={postComment} disabled={postingComment || !commentText.trim()}
+                  className="h-11 px-4 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition flex-shrink-0">
+                  {postingComment ? 'Posting…' : 'Send'}
+                </button>
+              </div>
+              {comments.length > 0 && (
+                <div className="mt-4 space-y-2.5">
+                  {comments.map(c => (
+                    <div key={c.id} className="text-[13px] border-l-2 border-[var(--accent)]/30 pl-3">
+                      <span className="text-[var(--ink)]">{c.comment}</span>
+                      <div className="text-[11px] text-[var(--ink-faint)] mt-0.5">{c.author_name} · {new Date(c.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}</div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
             {(lead.phone || lead.email) && (
               <div className="px-6 pb-5 flex flex-wrap gap-2">
                 {lead.phone && (

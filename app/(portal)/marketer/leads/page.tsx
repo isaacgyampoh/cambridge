@@ -162,10 +162,10 @@ export default function MarketerLeads() {
     !['registered', 'lost', 'not_interested'].includes(l.status)
   ).sort((a: any, b: any) => new Date(a.next_follow_up).getTime() - new Date(b.next_follow_up).getTime())
 
-  const convertedCount = leads.filter(l => ['ready_to_join', 'registered'].includes(l.status)).length
+  const convertedCount = leads.filter(l => [ 'registered'].includes(l.status)).length
   const convRate = leads.length ? Math.round((convertedCount / leads.length) * 100) : 0
 
-  const statusOrder = ['new','contacted','interested','follow_up','ready_to_join','not_interested','lost','registered']
+  const statusOrder = ['new','contacted','interested','follow_up','not_interested','lost','registered']
   const COLORS: Record<string,string> = {
     new:'bg-[var(--warn-soft)] text-[var(--warn)]', contacted:'bg-[var(--accent-soft)] text-[var(--accent)]',
     interested:'bg-[var(--info-soft)] text-[var(--info)]', follow_up:'bg-[var(--warn-soft)] text-[var(--warn)]',

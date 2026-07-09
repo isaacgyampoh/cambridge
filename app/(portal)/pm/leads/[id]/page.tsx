@@ -8,7 +8,7 @@ import { ArrowLeft, Phone, MessageSquare, Mail, MapPin, BookOpen, Clock } from '
 import Link from 'next/link'
 import CallButton from '@/components/shared/CallButton'
 
-const STATUSES = ['new','contacted','interested','follow_up','ready_to_join','registered','not_interested','lost']
+const STATUSES = ['new','contacted','interested','follow_up','registered','not_interested','lost']
 
 
 async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 200) {
