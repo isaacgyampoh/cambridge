@@ -50,6 +50,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
 
 export const ROLE_DEFAULTS: Record<string, string[]> = {
   super_admin:       ['messages','dashboard','insights','reports','grp_automation','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
+  administrator:     ['messages','dashboard','insights','reports','grp_automation','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','knowledge','conversations','clock_in','grp_socials'],
   project_manager:   ['dashboard','reports','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in','messages'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','reports','my_attendance','clock_in','messages'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
@@ -60,8 +61,22 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
   student:           ['dashboard','my_payments'],
 }
 
+/**
+ * DUTIES — extra responsibilities layered on top of a primary role during
+ * onboarding (checkboxes). Each duty grants the portals a person needs to do
+ * that job, added to their role defaults. This is how one person can be, say,
+ * Accountant + Admissions + Marketing at once.
+ */
+export const DUTIES: Record<string, { label: string; portals: string[] }> = {
+  marketing:  { label: 'Marketing (works leads)', portals: ['my_leads', 'my_link', 'my_flyers', 'reports'] },
+  finance:    { label: 'Finance', portals: ['finance', 'registrations'] },
+  admissions: { label: 'Admissions', portals: ['admissions'] },
+  content:    { label: 'Social media / content', portals: ['grp_socials'] },
+  automation: { label: 'Automation & broadcasts', portals: ['grp_automation', 'broadcast'] },
+}
+
 export const ROLE_HOME: Record<string, string> = {
-  super_admin: '/admin', project_manager: '/pm', marketing_officer: '/marketer', content_manager: '/content',
+  super_admin: '/admin', administrator: '/admin', project_manager: '/pm', marketing_officer: '/marketer', content_manager: '/content',
   admissions_officer: '/admission', accountant: '/finance',
   trainer: '/trainer', exam_coordinator: '/coordinator', student: '/student',
 }

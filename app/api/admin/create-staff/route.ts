@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, getSessionFromCookies } from '@/lib/auth/pin'
+import { DUTIES } from '@/lib/access/portals'
 
 export const runtime = 'nodejs'
 
@@ -10,7 +11,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 
-  const { full_name, email, phone, role, initial_pin, department, coordinator_program, performance_tier, also_markets, reports_to, is_team_lead } = await req.json()
+  const { full_name, email, phone, role, initial_pin, department, coordinator_program, performance_tier, also_markets, duties, reports_to, is_team_lead } = await req.json()
 
   if (!full_name?.trim() || !phone?.trim() || !role) {
     return NextResponse.json({ error: 'Full name, phone number and role are required' }, { status: 400 })
@@ -53,7 +54,14 @@ export async function POST(req: NextRequest) {
   // A person markets if their primary role is marketing_officer OR the
   // "also markets" toggle is on (e.g. a PM or accountant who also converts
   // leads). Marketing staff get a shareable code and enter the lead pool.
-  const marketsLeads = role === 'marketing_officer' || also_markets === true
+  // Duties: extra responsibilities layered on the primary role (checkboxes).
+  // Each grants portals, merged into the profile so access reflects every job.
+  const dutyList: string[] = Array.isArray(duties) ? duties : []
+  const dutyPortals = dutyList.flatMap((d: string) => DUTIES[d]?.portals || [])
+
+  // A person works leads if their role is marketing_officer, OR they have the
+  // marketing duty, OR the legacy also_markets flag is set.
+  const marketsLeads = role === 'marketing_officer' || dutyList.includes('marketing') || also_markets === true
   const marketerCode = marketsLeads
     ? full_name.toLowerCase().replace(/\s+/g, '-') + '-' + Math.random().toString(36).slice(2, 6)
     : null
@@ -76,6 +84,7 @@ export async function POST(req: NextRequest) {
     pin_set_at: new Date().toISOString(),
     must_change_pin: true,
     marketer_code: marketerCode,
+    portals: dutyPortals.length ? dutyPortals : null,
     is_active: true,
   }
   // Newer columns (only present if the latest schema has been run). Included

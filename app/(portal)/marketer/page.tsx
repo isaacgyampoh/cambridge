@@ -7,13 +7,18 @@ import Link from 'next/link'
 export default function MarketerDashboard() {
   const [s, setS] = useState<any>(null)
   const [name, setName] = useState('')
+  const [role, setRole] = useState('')
 
   useEffect(() => {
     fetch('/api/marketer/dashboard').then(r => r.json()).then(setS).catch(() => setS({}))
-    fetch('/api/auth/me').then(r => r.json()).then(d => setName((d.fullName || '').split(' ')[0])).catch(() => {})
+    fetch('/api/auth/me').then(r => r.json()).then(d => { setName((d.fullName || '').split(' ')[0]); setRole(d.role || '') }).catch(() => {})
   }, [])
 
   if (!s) return <div className="py-20"><Spinner /></div>
+
+  // Only a 100% marketer (marketing_officer) sees the registration-fee amount.
+  // Staff who market as a secondary duty do not.
+  const showFee = role === 'marketing_officer'
 
   const greeting = name ? `Welcome back, ${name}` : 'Your dashboard'
 
@@ -28,8 +33,10 @@ export default function MarketerDashboard() {
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">
         <StatCard label="Total leads" value={s.totalLeads ?? 0} sub={`${s.newLeads ?? 0} new to work`} spark={s.byDay} />
         <StatCard label="Converted" value={s.registered ?? 0} sub={`${s.conversionRate ?? 0}% conversion`} />
-        <StatCard label="Registration fees earned" value={formatGHS(s.regFees ?? 0)} sub="Your commission this year" accent />
-        <StatCard label="Points" value={s.points ?? 0} sub="Toward your rank" />
+        {showFee
+          ? <StatCard label="Registration fees earned" value={formatGHS(s.regFees ?? 0)} sub="Your commission this year" accent />
+          : <StatCard label="Points" value={s.points ?? 0} sub="Toward your rank" accent />}
+        {showFee && <StatCard label="Points" value={s.points ?? 0} sub="Toward your rank" />}
       </div>
 
       {/* Attention + quick links */}
