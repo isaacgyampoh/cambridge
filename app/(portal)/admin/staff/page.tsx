@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Plus, X, Check, Copy, Eye, EyeOff, Shield, Phone, Mail, User, Briefcase, Hash } from 'lucide-react'
 
 const ROLES = [
+  { value: 'administrator', label: 'Administrator', color: 'bg-[var(--ink)] text-white'},
   { value: 'project_manager', label: 'Project Manager', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
   { value: 'marketing_officer', label: 'Marketing Officer', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
   { value: 'content_manager', label: 'Content Manager', color: 'bg-[var(--gold-soft)] text-[var(--gold)]'},
@@ -16,10 +17,23 @@ const ROLES = [
   { value: 'super_admin', label: 'Super Admin', color: 'bg-[var(--ink)] text-white'},
 ]
 
+const DUTY_OPTIONS = [
+  { value: 'marketing', label: 'Marketing', desc: 'Works leads, gets a marketer link' },
+  { value: 'finance', label: 'Finance', desc: 'Payments & registrations' },
+  { value: 'admissions', label: 'Admissions', desc: 'Process admissions' },
+  { value: 'content', label: 'Social media', desc: 'Content & competitor research' },
+  { value: 'automation', label: 'Automation', desc: 'Broadcasts & reminders' },
+]
+
+const COORDINATOR_PROGRAMS = [
+  { value: 'PMP', label: 'PMP (Project Management)' },
+  { value: 'HR', label: 'HR (PHRi / SPHRi)' },
+]
+
 const ROLE_COLOR: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.color]))
 const ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.value, r.label]))
 
-const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: '', performance_tier: 'mid', also_markets: false, reports_to: '', is_team_lead: false }
+const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: '', performance_tier: 'mid', also_markets: false, duties: [] as string[], reports_to: '', is_team_lead: false }
 
 export default function StaffPage() {
   const [showModal, setShowModal] = useState(false)
@@ -41,7 +55,7 @@ export default function StaffPage() {
     filters: [{ col: 'role', op: 'neq', val: 'student'}],
   })
 
-  function set(k: string, v: string | boolean) { setForm(f => ({ ...f, [k]: v })) }
+  function set(k: string, v: string | boolean | string[]) { setForm(f => ({ ...f, [k]: v })) }
 
   function openModal() { setForm({ ...EMPTY }); setCreds(null); setShowModal(true) }
 
@@ -302,29 +316,60 @@ export default function StaffPage() {
 
                   {form.role === 'exam_coordinator' && (
                     <div>
-                      <label className="block text-xs font-bold text-[var(--ink-faint)] mb-2">Programme they coordinate *</label>
-                      <input value={form.coordinator_program} onChange={e => set('coordinator_program', e.target.value.toUpperCase())}
-                        placeholder="e.g. PMP or SPHRI (the course code)"
-                        className="w-full h-11 px-4 rounded-xl border-2 border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
-                      <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">Must match the course code. All students of this programme are auto-assigned to this coordinator.</p>
+                      <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Which programme do they coordinate? *</label>
+                      <div className="grid grid-cols-2 gap-2">
+                        {COORDINATOR_PROGRAMS.map(p => (
+                          <button key={p.value} type="button" onClick={() => set('coordinator_program', p.value)}
+                            className={`text-left px-4 py-3 rounded-xl border-2 transition ${
+                              form.coordinator_program === p.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
+                            }`}>
+                            <div className={`text-[14px] font-semibold ${form.coordinator_program === p.value ? 'text-[var(--accent)]' : 'text-[var(--ink)]'}`}>{p.value}</div>
+                            <div className="text-[12px] text-[var(--ink-faint)]">{p.label.replace(/^[A-Z]+ /, '')}</div>
+                          </button>
+                        ))}
+                      </div>
+                      <p className="text-[12px] text-[var(--ink-faint)] mt-2">Students of this programme are auto-assigned to this coordinator.</p>
                     </div>
                   )}
 
-                  {/* Also markets — for staff who aren't primarily marketers but
-                      also convert leads (e.g. a PM or accountant who markets) */}
-                  {form.role !== 'marketing_officer' && form.role !== 'super_admin' && (
-                    <label className="flex items-start gap-3 p-4 rounded-xl border border-[var(--line)] cursor-pointer hover:bg-[var(--canvas)] transition">
-                      <input type="checkbox" checked={form.also_markets} onChange={e => set('also_markets', e.target.checked)}
-                        className="mt-0.5 w-4 h-4 accent-[var(--accent)]" />
-                      <div>
-                        <div className="text-[14px] font-medium text-[var(--ink)]">This person also markets</div>
-                        <div className="text-[13px] text-[var(--ink-soft)]">They'll get their own marketer link and receive leads to convert, on top of their main role.</div>
+                  {/* Additional duties — layer extra responsibilities on the
+                      primary role (e.g. an accountant who also does admissions
+                      and marketing). Not shown for super admin. */}
+                  {form.role !== 'super_admin' && (
+                    <div>
+                      <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Also responsible for (optional)</label>
+                      <div className="space-y-2">
+                        {DUTY_OPTIONS.filter(d => {
+                          // Hide a duty that the primary role already covers
+                          if (d.value === 'marketing' && form.role === 'marketing_officer') return false
+                          if (d.value === 'finance' && form.role === 'accountant') return false
+                          if (d.value === 'admissions' && form.role === 'admissions_officer') return false
+                          if (d.value === 'content' && form.role === 'content_manager') return false
+                          return true
+                        }).map(d => {
+                          const on = form.duties.includes(d.value)
+                          return (
+                            <button key={d.value} type="button"
+                              onClick={() => set('duties', on ? form.duties.filter(x => x !== d.value) : [...form.duties, d.value])}
+                              className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl border transition ${
+                                on ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
+                              }`}>
+                              <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--line)]'}`}>
+                                {on && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
+                              </span>
+                              <span>
+                                <span className={`text-[14px] font-medium ${on ? 'text-[var(--accent)]' : 'text-[var(--ink)]'}`}>{d.label}</span>
+                                <span className="block text-[12px] text-[var(--ink-faint)]">{d.desc}</span>
+                              </span>
+                            </button>
+                          )
+                        })}
                       </div>
-                    </label>
+                    </div>
                   )}
 
-                  {/* Performance tier — shown for anyone who receives leads */}
-                  {(form.role === 'marketing_officer' || form.also_markets) && (
+                  {/* Performance tier — for anyone who works leads */}
+                  {(form.role === 'marketing_officer' || form.duties.includes('marketing')) && (
                     <div>
                       <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Performance tier</label>
                       <div className="grid grid-cols-2 gap-2">
