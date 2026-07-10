@@ -10,6 +10,7 @@ import SharedLinks from '@/components/shared/SharedLinks'
 export default function MarketerLink() {
   const [profile, setProfile] = useState<Profile | null>(null)
   const [stats, setStats] = useState({ total: 0, paid: 0, converted: 0 })
+  const [sessionJoins, setSessionJoins] = useState<{ total: number; sessions: any[] }>({ total: 0, sessions: [] })
   const [applications, setApplications] = useState<Application[]>([])
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
@@ -36,6 +37,8 @@ export default function MarketerLink() {
     async function load() {
       const s = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
       if (!s?.valid) { setLoading(false); return }
+
+      fetch('/api/info-sessions/my-joins').then(r => r.json()).then(setSessionJoins).catch(() => {})
 
       const params = new URLSearchParams({
         table: 'profiles', select: '*',
@@ -94,6 +97,27 @@ export default function MarketerLink() {
 
       {/* Shared links from the office (Zoom, info session, etc.) */}
       <SharedLinks />
+
+      {/* Info-session joins through my link */}
+      {sessionJoins.total > 0 && (
+        <div className="bg-[var(--accent-soft)] border border-[var(--accent)]/15 rounded-xl p-5 mb-5">
+          <div className="flex items-baseline gap-2">
+            <span className="text-[26px] font-semibold text-[var(--accent)]">{sessionJoins.total}</span>
+            <span className="text-[14px] text-[var(--ink)]">people joined info sessions through your link</span>
+          </div>
+          {sessionJoins.sessions.length > 0 && (
+            <div className="mt-3 space-y-1">
+              {sessionJoins.sessions.map((s: any, i: number) => (
+                <div key={i} className="flex justify-between text-[13px] text-[var(--ink-soft)]">
+                  <span className="truncate pr-3">{s.title}</span>
+                  <span className="font-medium text-[var(--ink)] flex-shrink-0">{s.count}</span>
+                </div>
+              ))}
+            </div>
+          )}
+          <p className="text-[12px] text-[var(--ink-faint)] mt-3">These joins are counted for you — anyone who joins through your shared link stays tied to you.</p>
+        </div>
+      )}
 
       {/* Link card */}
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">
