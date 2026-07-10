@@ -9,6 +9,7 @@ export default function InfoSessions() {
   const [saving, setSaving] = useState(false)
   const [form, setForm] = useState({ title: '', link: '', description: '', scheduled_at: '', notify_at: '', audience: 'all_leads', channels: ['sms', 'whatsapp'] })
   const [preview, setPreview] = useState<any>(null)
+  const [attendance, setAttendance] = useState<any[]>([])
 
   // Live preview: reach count + message, updates as the form changes
   useEffect(() => {
@@ -28,6 +29,7 @@ export default function InfoSessions() {
     const d = await fetch('/api/info-sessions').then(r => r.json())
     setSessions(d.sessions || [])
     setLoading(false)
+    fetch('/api/info-sessions/attendance').then(r => r.json()).then(d => setAttendance(d.sessions || [])).catch(() => {})
   }
   useEffect(() => { load() }, [])
 
@@ -108,6 +110,39 @@ export default function InfoSessions() {
                   </Card>
                 )
               })}
+            </div>
+          )}
+
+          {/* Attendance leaderboard — who drove the most joins */}
+          {attendance.length > 0 && (
+            <div className="mt-6">
+              <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-3">Who drove attendance</h3>
+              <div className="space-y-3">
+                {attendance.map((sess: any) => (
+                  <Card key={sess.session_id} className="p-5">
+                    <div className="flex items-baseline justify-between mb-3">
+                      <div className="font-medium text-[var(--ink)] truncate pr-3">{sess.title}</div>
+                      <div className="text-[13px] text-[var(--ink-soft)] flex-shrink-0"><span className="font-semibold text-[var(--accent)]">{sess.total}</span> joined</div>
+                    </div>
+                    <div className="space-y-1.5">
+                      {sess.marketers.map((m: any, i: number) => (
+                        <div key={i} className="flex items-center justify-between text-[13px]">
+                          <div className="flex items-center gap-2 min-w-0">
+                            <span className={`w-5 text-center text-[11px] font-semibold ${i === 0 ? 'text-[var(--gold)]' : 'text-[var(--ink-faint)]'}`}>{i + 1}</span>
+                            <span className={`truncate ${m.name === 'Not attributed' ? 'text-[var(--ink-faint)] italic' : 'text-[var(--ink)]'}`}>{m.name}</span>
+                          </div>
+                          <div className="flex items-center gap-2 flex-shrink-0">
+                            <div className="w-24 h-1.5 rounded-full bg-[var(--line-soft)] overflow-hidden">
+                              <div className="h-full bg-[var(--accent)]" style={{ width: `${Math.round((m.count / sess.total) * 100)}%` }} />
+                            </div>
+                            <span className="font-medium text-[var(--ink)] w-6 text-right">{m.count}</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </Card>
+                ))}
+              </div>
             </div>
           )}
         </div>
