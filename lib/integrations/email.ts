@@ -91,24 +91,33 @@ export async function sendWelcomeEmail(to: string, name: string, course: string)
 }
 
 export async function sendAdmissionLetter(to: string, name: string, course: string, admissionNo: string, startDate?: string) {
+ const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
  const html =`
- <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
- <div style="background:#1e3a8a;padding:30px;border-radius:12px 12px 0 0;text-align:center">
- <h1 style="color:white;margin:0;font-size:24px">Admission Letter</h1>
- <p style="color:#93c5fd;margin:5px 0">Cambridge Centre of Excellence</p>
- </div>
- <div style="background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px">
- <p style="color:#6b7280">Dear <strong>${name}</strong>,</p>
- <p style="color:#6b7280">We are pleased to offer you admission to <strong>${course}</strong> at Cambridge Centre of Excellence.</p>
- <div style="background:#f0fdf4;border:1px solid #86efac;padding:20px;border-radius:8px;margin:20px 0">
- <p style="margin:0 0 8px;color:#166534"><strong>Admission Details</strong></p>
- <p style="margin:4px 0;color:#374151">Admission No: <strong>${admissionNo}</strong></p>
- <p style="margin:4px 0;color:#374151">Program: <strong>${course}</strong></p>
- ${startDate ?`<p style="margin:4px 0;color:#374151">Start Date: <strong>${startDate}</strong></p>` : ''}
- </div>
- <p style="color:#6b7280">Please complete your registration by paying the required fees and submitting all necessary documents.</p>
- <p style="color:#374151;margin-top:30px">Sincerely,<br><strong>Admissions Office</strong><br>Cambridge Centre of Excellence</p>
- </div>
+ <div style="font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:0 auto;background:#ffffff">
+   <div style="background:#1a7a85;padding:32px 40px;text-align:center">
+     <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;font-family:Arial,sans-serif">CAMBRIDGE CENTRE OF EXCELLENCE</h1>
+     <p style="color:#bfe3e6;margin:6px 0 0;font-size:13px;font-family:Arial,sans-serif;letter-spacing:2px">LETTER OF ADMISSION</p>
+   </div>
+   <div style="padding:40px">
+     <p style="color:#5a6675;margin:0 0 24px;font-size:13px;font-family:Arial,sans-serif">${today}</p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.7">Dear <strong>${name}</strong>,</p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.7">Following the successful completion of your registration, we are delighted to formally offer you admission into the following programme at Cambridge Centre of Excellence:</p>
+     <div style="background:#f0f7f8;border-left:4px solid #1a7a85;padding:20px 24px;margin:24px 0">
+       <table style="width:100%;font-family:Arial,sans-serif;font-size:14px;color:#1a2230">
+         <tr><td style="padding:5px 0;color:#5a6675;width:150px">Admission Number</td><td style="padding:5px 0;font-weight:bold">${admissionNo}</td></tr>
+         <tr><td style="padding:5px 0;color:#5a6675">Programme</td><td style="padding:5px 0;font-weight:bold">${course}</td></tr>
+         <tr><td style="padding:5px 0;color:#5a6675">Candidate</td><td style="padding:5px 0;font-weight:bold">${name}</td></tr>
+         ${startDate ? `<tr><td style="padding:5px 0;color:#5a6675">Start Date</td><td style="padding:5px 0;font-weight:bold">${startDate}</td></tr>` : ''}
+       </table>
+     </div>
+     <p style="color:#1a2230;font-size:15px;line-height:1.7">Your registration fee has been received. Our team will be in touch shortly with your class schedule, learning materials, and joining details. Please keep your admission number safe — you will need it for all correspondence.</p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.7">We warmly welcome you to the Cambridge Centre of Excellence community and look forward to supporting your professional journey.</p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.7;margin-top:32px">Yours sincerely,</p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.5;margin-top:4px"><strong>Admissions Office</strong><br><span style="color:#5a6675;font-size:14px">Cambridge Centre of Excellence</span></p>
+   </div>
+   <div style="background:#fafbfc;padding:20px 40px;border-top:1px solid #eaedf1;text-align:center">
+     <p style="color:#97a1b0;font-size:12px;font-family:Arial,sans-serif;margin:0">This is an official admission letter from Cambridge Centre of Excellence.<br>For enquiries, reply to this email or contact the Admissions Office.</p>
+   </div>
  </div>`
  return sendEmail(to,`Admission Letter — ${course} | Cambridge CE`, html)
 }
