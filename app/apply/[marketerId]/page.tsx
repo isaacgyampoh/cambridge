@@ -82,40 +82,41 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
 
     const fullName = [form.first_name, form.middle_name, form.last_name].filter(Boolean).join(' ')
 
-    const { data: app, error } = await sb.from('applications').insert({
-      marketer_id: marketer?.id || null,
-      full_name: fullName,
-      first_name: form.first_name,
-      middle_name: form.middle_name || null,
-      last_name: form.last_name,
-      email: form.email,
-      phone: form.phone.replace(/^0/, '233'),
-      gender: form.gender || null,
-      date_of_birth: form.date_of_birth || null,
-      country_of_birth: form.country_of_birth || null,
-      nationality: form.nationality || null,
-      postal_address: form.postal_address || null,
-      residential_address: form.residential_address || null,
-      address: form.residential_address || null,
-      last_school: form.last_school || null,
-      certification_attained: form.certification_attained || null,
-      course_of_study: form.course_of_study || null,
-      year_completed: form.year_completed || null,
-      course_id: form.course_id,
-      batch_preference: form.batch_preference || null,
-      delivery: form.delivery,
-      payment_method: form.payment_method as any,
-      payment_status: 'pending',
-      // Ad-source tracking
-      utm_source: utm.utm_source || null,
-      utm_medium: utm.utm_medium || null,
-      utm_campaign: utm.utm_campaign || null,
-      utm_content: utm.utm_content || null,
-      landing_source: prettySource(utm.utm_source) || null,
-    }).select().single()
+    const res = await fetch('/api/applications/submit', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        marketer_id: marketer?.id || null,
+        full_name: fullName,
+        first_name: form.first_name,
+        middle_name: form.middle_name || null,
+        last_name: form.last_name,
+        email: form.email,
+        phone: form.phone.replace(/^0/, '233'),
+        gender: form.gender || null,
+        date_of_birth: form.date_of_birth || null,
+        country_of_birth: form.country_of_birth || null,
+        nationality: form.nationality || null,
+        postal_address: form.postal_address || null,
+        residential_address: form.residential_address || null,
+        last_school: form.last_school || null,
+        certification_attained: form.certification_attained || null,
+        course_of_study: form.course_of_study || null,
+        year_completed: form.year_completed || null,
+        course_id: form.course_id,
+        batch_preference: form.batch_preference || null,
+        delivery: form.delivery,
+        payment_method: form.payment_method,
+        utm_source: utm.utm_source || null,
+        utm_medium: utm.utm_medium || null,
+        utm_campaign: utm.utm_campaign || null,
+        utm_content: utm.utm_content || null,
+        landing_source: prettySource(utm.utm_source) || null,
+      }),
+    })
+    const app = await res.json().catch(() => ({ error: 'Could not reach the server' }))
 
-    if (error) {
-      toast.error('Failed to submit application: ' + error.message)
+    if (app.error) {
+      toast.error('Failed to submit application: ' + app.error)
       setSubmitting(false)
       return
     }
@@ -123,8 +124,6 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
     setApplicationId(app.id)
 
     if (form.payment_method === 'cash') {
-      // Mark as pending cash, submit immediately
-      await sb.from('applications').update({ is_submitted: true, submitted_at: new Date().toISOString() }).eq('id', app.id)
       setStep(3)
     } else {
       setStep(2) // Go to payment
@@ -144,25 +143,13 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       ref: `CCE-APP-${applicationId}-${Date.now()}`,
       channels: ['mobile_money', 'card'],
       callback: async (response: any) => {
-        // Verify and update
-        await sb.from('applications').update({
-          payment_status: 'paid',
-          paystack_ref: response.reference,
-          paid_at: new Date().toISOString(),
-          amount_paid: 200,
-          is_submitted: true,
-          submitted_at: new Date().toISOString(),
-        }).eq('id', applicationId)
-
-        // Trigger admission via API
-        const { data: app } = await sb.from('applications').select('*').eq('id', applicationId).single()
-        if (app) {
-          await fetch('/api/applications/complete', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({ applicationId }),
-          })
-        }
+        // The complete endpoint (service role) records payment + triggers
+        // admission. Doing it server-side avoids RLS on the applications table.
+        await fetch('/api/applications/complete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ applicationId, paystack_ref: response.reference }),
+        })
         setStep(3)
       },
       onClose: () => toast.info('Payment closed. You can pay later.'),

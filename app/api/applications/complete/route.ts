@@ -44,10 +44,21 @@ function matchProgram(courseName: string | null, programs: any[]): any | null {
 }
 
 export async function POST(req: NextRequest) {
-  const { applicationId } = await req.json()
+  const { applicationId, paystack_ref } = await req.json()
   if (!applicationId) return NextResponse.json({ error: 'Missing applicationId' }, { status: 400 })
 
   const sb = createServiceClient()
+
+  // Record the payment (service role — bypasses RLS). Marks the application
+  // paid + submitted so admission processing can proceed.
+  if (paystack_ref) {
+    await sb.from('applications').update({
+      payment_status: 'paid', paystack_ref,
+      paid_at: new Date().toISOString(), amount_paid: 200,
+      is_submitted: true, submitted_at: new Date().toISOString(),
+    }).eq('id', applicationId)
+  }
+
   const { data: app } = await sb.from('applications').select('*, course:course_id(name)').eq('id', applicationId).single()
   if (!app) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
 
