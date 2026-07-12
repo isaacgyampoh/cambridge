@@ -207,6 +207,46 @@ export default function DocumentsPage() {
         </button>
       </div>
 
+      {/* Admission-letter coverage — which programmes have a letter uploaded */}
+      {courses.length > 0 && (() => {
+        const letterCourseIds = new Set(
+          (docs || []).filter((d: any) => d.type === 'admission_letter' && d.course_id && d.is_active !== false).map((d: any) => d.course_id)
+        )
+        const hasGeneral = (docs || []).some((d: any) => d.type === 'admission_letter' && !d.course_id && d.is_active !== false)
+        const missing = courses.filter((c: any) => !letterCourseIds.has(c.id))
+        return (
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-6">
+            <div className="flex items-center justify-between mb-3">
+              <h3 className="text-[14px] font-semibold text-[var(--ink)]">Admission letter coverage</h3>
+              <span className="text-[12px] text-[var(--ink-soft)]">{letterCourseIds.size} of {courses.length} programmes</span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+              {courses.map((c: any) => {
+                const has = letterCourseIds.has(c.id)
+                return (
+                  <div key={c.id} className="flex items-center gap-2.5 px-3 py-2 rounded-lg border border-[var(--line-soft)]">
+                    <span className={`w-5 h-5 rounded-full flex items-center justify-center flex-shrink-0 ${has ? 'bg-[var(--ok-soft)]' : 'bg-[var(--warn-soft)]'}`}>
+                      {has
+                        ? <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="var(--ok)" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>
+                        : <span className="text-[var(--warn)] text-[13px] font-bold leading-none">!</span>}
+                    </span>
+                    <span className="text-[13px] text-[var(--ink)] truncate">{c.name}</span>
+                    {!has && <span className="text-[11px] text-[var(--warn)] ml-auto flex-shrink-0">No letter</span>}
+                  </div>
+                )
+              })}
+            </div>
+            {missing.length > 0 && (
+              <p className="text-[12px] text-[var(--ink-soft)] mt-3">
+                {hasGeneral
+                  ? `${missing.length} programme${missing.length > 1 ? 's' : ''} will use your general admission letter. Upload a specific one above to override.`
+                  : `${missing.length} programme${missing.length > 1 ? 's have' : ' has'} no admission letter — those registrants will get an auto-generated one. Upload a letter above for each.`}
+              </p>
+            )}
+          </div>
+        )
+      })()}
+
       {/* Send modal */}
       {(
         <Modal open={!!sendModal} onClose={() => setSendModal(null)} maxWidth="max-w-md">
