@@ -1,4 +1,5 @@
 'use client'
+import { uploadFile } from '@/lib/upload'
 import { useState, useRef } from 'react'
 import { CONFIG } from '@/lib/config'
 import { Upload, X, FileText, Image as ImageIcon, Check, Loader2 } from 'lucide-react'
@@ -35,22 +36,10 @@ export default function FileUpload({
 
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('upload_preset', CONFIG.cloudinaryUploadPreset)
-      fd.append('folder', folder)
-
-      const isPdf = file.type === 'application/pdf'
-      const endpoint = `https://api.cloudinary.com/v1_1/${CONFIG.cloudinaryCloudName}/${isPdf ? 'raw' : 'image'}/upload`
-
-      const res = await fetch(endpoint, { method: 'POST', body: fd }).then(r => r.json())
-      if (res.secure_url) {
-        setPreview(res.secure_url)
-        onUploaded(res.secure_url)
-        toast.success('Uploaded')
-      } else {
-        throw new Error(res.error?.message || 'Upload failed')
-      }
+      const { url } = await uploadFile(file, folder)
+      setPreview(url)
+      onUploaded(url)
+      toast.success('Uploaded')
     } catch (e: any) {
       toast.error(e.message || 'Upload failed')
     } finally {

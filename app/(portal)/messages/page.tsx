@@ -1,4 +1,5 @@
 'use client'
+import { uploadFile as uploadToStorage } from '@/lib/upload'
 import { useState, useEffect, useRef } from 'react'
 import { PageHeader, Card, Spinner } from '@/components/ui'
 import { ROLE_LABELS } from '@/lib/utils'
@@ -45,16 +46,13 @@ export default function Messages() {
     if (!active) return
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', blob)
-      fd.append('upload_preset', 'cce_uploads')
-      const res = await fetch('https://api.cloudinary.com/v1_1/dafiojcq6/video/upload', { method: 'POST', body: fd })
-      const data = await res.json()
-      if (data.secure_url) {
-        const optimistic = { id: 'tmp' + Date.now(), sender_id: me, recipient_id: active.id, audio_url: data.secure_url, created_at: new Date().toISOString() }
+      const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type || 'audio/webm' })
+      const data = await uploadToStorage(voiceFile, 'voice-notes')
+      if (data.url) {
+        const optimistic = { id: 'tmp' + Date.now(), sender_id: me, recipient_id: active.id, audio_url: data.url, created_at: new Date().toISOString() }
         setThread(t => [...t, optimistic])
         setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
-        await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, audio_url: data.secure_url }) })
+        await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, audio_url: data.url }) })
       }
     } catch {
       alert('Could not send the voice note. Try again.')
@@ -65,18 +63,12 @@ export default function Messages() {
 
   async function uploadFile(file: File) {
     if (!active) return
-    // Cloudinary raw upload handles docs; images go to image endpoint for previews
     const isImage = file.type.startsWith('image/')
-    const endpoint = isImage ? 'image' : 'raw'
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('upload_preset', 'cce_uploads')
-      const res = await fetch(`https://api.cloudinary.com/v1_1/dafiojcq6/${endpoint}/upload`, { method: 'POST', body: fd })
-      const data = await res.json()
-      if (data.secure_url) {
-        const meta = { file_url: data.secure_url, file_name: file.name, file_type: isImage ? 'image' : 'document', file_size: file.size }
+      const data = await uploadToStorage(file, 'messages')
+      if (data.url) {
+        const meta = { file_url: data.url, file_name: file.name, file_type: isImage ? 'image' : 'document', file_size: file.size }
         const optimistic = { id: 'tmp' + Date.now(), sender_id: me, recipient_id: active.id, ...meta, created_at: new Date().toISOString() }
         setThread(t => [...t, optimistic])
         setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)

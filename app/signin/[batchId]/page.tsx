@@ -1,4 +1,5 @@
 'use client'
+import { uploadFile } from '@/lib/upload'
 import { useState, useEffect, use } from 'react'
 import Script from 'next/script'
 import { CONFIG } from '@/lib/config'
@@ -80,13 +81,10 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
   }
 
   async function uploadShot(file: File) {
-    if (!CONFIG.cloudinaryCloudName || !CONFIG.cloudinaryUploadPreset) { setError('Upload not available'); return }
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file); fd.append('upload_preset', CONFIG.cloudinaryUploadPreset); fd.append('folder', 'cce/bank-proofs')
-      const r = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudinaryCloudName}/image/upload`, { method: 'POST', body: fd }).then(x => x.json())
-      if (r.secure_url) setScreenshot(r.secure_url)
+      const r = await uploadFile(file, 'bank-proofs')
+      if (r.url) setScreenshot(r.url)
     } catch { setError('Upload failed') }
     finally { setUploading(false) }
   }

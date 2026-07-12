@@ -1,4 +1,5 @@
 'use client'
+import { uploadFile } from '@/lib/upload'
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Spinner, EmptyState, inputClass } from '@/components/ui'
 import { CONFIG } from '@/lib/config'
@@ -32,16 +33,11 @@ export default function MyFlyers() {
     if (!file.type.startsWith('image/')) { toast.error('Please choose an image file'); return }
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('upload_preset', 'cce_uploads')
-      const res = await fetch('https://api.cloudinary.com/v1_1/dafiojcq6/image/upload', { method: 'POST', body: fd })
-      const up = await res.json()
-      if (!up.secure_url) throw new Error('Upload failed')
+      const up = await uploadFile(file, 'flyers')
       // save flyer
       const saveRes = await fetch('/api/flyers', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ title: form.title, course: form.course, image_url: up.secure_url }),
+        body: JSON.stringify({ title: form.title, course: form.course, image_url: up.url }),
       })
       const d = await saveRes.json().catch(() => ({ error: 'Could not save the flyer. Please try again.' }))
       if (d.flyer) { toast.success('Flyer uploaded! Your link is ready to share.'); setForm({ title: '', course: '' }); setPreview(''); load() }

@@ -1,4 +1,5 @@
 'use client'
+import { uploadFile } from '@/lib/upload'
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast, Toaster } from 'sonner'
@@ -15,16 +16,11 @@ function SubmitForm() {
   function set(k: string, v: string) { setForm(f => ({ ...f, [k]: v })) }
 
   async function uploadPhoto(file: File) {
-    const cloud = (CONFIG as any).cloudinaryCloudName
-    const preset = (CONFIG as any).cloudinaryUploadPreset
-    if (!cloud || !preset) { toast.error('Photo upload not available right now'); return }
     if (file.size > 8 * 1024 * 1024) { toast.error('Image too large (max 8MB)'); return }
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file); fd.append('upload_preset', preset); fd.append('folder', 'cce/testimonials')
-      const res = await fetch(`https://api.cloudinary.com/v1_1/${cloud}/image/upload`, { method: 'POST', body: fd }).then(r => r.json())
-      if (res.secure_url) { set('image_url', res.secure_url); toast.success('Photo added') }
+      const res = await uploadFile(file, 'testimonials')
+      if (res.url) { set('image_url', res.url); toast.success('Photo added') }
       else throw new Error('Upload failed')
     } catch { toast.error('Could not upload photo') }
     finally { setUploading(false) }

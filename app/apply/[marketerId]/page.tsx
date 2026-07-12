@@ -1,4 +1,5 @@
 'use client'
+import { uploadFile } from '@/lib/upload'
 import { CONFIG } from '@/lib/config'
 
 import { useState, useEffect, use } from 'react'
@@ -409,13 +410,10 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
   }
 
   async function uploadShot(file: File) {
-    if (!CONFIG.cloudinaryCloudName || !CONFIG.cloudinaryUploadPreset) { toast.error('Upload not available'); return }
     setUploading(true)
     try {
-      const fd = new FormData()
-      fd.append('file', file); fd.append('upload_preset', CONFIG.cloudinaryUploadPreset); fd.append('folder', 'cce/fee-proofs')
-      const r = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudinaryCloudName}/image/upload`, { method: 'POST', body: fd }).then(x => x.json())
-      if (r.secure_url) setScreenshot(r.secure_url)
+      const r = await uploadFile(file, 'fee-proofs')
+      if (r.url) setScreenshot(r.url)
     } catch { toast.error('Upload failed') } finally { setUploading(false) }
   }
 

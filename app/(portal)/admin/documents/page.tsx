@@ -1,4 +1,5 @@
 'use client'
+import { uploadFile } from '@/lib/upload'
 import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
@@ -47,14 +48,8 @@ export default function DocumentsPage() {
 
     let publicUrl = ''
     try {
-      const isPdf = file.type === 'application/pdf'
-      const fd = new FormData()
-      fd.append('file', file)
-      fd.append('upload_preset', CONFIG.cloudinaryUploadPreset)
-      fd.append('folder', 'cce/documents')
-      const up = await fetch(`https://api.cloudinary.com/v1_1/${CONFIG.cloudinaryCloudName}/${isPdf ? 'raw' : 'image'}/upload`, { method: 'POST', body: fd }).then(r => r.json())
-      if (!up.secure_url) throw new Error(up.error?.message || 'Upload failed')
-      publicUrl = up.secure_url
+      const up = await uploadFile(file, 'documents')
+      publicUrl = up.url
     } catch (e: any) { toast.error('Upload failed: ' + e.message); setUploading(false); return }
 
     try {
