@@ -212,9 +212,14 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const router   = useRouter()
   const pathname = usePathname()
 
+  // Auto-close the desktop sidebar whenever the route changes, so it pops up,
+  // you pick a page, and it gets out of your way — full-width workspace.
+  useEffect(() => { setCollapsed(true); setMobileOpen(false) }, [pathname])
+
   const [profile,    setProfile]    = useState<any>(null)
   const [loading,    setLoading]    = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
+  const [collapsed,  setCollapsed]  = useState(true)   // desktop: hidden by default for a full-width workspace
   const [hovered,    setHovered]    = useState(false)
   const [openGroup,  setOpenGroup]  = useState<string | null>(null)
   const [unread,     setUnread]     = useState(0)
@@ -438,11 +443,23 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       <CommandPalette />
       {!pathname.startsWith('/messages') && <GyampohAI />}
 
-      {/* ── Desktop sidebar — always full width with labels (stable, clear) ── */}
-      <div
-        className="hidden lg:block relative flex-shrink-0 border-r border-[var(--line)] z-30"
-        style={{ width: W_FULL }}>
-        <SidebarPanel wide={true} />
+      {/* ── Desktop sidebar — collapsible. Hidden by default so the workspace
+           is full-width; slides in as an overlay when opened, and auto-closes
+           after you pick something. ── */}
+      <div className="hidden lg:block">
+        {!collapsed && (
+          <div className="fixed inset-0 z-40" onClick={() => setCollapsed(true)}>
+            <div className="absolute inset-0 bg-black/20" />
+          </div>
+        )}
+        <div
+          className="fixed inset-y-0 left-0 border-r border-[var(--line)] z-40 transition-transform duration-200 ease-out"
+          style={{ width: W_FULL, transform: collapsed ? `translateX(-${W_FULL}px)` : 'translateX(0)' }}
+          onClick={() => setCollapsed(true)}>
+          <div onClick={e => e.stopPropagation()} className="h-full">
+            <SidebarPanel wide={true} />
+          </div>
+        </div>
       </div>
 
       {/* ── Mobile drawer ──────────────────────────────────────── */}
@@ -461,6 +478,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* Topbar */}
         <header className="flex-shrink-0 bg-[var(--paper)] border-b border-[var(--line)] flex items-center gap-3 px-5" style={{ height: 60 }}>
           <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
+            <Menu size={19} />
+          </button>
+          <button onClick={() => setCollapsed(c => !c)} className="hidden lg:inline-flex p-2 text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors" title="Menu">
             <Menu size={19} />
           </button>
 
