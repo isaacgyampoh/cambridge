@@ -11,6 +11,7 @@ import Modal from '@/components/shared/Modal'
 
 const DOC_TYPES = [
   { value: 'admission_letter', label: 'Admission Letter' },
+  { value: 'course_material', label: 'Course Material' },
   { value: 'brochure', label: 'School Brochure' },
   { value: 'offer_letter', label: 'Offer Letter' },
   { value: 'receipt', label: 'Receipt Template' },
@@ -32,11 +33,13 @@ export default function DocumentsPage() {
   const [sending, setSending] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false })
+  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '' })
+  const [courses, setCourses] = useState<any[]>([])
   const sb = createClient()
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})
+    fetch('/api/courses/public').then(r => r.json()).then(d => setCourses(d.list || [])).catch(() => {})
   }, [])
 
   async function upload(file: File) {
@@ -62,10 +65,12 @@ export default function DocumentsPage() {
         file_size: file.size,
         is_template: form.is_template,
         template_fields: form.is_template ? TEMPLATE_FIELDS : null,
+        course_id: form.course_id || null,
+        delivery_scope: form.type === 'course_material' ? (form.delivery_scope || null) : null,
         uploaded_by: userId,
       })
       toast.success('Document uploaded!')
-      setForm({ name: '', type: 'admission_letter', description: '', is_template: false })
+      setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '' })
       load()
     } catch (e: any) {
       toast.error(e.message || 'Failed to save document')
@@ -154,6 +159,33 @@ export default function DocumentsPage() {
             </div>
           </label>
         </div>
+
+        {/* Programme selector — for admission letters & course materials so the
+            right file is sent based on what the student registered for. */}
+        {(form.type === 'admission_letter' || form.type === 'course_material') && (
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
+            <div>
+              <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">For which programme?</label>
+              <select value={form.course_id} onChange={e => setForm(f => ({ ...f, course_id: e.target.value }))}
+                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                <option value="">All programmes (general)</option>
+                {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
+              </select>
+              <p className="text-[12px] text-[var(--ink-faint)] mt-1">e.g. upload one for PMP, another for SPHRi — the matching one is sent automatically.</p>
+            </div>
+            {form.type === 'course_material' && (
+              <div>
+                <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Who receives it?</label>
+                <select value={form.delivery_scope} onChange={e => setForm(f => ({ ...f, delivery_scope: e.target.value }))}
+                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                  <option value="online">Online students only</option>
+                  <option value="">All students</option>
+                </select>
+                <p className="text-[12px] text-[var(--ink-faint)] mt-1">Course materials are usually for online students.</p>
+              </div>
+            )}
+          </div>
+        )}
 
         {form.is_template && (
           <div className="bg-[var(--accent-soft)] rounded-xl p-3 mb-4">

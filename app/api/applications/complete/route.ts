@@ -162,18 +162,30 @@ export async function POST(req: NextRequest) {
       if (batch?.start_date) startDate = new Date(batch.start_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
     } catch {}
 
-    // Generate the personalized PDF; fall back to an uploaded template if any
-    let letterUrl = await generateAdmissionPDF({
-      name: app.full_name || 'Student', course: letterCourse,
-      admissionNo: admissionNo || '', startDate, delivery: app.delivery,
-    })
+    // Find the admission-letter document for THIS programme (uploaded in the
+    // Documents area). Prefer a course-specific one; fall back to a general
+    // admission letter; finally fall back to an auto-generated PDF.
+    let letterUrl: string | null = null
+    try {
+      const { data: courseDoc } = await sb.from('documents')
+        .select('file_url').eq('type', 'admission_letter').eq('course_id', app.course_id).eq('is_active', true)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      letterUrl = courseDoc?.file_url || null
+      if (!letterUrl) {
+        const { data: generalDoc } = await sb.from('documents')
+          .select('file_url').eq('type', 'admission_letter').is('course_id', null).eq('is_active', true)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle()
+        letterUrl = generalDoc?.file_url || null
+      }
+    } catch {}
     if (!letterUrl) {
-      const { data: tmpl } = await sb.from('documents')
-        .select('file_url').eq('type', 'admission_letter').order('created_at', { ascending: false }).limit(1).maybeSingle()
-      letterUrl = tmpl?.file_url || null
+      letterUrl = await generateAdmissionPDF({
+        name: app.full_name || 'Student', course: letterCourse,
+        admissionNo: admissionNo || '', startDate, delivery: app.delivery,
+      })
     }
 
-    const letterLine = letterUrl ? `\n\nDownload your admission letter here:\n${letterUrl}` : ''
+    const letterLine = letterUrl ? `\n\nYour admission letter:\n${letterUrl}` : ''
     const msg = `Dear ${first}, congratulations! 🎉 You have been admitted to ${letterCourse} at Cambridge Centre of Excellence.${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLine}\n\nWelcome aboard.`
 
     if (app.phone) {
