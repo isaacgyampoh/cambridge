@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { generateAdmissionPDF } from '@/lib/generateAdmissionPDF'
 import { sendWelcomeEmail, sendAdmissionLetter } from '@/lib/integrations/email'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
@@ -147,27 +148,42 @@ export async function POST(req: NextRequest) {
     admissionNo = existingAdm.admission_number || ''
   }
 
-  // 5. AUTO admission letter — sent automatically on registration via
-  // WhatsApp (SMS + email fallback). No manual admin step.
+  // 5. AUTO admission letter — a personalized PDF (name, admission no,
+  // programme, start date) generated on the fly, saved to Supabase, and sent
+  // on BOTH WhatsApp and email. No manual admin step.
   if (app.phone || app.email) {
-    const courseName = (app as any).course?.name || 'your programme'
+    const letterCourse = (app as any).course?.name || 'your programme'
     const first = (app.full_name || '').split(' ')[0] || 'there'
 
-    // If an admission-letter document/template has been uploaded, include its link
-    const { data: tmpl } = await sb.from('documents')
-      .select('file_url').eq('type', 'admission_letter').order('created_at', { ascending: false }).limit(1).maybeSingle()
-    const letterLink = tmpl?.file_url ? `\n\nYour admission letter: ${tmpl.file_url}` : ''
+    let startDate: string | undefined
+    try {
+      const { data: batch } = await sb.from('batches')
+        .select('start_date').eq('course_id', app.course_id).order('start_date', { ascending: true }).limit(1).maybeSingle()
+      if (batch?.start_date) startDate = new Date(batch.start_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+    } catch {}
 
-    const msg = `Dear ${first}, congratulations! You have been admitted to ${courseName} at Cambridge Centre of Excellence.${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLink}\n\nWelcome aboard.`
+    // Generate the personalized PDF; fall back to an uploaded template if any
+    let letterUrl = await generateAdmissionPDF({
+      name: app.full_name || 'Student', course: letterCourse,
+      admissionNo: admissionNo || '', startDate, delivery: app.delivery,
+    })
+    if (!letterUrl) {
+      const { data: tmpl } = await sb.from('documents')
+        .select('file_url').eq('type', 'admission_letter').order('created_at', { ascending: false }).limit(1).maybeSingle()
+      letterUrl = tmpl?.file_url || null
+    }
+
+    const letterLine = letterUrl ? `\n\nDownload your admission letter here:\n${letterUrl}` : ''
+    const msg = `Dear ${first}, congratulations! 🎉 You have been admitted to ${letterCourse} at Cambridge Centre of Excellence.${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLine}\n\nWelcome aboard.`
 
     if (app.phone) {
-      try { await sendWhatsAppText(app.phone, msg) }
-      catch { try { await sendSMS(app.phone, msg) } catch {} }
+      let waOk = false
+      try { waOk = !!(await sendWhatsAppText(app.phone, msg)) } catch {}
+      if (!waOk) { try { await sendSMS(app.phone, msg) } catch {} }
     }
     if (app.email) {
-      try { await sendAdmissionLetter(app.email, app.full_name || 'Student', courseName, admissionNo) } catch {}
+      try { await sendAdmissionLetter(app.email, app.full_name || 'Student', letterCourse, admissionNo, startDate, letterUrl || undefined) } catch {}
     }
-    // Mark the letter as sent on the admission record
     await sb.from('admissions').update({ admission_letter_sent: true, admitted_at: new Date().toISOString() }).eq('lead_id', leadId).then(() => {}, () => {})
   }
 

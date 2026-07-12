@@ -90,7 +90,7 @@ export async function sendWelcomeEmail(to: string, name: string, course: string)
  return sendEmail(to, 'Welcome to Cambridge Centre of Excellence!', html)
 }
 
-export async function sendAdmissionLetter(to: string, name: string, course: string, admissionNo: string, startDate?: string) {
+export async function sendAdmissionLetter(to: string, name: string, course: string, admissionNo: string, startDate?: string, pdfUrl?: string) {
  const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
  const html =`
  <div style="font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:0 auto;background:#ffffff">
@@ -114,6 +114,7 @@ export async function sendAdmissionLetter(to: string, name: string, course: stri
      <p style="color:#1a2230;font-size:15px;line-height:1.7">We warmly welcome you to the Cambridge Centre of Excellence community and look forward to supporting your professional journey.</p>
      <p style="color:#1a2230;font-size:15px;line-height:1.7;margin-top:32px">Yours sincerely,</p>
      <p style="color:#1a2230;font-size:15px;line-height:1.5;margin-top:4px"><strong>Admissions Office</strong><br><span style="color:#5a6675;font-size:14px">Cambridge Centre of Excellence</span></p>
+     ${pdfUrl ? `<p style="margin:28px 0 4px"><a href="${pdfUrl}" style="background:#1a7a85;color:#fff;text-decoration:none;padding:11px 22px;border-radius:10px;font-weight:600;font-size:14px;font-family:Arial,sans-serif">Download your admission letter (PDF)</a></p>` : ''}
    </div>
    <div style="background:#fafbfc;padding:20px 40px;border-top:1px solid #eaedf1;text-align:center">
      <p style="color:#97a1b0;font-size:12px;font-family:Arial,sans-serif;margin:0">This is an official admission letter from Cambridge Centre of Excellence.<br>For enquiries, reply to this email or contact the Admissions Office.</p>
