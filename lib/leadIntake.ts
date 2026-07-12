@@ -82,7 +82,7 @@ export async function intakeLead(input: IncomingLead): Promise<{ leadId: string 
 
   // 3) Auto-assign (fires AI opening message + nurture sequence inside)
   let assignedTo: string | null = null
-  try { assignedTo = await autoAssignLead(lead.id, input.preferredMarketerId) } catch (e) { console.error('[intakeLead] assign failed', e) }
+  try { assignedTo = await autoAssignLead(lead.id, input.preferredMarketerId, input.source) } catch (e) { console.error('[intakeLead] assign failed', e) }
 
   // 4) Notify project managers
   try {

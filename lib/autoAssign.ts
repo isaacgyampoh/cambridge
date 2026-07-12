@@ -11,7 +11,7 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
  * Controlled by the 'auto_assign_leads' setting (defaults ON). When off,
  * leads stay unassigned for a PM to distribute manually.
  */
-export async function autoAssignLead(leadId: string, preferredMarketerId?: string | null): Promise<string | null> {
+export async function autoAssignLead(leadId: string, preferredMarketerId?: string | null, source?: string | null): Promise<string | null> {
   const sb = createServiceClient()
 
   // If a specific marketer owns this lead (e.g. their personal referral/flyer
@@ -35,13 +35,24 @@ export async function autoAssignLead(leadId: string, preferredMarketerId?: strin
     if (setting && setting.value === 'false') return null
   } catch { /* no settings table yet — default ON */ }
 
-  // Everyone except the super admin is in the marketing pool — all active
-  // staff get leads to work on, not just marketing officers. A person can
-  // opt out by setting in_lead_pool = false on their profile.
+  // Source-based routing:
+  //  - google  -> ONLY people flagged gets_google_leads
+  //  - website -> ONLY people flagged gets_website_leads
+  //  - everything else (facebook/campaign/manual) -> the whole active pool
+  const src = (source || '').toLowerCase()
   const { data: marketers } = await sb.from('profiles')
-    .select('id, full_name, in_lead_pool, performance_tier')
+    .select('id, full_name, in_lead_pool, performance_tier, gets_google_leads, gets_website_leads')
     .neq('role', 'super_admin').eq('is_active', true)
-  const pool = (marketers || []).filter(m => m.in_lead_pool !== false)
+
+  let pool = (marketers || []).filter(m => m.in_lead_pool !== false)
+  if (src === 'google') {
+    const exclusive = (marketers || []).filter((m: any) => m.gets_google_leads === true)
+    if (exclusive.length > 0) pool = exclusive   // only chosen people
+    // if nobody is flagged yet, fall back to the normal pool so leads aren't lost
+  } else if (src === 'website') {
+    const exclusive = (marketers || []).filter((m: any) => m.gets_website_leads === true)
+    if (exclusive.length > 0) pool = exclusive
+  }
   if (pool.length === 0) return null
 
   // Count each person's current OPEN leads (for tie-breaking within a tier)

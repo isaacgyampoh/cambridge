@@ -13,6 +13,8 @@ interface MarketerStats {
   phone: string | null
   marketer_code: string
   performance_tier?: string
+  gets_google_leads?: boolean
+  gets_website_leads?: boolean
   tier_locked?: boolean | null
   // Lead stats
   totalLeads: number
@@ -116,6 +118,8 @@ export default function MarketerPerformancePage() {
         marketer_code: m.marketer_code,
         performance_tier: m.performance_tier || 'mid',
         tier_locked: m.tier_locked || false,
+        gets_google_leads: m.gets_google_leads === true,
+        gets_website_leads: m.gets_website_leads === true,
         totalLeads: total,
         contactedLeads: l.filter((x: any) => x.status !== 'new').length,
         interestedLeads: l.filter((x: any) => ['interested','follow_up'].includes(x.status)).length,
@@ -315,6 +319,26 @@ export default function MarketerPerformancePage() {
                       <option value="low">Low performer</option>
                       <option value="support">Support</option>
                     </select>
+                    {/* Exclusive lead sources — Google & Website go only to
+                        chosen people, not the whole pool */}
+                    {(['google', 'website'] as const).map(src => {
+                      const key = src === 'google' ? 'gets_google_leads' : 'gets_website_leads'
+                      const on = (m as any)[key] === true
+                      return (
+                        <button key={src} title={`${on ? 'Receiving' : 'Not receiving'} ${src} leads`}
+                          onClick={async () => {
+                            await fetch('/api/marketer/set-source-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ marketer_id: m.id, source: src, enabled: !on }) })
+                            ;(m as any)[key] = !on
+                            toast.success(`${m.full_name.split(' ')[0]} ${!on ? 'now gets' : 'no longer gets'} ${src === 'google' ? 'Google' : 'Website'} leads`)
+                            load()
+                          }}
+                          className={`text-[11px] font-semibold rounded-lg border px-2 py-1.5 transition ${
+                            on ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-white text-[var(--ink-faint)] border-[var(--line)] hover:border-[var(--ink-faint)]'
+                          }`}>
+                          {src === 'google' ? 'Google' : 'Website'}
+                        </button>
+                      )
+                    })}
                     {m.status === 'inactive'&& (
                       <div className="text-xs font-bold text-[var(--danger)] bg-[var(--danger-soft)] px-3 py-1 rounded-full">
                         {m.daysSinceActivity === 999 ? 'Never active': `${m.daysSinceActivity} days idle`}
