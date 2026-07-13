@@ -200,6 +200,26 @@ export default function CoordinatorPage() {
                   {FINAL.map(s => <option key={s.value} value={s.value}>{s.label}</option>)}
                 </select>
               </Field>
+
+              {/* Voucher code — entering + sending it WhatsApps the student */}
+              <div className="rounded-xl border border-[var(--accent)]/20 bg-[var(--accent-soft)] p-4">
+                <div className="text-[13px] font-semibold text-[var(--ink)] mb-2">Exam voucher</div>
+                {edit.voucher_code && edit.voucher_sent_at ? (
+                  <p className="text-[13px] text-[var(--ink-soft)] mb-2">Sent: <span className="font-mono font-semibold text-[var(--ink)]">{edit.voucher_code}</span></p>
+                ) : null}
+                <div className="flex gap-2">
+                  <input value={edit.voucher_code || ''} onChange={e => setEdit({ ...edit, voucher_code: e.target.value })} placeholder="Enter voucher code" className={inputClass} />
+                  <Button variant="secondary" disabled={saving || !edit.voucher_code?.trim()}
+                    onClick={async () => {
+                      setSaving(true)
+                      const d = await fetch('/api/prep/voucher', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ prep_record_id: edit.id, voucher_code: edit.voucher_code, voucher_expiry_date: edit.voucher_expiry_date }) }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+                      setSaving(false)
+                      if (d.success) { toast.success(d.messaged ? 'Voucher sent to student on WhatsApp' : 'Voucher saved (student had no phone)'); setEdit({ ...edit, voucher_sent_at: new Date().toISOString() }); load() }
+                      else toast.error(d.error || 'Could not send voucher')
+                    }}>Send</Button>
+                </div>
+                <p className="text-[11px] text-[var(--ink-faint)] mt-2">Sending WhatsApps the student their code, expiry date, and encouragement.</p>
+              </div>
               <Field label="Comment">
                 <textarea value={edit.comment || ''} onChange={e => setEdit({ ...edit, comment: e.target.value })} rows={3} placeholder="Notes on performance, readiness, interventions..." className={inputClass + ' resize-none'} />
               </Field>

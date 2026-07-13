@@ -44,8 +44,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   messages:    ['/messages'],
   my_links:    ['/links'],
   my_attendance: ['/marketer/attendance'],
-  prep:        ['/coordinator'],
-  settings:    ['/admin/settings'],
+  prep:        ['/coordinator'],  settings:    ['/admin/settings'],
 }
 
 export const ROLE_DEFAULTS: Record<string, string[]> = {

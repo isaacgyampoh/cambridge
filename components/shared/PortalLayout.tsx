@@ -98,6 +98,7 @@ export const ALL_PORTALS = [
   { id: 'prep',        label: 'Exam Prep',    icon: ClipboardList,   href: '/coordinator',
     children: [
       { label: 'Prep Tracker',  href: '/coordinator' },
+      { label: 'Content bank',  href: '/coordinator/content' },
       { label: 'Testimonials',  href: '/coordinator/testimonials' },
     ]},
   { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings' },
@@ -132,6 +133,7 @@ export const ALL_PORTALS = [
     { label: 'Attendance',   href: '/admin/attendance' },
     { label: 'Certificates', href: '/admin/certificates' },
     { label: 'Exam Prep',    href: '/coordinator' },
+    { label: 'Content bank', href: '/coordinator/content' },
     { label: 'Testimonials', href: '/coordinator/testimonials' },
     { label: 'Alumni',       href: '/admin/alumni' },
   ]},
