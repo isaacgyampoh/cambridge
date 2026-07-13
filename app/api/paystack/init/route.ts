@@ -17,11 +17,16 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and amount are required.' }, { status: 400 })
   }
 
+  const secret = CONFIG.paystackSecretKey
+  if (!secret || !secret.startsWith('sk_')) {
+    return NextResponse.json({ error: 'Payment is not configured on the server (missing secret key). Please set PAYSTACK_SECRET_KEY in Vercel and redeploy.' }, { status: 500 })
+  }
+
   try {
     const res = await fetch('https://api.paystack.co/transaction/initialize', {
       method: 'POST',
       headers: {
-        Authorization: `Bearer ${CONFIG.paystackSecretKey}`,
+        Authorization: `Bearer ${secret}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
