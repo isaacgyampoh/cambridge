@@ -227,5 +227,33 @@ export async function POST(req: NextRequest) {
     }
   } catch { /* fee ledger optional — never block registration */ }
 
+  // ── Auto-enrol into the exam-prep pipeline ──────────────────────────
+  // If the student registered for an exam-prep programme (PMP / PHRi / SPHRi),
+  // create their prep record so the coordinator starts prepping them
+  // automatically. Matched to the coordinator via program_code.
+  try {
+    const cName = ((app as any).course?.name || '').toLowerCase()
+    let progCode: string | null = null, progName: string | null = null
+    if (cName.includes('pmp') || cName.includes('project management')) { progCode = 'PMP'; progName = 'PMP' }
+    else if (cName.includes('sphri') || cName.includes('senior professional')) { progCode = 'SPHRI'; progName = 'SPHRi' }
+    else if (cName.includes('phri') || cName.includes('professional in human')) { progCode = 'PHRI'; progName = 'PHRi' }
+
+    if (progCode) {
+      const { data: existingPrep } = await sb.from('prep_records').select('id').eq('lead_id', leadId).maybeSingle()
+      if (!existingPrep) {
+        // Match the coordinator who runs this programme
+        const { data: coord } = await sb.from('profiles').select('id')
+          .eq('role', 'exam_coordinator').eq('coordinator_program', progCode).maybeSingle()
+        await sb.from('prep_records').insert({
+          lead_id: leadId, application_id: applicationId,
+          student_name: app.full_name, email: app.email, phone: app.phone,
+          program_code: progCode, program_name: progName,
+          coordinator_id: coord?.id || null,
+          prep_status: 'ongoing',
+        })
+      }
+    }
+  } catch { /* prep enrolment optional — never block registration */ }
+
   return NextResponse.json({ success: true, credited: app.payment_status === 'paid' })
 }

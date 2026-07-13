@@ -59,6 +59,23 @@ export async function POST(req: NextRequest) {
     const first = (fee.student_name || '').split(' ')[0] || 'there'
     const msg = `Hello ${first}, we've received your payment of GHS ${amt.toFixed(2)}. Receipt: ${rcpt}.${newBalance > 0 ? ` Your remaining balance is GHS ${newBalance.toFixed(2)}.` : ' Your fees are fully paid — thank you!'}`
     if (fee.phone) { try { await sendWhatsAppText(fee.phone, msg) } catch { try { await sendSMS(fee.phone, msg) } catch {} } }
+
+    // If this payment fully clears an exam-prep student's fees, let their
+    // coordinator know they're cleared to be prepped for the exam.
+    if (newBalance <= 0) {
+      try {
+        const { data: prep } = await sb.from('prep_records')
+          .select('id, coordinator_id, student_name, program_name').eq('lead_id', fee.lead_id).maybeSingle()
+        if (prep?.coordinator_id) {
+          await sb.from('notifications').insert({
+            user_id: prep.coordinator_id, type: 'prep',
+            title: 'Prep student fully paid',
+            body: `${prep.student_name} has cleared their ${prep.program_name || ''} fees and is ready for exam prep.`,
+            data: { prep_record_id: prep.id },
+          })
+        }
+      } catch {}
+    }
   }
 
   return NextResponse.json({
