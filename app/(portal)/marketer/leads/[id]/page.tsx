@@ -235,6 +235,12 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   {lead.course_interest && (
                     <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">{lead.course_interest}</span>
                   )}
+                  {lead.city && (
+                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--line-soft)] text-[var(--ink-soft)]">📍 {lead.city}</span>
+                  )}
+                  {lead.education_level && (
+                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--line-soft)] text-[var(--ink-soft)]">🎓 {lead.education_level}</span>
+                  )}
                 </div>
               </div>
             </div>

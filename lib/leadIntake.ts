@@ -24,6 +24,8 @@ export type IncomingLead = {
   utm_campaign?: string | null
   utm_content?: string | null
   landing_source?: string | null
+  city?: string | null
+  education_level?: string | null
   raw_payload?: any
   extra?: Record<string, any>    // source-specific columns (e.g. fb_lead_id)
   preferredMarketerId?: string | null  // assign straight to this marketer (personal referral link)
@@ -66,6 +68,8 @@ export async function intakeLead(input: IncomingLead): Promise<{ leadId: string 
     source: input.source,
     status: 'new',
     course_interest: input.course_interest || null,
+    city: input.city || null,
+    education_level: input.education_level || null,
     utm_source: input.utm_source || input.source,
     utm_medium: input.utm_medium || null,
     utm_campaign: input.utm_campaign || null,

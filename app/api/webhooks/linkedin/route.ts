@@ -4,8 +4,9 @@ import { intakeLead } from '@/lib/leadIntake'
 export const runtime = 'nodejs'
 
 /**
- * LinkedIn Lead Gen Forms webhook. Field shape varies by integration, so we
- * handle the common ones.
+ * LinkedIn Lead Gen Forms webhook.
+ * Fields for this account: first name, last name, email, phone, city.
+ * Field shape varies by integration, so we handle the common ones.
  */
 export async function POST(req: NextRequest) {
   const body = await req.json()
@@ -16,9 +17,12 @@ export async function POST(req: NextRequest) {
     fields[key] = a.answer?.string || a.answerDetails?.textAnswer || ''
   }
 
-  const name = body.firstName && body.lastName
-    ? `${body.firstName} ${body.lastName}`
+  const firstName = body.firstName || fields.first_name || fields.firstname || ''
+  const lastName = body.lastName || fields.last_name || fields.lastname || ''
+  const name = (firstName || lastName)
+    ? `${firstName} ${lastName}`.trim()
     : fields.full_name || fields.name || ''
+  const city = body.city || fields.city || fields.town || null
 
   const { leadId, duplicate } = await intakeLead({
     full_name: name,
@@ -26,6 +30,7 @@ export async function POST(req: NextRequest) {
     phone: body.phone || fields.phone_number || fields.phone || null,
     source: 'linkedin',
     course_interest: fields.course || fields.program || null,
+    city,
     utm_source: 'linkedin',
     raw_payload: body,
   })

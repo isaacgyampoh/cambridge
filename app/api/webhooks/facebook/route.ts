@@ -79,6 +79,10 @@ export async function POST(req: NextRequest) {
       const phone = fields.phone_number || fields.phone || ''
       const email = fields.email || ''
       const name = fields.full_name || `${fields.first_name || ''} ${fields.last_name || ''}`.trim()
+      // Facebook form fields for this account: full name, email, phone, city,
+      // educational level. Field keys can vary slightly, so check the common ones.
+      const city = fields.city || fields.town || null
+      const education = fields.education_level || fields.educational_level || fields.education || fields.level_of_education || null
 
       // Unified intake: de-dupe, create, auto-assign (+ AI opening), notify PMs
       await intakeLead({
@@ -87,6 +91,7 @@ export async function POST(req: NextRequest) {
         phone: phone || null,
         source: 'facebook',
         course_interest: fields.course || fields.program || null,
+        city, education_level: education,
         utm_source: 'facebook',
         utm_campaign: fields.campaign_name || null,
         raw_payload: leadData,
