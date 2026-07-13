@@ -60,6 +60,7 @@ export const ALL_PORTALS = [
   { id: 'finance',     label: 'Finance',      icon: DollarSign,      href: '/admin/finance',
     children: [
       { label: 'Payments', href: '/admin/finance' },
+      { label: 'Voucher requests', href: '/finance/vouchers' },
       { label: 'Invoices', href: '/finance/invoices/new' },
       { label: 'Reports',  href: '/finance/reports' },
     ]},
@@ -122,6 +123,7 @@ export const ALL_PORTALS = [
   { id: 'grp_finance', label: 'Finance', icon: DollarSign, href: '/finance', children: [
     { label: 'Payments & Invoices', href: '/finance' },
     { label: 'Student Fees',        href: '/finance/student-fees' },
+    { label: 'Voucher Requests',    href: '/finance/vouchers' },
     { label: 'Class Payments',      href: '/finance/class-payments' },
     { label: 'Registrations',       href: '/finance/registrations' },
     { label: 'Reports',             href: '/finance/reports' },
