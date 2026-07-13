@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
+import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
+import { sendSMS } from '@/lib/integrations/sms'
 
 /**
  * Exam prep tracker.
@@ -117,6 +119,27 @@ export async function POST(req: NextRequest) {
     }
     const action = fields.comment !== undefined && Object.keys(fields).filter(k => k !== 'updated_at' && k !== 'comment').length === 0 ? 'comment' : 'updated'
     await logPrep(sb, id, session, before?.program_code || null, before?.student_name || null, action, changes.join('; ') || 'Updated record')
+
+    // When a student is newly marked "passed", send them a congratulations +
+    // their coordinator's referral link so they can refer others.
+    if (fields.final_status === 'passed' && before?.final_status !== 'passed') {
+      try {
+        const rec = { ...before, ...fields }
+        if (rec.phone) {
+          // The coordinator's personal referral code
+          const coordId = before?.coordinator_id || session.userId
+          const { data: coord } = await sb.from('profiles').select('marketer_code, full_name').eq('id', coordId).maybeSingle()
+          const appUrl = process.env.APP_URL || 'https://portal.cambridge.edu.gh'
+          const first = (rec.student_name || 'there').split(' ')[0]
+          let msg = `Hi ${first}! 🎉 Huge congratulations on passing your ${rec.program_name || rec.program_code} exam! We're so proud of you.`
+          if (coord?.marketer_code) {
+            const link = `${appUrl}/refer?m=${coord.marketer_code}`
+            msg += `\n\nIf you know anyone who'd benefit from our programmes, we'd love a referral — share this link: ${link}`
+          }
+          try { await sendWhatsAppText(rec.phone, msg) } catch { try { await sendSMS(rec.phone, msg) } catch {} }
+        }
+      } catch {}
+    }
     return NextResponse.json({ success: true })
   }
 

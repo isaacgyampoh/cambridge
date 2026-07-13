@@ -28,6 +28,8 @@ export default function CoordinatorPage() {
   const [edit, setEdit] = useState<any>(null)
   const [search, setSearch] = useState('')
   const [saving, setSaving] = useState(false)
+  const [refCode, setRefCode] = useState<string | null>(null)
+  const [copied, setCopied] = useState(false)
 
   async function load() {
     setLoading(true)
@@ -35,6 +37,16 @@ export default function CoordinatorPage() {
     setData(d); setLoading(false)
   }
   useEffect(() => { load() }, [])
+
+  // Ensure this coordinator has a personal referral link to share
+  useEffect(() => {
+    fetch('/api/marketer/ensure-code', { method: 'POST' })
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d?.marketer_code) setRefCode(d.marketer_code) })
+      .catch(() => {})
+  }, [])
+
+  const refLink = refCode && typeof window !== 'undefined' ? `${window.location.origin}/refer?m=${refCode}` : ''
 
   async function addStudent(enrollmentId: string) {
     setSaving(true)
@@ -87,6 +99,24 @@ export default function CoordinatorPage() {
           </Card>
         ))}
       </div>
+
+      {/* Personal referral link — share it, or it auto-goes to students who pass */}
+      {refLink && (
+        <Card className="p-4 mb-6 bg-[var(--accent-soft)] border-[var(--accent)]/15">
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 flex-1">
+              <div className="text-[13px] font-semibold text-[var(--ink)] mb-1">Your referral link</div>
+              <p className="text-[12px] text-[var(--ink-soft)] mb-2">Share this with people who want to join. Students who pass also get it automatically so they can refer others to you.</p>
+              <div className="text-[13px] font-mono text-[var(--accent)] truncate bg-[var(--paper)] rounded-lg px-3 py-2 border border-[var(--line)]">{refLink}</div>
+            </div>
+            <button
+              onClick={() => { navigator.clipboard.writeText(refLink); setCopied(true); setTimeout(() => setCopied(false), 1600) }}
+              className="text-[13px] font-semibold px-3 py-2 rounded-lg bg-[var(--accent)] text-white hover:brightness-110 transition flex-shrink-0">
+              {copied ? 'Copied ✓' : 'Copy'}
+            </button>
+          </div>
+        </Card>
+      )}
 
       <Card className="overflow-hidden">
         <div className="p-4 border-b border-[var(--line)]">
