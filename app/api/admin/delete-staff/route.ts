@@ -29,24 +29,37 @@ export async function POST(req: NextRequest) {
 
   // Preserve leads: unassign anything owned by this person so no lead is lost.
   await sb.from('leads').update({ assigned_to: null }).eq('assigned_to', id)
-  // Clear references from other tables that would block the delete via FK.
-  // Each wrapped so a missing table/column never aborts the whole operation.
-  const clears = [
-    sb.from('profiles').update({ reports_to: null }).eq('reports_to', id),
-    sb.from('leads').update({ created_by: null }).eq('created_by', id),
-  ]
-  await Promise.allSettled(clears.map(c => Promise.resolve(c)))
 
-  // Delete rows this person owns in child tables (best-effort; ignore if the
-  // table doesn't exist on this instance).
-  const childTables = ['flyers', 'lead_assign_pending', 'marketer_reports', 'staff_messages', 'notifications', 'staff_attendance']
-  await Promise.allSettled(childTables.flatMap(t => [
-    sb.from(t).delete().eq('marketer_id', id),
-    sb.from(t).delete().eq('user_id', id),
-    sb.from(t).delete().eq('sender_id', id),
-    sb.from(t).delete().eq('recipient_id', id),
-    sb.from(t).delete().eq('staff_id', id),
-  ]))
+  // Null out every nullable reference to this profile across the schema, then
+  // delete rows they own in child tables. Best-effort: a missing table/column
+  // is ignored so it never aborts the whole operation.
+  const nullRefs: Array<[string, string]> = [
+    ['profiles', 'reports_to'], ['profiles', 'created_by'],
+    ['leads', 'created_by'], ['leads', 'assigned_by'], ['leads', 'transferred_from'], ['leads', 'transferred_to'],
+    ['lead_activities', 'created_by'], ['lead_comments', 'author_id'],
+    ['admissions', 'processed_by'], ['admissions', 'assigned_to'],
+    ['student_fees', 'recorded_by'], ['documents', 'uploaded_by'],
+    ['info_sessions', 'created_by'], ['info_session_joins', 'marketer_id'],
+    ['class_reminders', 'created_by'], ['broadcasts', 'created_by'],
+    ['referral_codes', 'referrer_profile_id'], ['content_calendar', 'created_by'],
+    ['competitors', 'added_by'], ['ai_conversations', 'marketer_id'],
+    ['shared_links', 'posted_by'],
+  ]
+  await Promise.allSettled(nullRefs.map(([t, col]) =>
+    Promise.resolve(sb.from(t).update({ [col]: null }).eq(col, id))
+  ))
+
+  // Delete rows this person exclusively owns in child tables.
+  const ownedDeletes: Array<[string, string]> = [
+    ['flyers', 'marketer_id'], ['lead_assign_pending', 'marketer_id'],
+    ['marketer_reports', 'marketer_id'], ['marketer_enrollments', 'marketer_id'],
+    ['staff_messages', 'sender_id'], ['staff_messages', 'recipient_id'],
+    ['notifications', 'user_id'], ['staff_attendance', 'staff_id'],
+    ['login_events', 'user_id'],
+  ]
+  await Promise.allSettled(ownedDeletes.map(([t, col]) =>
+    Promise.resolve(sb.from(t).delete().eq(col, id))
+  ))
 
   const { error } = await sb.from('profiles').delete().eq('id', id)
   if (error) return NextResponse.json({ error: `Could not delete: ${error.message}. This person may still be linked to records — deactivate them instead.` }, { status: 500 })
