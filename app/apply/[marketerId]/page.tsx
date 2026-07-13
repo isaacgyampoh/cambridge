@@ -163,7 +163,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
 
   return (
     <>
-      <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
+      <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
       <div className="min-h-screen" style={{ background: "var(--canvas)" }}>
         {/* Branded hero */}
         <div className="relative overflow-hidden" style={{ background: 'linear-gradient(155deg, #14636c 0%, #1a7a85 60%, #17707a 100%)' }}>
@@ -422,7 +422,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4 py-10" style={{ background: "var(--canvas)" }}>
-      <Script src="https://js.paystack.co/v2/inline.js" strategy="lazyOnload" />
+      <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
       <div className={card}>
         <div className="text-center mb-6">
           <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-soft)" }}>
