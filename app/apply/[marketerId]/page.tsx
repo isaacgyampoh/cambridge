@@ -39,6 +39,29 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       const v = p.get(k); if (v) grab[k] = v
     }
     if (Object.keys(grab).length) setUtm(grab)
+
+    // Returning from Paystack checkout? Verify + complete the application.
+    const ref = p.get('reference') || p.get('trxref')
+    if (ref) {
+      const appId = (() => { try { return sessionStorage.getItem('cce_pay_app') } catch { return null } })()
+      ;(async () => {
+        try {
+          const v = await fetch('/api/paystack/verify', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ reference: ref, applicationId: appId }),
+          }).then(r => r.json())
+          if (v?.success) {
+            try { sessionStorage.removeItem('cce_pay_ref'); sessionStorage.removeItem('cce_pay_app') } catch {}
+            setApplicationId(appId || v.applicationId || '')
+            setStep(3)
+          } else {
+            toast.error(v?.error || 'We could not confirm your payment. If you were charged, contact us.')
+          }
+        } catch {
+          toast.error('Could not confirm payment. If you were charged, contact us.')
+        }
+      })()
+    }
   }, [])
 
   const [form, setForm] = useState({
@@ -133,33 +156,27 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   }
 
   async function payWithPaystack() {
-    const ps = (window as any).PaystackPop
-    if (!ps || !applicationId) return
+    if (!applicationId) return
 
-    // Fetch the public key from the server (client can't read non-NEXT_PUBLIC env)
-    const keyRes = await fetch('/api/paystack/key').then(r => r.json()).catch(() => null)
-    const payKey = keyRes?.key
-    if (!payKey) { toast.error('Payment is not configured. Please contact us.'); return }
+    // Initialize server-side (recommended). Paystack returns a hosted checkout
+    // URL; if anything is misconfigured it returns a clear error message.
+    const ref = `CCE-APP-${applicationId}-${Date.now()}`
+    const init = await fetch('/api/paystack/init', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        email: form.email, amount: 200, reference: ref,
+        metadata: { application_id: applicationId, purpose: 'registration_fee' },
+      }),
+    }).then(r => r.json()).catch(() => null)
 
-    ps.setup({
-      key: payKey,
-      email: form.email,
-      amount: 20000, // GHS 200 in pesewas
-      currency: 'GHS',
-      ref: `CCE-APP-${applicationId}-${Date.now()}`,
-      channels: ['mobile_money', 'card'],
-      callback: async (response: any) => {
-        // The complete endpoint (service role) records payment + triggers
-        // admission. Doing it server-side avoids RLS on the applications table.
-        await fetch('/api/applications/complete', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ applicationId, paystack_ref: response.reference }),
-        })
-        setStep(3)
-      },
-      onClose: () => toast.info('Payment closed. You can pay later.'),
-    }).openIframe()
+    if (!init?.success || !init.authorization_url) {
+      toast.error(init?.error || 'Could not start payment. Please try again.')
+      return
+    }
+    // Remember the ref so we can confirm on return
+    try { sessionStorage.setItem('cce_pay_ref', ref); sessionStorage.setItem('cce_pay_app', applicationId) } catch {}
+    // Go to Paystack's secure checkout
+    window.location.href = init.authorization_url
   }
 
   if (step === 3) return (
