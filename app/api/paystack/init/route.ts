@@ -12,7 +12,7 @@ export const runtime = 'nodejs'
  * Body: { email, amount (GHS), reference, metadata? }
  */
 export async function POST(req: NextRequest) {
-  const { email, amount, reference, metadata } = await req.json()
+  const { email, amount, reference, metadata, callback_url } = await req.json()
   if (!email || !amount) {
     return NextResponse.json({ error: 'Email and amount are required.' }, { status: 400 })
   }
@@ -35,6 +35,7 @@ export async function POST(req: NextRequest) {
         currency: 'GHS',
         reference,
         metadata,
+        callback_url: callback_url || undefined,
         channels: ['mobile_money', 'card'],
       }),
     })

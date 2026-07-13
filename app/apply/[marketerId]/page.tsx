@@ -166,6 +166,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       body: JSON.stringify({
         email: form.email, amount: 200, reference: ref,
         metadata: { application_id: applicationId, purpose: 'registration_fee' },
+        callback_url: typeof window !== 'undefined' ? window.location.href.split('?')[0] : undefined,
       }),
     }).then(r => r.json()).catch(() => null)
 
