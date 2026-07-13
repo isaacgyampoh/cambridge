@@ -24,11 +24,10 @@ export const CONFIG = {
   get supabaseServiceKey() { return env('SUPABASE_SERVICE_KEY') || this._ssk },
 
   // ── PAYSTACK ─────────────────────────────────────────────────
-  paystackPublicKey: env('PAYSTACK_PUBLIC_KEY') || 'pk_live_0c562178b2e71a90ecd8bd78d78310e159ea0f69',
-  // Paystack secret — stored split, joined at runtime
-  _psk1: 'sk_live_da0342b5a5c7d',
-  _psk2: 'ca2ecaf3c60e1ee5c5d695b8780',
-  get paystackSecretKey() { return env('PAYSTACK_SECRET_KEY') || (this._psk1 + this._psk2) },
+  paystackPublicKey: env('PAYSTACK_PUBLIC_KEY') || 'pk_live_5f2e253e1975dac438a25af072e310e566c855ff',
+  // Secret key comes ONLY from the environment (never hardcoded — GitHub blocks
+  // committing live secret keys, and it's unsafe). Set PAYSTACK_SECRET_KEY in Vercel.
+  get paystackSecretKey() { return env('PAYSTACK_SECRET_KEY') },
 
   // ── ARKESEL SMS ──────────────────────────────────────────────
   arkeselApiKey: env('ARKESEL_API_KEY') || 'VXliSENVQnpsYkhWYlNpZkNRZEc',
