@@ -49,13 +49,16 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
   }
 
   // ── MoMo via Paystack ──
-  function payMomo() {
+  async function payMomo() {
     const amt = Number(payAmount)
     if (!(amt > 0)) { setError('Enter an amount'); return }
     const ps = (window as any).PaystackPop
     if (!ps) { setError('Payment not available. Please refresh.'); return }
+    const keyRes = await fetch('/api/paystack/key').then(r => r.json()).catch(() => null)
+    const payKey = keyRes?.key
+    if (!payKey) { setError('Payment is not configured.'); return }
     ps.setup({
-      key: CONFIG.paystackPublicKey,
+      key: payKey,
       email: `${result.studentName?.replace(/\s+/g, '').toLowerCase() || 'student'}@cce.edu.gh`,
       amount: Math.round(amt * 100),
       currency: 'GHS',

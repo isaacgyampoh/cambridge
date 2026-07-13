@@ -136,8 +136,13 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
     const ps = (window as any).PaystackPop
     if (!ps || !applicationId) return
 
+    // Fetch the public key from the server (client can't read non-NEXT_PUBLIC env)
+    const keyRes = await fetch('/api/paystack/key').then(r => r.json()).catch(() => null)
+    const payKey = keyRes?.key
+    if (!payKey) { toast.error('Payment is not configured. Please contact us.'); return }
+
     ps.setup({
-      key: CONFIG.paystackPublicKey,
+      key: payKey,
       email: form.email,
       amount: 20000, // GHS 200 in pesewas
       currency: 'GHS',
@@ -381,13 +386,16 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
     tick()
   }, [applicationId])
 
-  function payMomo() {
+  async function payMomo() {
     const amt = Number(amount)
     if (!(amt > 0)) { toast.error('Enter an amount'); return }
     const ps = (window as any).PaystackPop
     if (!ps) { toast.error('Payment not available, please refresh'); return }
+    const keyRes = await fetch('/api/paystack/key').then(r => r.json()).catch(() => null)
+    const payKey = keyRes?.key
+    if (!payKey) { toast.error('Payment is not configured. Please contact us.'); return }
     ps.setup({
-      key: CONFIG.paystackPublicKey,
+      key: payKey,
       email: `${(fee.student_name || 'student').replace(/\s+/g, '').toLowerCase()}@cce.edu.gh`,
       amount: Math.round(amt * 100), currency: 'GHS',
       ref: `CCE-FEE-${fee.id}-${Date.now()}`,
