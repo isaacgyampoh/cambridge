@@ -26,6 +26,14 @@ export async function middleware(request: NextRequest) {
   if (PUBLIC.some(p => pathname.startsWith(p))) return NextResponse.next()
   if (pathname === '/') return NextResponse.redirect(new URL('/login', request.url))
 
+  // Cron endpoints: scheduled jobs (cron-job.org) call these with ?key= and no
+  // session cookie. Let any /api/* request that carries a key through — the
+  // endpoint itself validates the key. Without this, middleware would redirect
+  // the cookieless cron to /login and the job would silently fail.
+  if (pathname.startsWith('/api/') && request.nextUrl.searchParams.get('key')) {
+    return NextResponse.next()
+  }
+
   const token = request.cookies.get('cce_session')?.value
   if (!token) return NextResponse.redirect(new URL('/login', request.url))
 
