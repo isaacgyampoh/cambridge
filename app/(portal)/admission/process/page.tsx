@@ -192,7 +192,30 @@ export default function AdmissionProcess() {
               <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile: application cards */}
+            <div className="sm:hidden divide-y divide-[var(--line-soft)]">
+              {applications.length === 0 ? (
+                <div className="text-center py-12 text-[var(--ink-faint)] text-sm">No applications yet</div>
+              ) : applications.map(app => (
+                <div key={app.id} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[15px] font-semibold text-[var(--ink)] truncate">{app.full_name}</div>
+                      <div className="text-[12px] text-[var(--ink-faint)] truncate">{app.phone} · {app.email}</div>
+                    </div>
+                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${app.payment_status==='paid'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>{app.payment_status}</span>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap text-[12px] text-[var(--ink-soft)]">
+                    <span>{app.course?.name || '—'}</span>
+                    <span className="text-[var(--ink-faint)] ml-auto">{app.marketer?.full_name || 'Direct'}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
                   <tr>
@@ -222,6 +245,7 @@ export default function AdmissionProcess() {
                 </tbody>
               </table>
             </div>
+            </>
           )}
         </div>
       )}
