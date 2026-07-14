@@ -67,7 +67,7 @@ export default function PMDashboard() {
           <div className="text-[15px] font-semibold text-[var(--ink)] mb-1">Your team</div>
           <p className="text-[13px] text-[var(--ink-soft)] mb-4">People who report to you and everything they're working on.</p>
           <div className="overflow-x-auto">
-            <table className="w-full text-[14px]">
+            <table className="rtc w-full text-[14px]">
               <thead>
                 <tr className="text-left text-[12px] text-[var(--ink-faint)] border-b border-[var(--line)]">
                   <th className="py-2.5 font-medium">Name</th>
@@ -80,11 +80,11 @@ export default function PMDashboard() {
               <tbody>
                 {s.subTeam.map((m: any) => (
                   <tr key={m.id} className="border-b border-[var(--line-soft)] last:border-0">
-                    <td className="py-3 font-medium text-[var(--ink)]">{m.full_name}</td>
-                    <td className="py-3 text-[var(--ink-soft)] capitalize">{m.tier || 'mid'}</td>
-                    <td className="py-3 text-center text-[var(--ink)]">{m.leads}</td>
-                    <td className="py-3 text-center font-semibold text-[var(--ok)]">{m.converted}</td>
-                    <td className="py-3 text-center text-[var(--ink-soft)]">{m.rate}%</td>
+                    <td data-label="Name" className="py-3 font-medium text-[var(--ink)]">{m.full_name}</td>
+                    <td data-label="Tier" className="py-3 text-[var(--ink-soft)] capitalize">{m.tier || 'mid'}</td>
+                    <td data-label="Leads" className="py-3 text-center text-[var(--ink)]">{m.leads}</td>
+                    <td data-label="Converted" className="py-3 text-center font-semibold text-[var(--ok)]">{m.converted}</td>
+                    <td data-label="Rate" className="py-3 text-center text-[var(--ink-soft)]">{m.rate}%</td>
                   </tr>
                 ))}
               </tbody>

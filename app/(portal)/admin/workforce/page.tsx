@@ -92,7 +92,7 @@ export default function WorkforcePage() {
           <div className="py-12"><EmptyState  title="No sign-ins yet today" description="Staff sign-ins will appear here as they arrive." /></div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Staff', 'Role', 'Clock in', 'Clock out', 'Distance', 'Status'].map(h => (
@@ -103,12 +103,12 @@ export default function WorkforcePage() {
               <tbody>
                 {attendance.map((a: any) => (
                   <tr key={a.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                    <td className="px-4 py-3 font-medium text-sm text-[var(--ink)]">{a.staff?.full_name}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)] capitalize">{a.staff?.role?.replace(/_/g, ' ')}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink)]">{fmt(a.clock_in_at)}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{fmt(a.clock_out_at)}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-faint)]">{a.distance_meters != null ? `${a.distance_meters}m` : '—'}</td>
-                    <td className="px-4 py-3"><Badge tone={a.status === 'late' ? 'warning' : 'success'}>{a.status === 'late' ? 'Late' : 'Present'}</Badge></td>
+                    <td data-label="Staff" className="px-4 py-3 font-medium text-sm text-[var(--ink)]">{a.staff?.full_name}</td>
+                    <td data-label="Role" className="px-4 py-3 text-sm text-[var(--ink-soft)] capitalize">{a.staff?.role?.replace(/_/g, ' ')}</td>
+                    <td data-label="Clock in" className="px-4 py-3 text-sm text-[var(--ink)]">{fmt(a.clock_in_at)}</td>
+                    <td data-label="Clock out" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{fmt(a.clock_out_at)}</td>
+                    <td data-label="Distance" className="px-4 py-3 text-sm text-[var(--ink-faint)]">{a.distance_meters != null ? `${a.distance_meters}m` : '—'}</td>
+                    <td data-label="Status" className="px-4 py-3"><Badge tone={a.status === 'late' ? 'warning' : 'success'}>{a.status === 'late' ? 'Late' : 'Present'}</Badge></td>
                   </tr>
                 ))}
               </tbody>

@@ -71,7 +71,7 @@ export default function AdminRegistrations() {
             description="When students register through a marketer link, their full records appear here." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Name', 'Contact', 'Programme', 'Registered by', 'Status', ''].map(h => (
@@ -82,16 +82,16 @@ export default function AdminRegistrations() {
               <tbody>
                 {filtered.map((a: any) => (
                   <tr key={a.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition cursor-pointer" onClick={() => setSelected(a)}>
-                    <td className="px-4 py-3 font-medium text-[var(--ink)]">{a.full_name}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Name" className="px-4 py-3 font-medium text-[var(--ink)]">{a.full_name}</td>
+                    <td data-label="Contact" className="px-4 py-3">
                       <div className="flex flex-col gap-0.5 text-xs text-[var(--ink-soft)]">
                         {a.phone && <span className="flex items-center gap-1"> {String(a.phone).replace(/^233/, '0')}</span>}
                         {a.email && <span className="flex items-center gap-1"> {a.email}</span>}
                       </div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.course?.name || '—'}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.marketer?.full_name || '—'}</td>
-                    <td className="px-4 py-3"><Badge tone={a.payment_status === 'paid' ? 'success' : 'warning'}>{a.payment_status}</Badge></td>
+                    <td data-label="Programme" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.course?.name || '—'}</td>
+                    <td data-label="Registered by" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.marketer?.full_name || '—'}</td>
+                    <td data-label="Status" className="px-4 py-3"><Badge tone={a.payment_status === 'paid' ? 'success' : 'warning'}>{a.payment_status}</Badge></td>
                     <td className="px-4 py-3 text-xs text-[var(--accent)] font-medium">View</td>
                   </tr>
                 ))}

@@ -36,7 +36,7 @@ export default function ReferralsAdmin() {
           <EmptyState title="No referrals yet" description="Share the referral page link (button above) with your students and leads so they can start referring friends." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full text-[14px]">
+            <table className="rtc w-full text-[14px]">
               <thead>
                 <tr className="text-left text-[12px] text-[var(--ink-faint)] border-b border-[var(--line)]">
                   <th className="py-2.5 font-medium">Referrer</th>
@@ -49,11 +49,11 @@ export default function ReferralsAdmin() {
               <tbody>
                 {data.codes.map((c: any) => (
                   <tr key={c.id} className="border-b border-[var(--line-soft)] last:border-0">
-                    <td className="py-3 font-medium text-[var(--ink)]">{c.referrer_name}</td>
-                    <td className="py-3 text-[var(--ink-soft)]">{c.code}</td>
-                    <td className="py-3 text-center text-[var(--ink)]">{c.referrals_count || 0}</td>
-                    <td className="py-3 text-center font-semibold text-[var(--ok)]">{c.enrolled || 0}</td>
-                    <td className="py-3 text-[var(--ink-soft)]">{c.referrer_phone || c.referrer_email || '—'}</td>
+                    <td data-label="Referrer" className="py-3 font-medium text-[var(--ink)]">{c.referrer_name}</td>
+                    <td data-label="Code" className="py-3 text-[var(--ink-soft)]">{c.code}</td>
+                    <td data-label="Referred" className="py-3 text-center text-[var(--ink)]">{c.referrals_count || 0}</td>
+                    <td data-label="Enrolled" className="py-3 text-center font-semibold text-[var(--ok)]">{c.enrolled || 0}</td>
+                    <td data-label="Contact" className="py-3 text-[var(--ink-soft)]">{c.referrer_phone || c.referrer_email || '—'}</td>
                   </tr>
                 ))}
               </tbody>

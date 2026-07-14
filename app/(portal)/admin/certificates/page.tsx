@@ -102,7 +102,7 @@ export default function CertificatesPage() {
             description="When students complete a class and pay full fees, issue their certificates here." />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Student', 'Course', 'Completed', 'Certificate No.', 'Status', ''].map(h => (
@@ -113,11 +113,11 @@ export default function CertificatesPage() {
               <tbody>
                 {filtered.map((c: any) => (
                   <tr key={c.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
-                    <td className="px-4 py-3 font-medium text-[var(--ink)]">{c.student_name}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{c.course_name}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{c.month_completed || '—'}</td>
-                    <td className="px-4 py-3 text-xs font-mono text-[var(--ink-soft)]">{c.certificate_no || '—'}</td>
-                    <td className="px-4 py-3">{c.issued ? <Badge tone="success">Issued</Badge> : <Badge tone="neutral">Draft</Badge>}</td>
+                    <td data-label="Student" className="px-4 py-3 font-medium text-[var(--ink)]">{c.student_name}</td>
+                    <td data-label="Course" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{c.course_name}</td>
+                    <td data-label="Completed" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{c.month_completed || '—'}</td>
+                    <td data-label="Certificate No." className="px-4 py-3 text-xs font-mono text-[var(--ink-soft)]">{c.certificate_no || '—'}</td>
+                    <td data-label="Status" className="px-4 py-3">{c.issued ? <Badge tone="success">Issued</Badge> : <Badge tone="neutral">Draft</Badge>}</td>
                     <td className="px-4 py-3">
                       {c.download_token && (
                         <button onClick={() => { navigator.clipboard.writeText(`${CONFIG.appUrl}/certificate/${c.download_token}`); toast.success('Download link copied') }}

@@ -211,7 +211,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Student', 'Contact', 'Full fees', 'Status', ''].map(h => (
@@ -222,15 +222,15 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
               <tbody>
                 {enrolled.map((e: any) => (
                   <tr key={e.id} className="border-b border-[var(--line-soft)] last:border-0">
-                    <td className="px-4 py-3 font-medium text-[var(--ink)]">{e.full_name}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{e.phone && String(e.phone).replace(/^233/, '0')}{e.email ? ` · ${e.email}` : ''}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Student" className="px-4 py-3 font-medium text-[var(--ink)]">{e.full_name}</td>
+                    <td data-label="Contact" className="px-4 py-3 text-xs text-[var(--ink-soft)]">{e.phone && String(e.phone).replace(/^233/, '0')}{e.email ? ` · ${e.email}` : ''}</td>
+                    <td data-label="Full fees" className="px-4 py-3">
                       <button disabled={acting === e.id} onClick={() => togglePaid(e)}
                         className={`text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${e.fees_paid ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)] hover:ring-[var(--accent)]'}`}>
                         {e.fees_paid ? 'Paid in full' : 'Mark paid'}
                       </button>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Status" className="px-4 py-3">
                       {e.status === 'completed'
                         ? <Badge tone="success">Completed</Badge>
                         : <Badge tone="neutral">Active</Badge>}

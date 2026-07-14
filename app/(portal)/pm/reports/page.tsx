@@ -118,7 +118,7 @@ export default function PMReports() {
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Marketer Performance</h3>
         <div className="overflow-x-auto">
-          <table className="w-full">
+          <table className="rtc w-full">
             <thead className="bg-[var(--line-soft)]">
               <tr>
                 {['Marketer','Assigned','Converted','Conversion Rate'].map(h => (
@@ -129,14 +129,14 @@ export default function PMReports() {
             <tbody>
               {Object.values(data.byMarketer).sort((a: any, b: any) => b.converted - a.converted).map((m: any) => (
                 <tr key={m.name} className="border-t border-[var(--line-soft)]">
-                  <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{m.name}</td>
-                  <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{m.total}</td>
-                  <td className="px-4 py-3 text-sm font-bold text-[var(--ok)]">{m.converted}</td>
-                  <td className="px-4 py-3 text-sm font-bold">{m.total ? Math.round(m.converted / m.total * 100) : 0}%</td>
+                  <td data-label="Marketer" className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{m.name}</td>
+                  <td data-label="Assigned" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{m.total}</td>
+                  <td data-label="Converted" className="px-4 py-3 text-sm font-bold text-[var(--ok)]">{m.converted}</td>
+                  <td data-label="Conversion Rate" className="px-4 py-3 text-sm font-bold">{m.total ? Math.round(m.converted / m.total * 100) : 0}%</td>
                 </tr>
               ))}
               {Object.keys(data.byMarketer).length === 0 && (
-                <tr><td colSpan={4} className="px-4 py-8 text-center text-[var(--ink-faint)] text-sm">No marketer data yet</td></tr>
+                <tr><td data-label="Marketer" colSpan={4} className="px-4 py-8 text-center text-[var(--ink-faint)] text-sm">No marketer data yet</td></tr>
               )}
             </tbody>
           </table>

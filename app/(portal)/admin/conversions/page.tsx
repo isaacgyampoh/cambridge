@@ -80,7 +80,7 @@ export default function ConversionsPage() {
                 description="When leads come in tagged with a programme, the breakdown shows here." />
             ) : (
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="rtc w-full">
                   <thead>
                     <tr className="border-b border-[var(--line)]">
                       {['Programme', 'Leads', 'Registered', 'Conversion', ''].map(h => (
@@ -91,15 +91,15 @@ export default function ConversionsPage() {
                   <tbody>
                     {data.byCourse.filter((c: any) => c.leads > 0).map((c: any) => (
                       <tr key={c.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
-                        <td className="px-5 py-3.5">
+                        <td data-label="Programme" className="px-5 py-3.5">
                           <div className="font-medium text-[var(--ink)]">{c.name}</div>
                           {c.code && <div className="text-[12px] text-[var(--ink-faint)]">{c.code}</div>}
                         </td>
-                        <td className="px-5 py-3.5 font-display text-lg font-semibold text-[var(--ink)]">{c.leads}</td>
-                        <td className="px-5 py-3.5">
+                        <td data-label="Leads" className="px-5 py-3.5 font-display text-lg font-semibold text-[var(--ink)]">{c.leads}</td>
+                        <td data-label="Registered" className="px-5 py-3.5">
                           <span className="font-display text-lg font-semibold text-[var(--ok)]">{c.registered}</span>
                         </td>
-                        <td className="px-5 py-3.5">
+                        <td data-label="Conversion" className="px-5 py-3.5">
                           <div className="flex items-center gap-2">
                             <div className="w-24 h-2 rounded-full bg-[var(--line)] overflow-hidden">
                               <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: `${c.convRate}%` }} />

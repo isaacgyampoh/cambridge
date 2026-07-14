@@ -115,6 +115,45 @@ label { line-height: 1.4; }
 
 table { border-collapse: collapse; width: 100%; }
 
+/* ── Mobile: turn any un-carded table into stacked cards ──────────────
+   Pages with a bespoke card layout opt out by adding `sm:hidden` to their
+   table's wrapper (those tables are already hidden on mobile). For every
+   other table, on phones we stack each row into a card and show the column
+   header beside each cell via a data-label the app sets at render, or the
+   cell simply stacks. This guarantees no table is ever cut off or locked. */
+@media (max-width: 640px) {
+  table.rtc, .rtc table { display: block; width: 100%; }
+  table.rtc thead, .rtc table thead { display: none; }
+  table.rtc tbody, .rtc table tbody { display: block; width: 100%; }
+  table.rtc tr, .rtc table tr {
+    display: block;
+    width: 100%;
+    border: 1px solid var(--line);
+    border-radius: 12px;
+    padding: 6px 4px;
+    margin-bottom: 10px;
+    background: var(--paper);
+  }
+  table.rtc td, .rtc table td {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    gap: 12px;
+    padding: 7px 12px !important;
+    text-align: right;
+    border: 0 !important;
+  }
+  table.rtc td::before, .rtc table td::before {
+    content: attr(data-label);
+    font-size: 12px;
+    font-weight: 600;
+    color: var(--ink-faint);
+    text-align: left;
+    flex-shrink: 0;
+  }
+  table.rtc td:only-child, .rtc table td:only-child { justify-content: flex-start; }
+}
+
 :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
 
 @media (prefers-reduced-motion: reduce) {

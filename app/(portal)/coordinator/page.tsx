@@ -132,7 +132,7 @@ export default function CoordinatorPage() {
             action={eligible.length > 0 ? <Button onClick={() => setAddOpen(true)}>Add a student</Button> : undefined} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Student', 'Prep', 'Readiness', 'Exam date', 'Voucher expiry', 'Final', ''].map(h => (
@@ -146,15 +146,15 @@ export default function CoordinatorPage() {
                   const rd = READINESS.find(s => s.value === r.readiness)
                   return (
                     <tr key={r.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition cursor-pointer" onClick={() => setEdit(r)}>
-                      <td className="px-4 py-3">
+                      <td data-label="Student" className="px-4 py-3">
                         <div className="font-medium text-[var(--ink)]">{r.student_name}</div>
                         <div className="text-[12px] text-[var(--ink-faint)]">{r.program_name || r.program_code}</div>
                       </td>
-                      <td className="px-4 py-3">{ps && <Badge tone={ps.tone}>{ps.label}</Badge>}</td>
-                      <td className="px-4 py-3">{rd ? <Badge tone={rd.tone}>{rd.label}</Badge> : <span className="text-[var(--ink-faint)] text-xs">—</span>}</td>
-                      <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.exam_scheduled_date || '—'}</td>
-                      <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.voucher_expiry_date || '—'}</td>
-                      <td className="px-4 py-3 text-sm">{r.final_status ? <span className={r.final_status === 'passed' ? 'text-[var(--ok)] font-medium' : r.final_status === 'failed' ? 'text-[var(--danger)] font-medium' : 'text-[var(--ink-soft)]'}>{FINAL.find(f => f.value === r.final_status)?.label}</span> : <span className="text-[var(--ink-faint)]">—</span>}</td>
+                      <td data-label="Prep" className="px-4 py-3">{ps && <Badge tone={ps.tone}>{ps.label}</Badge>}</td>
+                      <td data-label="Readiness" className="px-4 py-3">{rd ? <Badge tone={rd.tone}>{rd.label}</Badge> : <span className="text-[var(--ink-faint)] text-xs">—</span>}</td>
+                      <td data-label="Exam date" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.exam_scheduled_date || '—'}</td>
+                      <td data-label="Voucher expiry" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.voucher_expiry_date || '—'}</td>
+                      <td data-label="Final" className="px-4 py-3 text-sm">{r.final_status ? <span className={r.final_status === 'passed' ? 'text-[var(--ok)] font-medium' : r.final_status === 'failed' ? 'text-[var(--danger)] font-medium' : 'text-[var(--ink-soft)]'}>{FINAL.find(f => f.value === r.final_status)?.label}</span> : <span className="text-[var(--ink-faint)]">—</span>}</td>
                       <td className="px-4 py-3 text-xs text-[var(--accent)] font-medium">Edit</td>
                     </tr>
                   )

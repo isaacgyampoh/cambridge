@@ -89,22 +89,22 @@ export default function StudentFeesPage() {
             <EmptyState  title="No registered students yet" description="Students appear here automatically once they register." />
           ) : (
             <div className="overflow-x-auto">
-              <table className="w-full">
+              <table className="rtc w-full">
                 <thead><tr className="border-b border-[var(--line)]">
                   {['Student', 'Course', 'Total', 'Paid', 'Balance', 'Status', ''].map(h => <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>)}
                 </tr></thead>
                 <tbody>
                   {filtered.map((f: any) => (
                     <tr key={f.id} className="border-b border-[var(--line-soft)] last:border-0">
-                      <td className="px-4 py-3">
+                      <td data-label="Student" className="px-4 py-3">
                         <div className="font-medium text-[var(--ink)]">{f.student_name}</div>
                         <div className="text-[12px] text-[var(--ink-faint)]">{f.delivery === 'online' ? 'Online' : 'In person'}</div>
                       </td>
-                      <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{f.course_name || '—'}</td>
-                      <td className="px-4 py-3 text-sm">GHS {Number(f.total_fee).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm text-[var(--ok)]">GHS {Number(f.amount_paid).toFixed(2)}</td>
-                      <td className="px-4 py-3 text-sm font-medium text-[var(--warn)]">GHS {Number(f.balance).toFixed(2)}</td>
-                      <td className="px-4 py-3"><Badge tone={f.status === 'paid' ? 'success' : f.status === 'partial' ? 'warning' : 'neutral'}>{f.status}</Badge></td>
+                      <td data-label="Course" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{f.course_name || '—'}</td>
+                      <td data-label="Total" className="px-4 py-3 text-sm">GHS {Number(f.total_fee).toFixed(2)}</td>
+                      <td data-label="Paid" className="px-4 py-3 text-sm text-[var(--ok)]">GHS {Number(f.amount_paid).toFixed(2)}</td>
+                      <td data-label="Balance" className="px-4 py-3 text-sm font-medium text-[var(--warn)]">GHS {Number(f.balance).toFixed(2)}</td>
+                      <td data-label="Status" className="px-4 py-3"><Badge tone={f.status === 'paid' ? 'success' : f.status === 'partial' ? 'warning' : 'neutral'}>{f.status}</Badge></td>
                       <td className="px-4 py-3">
                         {f.status !== 'paid' && <Button size="sm" variant="secondary" onClick={() => { setRecordFor(f); setRecordAmt(String(f.balance)) }}>Record payment</Button>}
                       </td>

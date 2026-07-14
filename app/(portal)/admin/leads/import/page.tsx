@@ -256,7 +256,7 @@ export default function ImportLeadsPage() {
                     <span className="text-xs text-[var(--ink-faint)]">Showing first 20 rows</span>
                   </div>
                   <div className="overflow-x-auto max-h-80 overflow-y-auto">
-                    <table className="w-full">
+                    <table className="rtc w-full">
                       <thead className="bg-[var(--line-soft)] sticky top-0">
                         <tr>
                           {['', 'Name', 'Phone', 'Email', 'Course', 'Source'].map(h => (
@@ -271,11 +271,11 @@ export default function ImportLeadsPage() {
                               {row.status === 'valid'
                                 ? null : null}
                             </td>
-                            <td className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-[var(--danger)] italic">missing</span>}</td>
-                            <td className="px-3 py-2 text-xs text-[var(--ink-faint)]">{row.phone || '—'}</td>
-                            <td className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-32 truncate">{row.email || '—'}</td>
-                            <td className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-28 truncate">{row.course_interest || '—'}</td>
-                            <td className="px-3 py-2">
+                            <td data-label="Name" className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-[var(--danger)] italic">missing</span>}</td>
+                            <td data-label="Phone" className="px-3 py-2 text-xs text-[var(--ink-faint)]">{row.phone || '—'}</td>
+                            <td data-label="Email" className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-32 truncate">{row.email || '—'}</td>
+                            <td data-label="Course" className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-28 truncate">{row.course_interest || '—'}</td>
+                            <td data-label="Source" className="px-3 py-2">
                               <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full capitalize bg-[var(--line-soft)] text-[var(--ink-soft)]">{row.source}</span>
                             </td>
                           </tr>

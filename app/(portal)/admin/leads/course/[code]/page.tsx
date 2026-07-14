@@ -77,7 +77,7 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
             description={`When leads come in interested in ${courseName}, they'll appear here.`} />
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
                   {['Name', 'Contact', 'Status', 'Assigned to', 'Date'].map(h => (
@@ -88,22 +88,22 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
               <tbody>
                 {courseLeads.map((l: any) => (
                   <tr key={l.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
-                    <td className="px-4 py-3">
+                    <td data-label="Name" className="px-4 py-3">
                       <Link href={`/admin/leads`} className="font-medium text-[var(--ink)] hover:text-[var(--accent)]">{l.full_name}</Link>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Contact" className="px-4 py-3">
                       <div className="flex flex-col gap-0.5 text-xs text-[var(--ink-soft)]">
                         {l.phone && <span className="flex items-center gap-1"> {String(l.phone).replace(/^233/, '0')}</span>}
                         {l.email && <span className="flex items-center gap-1"> {l.email}</span>}
                       </div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Status" className="px-4 py-3">
                       <span className={`inline-flex text-[12px] font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[l.status] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {STATUS_LABELS[l.status] || l.status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{l.assignee?.full_name || <span className="text-[var(--ink-faint)]">Unassigned</span>}</td>
-                    <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
+                    <td data-label="Assigned to" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{l.assignee?.full_name || <span className="text-[var(--ink-faint)]">Unassigned</span>}</td>
+                    <td data-label="Date" className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
                       {new Date(l.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}
                     </td>
                   </tr>

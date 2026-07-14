@@ -121,7 +121,7 @@ export default function FinanceRegistrations() {
           <div className="py-12"><EmptyState  title="No registrations" description="Nothing matches your filter." /></div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead><tr className="border-b border-[var(--line)]">
                 {['Student', 'Programme', 'Delivery', 'Fee', 'Assigned to', 'Commission', 'Registered'].map(h => (
                   <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
@@ -130,16 +130,16 @@ export default function FinanceRegistrations() {
               <tbody>
                 {rows.map((r: any) => (
                   <tr key={r.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                    <td className="px-4 py-3">
+                    <td data-label="Student" className="px-4 py-3">
                       <div className="text-sm font-medium text-[var(--ink)]">{r.studentName}</div>
                       <div className="text-[12px] text-[var(--ink-faint)]">{r.studentPhone?.replace(/^233/, '0')}</div>
                     </td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.program}</td>
-                    <td className="px-4 py-3"><Badge tone="neutral">{r.delivery?.replace('_', ' ')}</Badge></td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(r.registrationFee)}</td>
-                    <td className="px-4 py-3"><Badge tone="accent">{r.marketerName}</Badge></td>
-                    <td className="px-4 py-3">{r.commissionPaid ? <Badge tone="success">Paid</Badge> : <Badge tone="warning">Owing</Badge>}</td>
-                    <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{formatDateTime(r.registeredAt)}</td>
+                    <td data-label="Programme" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.program}</td>
+                    <td data-label="Delivery" className="px-4 py-3"><Badge tone="neutral">{r.delivery?.replace('_', ' ')}</Badge></td>
+                    <td data-label="Fee" className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(r.registrationFee)}</td>
+                    <td data-label="Assigned to" className="px-4 py-3"><Badge tone="accent">{r.marketerName}</Badge></td>
+                    <td data-label="Commission" className="px-4 py-3">{r.commissionPaid ? <Badge tone="success">Paid</Badge> : <Badge tone="warning">Owing</Badge>}</td>
+                    <td data-label="Registered" className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{formatDateTime(r.registeredAt)}</td>
                   </tr>
                 ))}
               </tbody>

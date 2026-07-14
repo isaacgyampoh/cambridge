@@ -59,7 +59,7 @@ export default function AdminRemuneration() {
       ) : (
         <Card className="overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead><tr className="border-b border-[var(--line)]">
                 {['#', 'Marketer', 'Points', 'Trend', 'Rank', 'Gross salary', 'Reg. commission', 'To next rank'].map(h => (
                   <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
@@ -68,19 +68,19 @@ export default function AdminRemuneration() {
               <tbody>
                 {board.map((m, i) => (
                   <tr key={m.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                    <td className="px-4 py-3">
+                    <td data-label="#" className="px-4 py-3">
                       <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-bold ${i === 0 ? 'bg-[var(--gold)] text-white' : i < 3 ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>{i + 1}</span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Marketer" className="px-4 py-3">
                       <div className="text-sm font-medium text-[var(--ink)]">{m.name}</div>
                       <div className="text-[12px] text-[var(--ink-faint)]">{m.enrollments} enrollments</div>
                     </td>
-                    <td className="px-4 py-3 font-display text-lg font-semibold text-[var(--ink)]">{m.points}</td>
-                    <td className="px-4 py-3">{m.trend && m.trend.some((v:number)=>v>0) ? <Sparkline data={m.trend} /> : <span className="text-[12px] text-[var(--ink-faint)]">—</span>}</td>
-                    <td className="px-4 py-3"><Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge></td>
-                    <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(m.grossSalary)}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(m.registrationCommission)}</td>
-                    <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{m.nextRank ? `${m.pointsToNext} to ${m.nextRank}` : 'Top rank'}</td>
+                    <td data-label="Points" className="px-4 py-3 font-display text-lg font-semibold text-[var(--ink)]">{m.points}</td>
+                    <td data-label="Trend" className="px-4 py-3">{m.trend && m.trend.some((v:number)=>v>0) ? <Sparkline data={m.trend} /> : <span className="text-[12px] text-[var(--ink-faint)]">—</span>}</td>
+                    <td data-label="Rank" className="px-4 py-3"><Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge></td>
+                    <td data-label="Gross salary" className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(m.grossSalary)}</td>
+                    <td data-label="Reg. commission" className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(m.registrationCommission)}</td>
+                    <td data-label="To next rank" className="px-4 py-3 text-xs text-[var(--ink-faint)]">{m.nextRank ? `${m.pointsToNext} to ${m.nextRank}` : 'Top rank'}</td>
                   </tr>
                 ))}
               </tbody>

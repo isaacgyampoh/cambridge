@@ -130,7 +130,7 @@ export default function PMAssign() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
                 <tr>
                   {['Lead','Contact','Source','Course','Status','Assign To','Date'].map(h => (
@@ -140,33 +140,33 @@ export default function PMAssign() {
               </thead>
               <tbody>
                 {filtered.length === 0 ? (
-                  <tr><td colSpan={7} className="text-center py-16 text-[var(--ink-faint)]">
+                  <tr><td data-label="Lead" colSpan={7} className="text-center py-16 text-[var(--ink-faint)]">
                     
                     <p>No leads in this view</p>
                   </td></tr>
                 ) : filtered.map(lead => (
                   <tr key={lead.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
-                    <td className="px-4 py-3">
+                    <td data-label="Lead" className="px-4 py-3">
                       <Link href={`/pm/leads/${lead.id}`} className="font-semibold text-sm text-[var(--accent)] hover:underline">
                         {lead.full_name}
                       </Link>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Contact" className="px-4 py-3">
                       <div className="text-xs text-[var(--ink-soft)]">{lead.phone || '—'}</div>
                       <div className="text-[12px] text-[var(--ink-faint)]">{lead.email}</div>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Source" className="px-4 py-3">
                       <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_COLORS[lead.source]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {lead.source}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[var(--ink-soft)] max-w-32 truncate">{lead.course_interest || '—'}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Course" className="px-4 py-3 text-xs text-[var(--ink-soft)] max-w-32 truncate">{lead.course_interest || '—'}</td>
+                    <td data-label="Status" className="px-4 py-3">
                       <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                         {lead.status?.replace(/_/g,' ')}
                       </span>
                     </td>
-                    <td className="px-4 py-3">
+                    <td data-label="Assign To" className="px-4 py-3">
                       {(lead as any).assignee ? (
                         <div className="flex items-center gap-1.5">
                           <div className="w-5 h-5 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-[9px] font-bold">
@@ -183,7 +183,7 @@ export default function PMAssign() {
                         </select>
                       )}
                     </td>
-                    <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
+                    <td data-label="Date" className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
                       {new Date(lead.created_at).toLocaleDateString('en-GH', { day:'numeric', month:'short' })}
                     </td>
                   </tr>

@@ -288,7 +288,7 @@ export default function AttendanceDashboard() {
                 </div>
 
                 <div className="overflow-x-auto">
-                  <table className="w-full">
+                  <table className="rtc w-full">
                     <thead className="bg-[var(--line-soft)]">
                       <tr>
                         {['Name', 'Phone', 'Type', 'Code', 'Payment', 'Marketer', 'Time'].map(h => (
@@ -299,19 +299,19 @@ export default function AttendanceDashboard() {
                     <tbody>
                       {signins.map((s: any) => (
                         <tr key={s.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)]">
-                          <td className="px-3 py-2.5 text-sm font-semibold text-[var(--ink)]">{s.full_name}</td>
-                          <td className="px-3 py-2.5 text-xs text-[var(--ink-soft)]">{s.phone?.replace(/^233/, '0') || '—'}</td>
-                          <td className="px-3 py-2.5">
+                          <td data-label="Name" className="px-3 py-2.5 text-sm font-semibold text-[var(--ink)]">{s.full_name}</td>
+                          <td data-label="Phone" className="px-3 py-2.5 text-xs text-[var(--ink-soft)]">{s.phone?.replace(/^233/, '0') || '—'}</td>
+                          <td data-label="Type" className="px-3 py-2.5">
                             <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${s.attendance_type === 'online'? 'bg-[var(--gold-soft)] text-[var(--gold)]': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                               {s.attendance_type === 'online'? 'Online': 'In Person'}
                             </span>
                           </td>
-                          <td className="px-3 py-2.5">
+                          <td data-label="Code" className="px-3 py-2.5">
                             {s.code_verified
                               ? <span className="text-[var(--ok)] text-xs font-medium">Verified</span>
                               : <span className="text-[var(--ink-faint)] text-xs">Not verified</span>}
                           </td>
-                          <td className="px-3 py-2.5">
+                          <td data-label="Payment" className="px-3 py-2.5">
                             {s.payment_status === 'paid'? (
                               <span className="text-[10px] font-bold bg-[var(--ok-soft)] text-[var(--ok)] px-2 py-0.5 rounded-full">Paid</span>
                             ) : s.payment_method === 'cash'? (
@@ -322,12 +322,12 @@ export default function AttendanceDashboard() {
                               <span className="text-[10px] font-bold bg-[var(--line-soft)] text-[var(--ink-soft)] px-2 py-0.5 rounded-full">Pending</span>
                             )}
                           </td>
-                          <td className="px-3 py-2.5 text-xs text-[var(--ink-faint)]">{s.marketer?.full_name?.split(' ')[0] || '—'}</td>
-                          <td className="px-3 py-2.5 text-[10px] text-[var(--ink-faint)]">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit'})}</td>
+                          <td data-label="Marketer" className="px-3 py-2.5 text-xs text-[var(--ink-faint)]">{s.marketer?.full_name?.split(' ')[0] || '—'}</td>
+                          <td data-label="Time" className="px-3 py-2.5 text-[10px] text-[var(--ink-faint)]">{new Date(s.created_at).toLocaleTimeString('en-GH', { hour: '2-digit', minute: '2-digit'})}</td>
                         </tr>
                       ))}
                       {signins.length === 0 && (
-                        <tr><td colSpan={7} className="text-center py-10 text-[var(--ink-faint)] text-sm">No sign-ins yet. Waiting for students...</td></tr>
+                        <tr><td data-label="Name" colSpan={7} className="text-center py-10 text-[var(--ink-faint)] text-sm">No sign-ins yet. Waiting for students...</td></tr>
                       )}
                     </tbody>
                   </table>

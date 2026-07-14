@@ -212,7 +212,7 @@ export default function MarketerLink() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="w-full">
+            <table className="rtc w-full">
               <thead className="bg-[var(--line-soft)]">
                 <tr>
                   {['Name','Email','Course','Payment','Date'].map(h => (
@@ -223,15 +223,15 @@ export default function MarketerLink() {
               <tbody>
                 {applications.map(a => (
                   <tr key={a.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)]">
-                    <td className="px-4 py-3 text-sm font-medium text-[var(--ink)]">{a.full_name}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.email}</td>
-                    <td className="px-4 py-3 text-sm text-[var(--ink-soft)]">{(a as any).course?.name || '—'}</td>
-                    <td className="px-4 py-3">
+                    <td data-label="Name" className="px-4 py-3 text-sm font-medium text-[var(--ink)]">{a.full_name}</td>
+                    <td data-label="Email" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.email}</td>
+                    <td data-label="Course" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{(a as any).course?.name || '—'}</td>
+                    <td data-label="Payment" className="px-4 py-3">
                       <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.payment_status === 'paid' ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
                         {a.payment_status}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{new Date(a.created_at).toLocaleDateString('en-GH')}</td>
+                    <td data-label="Date" className="px-4 py-3 text-xs text-[var(--ink-faint)]">{new Date(a.created_at).toLocaleDateString('en-GH')}</td>
                   </tr>
                 ))}
               </tbody>
