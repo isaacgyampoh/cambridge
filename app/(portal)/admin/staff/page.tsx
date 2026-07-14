@@ -490,7 +490,56 @@ export default function StaffPage() {
             <p className="font-medium text-sm">{search ? 'No staff match your search': 'No staff yet — add your first team member'}</p>
           </div>
         ) : (
-          <div className="overflow-visible">
+          <>
+          {/* Mobile: stacked cards (tables don't fit phones — this fixes the
+              'can't tap edit/delete' issue) */}
+          <div className="sm:hidden divide-y divide-[var(--line-soft)]">
+            {filtered.map(s => {
+              const roleColor = ROLE_COLOR[s.role] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'
+              return (
+                <div key={s.id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-10 h-10 rounded-full flex items-center justify-center text-[14px] font-semibold flex-shrink-0 ${roleColor}`}>
+                      {s.full_name?.charAt(0)?.toUpperCase() || '?'}
+                    </div>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[15px] font-medium text-[var(--ink)] truncate">{s.full_name}</div>
+                      <div className="text-[12px] text-[var(--ink-faint)] truncate">{s.phone?.replace(/^233/, '0') || s.email || '—'}</div>
+                      <div className="flex items-center gap-2 mt-2 flex-wrap">
+                        <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded-lg ${roleColor}`}>{ROLE_LABEL[s.role] || s.role}</span>
+                        <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${s.is_active ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'}`}>
+                          <span className={`w-1.5 h-1.5 rounded-full ${s.is_active ? 'bg-[var(--ok)]' : 'bg-[var(--ink-faint)]'}`} />
+                          {s.is_active ? 'Active' : 'Inactive'}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
+                  {/* Big, tappable action buttons — no cramped dropdown */}
+                  <div className="flex flex-wrap gap-2 mt-3">
+                    <a href={`/admin/staff/${s.id}`}
+                      className="flex-1 min-w-[calc(50%-4px)] h-10 inline-flex items-center justify-center rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold">Edit &amp; access</a>
+                    <button onClick={() => toggleActive(s.id, s.is_active)}
+                      className="flex-1 min-w-[calc(50%-4px)] h-10 rounded-lg border border-[var(--line)] text-[var(--ink-soft)] text-[13px] font-medium">
+                      {s.is_active ? 'Deactivate' : 'Activate'}
+                    </button>
+                    {s.role !== 'super_admin' && (
+                      <>
+                        <button onClick={() => toggleLeadPool(s.id, s.in_lead_pool !== false)}
+                          className="flex-1 min-w-[calc(50%-4px)] h-10 rounded-lg border border-[var(--line)] text-[var(--ink-soft)] text-[13px] font-medium">
+                          {s.in_lead_pool !== false ? 'Remove from pool' : 'Add to pool'}
+                        </button>
+                        <button onClick={() => deleteStaff(s.id, s.full_name)}
+                          className="flex-1 min-w-[calc(50%-4px)] h-10 rounded-lg border border-[var(--danger)]/30 text-[var(--danger)] text-[13px] font-semibold">Delete</button>
+                      </>
+                    )}
+                  </div>
+                </div>
+              )
+            })}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-visible">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
@@ -572,6 +621,7 @@ export default function StaffPage() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </div>
     </div>
