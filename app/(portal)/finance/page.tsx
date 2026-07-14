@@ -128,7 +128,30 @@ export default function FinancePage() {
           payments.length === 0 ? (
             <div className="py-12"><EmptyState  title="No payments yet" description="Record your first payment to start tracking revenue." action={<Button onClick={() => setShowModal(true)}>Record payment</Button>} /></div>
           ) : (
-            <div className="overflow-x-auto">
+            <>
+            {/* Mobile: payment cards */}
+            <div className="sm:hidden divide-y divide-[var(--line-soft)]">
+              {payments.map((p: any) => (
+                <div key={p.id} className="p-4">
+                  <div className="flex items-start justify-between gap-2">
+                    <div className="min-w-0">
+                      <div className="text-[15px] font-medium text-[var(--ink)] truncate">{p.student?.full_name || '—'}</div>
+                      <div className="text-[12px] text-[var(--ink-faint)]">{p.student?.phone}</div>
+                    </div>
+                    <div className="text-[15px] font-semibold text-[var(--ink)] flex-shrink-0">{formatGHS(p.amount)}</div>
+                  </div>
+                  <div className="flex items-center gap-2 mt-2 flex-wrap">
+                    <Badge tone={p.status === 'paid' ? 'success' : p.status === 'pending' ? 'warning' : 'danger'}>{p.status}</Badge>
+                    <Badge tone={METHOD_TONE[p.method] || 'neutral'}>{p.method?.replace(/_/g, ' ') || '—'}</Badge>
+                    {p.receipt_number && <span className="text-[11px] font-mono text-[var(--ink-faint)]">{p.receipt_number}</span>}
+                    <span className="text-[11px] text-[var(--ink-faint)] ml-auto">{formatDateTime(p.created_at)}</span>
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Desktop: table */}
+            <div className="hidden sm:block overflow-x-auto">
               <table className="w-full">
                 <thead><tr className="border-b border-[var(--line)]">
                   {['Receipt', 'Student', 'Amount', 'Method', 'Status', 'Date'].map(h => (
@@ -152,6 +175,7 @@ export default function FinancePage() {
                 </tbody>
               </table>
             </div>
+            </>
           )
         ) : (
           invoices.length === 0 ? (

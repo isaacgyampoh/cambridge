@@ -126,7 +126,29 @@ export default function AdminLeads() {
             <EmptyState  title="No leads match" description="Try adjusting your search or filters, or add a new lead." />
           </div>
         ) : (
-          <div className="overflow-x-auto">
+          <>
+          {/* Mobile: tappable lead cards */}
+          <div className="sm:hidden divide-y divide-[var(--line-soft)]">
+            {filtered.map((l: any) => (
+              <Link key={l.id} href={`/admin/leads/${l.id}`} className="block p-4 active:bg-[var(--line-soft)] transition">
+                <div className="flex items-start justify-between gap-2">
+                  <div className="min-w-0">
+                    <div className="font-medium text-[15px] text-[var(--ink)] truncate">{l.full_name}</div>
+                    <div className="text-[13px] text-[var(--ink-soft)]">{l.phone?.replace(/^233/, '0') || '—'}</div>
+                  </div>
+                  <Badge tone={STATUS_TONE[l.status] || 'neutral'}>{l.status.replace(/_/g, ' ')}</Badge>
+                </div>
+                <div className="flex items-center gap-2 mt-2 flex-wrap">
+                  <Badge tone="neutral">{l.source}</Badge>
+                  {l.course_interest && <span className="text-[12px] text-[var(--ink-soft)] truncate">{l.course_interest}</span>}
+                  <span className="text-[12px] text-[var(--ink-faint)] ml-auto">{l.assignee?.full_name || <span className="text-[var(--warn)] font-medium">Unassigned</span>}</span>
+                </div>
+              </Link>
+            ))}
+          </div>
+
+          {/* Desktop: table */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
@@ -153,6 +175,7 @@ export default function AdminLeads() {
               </tbody>
             </table>
           </div>
+          </>
         )}
       </Card>
     </div>
