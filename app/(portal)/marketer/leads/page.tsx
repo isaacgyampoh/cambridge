@@ -30,6 +30,7 @@ export default function MarketerLeads() {
   }, [])
   const [myId, setMyId] = useState<string|null>(null)
   const [expanded, setExpanded] = useState<string|null>(null)
+  const [filterStatus, setFilterStatus] = useState<string>('all')
   const [updating, setUpdating] = useState<string|null>(null)
   const [pendingStatus, setPendingStatus] = useState<{ leadId: string; status: string } | null>(null)
   const [comment, setComment] = useState('')
@@ -254,13 +255,19 @@ export default function MarketerLeads() {
         </div>
       )}
 
-      {/* Mini pipeline */}
-      <div className="grid grid-cols-4 lg:grid-cols-7 gap-2 mb-6">
+      {/* Tap a status to filter the list below */}
+      <div className="grid grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
+        <button onClick={() => setFilterStatus('all')}
+          className={`rounded-xl px-3 py-3 text-center transition ${filterStatus === 'all' ? 'ring-2 ring-[var(--accent)] bg-[var(--accent-soft)]' : 'bg-[var(--line-soft)]'}`}>
+          <div className="text-[22px] font-semibold leading-none font-display text-[var(--ink)]">{leads.length}</div>
+          <div className="text-[11px] font-medium leading-tight mt-1.5 text-[var(--ink-soft)]">All</div>
+        </button>
         {statusOrder.filter(s => byStatus[s]?.length > 0).map(s => (
-          <div key={s} className={`rounded-xl px-3 py-3 text-center ${COLORS[s]}`}>
+          <button key={s} onClick={() => setFilterStatus(s)}
+            className={`rounded-xl px-3 py-3 text-center transition ${filterStatus === s ? 'ring-2 ring-[var(--accent)]' : ''} ${COLORS[s]}`}>
             <div className="text-[22px] font-semibold leading-none font-display">{byStatus[s]?.length}</div>
             <div className="text-[11px] font-medium capitalize leading-tight mt-1.5">{s.replace(/_/g, ' ')}</div>
-          </div>
+          </button>
         ))}
       </div>
 
@@ -276,7 +283,15 @@ export default function MarketerLeads() {
         </div>
       ) : (
         <div className="space-y-2">
-          {leads.map(lead => {
+          {(() => {
+            const shown = filterStatus === 'all' ? leads : leads.filter(l => l.status === filterStatus)
+            if (shown.length === 0) return (
+              <div className="bg-[var(--paper)] rounded-xl border border-dashed border-[var(--line)] p-12 text-center text-[var(--ink-faint)]">
+                <p className="font-medium">No {filterStatus === 'all' ? '' : filterStatus.replace(/_/g, ' ')} leads</p>
+                <button onClick={() => setFilterStatus('all')} className="text-sm text-[var(--accent)] mt-1">Show all leads</button>
+              </div>
+            )
+            return shown.map(lead => {
             const isExpanded = expanded === lead.id
             return (
               <div key={lead.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] overflow-hidden hover:border-[var(--ink-faint)] transition-colors">
@@ -369,7 +384,8 @@ export default function MarketerLeads() {
                 )}
               </div>
             )
-          })}
+          })
+          })()}
         </div>
       )}
 

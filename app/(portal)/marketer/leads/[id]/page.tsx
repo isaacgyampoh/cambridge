@@ -84,12 +84,11 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   }
 
   async function load() {
-    const [leads, acts] = await Promise.all([
-      apiQuery('leads', '*', [{ col: 'id', op: 'eq', val: id }], 1),
-      apiQuery('lead_activities', '*, creator:created_by(full_name)', [{ col: 'lead_id', op: 'eq', val: id }], 30),
-    ])
-    const l = leads[0] || null
-    setLead(l); setActivities(acts)
+    const res = await fetch(`/api/leads/detail?id=${id}`)
+    if (!res.ok) { setLead(null); setLoading(false); return }
+    const d = await res.json()
+    const l = d.lead || null
+    setLead(l); setActivities(d.activities || [])
     setNewStatus(l?.status || '')
     setLoading(false)
     loadComments()
