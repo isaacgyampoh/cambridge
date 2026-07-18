@@ -123,7 +123,7 @@ export async function POST(req: NextRequest) {
     const firstName = full_name.trim().split(' ')[0]
     const roleLabel = role.replace(/_/g, ' ')
     const msg =
-      `Hi ${firstName}, welcome to Cambridge Centre of Excellence!\n` +
+      `Hi ${firstName}, welcome to Cambridge Center of Excellence!\n` +
       `You've been added as ${roleLabel}.\n` +
       `Portal: ${portalUrl}\n` +
       `Login with your phone (${rawPhone}) and PIN: ${pin}\n` +

@@ -170,7 +170,7 @@ export default function AdmissionProcess() {
                         </button>
                       )}
                       {lead?.phone && (
-                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/[^0-9]/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name}, regarding your admission at Cambridge Centre of Excellence...`)}`}
+                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/[^0-9]/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name}, regarding your admission at Cambridge Center of Excellence...`)}`}
                           target="_blank"rel="noopener noreferrer"
                           className="px-3 py-1.5 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition flex items-center gap-1">
                            WhatsApp

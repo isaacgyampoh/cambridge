@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { generateAdmissionPDF } from '@/lib/generateAdmissionPDF'
-import { sendWelcomeEmail, sendAdmissionLetter } from '@/lib/integrations/email'
+import { sendWelcomeEmail, sendAdmissionLetter, sendUploadedAdmissionLetter } from '@/lib/integrations/email'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 
@@ -166,17 +166,21 @@ export async function POST(req: NextRequest) {
     // Documents area). Prefer a course-specific one; fall back to a general
     // admission letter; finally fall back to an auto-generated PDF.
     let letterUrl: string | null = null
+    let usedUploaded = false
     try {
+      // Course-specific uploaded letter (tolerate null is_active — only skip if
+      // explicitly deactivated).
       const { data: courseDoc } = await sb.from('documents')
-        .select('file_url').eq('type', 'admission_letter').eq('course_id', app.course_id).eq('is_active', true)
+        .select('file_url, is_active').eq('type', 'admission_letter').eq('course_id', app.course_id)
         .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      letterUrl = courseDoc?.file_url || null
+      if (courseDoc && courseDoc.is_active !== false) letterUrl = courseDoc.file_url || null
       if (!letterUrl) {
         const { data: generalDoc } = await sb.from('documents')
-          .select('file_url').eq('type', 'admission_letter').is('course_id', null).eq('is_active', true)
+          .select('file_url, is_active').eq('type', 'admission_letter').is('course_id', null)
           .order('created_at', { ascending: false }).limit(1).maybeSingle()
-        letterUrl = generalDoc?.file_url || null
+        if (generalDoc && generalDoc.is_active !== false) letterUrl = generalDoc.file_url || null
       }
+      if (letterUrl) usedUploaded = true
     } catch {}
     if (!letterUrl) {
       letterUrl = await generateAdmissionPDF({
@@ -186,7 +190,7 @@ export async function POST(req: NextRequest) {
     }
 
     const letterLine = letterUrl ? `\n\nYour admission letter:\n${letterUrl}` : ''
-    const msg = `Dear ${first}, congratulations! 🎉 You have been admitted to ${letterCourse} at Cambridge Centre of Excellence.${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLine}\n\nWelcome aboard.`
+    const msg = `Dear ${first}, congratulations! 🎉 You have been admitted to ${letterCourse} at Cambridge Center of Excellence.${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLine}\n\nWelcome aboard.`
 
     if (app.phone) {
       let waOk = false
@@ -194,7 +198,15 @@ export async function POST(req: NextRequest) {
       if (!waOk) { try { await sendSMS(app.phone, msg) } catch {} }
     }
     if (app.email) {
-      try { await sendAdmissionLetter(app.email, app.full_name || 'Student', letterCourse, admissionNo, startDate, letterUrl || undefined) } catch {}
+      if (usedUploaded && letterUrl) {
+        // Use the admission letter YOU uploaded as the actual letter — a simple
+        // covering email that presents your document, not a templated letter.
+        try {
+          await sendUploadedAdmissionLetter(app.email, app.full_name || 'Student', letterCourse, admissionNo, letterUrl)
+        } catch {}
+      } else {
+        try { await sendAdmissionLetter(app.email, app.full_name || 'Student', letterCourse, admissionNo, startDate, letterUrl || undefined) } catch {}
+      }
     }
     await sb.from('admissions').update({ admission_letter_sent: true, admitted_at: new Date().toISOString() }).eq('lead_id', leadId).then(() => {}, () => {})
   }

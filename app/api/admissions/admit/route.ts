@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
     try { await sendAdmissionLetter(email, name || 'Student', courseName, admissionNo); emailed = true } catch {}
   }
   if (phone) {
-    try { await sendSMS(phone, `Congratulations ${(name || '').split(' ')[0]}! You have been admitted to ${courseName} at Cambridge Centre of Excellence. Admission No: ${admissionNo}. Check your email for your admission letter.`) } catch {}
+    try { await sendSMS(phone, `Congratulations ${(name || '').split(' ')[0]}! You have been admitted to ${courseName} at Cambridge Center of Excellence. Admission No: ${admissionNo}. Check your email for your admission letter.`) } catch {}
   }
 
   return NextResponse.json({ success: true, admissionNo, emailed })

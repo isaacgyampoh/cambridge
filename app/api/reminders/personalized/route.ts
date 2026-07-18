@@ -24,16 +24,16 @@ function buildPersonalizedMessage(
  const isOnline = classType === 'online'
  const locationLine = isOnline && zoomLink
  ?` Zoom Link: ${zoomLink}`
- :` Venue: ${venue || 'Cambridge Centre of Excellence'}`
+ :` Venue: ${venue || 'Cambridge Center of Excellence'}`
 
  const messages: Record<ReminderType, string> = {
- '1_week':`Hello ${firstName}!\n\nThis is ${marketerFirst} from *Cambridge Centre of Excellence*.\n\nJust a friendly reminder that your *${courseName}* class is coming up in one week!\n\nDate: ${date}\nTime: ${time}\n${locationLine}\nBatch: ${batchName}\n\nPlease make sure you have all your materials ready.\n\nLooking forward to seeing you there! If you have any questions, feel free to reach out to me.\n\n– ${marketerName}`,
+ '1_week':`Hello ${firstName}!\n\nThis is ${marketerFirst} from *Cambridge Center of Excellence*.\n\nJust a friendly reminder that your *${courseName}* class is coming up in one week!\n\nDate: ${date}\nTime: ${time}\n${locationLine}\nBatch: ${batchName}\n\nPlease make sure you have all your materials ready.\n\nLooking forward to seeing you there! If you have any questions, feel free to reach out to me.\n\n– ${marketerName}`,
 
- '2_days':`Hello ${firstName}!\n\nIt's ${marketerFirst} from *Cambridge Centre of Excellence*.\n\nYour *${courseName}* class is just 2 days away!\n\nDate: ${date}\nTime: ${time}\n${locationLine}\n\nRemember to:\nReview your notes\nPrepare your questions\nSign in when you arrive\n\nCan't wait to see you! Reach out if you need anything.\n\n– ${marketerName}`,
+ '2_days':`Hello ${firstName}!\n\nIt's ${marketerFirst} from *Cambridge Center of Excellence*.\n\nYour *${courseName}* class is just 2 days away!\n\nDate: ${date}\nTime: ${time}\n${locationLine}\n\nRemember to:\nReview your notes\nPrepare your questions\nSign in when you arrive\n\nCan't wait to see you! Reach out if you need anything.\n\n– ${marketerName}`,
 
- 'day':`Good morning ${firstName}!\n\nThis is ${marketerFirst} from *Cambridge Centre of Excellence*.\n\nYour *${courseName}* class is *TODAY!*\n\nTime: ${time}\n${locationLine}\n\nDon't forget to sign in using the link that will be shared this morning.\n\nHave an amazing session! I'm cheering for you.\n\n– ${marketerName}`,
+ 'day':`Good morning ${firstName}!\n\nThis is ${marketerFirst} from *Cambridge Center of Excellence*.\n\nYour *${courseName}* class is *TODAY!*\n\nTime: ${time}\n${locationLine}\n\nDon't forget to sign in using the link that will be shared this morning.\n\nHave an amazing session! I'm cheering for you.\n\n– ${marketerName}`,
 
- 'class_day':`Good morning ${firstName}!\n\nIt's ${marketerFirst} from *Cambridge Centre of Excellence*.\n\n*Class is starting soon!*\n\nTime: ${time}\n${locationLine}\n\nPlease sign in using the link shared this morning when you arrive.\n\nSee you there!\n\n– ${marketerName}`,
+ 'class_day':`Good morning ${firstName}!\n\nIt's ${marketerFirst} from *Cambridge Center of Excellence*.\n\n*Class is starting soon!*\n\nTime: ${time}\n${locationLine}\n\nPlease sign in using the link shared this morning when you arrive.\n\nSee you there!\n\n– ${marketerName}`,
  }
 
  return messages[type]
@@ -69,7 +69,7 @@ export async function POST(req: NextRequest) {
  const course = (batch as any).courses
  const date = formatDate(batch.start_date)
  const time = batch.schedule || 'Check with your trainer'
- const venue = batch.venue || 'Cambridge Centre of Excellence'
+ const venue = batch.venue || 'Cambridge Center of Excellence'
 
  let sent = 0
  const reminderLogs = []

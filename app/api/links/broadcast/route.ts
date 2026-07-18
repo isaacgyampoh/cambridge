@@ -29,7 +29,7 @@ export async function POST(req: NextRequest) {
   let sent = 0
   for (const l of targets) {
     const first = (l.full_name || '').split(' ')[0] || 'there'
-    const msg = `Hello ${first}, ${title || 'you have an invitation'} from Cambridge Centre of Excellence. Join here: ${url}`
+    const msg = `Hello ${first}, ${title || 'you have an invitation'} from Cambridge Center of Excellence. Join here: ${url}`
     try { await sendWhatsAppText(l.phone, msg, l.assigned_to || undefined); sent++ }
     catch { try { await sendSMS(l.phone, msg); sent++ } catch {} }
   }

@@ -193,9 +193,9 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
           <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 85% 0%, rgba(255,255,255,0.10), transparent 60%)' }} />
           <div className="relative max-w-2xl mx-auto px-4 pt-10 pb-24 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-white overflow-hidden p-1.5 shadow-lg">
-              <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" className="w-full h-full object-contain" />
+              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
             </div>
-            <h1 className="font-display text-white text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]">Cambridge Centre of Excellence</h1>
+            <h1 className="font-display text-white text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]">Cambridge Center of Excellence</h1>
             <p className="text-white/70 text-[15px] mt-2 max-w-md mx-auto leading-relaxed">Take the next step in your career. Complete your registration below to secure your place.</p>
             {marketer && (
               <div className="inline-flex items-center gap-2 mt-4 bg-white/10 rounded-full px-3.5 py-1.5">

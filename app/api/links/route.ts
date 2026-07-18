@@ -100,7 +100,7 @@ export async function POST(req: NextRequest) {
         const lead = (e as any).lead
         if (!lead?.phone) continue
         const first = (lead.full_name || '').split(' ')[0] || 'there'
-        const msg = `Hello ${first}, here is the link for your online class at Cambridge Centre of Excellence${body.title ? ` (${body.title})` : ''}: ${body.url}`
+        const msg = `Hello ${first}, here is the link for your online class at Cambridge Center of Excellence${body.title ? ` (${body.title})` : ''}: ${body.url}`
         // Send via the student's own marketer's WhatsApp line
         try { await sendWhatsAppText(lead.phone, msg, e.marketer_id || undefined); studentsSent++ }
         catch { try { await sendSMS(lead.phone, msg); studentsSent++ } catch {} }

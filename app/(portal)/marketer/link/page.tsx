@@ -135,7 +135,7 @@ export default function MarketerLink() {
                 
               </a>
             </div>
-            <a href={`https://wa.me/?text=${encodeURIComponent(`Hello, here is your registration link for Cambridge Centre of Excellence:\n\n${appUrl}\n\nClick it to fill in your details and pay your registration fee. Once that's done you're registered and we'll take it from there.`)}`}
+            <a href={`https://wa.me/?text=${encodeURIComponent(`Hello, here is your registration link for Cambridge Center of Excellence:\n\n${appUrl}\n\nClick it to fill in your details and pay your registration fee. Once that's done you're registered and we'll take it from there.`)}`}
               target="_blank" rel="noopener noreferrer"
               className="inline-flex items-center gap-2 mt-3 h-10 px-4 bg-[#25D366] text-white rounded-lg text-sm font-medium hover:opacity-90 transition">
               Share on WhatsApp
@@ -172,7 +172,7 @@ export default function MarketerLink() {
                   <button onClick={() => { navigator.clipboard.writeText(referUrl); toast.success('Referral link copied!') }}
                     className="flex-shrink-0 h-11 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-semibold hover:brightness-110 transition">Copy</button>
                 </div>
-                <a href={`https://wa.me/?text=${encodeURIComponent(`Interested in professional training with Cambridge Centre of Excellence? Tap here and I'll get you all the details:\n\n${referUrl}`)}`}
+                <a href={`https://wa.me/?text=${encodeURIComponent(`Interested in professional training with Cambridge Center of Excellence? Tap here and I'll get you all the details:\n\n${referUrl}`)}`}
                   target="_blank" rel="noopener noreferrer"
                   className="inline-flex items-center gap-2 mt-3 h-10 px-4 bg-[#25D366] text-white rounded-lg text-sm font-medium hover:opacity-90 transition">
                   Share on WhatsApp

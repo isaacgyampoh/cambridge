@@ -24,7 +24,7 @@ export async function POST(req: NextRequest) {
       headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
       body: JSON.stringify({
         sender: senderId,
-        message: 'Cambridge Centre of Excellence: test message. If you received this, SMS is working.',
+        message: 'Cambridge Center of Excellence: test message. If you received this, SMS is working.',
         recipients: [recipient],
       }),
       signal: AbortSignal.timeout(10000),

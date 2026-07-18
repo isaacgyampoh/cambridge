@@ -37,7 +37,7 @@ export default function StudentDashboard() {
       <div className="bg-[var(--accent)] rounded-xl p-6 mb-6 text-white">
         <div className="text-[12px] text-white/60 mb-1">Welcome back</div>
         <div className="font-display text-[26px] font-semibold">{myName.split(' ')[0] || 'Student'}</div>
-        <div className="text-xs text-white/60 mt-1">Cambridge Centre of Excellence</div>
+        <div className="text-xs text-white/60 mt-1">Cambridge Center of Excellence</div>
       </div>
 
       {/* Stats */}

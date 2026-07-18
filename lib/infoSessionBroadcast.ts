@@ -38,7 +38,7 @@ export async function broadcastInfoSession(sessionId: string) {
   for (const lead of leads || []) {
     const first = (lead.full_name || 'there').split(' ')[0]
     const joinLink = trackedFor(lead)
-    const msg = `Hi ${first}, you're invited to Cambridge Centre of Excellence's "${s.title}" on ${when}.\nJoin here: ${joinLink}${s.description ? `\n${s.description}` : ''}`
+    const msg = `Hi ${first}, you're invited to Cambridge Center of Excellence's "${s.title}" on ${when}.\nJoin here: ${joinLink}${s.description ? `\n${s.description}` : ''}`
     let ok = false
     try { if (channels.includes('whatsapp')) ok = await sendWhatsAppText(lead.phone, msg, lead.assigned_to || null) || ok } catch {}
     try { if (channels.includes('sms')) ok = await sendSMS(lead.phone, msg) || ok } catch {}
@@ -46,7 +46,7 @@ export async function broadcastInfoSession(sessionId: string) {
       if (channels.includes('email') && lead.email) {
         const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:28px 24px;color:#1a2230">
           <p style="font-size:15px;line-height:1.6">Hi ${first},</p>
-          <p style="font-size:15px;line-height:1.6">You're invited to <b>${s.title}</b> at Cambridge Centre of Excellence on <b>${when}</b>.</p>
+          <p style="font-size:15px;line-height:1.6">You're invited to <b>${s.title}</b> at Cambridge Center of Excellence on <b>${when}</b>.</p>
           ${s.description ? `<p style="font-size:14px;color:#5a6675;line-height:1.6">${s.description}</p>` : ''}
           <p style="margin:18px 0"><a href="${joinLink}" style="background:#1a7a85;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px">Join the session</a></p>
           <p style="font-size:13px;color:#97a1b0">Or copy this link: ${joinLink}</p>

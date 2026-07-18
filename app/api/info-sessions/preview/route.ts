@@ -31,7 +31,7 @@ export async function POST(req: NextRequest) {
   const when = scheduled_at
     ? new Date(scheduled_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
     : '[session time]'
-  const sampleMsg = `Hi [name], you're invited to Cambridge Centre of Excellence's "${title || '[title]'}" on ${when}.\nJoin here: ${link || '[link]'}${description ? `\n${description}` : ''}`
+  const sampleMsg = `Hi [name], you're invited to Cambridge Center of Excellence's "${title || '[title]'}" on ${when}.\nJoin here: ${link || '[link]'}${description ? `\n${description}` : ''}`
 
   return NextResponse.json({
     leadCount: count || 0,

@@ -59,7 +59,7 @@ export async function POST(req: NextRequest) {
     if (s.email) {
       try {
         await sendEmailGeneric(s.email, `Zoom link — ${courseName}`,
-          `<p>Hello ${first},</p><p>Here is the Zoom link for your <strong>${courseName}</strong> class${batch.schedule ? ` (${batch.schedule})` : ''}:</p><p><a href="${zoomLink}">${zoomLink}</a></p><p>See you in class,<br>Cambridge Centre of Excellence</p>`)
+          `<p>Hello ${first},</p><p>Here is the Zoom link for your <strong>${courseName}</strong> class${batch.schedule ? ` (${batch.schedule})` : ''}:</p><p><a href="${zoomLink}">${zoomLink}</a></p><p>See you in class,<br>Cambridge Center of Excellence</p>`)
         ok = true
       } catch {}
     }

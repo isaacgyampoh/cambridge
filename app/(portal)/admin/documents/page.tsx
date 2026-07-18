@@ -67,6 +67,7 @@ export default function DocumentsPage() {
         template_fields: form.is_template ? TEMPLATE_FIELDS : null,
         course_id: form.course_id || null,
         delivery_scope: form.type === 'course_material' ? (form.delivery_scope || null) : null,
+        is_active: true,
         uploaded_by: userId,
       })
       toast.success('Document uploaded!')

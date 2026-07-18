@@ -70,9 +70,9 @@ export async function POST(req: NextRequest) {
   if (send && row) {
     const link = `${CONFIG.appUrl}/certificate/${row.download_token}`
     const first = (enr.full_name || '').split(' ')[0] || 'there'
-    const msg = `Congratulations ${first}! Your certificate for ${courseName} at Cambridge Centre of Excellence is ready. Download it here: ${link}`
+    const msg = `Congratulations ${first}! Your certificate for ${courseName} at Cambridge Center of Excellence is ready. Download it here: ${link}`
     if (enr.phone) { try { await sendWhatsAppText(enr.phone, msg); sent = true } catch { try { await sendSMS(enr.phone, msg); sent = true } catch {} } }
-    if (enr.email) { try { await sendEmailGeneric(enr.email, `Your certificate — ${courseName}`, `<p>Congratulations ${first},</p><p>Your certificate for <strong>${courseName}</strong> is ready.</p><p><a href="${link}">Download your certificate</a></p><p>Cambridge Centre of Excellence</p>`); sent = true } catch {} }
+    if (enr.email) { try { await sendEmailGeneric(enr.email, `Your certificate — ${courseName}`, `<p>Congratulations ${first},</p><p>Your certificate for <strong>${courseName}</strong> is ready.</p><p><a href="${link}">Download your certificate</a></p><p>Cambridge Center of Excellence</p>`); sent = true } catch {} }
     await sb.from('certificates').update({ issued: true, issued_at: new Date().toISOString() }).eq('id', row.id)
   }
 

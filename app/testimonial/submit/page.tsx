@@ -43,7 +43,7 @@ function SubmitForm() {
   if (done) {
     return (
       <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center', padding: '48px 24px' }}>
-        <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" style={{ width: 64, height: 64, objectFit: 'contain', margin: '0 auto 16px' }} />
+        <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 64, height: 64, objectFit: 'contain', margin: '0 auto 16px' }} />
         <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1a2230', margin: '0 0 8px' }}>Thank you!</h1>
         <p style={{ color: '#4a5568', fontSize: 15 }}>Your testimonial has been received. We may feature it on our social pages.</p>
       </div>
@@ -53,7 +53,7 @@ function SubmitForm() {
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '32px 20px' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" style={{ width: 60, height: 60, objectFit: 'contain', margin: '0 auto 12px' }} />
+        <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 60, height: 60, objectFit: 'contain', margin: '0 auto 12px' }} />
         <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1a2230', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Share your experience</h1>
         <p style={{ color: '#4a5568', fontSize: 14 }}>We'd love to hear how your programme went. Your words may be featured on our socials.</p>
       </div>
@@ -89,7 +89,7 @@ function SubmitForm() {
           {submitting ? 'Sending…' : 'Send my testimonial'}
         </button>
       </div>
-      <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, marginTop: 20 }}>Cambridge Centre of Excellence</p>
+      <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, marginTop: 20 }}>Cambridge Center of Excellence</p>
     </div>
   )
 }

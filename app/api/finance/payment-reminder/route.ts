@@ -39,7 +39,7 @@ export async function POST(req: NextRequest) {
  const smsMessage =`CCE: Hi ${student.full_name.split(' ')[0]}, your ${course?.name || 'course'} balance is GHS ${outstanding} (paid: GHS ${paid} of GHS ${total}). Please pay by ${dueDate}. Thank you!`
 
  const waMessage =`Hello ${student.full_name.split(' ')[0]},\n\n` +
-`This is a friendly reminder from *Cambridge Centre of Excellence*.\n\n` +
+`This is a friendly reminder from *Cambridge Center of Excellence*.\n\n` +
 ` Course: ${course?.name || 'Course Fee'}\n` +
 ` Paid: GHS ${paid}\n` +
 ` Outstanding: *GHS ${outstanding}*\n` +

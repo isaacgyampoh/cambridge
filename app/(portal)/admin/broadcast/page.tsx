@@ -158,10 +158,10 @@ export default function BroadcastPage() {
 
   // Message templates
   const TEMPLATES = [
-    { label: 'Class announcement', text: 'Hello {{name}}! We have exciting news from Cambridge Centre of Excellence. Our next {{course}} class is starting soon. Don\'t miss out! Contact us to reserve your spot.'},
+    { label: 'Class announcement', text: 'Hello {{name}}! We have exciting news from Cambridge Center of Excellence. Our next {{course}} class is starting soon. Don\'t miss out! Contact us to reserve your spot.'},
     { label: 'Re-engagement', text: 'Hello {{name}}! It\'s been a while. We miss you at Cambridge! We have a special offer just for you. Reply to this message and let\'s get you started on your certification journey. '},
-    { label: 'Special offer', text: 'Hello {{name}}! Cambridge Centre of Excellence is offering a limited-time discount on our {{course}} program. Don\'t miss this opportunity to advance your career! Contact us today.'},
-    { label: 'New course alert', text: 'Hello {{name}}! Cambridge Centre of Excellence is launching a new course! Be among the first to enroll and take your career to the next level. Reply for details. '},
+    { label: 'Special offer', text: 'Hello {{name}}! Cambridge Center of Excellence is offering a limited-time discount on our {{course}} program. Don\'t miss this opportunity to advance your career! Contact us today.'},
+    { label: 'New course alert', text: 'Hello {{name}}! Cambridge Center of Excellence is launching a new course! Be among the first to enroll and take your career to the next level. Reply for details. '},
   ]
 
   const STATUS_CONFIG: Record<string, string> = {

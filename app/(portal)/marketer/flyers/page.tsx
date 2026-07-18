@@ -99,7 +99,7 @@ export default function MyFlyers() {
                     </div>
                     <div className="flex gap-2 mt-3">
                       <button onClick={() => copy(f.id)} className="flex-1 h-9 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold hover:brightness-110 transition">Copy link</button>
-                      <a href={`https://wa.me/?text=${encodeURIComponent(`Interested in professional training with Cambridge Centre of Excellence? Tap here:\n\n${linkFor(f.id)}`)}`}
+                      <a href={`https://wa.me/?text=${encodeURIComponent(`Interested in professional training with Cambridge Center of Excellence? Tap here:\n\n${linkFor(f.id)}`)}`}
                         target="_blank" rel="noopener noreferrer"
                         className="flex-1 h-9 rounded-lg bg-[#25D366] text-white text-[13px] font-semibold flex items-center justify-center hover:opacity-90 transition">WhatsApp</a>
                       <button onClick={() => remove(f.id)} className="h-9 px-3 rounded-lg border border-[var(--line)] text-[var(--danger)] text-[13px] font-medium">Delete</button>

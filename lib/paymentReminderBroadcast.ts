@@ -25,7 +25,7 @@ export async function broadcastPaymentReminders(opts: { channels?: string; note?
   let notified = 0
   for (const f of owing) {
     const first = (f.student_name || 'there').split(' ')[0]
-    const msg = `Hi ${first}, this is a friendly reminder from Cambridge Centre of Excellence. You have an outstanding balance of GHS ${f.balance.toFixed(2)}.${opts.note ? `\n${opts.note}` : ''}\nTo pay: ${payBase}/${f.id}`
+    const msg = `Hi ${first}, this is a friendly reminder from Cambridge Center of Excellence. You have an outstanding balance of GHS ${f.balance.toFixed(2)}.${opts.note ? `\n${opts.note}` : ''}\nTo pay: ${payBase}/${f.id}`
     let ok = false
     try { if (channels.includes('whatsapp')) ok = await sendWhatsAppText(f.phone, msg) || ok } catch {}
     try { if (channels.includes('sms')) ok = await sendSMS(f.phone, msg) || ok } catch {}

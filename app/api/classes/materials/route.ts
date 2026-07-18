@@ -52,7 +52,7 @@ export async function POST(req: NextRequest) {
     if (s.email) {
       try {
         await sendEmailGeneric(s.email, `${heading} — ${courseName}`,
-          `<p>Hello ${first},</p><p>${heading} for your <strong>${courseName}</strong> class:</p>${note ? `<p>${note}</p>` : ''}${link ? `<p><a href="${link}">${link}</a></p>` : ''}<p>Cambridge Centre of Excellence</p>`)
+          `<p>Hello ${first},</p><p>${heading} for your <strong>${courseName}</strong> class:</p>${note ? `<p>${note}</p>` : ''}${link ? `<p><a href="${link}">${link}</a></p>` : ''}<p>Cambridge Center of Excellence</p>`)
         ok = true
       } catch {}
     }

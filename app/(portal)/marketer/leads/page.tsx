@@ -318,7 +318,7 @@ export default function MarketerLeads() {
                       <div className="flex gap-2 mb-3">
                         <CallButton leadId={lead.id} phone={lead.phone} onLogged={() => refetch?.()}
                           className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[var(--accent)] text-white rounded-lg text-[13px] font-semibold hover:brightness-110 transition disabled:opacity-60" />
-                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split(' ')[0]}, this is from Cambridge Centre of Excellence...`)}`}
+                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split(' ')[0]}, this is from Cambridge Center of Excellence...`)}`}
                           target="_blank" rel="noopener noreferrer"
                           className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[#25D366] text-white rounded-lg text-[13px] font-semibold hover:opacity-90 transition">
                           WhatsApp

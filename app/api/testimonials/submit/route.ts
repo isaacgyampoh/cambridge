@@ -42,7 +42,7 @@ export async function POST(req: NextRequest) {
     if (!existing) {
       await sb.from('alumni').insert({
         full_name: student_name.trim(),
-        course_completed: program || 'Cambridge Centre of Excellence',
+        course_completed: program || 'Cambridge Center of Excellence',
         photo_url: image_url?.trim() || null,
         current_job_title: role_title?.trim() || null,
         testimonial: quote.trim(),

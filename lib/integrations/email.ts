@@ -68,7 +68,7 @@ export async function sendWelcomeEmail(to: string, name: string, course: string)
  const html =`
  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
  <div style="background:#1e3a8a;padding:30px;border-radius:12px 12px 0 0;text-align:center">
- <h1 style="color:white;margin:0;font-size:24px">Cambridge Centre of Excellence</h1>
+ <h1 style="color:white;margin:0;font-size:24px">Cambridge Center of Excellence</h1>
  </div>
  <div style="background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px">
  <h2 style="color:#111827">Welcome, ${name}! </h2>
@@ -84,10 +84,28 @@ export async function sendWelcomeEmail(to: string, name: string, course: string)
  </ol>
  </div>
  <p style="color:#6b7280">For any questions, contact us via WhatsApp or call our office.</p>
- <p style="color:#374151;margin-top:30px">Best regards,<br><strong>Cambridge Centre of Excellence</strong></p>
+ <p style="color:#374151;margin-top:30px">Best regards,<br><strong>Cambridge Center of Excellence</strong></p>
  </div>
  </div>`
- return sendEmail(to, 'Welcome to Cambridge Centre of Excellence!', html)
+ return sendEmail(to, 'Welcome to Cambridge Center of Excellence!', html)
+}
+
+export async function sendUploadedAdmissionLetter(to: string, name: string, course: string, admissionNo: string, letterUrl: string) {
+  // A short covering email that presents the admission letter the school
+  // uploaded (not a generated template). The letter itself is the attachment/link.
+  const html = `
+  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 28px;color:#1a2230">
+    <div style="background:#1a7a85;padding:22px 28px;border-radius:12px 12px 0 0;text-align:center;margin:-32px -28px 24px">
+      <h1 style="color:#fff;margin:0;font-size:18px;letter-spacing:0.3px">CAMBRIDGE CENTER OF EXCELLENCE</h1>
+    </div>
+    <p style="font-size:15px;line-height:1.7">Dear ${name},</p>
+    <p style="font-size:15px;line-height:1.7">Congratulations! We are pleased to admit you to <b>${course}</b>.${admissionNo ? ` Your admission number is <b>${admissionNo}</b>.` : ''}</p>
+    <p style="font-size:15px;line-height:1.7">Your official admission letter is attached below. Please download and keep it safe.</p>
+    <p style="margin:22px 0"><a href="${letterUrl}" style="background:#1a7a85;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px">Download your admission letter</a></p>
+    <p style="font-size:14px;line-height:1.7;color:#5a6675">We warmly welcome you to the Cambridge Center of Excellence community.</p>
+    <p style="font-size:14px;line-height:1.5;margin-top:20px">Sincerely,<br><b>Admissions Office</b><br>Cambridge Center of Excellence</p>
+  </div>`
+  return sendEmail(to, `Admission Letter — ${course} | Cambridge Center of Excellence`, html)
 }
 
 export async function sendAdmissionLetter(to: string, name: string, course: string, admissionNo: string, startDate?: string, pdfUrl?: string) {
@@ -95,13 +113,13 @@ export async function sendAdmissionLetter(to: string, name: string, course: stri
  const html =`
  <div style="font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:0 auto;background:#ffffff">
    <div style="background:#1a7a85;padding:32px 40px;text-align:center">
-     <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;font-family:Arial,sans-serif">CAMBRIDGE CENTRE OF EXCELLENCE</h1>
+     <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;font-family:Arial,sans-serif">CAMBRIDGE CENTER OF EXCELLENCE</h1>
      <p style="color:#bfe3e6;margin:6px 0 0;font-size:13px;font-family:Arial,sans-serif;letter-spacing:2px">LETTER OF ADMISSION</p>
    </div>
    <div style="padding:40px">
      <p style="color:#5a6675;margin:0 0 24px;font-size:13px;font-family:Arial,sans-serif">${today}</p>
      <p style="color:#1a2230;font-size:15px;line-height:1.7">Dear <strong>${name}</strong>,</p>
-     <p style="color:#1a2230;font-size:15px;line-height:1.7">Following the successful completion of your registration, we are delighted to formally offer you admission into the following programme at Cambridge Centre of Excellence:</p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.7">Following the successful completion of your registration, we are delighted to formally offer you admission into the following programme at Cambridge Center of Excellence:</p>
      <div style="background:#f0f7f8;border-left:4px solid #1a7a85;padding:20px 24px;margin:24px 0">
        <table style="width:100%;font-family:Arial,sans-serif;font-size:14px;color:#1a2230">
          <tr><td style="padding:5px 0;color:#5a6675;width:150px">Admission Number</td><td style="padding:5px 0;font-weight:bold">${admissionNo}</td></tr>
@@ -111,13 +129,13 @@ export async function sendAdmissionLetter(to: string, name: string, course: stri
        </table>
      </div>
      <p style="color:#1a2230;font-size:15px;line-height:1.7">Your registration fee has been received. Our team will be in touch shortly with your class schedule, learning materials, and joining details. Please keep your admission number safe — you will need it for all correspondence.</p>
-     <p style="color:#1a2230;font-size:15px;line-height:1.7">We warmly welcome you to the Cambridge Centre of Excellence community and look forward to supporting your professional journey.</p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.7">We warmly welcome you to the Cambridge Center of Excellence community and look forward to supporting your professional journey.</p>
      <p style="color:#1a2230;font-size:15px;line-height:1.7;margin-top:32px">Yours sincerely,</p>
-     <p style="color:#1a2230;font-size:15px;line-height:1.5;margin-top:4px"><strong>Admissions Office</strong><br><span style="color:#5a6675;font-size:14px">Cambridge Centre of Excellence</span></p>
+     <p style="color:#1a2230;font-size:15px;line-height:1.5;margin-top:4px"><strong>Admissions Office</strong><br><span style="color:#5a6675;font-size:14px">Cambridge Center of Excellence</span></p>
      ${pdfUrl ? `<p style="margin:28px 0 4px"><a href="${pdfUrl}" style="background:#1a7a85;color:#fff;text-decoration:none;padding:11px 22px;border-radius:10px;font-weight:600;font-size:14px;font-family:Arial,sans-serif">Download your admission letter (PDF)</a></p>` : ''}
    </div>
    <div style="background:#fafbfc;padding:20px 40px;border-top:1px solid #eaedf1;text-align:center">
-     <p style="color:#97a1b0;font-size:12px;font-family:Arial,sans-serif;margin:0">This is an official admission letter from Cambridge Centre of Excellence.<br>For enquiries, reply to this email or contact the Admissions Office.</p>
+     <p style="color:#97a1b0;font-size:12px;font-family:Arial,sans-serif;margin:0">This is an official admission letter from Cambridge Center of Excellence.<br>For enquiries, reply to this email or contact the Admissions Office.</p>
    </div>
  </div>`
  return sendEmail(to,`Admission Letter — ${course} | Cambridge CE`, html)
@@ -138,7 +156,7 @@ export async function sendPaymentReceipt(to: string, name: string, amount: strin
  <p style="margin:4px 0;color:#374151">Program: <strong>${course}</strong></p>
  <p style="margin:4px 0;color:#374151">Date: <strong>${new Date().toLocaleDateString('en-GH')}</strong></p>
  </div>
- <p style="color:#374151;margin-top:30px">Thank you,<br><strong>Cambridge Centre of Excellence</strong></p>
+ <p style="color:#374151;margin-top:30px">Thank you,<br><strong>Cambridge Center of Excellence</strong></p>
  </div>
  </div>`
  return sendEmail(to,`Payment Receipt ${receipt} — Cambridge CE`, html)
@@ -161,7 +179,7 @@ export async function sendClassReminder(to: string, name: string, course: string
  ${zoomLink ?`<p style="margin:4px 0;color:#1e40af"> Zoom: <a href="${zoomLink}">${zoomLink}</a></p>` : ''}
  </div>
  <p style="color:#6b7280">Please ensure you are on time. See you there!</p>
- <p style="color:#374151;margin-top:30px">Cambridge Centre of Excellence</p>
+ <p style="color:#374151;margin-top:30px">Cambridge Center of Excellence</p>
  </div>
  </div>`
  return sendEmail(to,`Class Reminder: ${course} on ${date}`, html)
@@ -178,7 +196,7 @@ export async function sendOTPEmail(to: string, name: string, code: string) {
   const html = `
   <div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:32px 24px;color:#16202e">
     <div style="text-align:center;margin-bottom:24px">
-      <div style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#8b97a8;font-weight:600">Cambridge Centre of Excellence</div>
+      <div style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#8b97a8;font-weight:600">Cambridge Center of Excellence</div>
     </div>
     <h1 style="font-size:20px;font-weight:600;margin:0 0 8px">Your login code</h1>
     <p style="font-size:14px;color:#45505f;line-height:1.6;margin:0 0 24px">Hi ${first}, use this code to finish signing in. It expires in 10 minutes.</p>

@@ -42,9 +42,9 @@ export async function generateAssistantReply(
 
   const firstName = (ctx.leadName || '').split(' ')[0] || 'there'
   const marketer = ctx.marketerName?.split(' ')[0] || 'your advisor'
-  const intro = ctx.marketerIntro || `I'm ${marketer}, your advisor at Cambridge Centre of Excellence`
+  const intro = ctx.marketerIntro || `I'm ${marketer}, your advisor at Cambridge Center of Excellence`
 
-  const system = `You are answering WhatsApp messages on behalf of a real person at Cambridge Centre of Excellence, a professional training institute in Ghana.
+  const system = `You are answering WhatsApp messages on behalf of a real person at Cambridge Center of Excellence, a professional training institute in Ghana.
 
 You are writing AS ${intro}. Write in the first person, warmly and naturally, like a real Ghanaian admissions advisor texting on WhatsApp — never like a robot or a generic assistant. Keep replies short (1–4 sentences), friendly and professional. Use the person's first name (${firstName}) occasionally, not in every message.
 
@@ -80,7 +80,7 @@ export async function generateOpeningMessage(ctx: AssistantContext): Promise<str
   const marketer = ctx.marketerName?.split(' ')[0] || 'your advisor'
   const course = ctx.courseInterest || 'our programmes'
 
-  const system = `You are ${marketer}, a friendly admissions advisor at Cambridge Centre of Excellence in Ghana. Write a SHORT, warm opening WhatsApp message (2-3 sentences max) to a new prospect named ${firstName} who showed interest in ${course}. Introduce yourself by first name, acknowledge their interest, and invite them to ask anything or say they're ready to register. Be human and personable, not salesy or robotic. No markdown, no emojis unless natural. Do not invent specific prices or dates.`
+  const system = `You are ${marketer}, a friendly admissions advisor at Cambridge Center of Excellence in Ghana. Write a SHORT, warm opening WhatsApp message (2-3 sentences max) to a new prospect named ${firstName} who showed interest in ${course}. Introduce yourself by first name, acknowledge their interest, and invite them to ask anything or say they're ready to register. Be human and personable, not salesy or robotic. No markdown, no emojis unless natural. Do not invent specific prices or dates.`
 
   return aiComplete({
     system,

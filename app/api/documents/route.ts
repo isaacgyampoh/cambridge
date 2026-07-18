@@ -31,11 +31,11 @@ export async function POST(req: NextRequest) {
  if (!student.email) continue
 
  // Send email with PDF link
- const subject =`${doc.name} — Cambridge Centre of Excellence`
+ const subject =`${doc.name} — Cambridge Center of Excellence`
  const html =`
  <div style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px">
  <div style="background:#1e3a8a;padding:30px;border-radius:12px 12px 0 0;text-align:center">
- <h1 style="color:white;margin:0;font-size:22px">Cambridge Centre of Excellence</h1>
+ <h1 style="color:white;margin:0;font-size:22px">Cambridge Center of Excellence</h1>
  </div>
  <div style="background:white;padding:30px;border:1px solid #e5e7eb;border-radius:0 0 12px 12px">
  <p style="color:#374151">Dear <strong>${student.full_name}</strong>,</p>
@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
  </a>
  </div>
  ${doc.description ?`<p style="color:#6b7280;font-size:14px">${doc.description}</p>` : ''}
- <p style="color:#374151;margin-top:30px">Best regards,<br><strong>Cambridge Centre of Excellence</strong></p>
+ <p style="color:#374151;margin-top:30px">Best regards,<br><strong>Cambridge Center of Excellence</strong></p>
  </div>
  </div>
 `

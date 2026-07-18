@@ -22,7 +22,7 @@ export default async function PublicAlumniPage() {
           </div>
           <h1 className="text-4xl font-black mb-3">Our Alumni</h1>
           <p className="text-blue-200 text-lg max-w-xl mx-auto">
-            Real people, real results. Meet the graduates of Cambridge Centre of Excellence who are making an impact.
+            Real people, real results. Meet the graduates of Cambridge Center of Excellence who are making an impact.
           </p>
           <div className="flex items-center justify-center gap-8 mt-8">
             <div className="text-center">

@@ -13,7 +13,7 @@ const env = (k: string): string => (typeof process !== 'undefined' && process.en
 export const CONFIG = {
 
   // ── APP ─────────────────────────────────────────────────────
-  appName: 'Cambridge Centre of Excellence',
+  appName: 'Cambridge Center of Excellence',
   appUrl: env('APP_URL') || 'https://portal.cambridge.edu.gh',
 
   // ── SUPABASE ────────────────────────────────────────────────
@@ -86,7 +86,7 @@ export const CONFIG = {
   // ── BANK DETAILS (shown to students paying by bank transfer) ──
   // Update these with the real account; they appear on every pay page.
   bankName: 'Cambridge CE Bank',
-  bankAccountName: 'Cambridge Centre of Excellence',
+  bankAccountName: 'Cambridge Center of Excellence',
   bankAccountNumber: '1234567890',
   bankBranch: '',
   superAdminPassword: 'CCE-Admin-Secure-2024!',

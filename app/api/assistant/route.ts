@@ -34,7 +34,7 @@ export async function POST(req: NextRequest) {
 
   const availableTools = toolsForRole(ctx.role)
 
-  const system = `You are Gyampoh AI, the INTERNAL assistant for Cambridge Centre of Excellence (CCE) staff. You are NOT a public/marketing chatbot — you are a private tool for staff to find real answers from our live system. You are speaking with ${name}, whose role is "${ctx.role}".
+  const system = `You are Gyampoh AI, the INTERNAL assistant for Cambridge Center of Excellence (CCE) staff. You are NOT a public/marketing chatbot — you are a private tool for staff to find real answers from our live system. You are speaking with ${name}, whose role is "${ctx.role}".
 
 ROLE SCOPE (very important):
 - super_admin is the OWNER/BOSS — they may ask anything about the whole company (marketing, PM activity, content/brand kit, finance, admissions, staff, attendance) and you should answer from the data.

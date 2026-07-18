@@ -10,7 +10,7 @@ export default async function CertificateDownload({ params }: { params: Promise<
       <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f8fc', fontFamily: 'Inter, sans-serif' }}>
         <div style={{ textAlign: 'center', padding: 24 }}>
           <h1 style={{ color: '#1a2230' }}>Certificate not found</h1>
-          <p style={{ color: '#94a3b8' }}>This link may be invalid or expired. Please contact Cambridge Centre of Excellence.</p>
+          <p style={{ color: '#94a3b8' }}>This link may be invalid or expired. Please contact Cambridge Center of Excellence.</p>
         </div>
       </div>
     )
@@ -19,7 +19,7 @@ export default async function CertificateDownload({ params }: { params: Promise<
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: '#f5f8fc', fontFamily: 'Inter, sans-serif', padding: 20 }}>
       <div style={{ maxWidth: 460, width: '100%', background: '#fff', borderRadius: 20, border: '1px solid #e6eaf0', padding: 36, textAlign: 'center', boxShadow: '0 4px 24px rgba(26,34,48,0.06)' }}>
-        <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" style={{ width: 72, height: 72, objectFit: 'contain', margin: '0 auto 16px' }} />
+        <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 72, height: 72, objectFit: 'contain', margin: '0 auto 16px' }} />
         <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1a2230', margin: '0 0 4px', letterSpacing: '-0.02em' }}>Your certificate is ready</h1>
         <p style={{ color: '#4a5568', fontSize: 15, margin: '0 0 24px' }}>Congratulations, {cert.student_name.split(' ')[0]}.</p>
 
@@ -38,7 +38,7 @@ export default async function CertificateDownload({ params }: { params: Promise<
         ) : (
           <p style={{ color: '#94a3b8', fontSize: 14 }}>Your certificate is being prepared. Please check back shortly.</p>
         )}
-        <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 24 }}>Cambridge Centre of Excellence</p>
+        <p style={{ color: '#94a3b8', fontSize: 12, marginTop: 24 }}>Cambridge Center of Excellence</p>
       </div>
     </div>
   )

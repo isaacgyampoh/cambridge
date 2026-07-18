@@ -11,10 +11,10 @@ import InstallPrompt from '@/components/shared/InstallPrompt'
 export const metadata: Metadata = {
   metadataBase: new URL('https://portal.cambridge.edu.gh'),
   title: {
-    default: 'Cambridge Centre of Excellence',
-    template: '%s · Cambridge Centre of Excellence',
+    default: 'Cambridge Center of Excellence',
+    template: '%s · Cambridge Center of Excellence',
   },
-  description: 'Cambridge Centre of Excellence — professional and executive certification training in Ghana. PMP, HR (PHRi/SPHRi) and more.',
+  description: 'Cambridge Center of Excellence — professional and executive certification training in Ghana. PMP, HR (PHRi/SPHRi) and more.',
   manifest: '/manifest.json',
   applicationName: 'Cambridge CCE',
   appleWebApp: {
@@ -28,15 +28,15 @@ export const metadata: Metadata = {
   },
   openGraph: {
     type: 'website',
-    siteName: 'Cambridge Centre of Excellence',
-    title: 'Cambridge Centre of Excellence',
+    siteName: 'Cambridge Center of Excellence',
+    title: 'Cambridge Center of Excellence',
     description: 'Professional and executive certification training in Ghana — PMP, HR (PHRi/SPHRi) and more.',
     url: 'https://portal.cambridge.edu.gh',
-    images: [{ url: '/brand/logo.png', width: 512, height: 512, alt: 'Cambridge Centre of Excellence' }],
+    images: [{ url: '/brand/logo.png', width: 512, height: 512, alt: 'Cambridge Center of Excellence' }],
   },
   twitter: {
     card: 'summary',
-    title: 'Cambridge Centre of Excellence',
+    title: 'Cambridge Center of Excellence',
     description: 'Professional and executive certification training in Ghana.',
     images: ['/brand/logo.png'],
   },

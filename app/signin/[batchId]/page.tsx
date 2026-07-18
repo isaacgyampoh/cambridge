@@ -102,8 +102,8 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
       <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
       <div style={card}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 10px' }} />
-          <div style={{ fontSize: 13, color: '#94a3b8' }}>Cambridge Centre of Excellence</div>
+          <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 10px' }} />
+          <div style={{ fontSize: 13, color: '#94a3b8' }}>Cambridge Center of Excellence</div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: '#1a2230', margin: '4px 0 0' }}>Class sign-in</h1>
         </div>
 

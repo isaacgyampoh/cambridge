@@ -36,7 +36,7 @@ export async function POST(req: NextRequest) {
   const link = `${CONFIG.appUrl}/apply/${marketer.marketer_code}`
   const first = (lead.full_name || '').split(' ')[0] || 'there'
   const mFirst = (marketer.full_name || '').split(' ')[0] || ''
-  const msg = `Hello ${first}, wonderful to hear you're interested in joining us at Cambridge Centre of Excellence.\n\nHere is your registration link:\n\n${link}\n\nClick it to fill in your details and pay your registration fee. Once that's done, you're registered and I'll guide you through the next steps.\n\nLet me know if you have any questions.\n\n${mFirst}`
+  const msg = `Hello ${first}, wonderful to hear you're interested in joining us at Cambridge Center of Excellence.\n\nHere is your registration link:\n\n${link}\n\nClick it to fill in your details and pay your registration fee. Once that's done, you're registered and I'll guide you through the next steps.\n\nLet me know if you have any questions.\n\n${mFirst}`
 
   const sent = await sendWhatsAppText(lead.phone, msg, marketerId!)
 

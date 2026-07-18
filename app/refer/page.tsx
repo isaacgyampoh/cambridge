@@ -26,7 +26,7 @@ function GetLink() {
     if (d.code) setLink(`${window.location.origin}/refer?code=${d.code}`)
   }
   function copy() { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-  const wa = `https://wa.me/?text=${encodeURIComponent(`Join me at Cambridge Centre of Excellence! Register your interest here: ${link}`)}`
+  const wa = `https://wa.me/?text=${encodeURIComponent(`Join me at Cambridge Center of Excellence! Register your interest here: ${link}`)}`
 
   return (
     <Shell title="Refer a friend, earn rewards" subtitle="Share your link. When a friend you refer enrolls, you get rewarded.">
@@ -76,12 +76,12 @@ function FriendForm({ code, marketerCode }: { code: string | null; marketerCode:
 
   if (done) return (
     <Shell title="Thank you!" subtitle="We've received your details. Our team will reach out to you shortly.">
-      <div className="text-center text-[14px] text-[var(--ink-soft)]">A course advisor will contact you soon about enrolling at Cambridge Centre of Excellence.</div>
+      <div className="text-center text-[14px] text-[var(--ink-soft)]">A course advisor will contact you soon about enrolling at Cambridge Center of Excellence.</div>
     </Shell>
   )
 
   return (
-    <Shell title="You've been invited" subtitle="A friend thinks you'd be a great fit for Cambridge Centre of Excellence. Register your interest below.">
+    <Shell title="You've been invited" subtitle="A friend thinks you'd be a great fit for Cambridge Center of Excellence. Register your interest below.">
       <div className="space-y-4">
         <Input label="Full name" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Your name" />
         <Input label="Phone" value={form.phone} onChange={v => setForm(f => ({ ...f, phone: v }))} placeholder="024 000 0000" />

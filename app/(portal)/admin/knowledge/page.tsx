@@ -106,8 +106,8 @@ export default function KnowledgeBasePage() {
             </div>
           )}
 
-          {/* Centre info */}
-          <SectionLabel>Centre information ({infos.length})</SectionLabel>
+          {/* Center info */}
+          <SectionLabel>Center information ({infos.length})</SectionLabel>
           {infos.length === 0 ? (
             <EmptyState  title="No info snippets yet" description="Add general facts: address, opening hours, payment options, contact details." action={<Button variant="secondary" onClick={() => openNew('info')}>Add info</Button>} />
           ) : (

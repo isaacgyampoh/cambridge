@@ -109,14 +109,14 @@ export const WA = {
     const m = (marketerName || '').split(' ')[0] || 'your advisor'
     const course = courseInterest ? ` in *${courseInterest}*` : ''
     const intro = marketerIntro || `I'm ${m}`
-    return `Hello ${first}! Thank you so much for your interest in Cambridge Centre of Excellence${course}.\n\n${intro}, and I'll personally be helping you through the process. I'll give you a quick call shortly so we can have a brief chat, and you can always reach me right here on WhatsApp anytime.\n\nIn the meantime, feel free to ask me any questions you have. I'm happy to help.`
+    return `Hello ${first}! Thank you so much for your interest in Cambridge Center of Excellence${course}.\n\n${intro}, and I'll personally be helping you through the process. I'll give you a quick call shortly so we can have a brief chat, and you can always reach me right here on WhatsApp anytime.\n\nIn the meantime, feel free to ask me any questions you have. I'm happy to help.`
   },
 
   applicationConfirmed: (name: string, course: string) =>
-    `Hello ${name},\n\nWe have received your application for *${course}* at Cambridge Centre of Excellence.\n\nOur admissions team will review your application and get back to you shortly.\n\nThank you for choosing us.`,
+    `Hello ${name},\n\nWe have received your application for *${course}* at Cambridge Center of Excellence.\n\nOur admissions team will review your application and get back to you shortly.\n\nThank you for choosing us.`,
 
   admissionAccepted: (name: string, course: string, startDate: string) =>
-    `Congratulations ${name},\n\nYour admission to *${course}* at Cambridge Centre of Excellence has been confirmed.\n\nStart date: ${startDate}\n\nWelcome to the Cambridge family. We look forward to seeing you.`,
+    `Congratulations ${name},\n\nYour admission to *${course}* at Cambridge Center of Excellence has been confirmed.\n\nStart date: ${startDate}\n\nWelcome to the Cambridge family. We look forward to seeing you.`,
 
   classReminder1Week: (name: string, course: string, date: string, time: string, venue: string) =>
     `Hello ${name},\n\n*One week reminder*\n\nYour *${course}* class starts in one week.\n\nDate: ${date}\nTime: ${time}\nVenue: ${venue}\n\nPlease prepare your materials. See you soon.`,

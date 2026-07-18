@@ -205,7 +205,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   if (!lead) return <div className="text-center py-20 text-[var(--ink-faint)]">Lead not found</div>
 
   const WA_TEMPLATES = [
-    `Hello {{name}}! This is ${profile?.full_name?.split(' ')[0]} from Cambridge Centre of Excellence. I'm reaching out to follow up on your interest in our programs. Are you still interested? `,
+    `Hello {{name}}! This is ${profile?.full_name?.split(' ')[0]} from Cambridge Center of Excellence. I'm reaching out to follow up on your interest in our programs. Are you still interested? `,
     `Hi {{name}}! Just checking in from Cambridge CE. We have a new intake starting soon. Would you like to know more? `,
     `Hello {{name}}! I wanted to share something exciting — we have a special offer this month at Cambridge CE. Can I tell you more? `,
   ]

@@ -163,9 +163,9 @@ function LoginForm() {
         <div className="relative">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center overflow-hidden p-1 shadow-lg">
-              <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" className="w-full h-full object-contain" />
+              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
             </div>
-            <div className="text-white text-[15px] font-semibold tracking-tight">Cambridge Centre of Excellence</div>
+            <div className="text-white text-[15px] font-semibold tracking-tight">Cambridge Center of Excellence</div>
           </div>
         </div>
 
@@ -199,9 +199,9 @@ function LoginForm() {
           {/* Mobile logo */}
           <div className="lg:hidden mb-10 flex flex-col items-center">
             <div className="w-16 h-16 rounded-2xl bg-white border border-[var(--line)] flex items-center justify-center mb-4 overflow-hidden p-1">
-              <img src="/brand/logo.png" alt="Cambridge Centre of Excellence" className="w-full h-full object-contain" />
+              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
             </div>
-            <h1 className="font-display text-[var(--ink)] text-xl font-semibold">Cambridge Centre of Excellence</h1>
+            <h1 className="font-display text-[var(--ink)] text-xl font-semibold">Cambridge Center of Excellence</h1>
             <p className="text-[var(--ink-faint)] text-sm mt-1">Staff portal</p>
           </div>
 
@@ -329,7 +329,7 @@ function LoginForm() {
           )}
 
           <p className="text-[11px] text-[var(--ink-faint)] mt-12">
-            Cambridge Centre of Excellence · {new Date().getFullYear()}
+            Cambridge Center of Excellence · {new Date().getFullYear()}
           </p>
         </div>
       </div>

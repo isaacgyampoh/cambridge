@@ -32,7 +32,7 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
 
     // ── Header band ──
     page.drawRectangle({ x: 0, y: height - 110, width, height: 110, color: TEAL })
-    page.drawText('CAMBRIDGE CENTRE OF EXCELLENCE', {
+    page.drawText('CAMBRIDGE CENTER OF EXCELLENCE', {
       x: 40, y: height - 58, size: 18, font: bold, color: rgb(1, 1, 1),
     })
     page.drawText('LETTER OF ADMISSION', {
@@ -48,7 +48,7 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
 
     y -= 26
     const intro = 'Following the successful completion of your registration, we are delighted to formally'
-    const intro2 = 'offer you admission into the following programme at Cambridge Centre of Excellence:'
+    const intro2 = 'offer you admission into the following programme at Cambridge Center of Excellence:'
     page.drawText(intro, { x: 40, y, size: 11, font: serif, color: INK })
     y -= 16
     page.drawText(intro2, { x: 40, y, size: 11, font: serif, color: INK })
@@ -77,7 +77,7 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
       'class schedule, learning materials, and joining details. Please keep your admission',
       'number safe — you will need it for all correspondence.',
       '',
-      'We warmly welcome you to the Cambridge Centre of Excellence community and look',
+      'We warmly welcome you to the Cambridge Center of Excellence community and look',
       'forward to supporting your professional journey.',
     ]
     for (const line of body) {
@@ -90,11 +90,11 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
     y -= 24
     page.drawText('Admissions Office', { x: 40, y, size: 11, font: bold, color: INK })
     y -= 15
-    page.drawText('Cambridge Centre of Excellence', { x: 40, y, size: 10, font: helv, color: SOFT })
+    page.drawText('Cambridge Center of Excellence', { x: 40, y, size: 10, font: helv, color: SOFT })
 
     // ── Footer ──
     page.drawLine({ start: { x: 40, y: 70 }, end: { x: width - 40, y: 70 }, thickness: 0.5, color: rgb(0.918, 0.929, 0.945) })
-    page.drawText('This is an official admission letter from Cambridge Centre of Excellence.', {
+    page.drawText('This is an official admission letter from Cambridge Center of Excellence.', {
       x: 40, y: 54, size: 9, font: helv, color: FAINT,
     })
     page.drawText('For enquiries, reply to your admission email or contact the Admissions Office.', {
