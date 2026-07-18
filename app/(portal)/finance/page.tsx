@@ -62,6 +62,15 @@ export default function FinancePage() {
         actions={
           <>
             <Button variant="secondary" href="/finance/reports">Reports</Button>
+            <Button variant="secondary" onClick={async () => {
+              const ref = prompt('Paste the Paystack reference of a payment that did not register (or leave blank to auto-scan recent payments):')
+              if (ref === null) return
+              toast.loading('Checking Paystack…', { id: 'rec' })
+              const d = await fetch('/api/paystack/reconcile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ref.trim() ? { reference: ref.trim() } : {}) }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+              if (d.error) toast.error(d.error, { id: 'rec' })
+              else toast.success(`Fixed ${d.fixed || 0} payment(s). ${d.swept ? `Scanned ${d.swept}.` : ''}`.trim(), { id: 'rec' })
+              refetchP?.()
+            }}>Fix stuck payment</Button>
             <Button variant="secondary" href="/finance/reminders">Payment reminders</Button>
             <Button variant="secondary" href="/finance/invoices/new" >Invoice</Button>
             <Button onClick={() => setShowModal(true)} >Record payment</Button>

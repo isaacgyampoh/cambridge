@@ -25,12 +25,21 @@ export async function POST(req: NextRequest) {
   const sb = createServiceClient()
 
   // Check if this is an application payment
-  if (ref.startsWith('CCE-APP-')) {
-    const parts = ref.split('-')
-    const applicationId = parts[2]
+  if (ref.startsWith('CCE-APP-') || event.data?.metadata?.application_id) {
+    // The application ID is a UUID (contains dashes), so we CANNOT reliably
+    // pull it out of the reference by splitting on '-'. Read it from the
+    // Paystack metadata (set at init); fall back to stripping the known
+    // prefix/suffix off the reference.
+    let applicationId = event.data?.metadata?.application_id || null
+    if (!applicationId && ref.startsWith('CCE-APP-')) {
+      // ref = CCE-APP-{uuid}-{timestamp}; remove prefix + trailing -timestamp
+      const withoutPrefix = ref.slice('CCE-APP-'.length)
+      applicationId = withoutPrefix.replace(/-\d+$/, '')
+    }
+    if (!applicationId) return NextResponse.json({ received: true, note: 'no application id' })
 
-    const { data: app } = await sb.from('applications').select('*, course:course_id(name)').eq('id', applicationId).single()
-    if (!app) return NextResponse.json({ received: true })
+    const { data: app } = await sb.from('applications').select('*, course:course_id(name)').eq('id', applicationId).maybeSingle()
+    if (!app) return NextResponse.json({ received: true, note: 'application not found' })
 
     // Already processed?
     if (app.payment_status === 'paid') return NextResponse.json({ received: true, note: 'already processed' })
