@@ -65,11 +65,6 @@ export async function POST(req: NextRequest) {
 
   const courseName = (app as any).course?.name || null
 
-  // Welcome email
-  if (app.email) {
-    await sendWelcomeEmail(app.email, app.full_name, courseName || 'your programme')
-  }
-
   // 1. Ensure a lead exists — LINK the person's existing lead if they already
   // came in (flyer, webhook, AI chat, manual add) rather than creating a
   // duplicate; match by phone in BOTH formats (233… / 0…) or email.
@@ -159,7 +154,8 @@ export async function POST(req: NextRequest) {
 
   // 4. Admission record (idempotent — don't duplicate)
   let admissionNo = ''
-  const { data: existingAdm } = await sb.from('admissions').select('id, admission_number').eq('lead_id', leadId).maybeSingle()
+  const { data: existingAdm } = await sb.from('admissions').select('id, admission_number, admission_letter_sent').eq('lead_id', leadId).maybeSingle()
+  const letterAlreadySent = (existingAdm as any)?.admission_letter_sent === true
   if (!existingAdm) {
     admissionNo = `CCE/${new Date().getFullYear()}/${String(Math.floor(1000 + Math.random() * 9000))}`
     const { data: admission } = await sb.from('admissions').insert({
@@ -178,7 +174,9 @@ export async function POST(req: NextRequest) {
   // 5. AUTO admission letter — a personalized PDF (name, admission no,
   // programme, start date) generated on the fly, saved to Supabase, and sent
   // on BOTH WhatsApp and email. No manual admin step.
-  if (app.phone || app.email) {
+  if ((app.phone || app.email) && !letterAlreadySent) {
+    // Welcome email (once — gated with the letter so reconcile re-runs never duplicate)
+    if (app.email) { try { await sendWelcomeEmail(app.email, app.full_name, courseName || 'your programme') } catch {} }
     const letterCourse = (app as any).course?.name || 'your programme'
     const first = (app.full_name || '').split(' ')[0] || 'there'
 

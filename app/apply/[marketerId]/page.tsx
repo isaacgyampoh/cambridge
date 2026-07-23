@@ -3,7 +3,6 @@ import { uploadFile } from '@/lib/upload'
 import { CONFIG } from '@/lib/config'
 
 import { useState, useEffect, use } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import type { Profile, Course } from '@/types'
 import { toast } from 'sonner'
 import Script from 'next/script'
@@ -78,7 +77,6 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
     payment_method: 'paystack',
   })
 
-  const sb = createClient()
 
   useEffect(() => {
     async function load() {
@@ -89,8 +87,12 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
         setMarketer(d.marketer || null)
       } catch { setMarketer(null) }
 
-      const { data: c } = await sb.from('courses').select('*').eq('is_active', true)
-      setCourses(c || [])
+      // Courses via the public server endpoint (never a browser DB read on a
+      // public page — RLS landmine class that broke marketer attribution).
+      try {
+        const cd = await fetch('/api/courses/public').then(r => r.json())
+        setCourses(cd.list || [])
+      } catch { setCourses([]) }
     }
     load()
   }, [marketerId])
