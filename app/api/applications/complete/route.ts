@@ -70,8 +70,29 @@ export async function POST(req: NextRequest) {
     await sendWelcomeEmail(app.email, app.full_name, courseName || 'your programme')
   }
 
-  // 1. Ensure a lead exists
+  // 1. Ensure a lead exists — LINK the person's existing lead if they already
+  // came in (flyer, webhook, AI chat, manual add) rather than creating a
+  // duplicate; match by phone in BOTH formats (233… / 0…) or email.
   let leadId = app.lead_id
+  if (!leadId && (app.phone || app.email)) {
+    const phone233 = app.phone ? String(app.phone).replace(/^0/, '233') : null
+    const phone0 = app.phone ? String(app.phone).replace(/^233/, '0') : null
+    let existing: any = null
+    if (phone233) {
+      const { data } = await sb.from('leads').select('id').in('phone', [phone233, phone0].filter(Boolean) as string[])
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      existing = data
+    }
+    if (!existing && app.email) {
+      const { data } = await sb.from('leads').select('id').eq('email', app.email)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      existing = data
+    }
+    if (existing) {
+      leadId = existing.id
+      await sb.from('applications').update({ lead_id: leadId }).eq('id', applicationId)
+    }
+  }
   if (!leadId) {
     const { data: lead } = await sb.from('leads').insert({
       full_name: app.full_name,
@@ -87,6 +108,12 @@ export async function POST(req: NextRequest) {
   }
 
   if (!leadId) return NextResponse.json({ error: 'Could not create lead' }, { status: 500 })
+
+  // The registration link belongs to a specific marketer — whoever's link was
+  // used OWNS this lead. Force the assignment so it can never sit unassigned.
+  if (app.marketer_id) {
+    await sb.from('leads').update({ assigned_to: app.marketer_id, assigned_at: new Date().toISOString() }).eq('id', leadId)
+  }
 
   const { data: lead } = await sb.from('leads').select('*').eq('id', leadId).single()
   const creditTo = app.marketer_id || lead?.assigned_to || null

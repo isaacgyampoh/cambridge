@@ -7,6 +7,20 @@ export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'accountant']
 
 /**
+ * Cron sweep (hourly): /api/paystack/reconcile?key=SECRET
+ * Auto-fixes any paid-but-unprocessed application (webhook missed, browser
+ * closed) — assignment, credit, registered status, admission letter.
+ */
+export async function GET(req: NextRequest) {
+  if (new URL(req.url).searchParams.get('key') !== CONFIG.setupSecret) {
+    return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  }
+  const origin = new URL(req.url).origin
+  const result = await sweep(origin)
+  return NextResponse.json({ ran: true, ...result })
+}
+
+/**
  * Reconcile stuck payments: finds applications that were paid on Paystack but
  * never fully processed (lead unassigned, marketer not credited, status not
  * registered), verifies each against Paystack, and completes them.
@@ -30,9 +44,15 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ fixed: r.ok ? 1 : 0, detail: r })
   }
 
-  // Mode 2: sweep — find submitted-but-unpaid or paid-but-uncredited apps
-  // Look at applications marked paid whose lead isn't 'registered' yet, plus
-  // recent applications that have a paystack_ref but no remuneration credit.
+  const s2 = await sweep(origin)
+  return NextResponse.json(s2)
+}
+
+async function sweep(origin: string) {
+  const sb = createServiceClient()
+  const results: any[] = []
+  // Find paid-but-unprocessed applications: lead missing, not registered, or
+  // (a link payment) still unassigned — then verify + complete each.
   const { data: apps } = await sb.from('applications')
     .select('id, paystack_ref, payment_status, lead_id, marketer_id, full_name')
     .not('paystack_ref', 'is', null)
@@ -40,23 +60,21 @@ export async function POST(req: NextRequest) {
     .limit(200)
 
   for (const app of apps || []) {
-    // Is it already fully processed? (lead registered + credited)
     let needsFix = false
     if (app.lead_id) {
       const { data: lead } = await sb.from('leads').select('status, assigned_to').eq('id', app.lead_id).maybeSingle()
       if (!lead || lead.status !== 'registered') needsFix = true
+      else if (app.marketer_id && lead.assigned_to !== app.marketer_id) needsFix = true
     } else {
       needsFix = true
     }
     if (!needsFix) continue
-
     if (app.paystack_ref) {
       const r = await verifyAndComplete(app.paystack_ref, origin)
       results.push({ application: app.full_name, ...r })
     }
   }
-
-  return NextResponse.json({ swept: (apps || []).length, fixed: results.filter(r => r.ok).length, results })
+  return { swept: (apps || []).length, fixed: results.filter(r => r.ok).length, results }
 }
 
 async function verifyAndComplete(reference: string, origin: string) {

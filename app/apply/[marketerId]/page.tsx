@@ -82,10 +82,12 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
 
   useEffect(() => {
     async function load() {
-      // Get marketer by code
-      const { data: m } = await sb.from('profiles')
-        .select('*').eq('marketer_code', marketerId).single()
-      setMarketer(m)
+      // Resolve the marketer SERVER-SIDE (browser reads of profiles are blocked
+      // by RLS for anonymous visitors — that made every link-lead unassigned).
+      try {
+        const d = await fetch(`/api/applications/marketer?code=${encodeURIComponent(marketerId)}`).then(r => r.json())
+        setMarketer(d.marketer || null)
+      } catch { setMarketer(null) }
 
       const { data: c } = await sb.from('courses').select('*').eq('is_active', true)
       setCourses(c || [])
@@ -110,6 +112,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         marketer_id: marketer?.id || null,
+        marketer_code: marketerId || null,
         full_name: fullName,
         first_name: form.first_name,
         middle_name: form.middle_name || null,

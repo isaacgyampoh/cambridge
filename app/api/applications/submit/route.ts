@@ -18,8 +18,19 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = createServiceClient()
+
+  // Resolve the marketer server-side from the link code — attribution must
+  // NEVER depend on a browser-side profiles read (RLS blocks it for visitors,
+  // which is exactly why link leads were arriving unassigned).
+  let marketerId = body.marketer_id || null
+  if (!marketerId && body.marketer_code) {
+    const { data: m } = await sb.from('profiles')
+      .select('id, is_active').eq('marketer_code', body.marketer_code).maybeSingle()
+    if (m && m.is_active !== false) marketerId = m.id
+  }
+
   const { data: app, error } = await sb.from('applications').insert({
-    marketer_id: body.marketer_id || null,
+    marketer_id: marketerId,
     full_name: body.full_name,
     first_name: body.first_name || null,
     middle_name: body.middle_name || null,
