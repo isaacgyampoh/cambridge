@@ -33,7 +33,7 @@ export const CONFIG = {
   arkeselApiKey: env('ARKESEL_API_KEY') || 'VXliSENVQnpsYkhWYlNpZkNRZEc',
   arkeselSenderId: 'CambridgeCE',
 
-  // ── WAWP WHATSAPP ────────────────────────────────────────────
+  // ── LEGACY (unused) ──────────────────────────────────────────
   // ── WHATSAPP: WaSender API (https://wasenderapi.com) ─────────
   // Central/system session key. Per-marketer keys live on profiles.
   wasenderApiKey: env('WASENDER_API_KEY'),

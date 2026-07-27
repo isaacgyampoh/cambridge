@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
@@ -23,7 +24,7 @@ export async function POST(req: NextRequest) {
 
   const sb = createServiceClient()
   const { data: enr } = await sb.from('class_enrollments')
-    .select('id, batch_id, full_name, phone, total_fee, amount_paid, balance').eq('id', enrollmentId).maybeSingle()
+    .select('id, batch_id, lead_id, full_name, phone, total_fee, amount_paid, balance').eq('id', enrollmentId).maybeSingle()
   if (!enr) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
   const inv = invoiceNo()
@@ -42,6 +43,7 @@ export async function POST(req: NextRequest) {
 
   // Only verified (MoMo) payments reduce the balance now. Bank/cash reduce
   // it when the accountant verifies.
+  let unlocked: any[] = []
   if (verified) {
     const newPaid = (Number(enr.amount_paid) || 0) + amt
     newBalance = Math.max(0, (Number(enr.total_fee) || 0) - newPaid)
@@ -49,6 +51,27 @@ export async function POST(req: NextRequest) {
       amount_paid: newPaid, balance: newBalance,
       fees_paid: newBalance <= 0,
     }).eq('id', enr.id)
+
+    // Keep the finance ledger in step with class-side payments, then unlock
+    // any course materials this payment now qualifies them for. Without this,
+    // paying at sign-in would never release materials (they read student_fees).
+    if ((enr as any).lead_id) {
+      try {
+        const { data: sf } = await sb.from('student_fees')
+          .select('id, amount_paid, total_fee').eq('lead_id', (enr as any).lead_id).maybeSingle()
+        if (sf) {
+          const sfPaid = (Number(sf.amount_paid) || 0) + amt
+          await sb.from('student_fees').update({
+            amount_paid: sfPaid,
+            balance: Math.max(0, (Number(sf.total_fee) || 0) - sfPaid),
+            status: (Number(sf.total_fee) || 0) - sfPaid <= 0 ? 'paid' : 'partial',
+            updated_at: new Date().toISOString(),
+          }).eq('id', sf.id)
+        }
+        const r = await releaseMaterialsFor((enr as any).lead_id)
+        unlocked = (r.materials || []).map((m: any) => ({ name: m.name, url: m.file_url }))
+      } catch {}
+    }
 
     // Send invoice + balance notification
     const first = (enr.full_name || '').split(' ')[0] || 'there'
@@ -58,7 +81,7 @@ export async function POST(req: NextRequest) {
 
   return NextResponse.json({
     success: true, verified, invoiceNo: inv, amount: amt,
-    balance: newBalance,
+    balance: newBalance, materials: unlocked,
     message: verified ? 'Payment received' : (method === 'bank' ? 'Submitted for verification' : 'Recorded — please pay at the desk'),
   })
 }

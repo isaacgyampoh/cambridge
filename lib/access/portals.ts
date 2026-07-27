@@ -50,12 +50,12 @@ export const PORTAL_PATHS: Record<string, string[]> = {
 export const ROLE_DEFAULTS: Record<string, string[]> = {
   super_admin:       ['messages','dashboard','insights','reports','grp_automation','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','workforce','wa_lines','knowledge','conversations','remuneration','clock_in','settings','grp_socials'],
   administrator:     ['messages','dashboard','insights','reports','grp_automation','registrations','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','knowledge','conversations','clock_in','grp_socials'],
-  project_manager:   ['dashboard','reports','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','academics','my_links','clock_in','messages'],
+  project_manager:   ['dashboard','reports','documents','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','academics','my_links','clock_in','messages'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','reports','my_attendance','clock_in','messages'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
-  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','my_links','clock_in','messages'],
-  exam_coordinator:  ['prep','my_leads','my_earnings','my_links','clock_in','messages'],
+  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','documents','my_links','clock_in','messages'],
+  exam_coordinator:  ['documents','prep','my_leads','my_earnings','my_links','clock_in','messages'],
   content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
   student:           ['dashboard','my_payments'],
 }
