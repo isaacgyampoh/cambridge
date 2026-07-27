@@ -41,8 +41,17 @@ export async function POST(req: NextRequest) {
     const { data: app } = await sb.from('applications').select('*, course:course_id(name)').eq('id', applicationId).maybeSingle()
     if (!app) return NextResponse.json({ received: true, note: 'application not found' })
 
-    // Already processed?
-    if (app.payment_status === 'paid') return NextResponse.json({ received: true, note: 'already processed' })
+    // Was the whole flow already completed (letter sent)? Only skip then.
+    // Previously we skipped whenever payment_status was 'paid' — but the
+    // browser path sets that BEFORE completing, so if its completion call
+    // failed the student got a receipt and never an admission letter.
+    let alreadyDone = false
+    if (app.lead_id) {
+      const { data: adm } = await sb.from('admissions')
+        .select('admission_letter_sent').eq('lead_id', app.lead_id).maybeSingle()
+      alreadyDone = (adm as any)?.admission_letter_sent === true
+    }
+    if (alreadyDone) return NextResponse.json({ received: true, note: 'already processed' })
 
     await sb.from('applications').update({
       payment_status: 'paid',
@@ -68,11 +77,19 @@ export async function POST(req: NextRequest) {
     // commission, marks the lead registered, creates the admission.
     // This is the reliable server-side path (fires even if the student
     // closed their browser before the client callback ran).
-    await fetch(`${CONFIG.appUrl}/api/applications/complete`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ applicationId }),
-    })
+    const origin = new URL(req.url).origin
+    let completed = false
+    try {
+      const r = await fetch(`${origin}/api/applications/complete`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ applicationId, paystack_ref: ref }),
+      })
+      completed = r.ok
+      if (!r.ok) console.error('[paystack webhook] complete failed', r.status, await r.text().catch(() => ''))
+    } catch (e: any) {
+      console.error('[paystack webhook] complete threw', e?.message)
+    }
 
     // Notify student
     const student = {
@@ -82,7 +99,7 @@ export async function POST(req: NextRequest) {
     }
     await onPaymentConfirmed(student, amountGHS, payment?.receipt_number || ref, (app as any).course?.name || 'your program')
 
-    return NextResponse.json({ success: true })
+    return NextResponse.json({ success: true, completed })
   }
 
   // Check if this is an invoice payment
