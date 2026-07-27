@@ -233,7 +233,27 @@ export async function POST(req: NextRequest) {
         try { await sendAdmissionLetter(app.email, app.full_name || 'Student', letterCourse, admissionNo, startDate, letterUrl || undefined) } catch {}
       }
     }
-    await sb.from('admissions').update({ admission_letter_sent: true, admitted_at: new Date().toISOString() }).eq('lead_id', leadId).then(() => {}, () => {})
+    await sb.from('admissions').update({
+      admission_letter_sent: true, admitted_at: new Date().toISOString(), status: 'admitted',
+    }).eq('lead_id', leadId).then(() => {}, () => {})
+
+    // Tell FINANCE + ACADEMICS a student has been registered and admitted.
+    try {
+      const { data: staff } = await sb.from('profiles')
+        .select('id, full_name, phone')
+        .eq('is_active', true)
+        .in('role', ['accountant', 'admissions_officer', 'exam_coordinator', 'administrator'])
+        .limit(20)
+      const note = `CCE: ${app.full_name} has registered for ${letterCourse}${admissionNo ? ` (${admissionNo})` : ''} and their admission letter has been sent.`
+      for (const st of staff || []) {
+        await sb.from('notifications').insert({
+          user_id: st.id, type: 'admission',
+          title: 'New registered student',
+          body: note, link: '/admission/process',
+        }).then(() => {}, () => {})
+        if (st.phone) { try { await sendSMS(st.phone, note) } catch {} }
+      }
+    } catch {}
   }
 
   // 6. STUDENT FEES — create the fee ledger so the student appears on the
