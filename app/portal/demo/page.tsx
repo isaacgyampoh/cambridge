@@ -77,7 +77,7 @@ export default function PortalDemo() {
     <div>
       <div style={{ background: '#1a2230', color: '#fff', padding: '10px 12px', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 7, textAlign: 'center' }}>
-          DEMO — sample student, nothing is saved. Switch between what a student sees:
+          Demo — sample student, nothing is saved. Switch between what a student sees:
         </div>
         <div style={{ display: 'flex', gap: 6, justifyContent: 'center', flexWrap: 'wrap' }}>
           {TABS.map(t => (

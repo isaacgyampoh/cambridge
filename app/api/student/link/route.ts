@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
   const token = await createLoginToken(lead.id, lead.phone)
   const url = `${CONFIG.appUrl}/portal/enter?t=${token}`
   const first = (lead.full_name || 'there').split(' ')[0]
-  const msg = `Hi ${first}! 👋 Here is your Cambridge Center of Excellence student portal:\n\n${url}\n\nTap it to open, then add it to your home screen so it works like an app. From there you can join your class, get your course materials, and check your balance.`
+  const msg = `Hi ${first}, here is your Cambridge Center of Excellence student portal:\n\n${url}\n\nTap it to open, then add it to your home screen so it works like an app. From there you can join your class, get your course materials, and check your balance.`
 
   let ok = false
   try { ok = !!(await sendWhatsAppText(lead.phone, msg, lead.assigned_to || null)) } catch {}

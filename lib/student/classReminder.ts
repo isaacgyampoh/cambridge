@@ -61,8 +61,8 @@ export async function runClassStartReminders() {
       const first = (st.full_name || 'there').split(' ')[0]
 
       const msg = owed > 0
-        ? `Hi ${first}, how are you doing today? 😊\n\nYour ${b.name} class starts in about 30 minutes. Open your student portal to sign in and join:\n${url}\n\nOne thing — to join this session you'll need to have paid *GHS ${owed.toFixed(2)}* more. You can pay right inside the portal (MoMo or card) and the Join button unlocks straight away.\n\nSee you in class!`
-        : `Hi ${first}, how are you doing today? 😊\n\nJust a reminder that your ${b.name} class starts in about 30 minutes. Open your student portal, tap *Join class*, and you're in:\n${url}\n\nSee you shortly!`
+        ? `Hi ${first}, how are you doing today?\n\nYour ${b.name} class starts in about 30 minutes. Open your student portal to sign in and join:\n${url}\n\nTo join this session you will need to have paid *GHS ${owed.toFixed(2)}* more. You can pay right inside the portal by mobile money or card, and the Join button unlocks straight away.\n\nSee you in class.`
+        : `Hi ${first}, how are you doing today?\n\nJust a reminder that your ${b.name} class starts in about 30 minutes. Open your student portal and tap *Join class*:\n${url}\n\nSee you shortly.`
 
       const { data: lead } = await sb.from('leads').select('assigned_to').eq('id', st.lead_id).maybeSingle()
       let ok = false
