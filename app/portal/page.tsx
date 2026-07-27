@@ -96,7 +96,15 @@ export default function StudentPortal() {
                   <div style={{ fontSize: 13, color: T.soft, marginTop: 10 }}>
                     Session {s.sessionNumber}{s.signedInToday ? ' · signed in today ✓' : ''}
                   </div>
-                  {s.canJoin ? (
+                  {s.cohortEnded ? (
+                    <div style={{ marginTop: 12, background: '#fdecec', border: '1px solid #f5c6c6', borderRadius: 10, padding: 14 }}>
+                      <div style={{ fontSize: 13, fontWeight: 700, color: '#c0392b' }}>This class has ended</div>
+                      <p style={{ fontSize: 13, color: T.soft, margin: '6px 0 0', lineHeight: 1.6 }}>
+                        Your cohort finished{s.endDate ? ` on ${new Date(s.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}, so the class link is no longer available.
+                        If you'd like to rejoin, please contact administration to be added to a new cohort.
+                      </p>
+                    </div>
+                  ) : s.canJoin ? (
                     <button onClick={joinClass} style={{ ...btn, background: T.ok, color: '#fff', marginTop: 12 }}>
                       Join class
                     </button>

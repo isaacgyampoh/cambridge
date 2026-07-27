@@ -15,6 +15,15 @@ export async function POST(req: NextRequest) {
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
   if (!enr) return NextResponse.json({ error: 'No class found' }, { status: 404 })
 
+  // Refuse if the cohort has finished — access ends with the class.
+  const { data: b } = await sb.from('batches')
+    .select('end_date, status').eq('id', enr.batch_id).maybeSingle()
+  const endsAt = b?.end_date ? new Date(b.end_date) : null
+  if (endsAt) endsAt.setHours(23, 59, 59, 999)
+  if (b?.status === 'completed' || (endsAt && endsAt.getTime() < Date.now())) {
+    return NextResponse.json({ error: 'cohort_ended' }, { status: 403 })
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const { data: existing } = await sb.from('class_signins')
     .select('id').eq('enrollment_id', enr.id).eq('session_date', today).maybeSingle()

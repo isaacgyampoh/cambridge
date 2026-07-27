@@ -29,7 +29,7 @@ export async function GET(req: NextRequest) {
   let sessionInfo: any = null
   if (enr?.batch_id) {
     const { data: b } = await sb.from('batches')
-      .select('id, name, schedule, start_date, zoom_link, class_type, free_sessions, min_payment_per_session, courses(name)')
+      .select('id, name, schedule, start_date, end_date, status, zoom_link, class_type, free_sessions, min_payment_per_session, courses(name)')
       .eq('id', enr.batch_id).maybeSingle()
     batch = b
 
@@ -54,11 +54,21 @@ export async function GET(req: NextRequest) {
     const { data: todaySignin } = await sb.from('class_signins')
       .select('id').eq('enrollment_id', enr.id).eq('session_date', today).maybeSingle()
 
+    // ── COHORT ACCESS ──
+    // One fixed class link for the whole cohort, but access ends when the
+    // cohort does: past the end date (or once marked completed) the link is
+    // withheld and they must contact administration to rejoin a new cohort.
+    const endsAt = b?.end_date ? new Date(b.end_date) : null
+    if (endsAt) endsAt.setHours(23, 59, 59, 999)
+    const cohortEnded = (b?.status === 'completed') || (!!endsAt && endsAt.getTime() < Date.now())
+
     sessionInfo = {
       sessionNumber, freeSessions, requiredTotal, minTopUp,
-      canJoin: minTopUp <= 0,
+      cohortEnded,
+      endDate: b?.end_date || null,
+      canJoin: !cohortEnded && minTopUp <= 0,
       signedInToday: !!todaySignin,
-      zoomLink: minTopUp <= 0 ? (b?.zoom_link || null) : null,
+      zoomLink: (!cohortEnded && minTopUp <= 0) ? (b?.zoom_link || null) : null,
     }
   }
 

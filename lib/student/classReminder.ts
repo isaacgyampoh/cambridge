@@ -16,12 +16,16 @@ export async function runClassStartReminders() {
 
   // Online batches with a session starting in the next 20-40 minutes
   const { data: batches } = await sb.from('batches')
-    .select('id, name, class_type, next_session_at, free_sessions, min_payment_per_session')
+    .select('id, name, class_type, next_session_at, end_date, status, free_sessions, min_payment_per_session')
     .eq('status', 'ongoing').limit(200)
 
   let sent = 0
   for (const b of batches || []) {
     if (!b.next_session_at) continue
+    // Don't remind a cohort that has finished
+    const endsAt = b.end_date ? new Date(b.end_date) : null
+    if (endsAt) endsAt.setHours(23, 59, 59, 999)
+    if (b.status === 'completed' || (endsAt && endsAt.getTime() < Date.now())) continue
     const mins = (new Date(b.next_session_at).getTime() - now.getTime()) / 60000
     if (mins < 20 || mins > 40) continue
 
