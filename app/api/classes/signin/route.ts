@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { createServiceClient } from '@/lib/supabase/server'
 
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -16,7 +17,7 @@ export async function POST(req: NextRequest) {
   const sb = createServiceClient()
 
   // Class info (incl. the Zoom link set per class on the batch)
-  const { data: batch } = await sb.from('batches').select('id, name, zoom_link').eq('id', batchId).maybeSingle()
+  const { data: batch } = await sb.from('batches').select('id, name, zoom_link, free_sessions, min_payment_per_session').eq('id', batchId).maybeSingle()
 
   const { data: roster } = await sb.from('class_enrollments')
     .select('id, full_name, phone, total_fee, amount_paid, balance, application_id, application:application_id(delivery)')
@@ -61,6 +62,39 @@ export async function POST(req: NextRequest) {
   const today = new Date().toISOString().slice(0, 10)
   const { data: existing } = await sb.from('class_signins')
     .select('id').eq('enrollment_id', match.id).eq('session_date', today).maybeSingle()
+
+  // ── SPREAD-PAYMENT GATE (online students) ──
+  // Session 1 (or however many the batch marks free) is open. From then on the
+  // student must have paid a minimum running total before they can join, so the
+  // fee is collected class by class instead of people attending and never paying.
+  const paidSoFar = Number(match.amount_paid || 0)
+  const totalFee = Number(match.total_fee || 0)
+  if (mode === 'online' && !existing) {
+    const freeSessions = Number((batch as any)?.free_sessions ?? 1)
+    const perSession = Number((batch as any)?.min_payment_per_session ?? 0)
+    // How many sessions has this student already attended?
+    const { count: attended } = await sb.from('class_signins')
+      .select('id', { count: 'exact', head: true }).eq('enrollment_id', match.id)
+    const sessionNumber = (attended || 0) + 1
+
+    if (perSession > 0 && sessionNumber > freeSessions) {
+      // Required running total by this session, never more than the full fee.
+      let required = (sessionNumber - freeSessions) * perSession
+      if (totalFee > 0) required = Math.min(required, totalFee)
+      if (paidSoFar + 0.01 < required) {
+        const topUp = Math.round((required - paidSoFar) * 100) / 100
+        return NextResponse.json({
+          error: 'payment_required',
+          message: `To join session ${sessionNumber} you need to have paid GHS ${required.toFixed(2)} in total. You have paid GHS ${paidSoFar.toFixed(2)} — please pay at least GHS ${topUp.toFixed(2)} to continue. You can pay more if you wish.`,
+          sessionNumber, requiredTotal: required, amountPaid: paidSoFar,
+          minTopUp: topUp, balance: Math.max(totalFee - paidSoFar, 0),
+          enrollmentId: match.id, studentName: match.full_name,
+          allowCash: false,
+        }, { status: 402 })
+      }
+    }
+  }
+
   if (!existing) {
     await sb.from('class_signins').insert({
       batch_id: batchId, enrollment_id: match.id,
@@ -75,9 +109,20 @@ export async function POST(req: NextRequest) {
 
   const balance = Number(match.balance ?? ((match.total_fee || 0) - (match.amount_paid || 0))) || 0
 
+  // Course materials they've unlocked so far (staged by payment)
+  let materials: any[] = []
+  try {
+    const { data: enr } = await sb.from('class_enrollments').select('lead_id').eq('id', match.id).maybeSingle()
+    if ((enr as any)?.lead_id) {
+      const r = await releaseMaterialsFor((enr as any).lead_id, { notify: false })
+      materials = (r.materials || []).map((m: any) => ({ name: m.name, url: m.file_url }))
+    }
+  } catch {}
+
   return NextResponse.json({
     success: true,
     mode,
+    materials,
     switched: mode === 'online' && !registeredOnline,
     zoomLink: mode === 'online' ? (batch?.zoom_link || null) : null,
     enrollmentId: match.id,

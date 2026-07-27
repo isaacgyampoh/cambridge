@@ -40,6 +40,16 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
       }).then(r => r.json())
 
       if (res.error === 'not_in_class') { setStep('offer_online'); setBusy(false); return }
+      if (res.error === 'payment_required') {
+        // Access denied until they top up — take them straight to payment with
+        // the minimum pre-filled (they may pay more, never less).
+        setResult(res)
+        setPayAmount(String(res.minTopUp ?? ''))
+        setError(res.message || 'A payment is required before you can join.')
+        setStep('pay_amount')
+        setBusy(false)
+        return
+      }
       if (res.error) { setError(res.message || res.error); setBusy(false); return }
 
       setResult(res)
@@ -52,6 +62,11 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
   async function payMomo() {
     const amt = Number(payAmount)
     if (!(amt > 0)) { setError('Enter an amount'); return }
+    const minRequired = Number(result?.minTopUp || 0)
+    if (minRequired > 0 && amt + 0.01 < minRequired) {
+      setError(`Access denied — you must pay at least GHS ${minRequired.toFixed(2)} to join this session. You can pay more if you wish.`)
+      return
+    }
     const ps = (window as any).PaystackPop
     if (!ps) { setError('Payment not available. Please refresh.'); return }
     const keyRes = await fetch('/api/paystack/key').then(r => r.json()).catch(() => null)
@@ -161,6 +176,18 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
               </div>
             ) : (
               <p style={{ textAlign: 'center', color: '#059669', fontSize: 14, fontWeight: 500 }}>Your fees are fully paid. Enjoy your class!</p>
+            )}
+            {Array.isArray(result?.materials) && result.materials.length > 0 && (
+              <div style={{ marginTop: 18, marginBottom: 16, textAlign: 'left', background: '#f0f7f8', borderRadius: 12, padding: 14 }}>
+                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a7a85', marginBottom: 8 }}>Your course materials</div>
+                {result.materials.map((m: any, i: number) => (
+                  <a key={i} href={m.url} target="_blank" rel="noopener noreferrer"
+                    style={{ display: 'block', fontSize: 13, color: '#1a2230', textDecoration: 'none', padding: '7px 0', borderTop: i ? '1px solid #dbe9eb' : 'none' }}>
+                    📄 {m.name}
+                  </a>
+                ))}
+                <div style={{ fontSize: 11, color: '#5a6675', marginTop: 8 }}>More materials unlock as you continue your payments.</div>
+              </div>
             )}
             <button onClick={() => setStep('done')} style={{ ...btn, background: '#f1f5f9', color: '#4a5568' }}>Done</button>
           </>

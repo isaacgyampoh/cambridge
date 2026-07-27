@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
@@ -20,7 +21,7 @@ export async function GET(req: NextRequest) {
   if (!applicationId) return NextResponse.json({ error: 'Missing application' }, { status: 400 })
   const sb = createServiceClient()
   const { data: fee } = await sb.from('student_fees')
-    .select('id, student_name, course_name, total_fee, amount_paid, balance, status, phone')
+    .select('id, lead_id, student_name, course_name, total_fee, amount_paid, balance, status, phone')
     .eq('application_id', applicationId).maybeSingle()
   if (!fee) return NextResponse.json({ found: false })
   return NextResponse.json({ found: true, fee })
@@ -62,6 +63,11 @@ export async function POST(req: NextRequest) {
 
     // If this payment fully clears an exam-prep student's fees, let their
     // coordinator know they're cleared to be prepped for the exam.
+    // Unlock any course materials this payment now qualifies them for
+    if (fee.lead_id) {
+      try { await releaseMaterialsFor(fee.lead_id) } catch {}
+    }
+
     if (newBalance <= 0) {
       try {
         const { data: prep } = await sb.from('prep_records')
