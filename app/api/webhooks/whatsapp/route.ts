@@ -59,8 +59,7 @@ export async function POST(req: NextRequest) {
   )
   const isMedia = /audio|voice|ptt|image|video|document|sticker/i.test(String(mediaType))
 
-  // Ignore our own outbound messages and empty payloads (unless it's media)
-  if (!fromRaw || fromMe || (!text && !isMedia)) {
+  if (!fromRaw || (!text && !isMedia)) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
@@ -68,6 +67,31 @@ export async function POST(req: NextRequest) {
   const variants = [phone, phone.replace(/^0/, '233'), phone.replace(/^233/, '0'), phone.replace(/^233/, ''), '0' + phone.replace(/^233/, '')]
 
   const sb = createServiceClient()
+
+  // ── MANUAL TAKEOVER DETECTION ──
+  // A fromMe message means a HUMAN (the marketer) just replied from their own
+  // WhatsApp. Pause the AI for that lead so the two never talk over each other,
+  // and record what the marketer said so the AI keeps full context if it later
+  // resumes.
+  if (fromMe) {
+    try {
+      const { data: lead } = await sb.from('leads')
+        .select('id, assigned_to, ai_paused').in('phone', variants).limit(1).maybeSingle()
+      if (lead?.id) {
+        if (!lead.ai_paused) {
+          await sb.from('leads').update({
+            ai_paused: true, needs_human: false,
+          }).eq('id', lead.id).then(() => {}, () => {})
+        }
+        await sb.from('ai_conversations').insert({
+          phone, lead_id: lead.id, marketer_id: lead.assigned_to || null,
+          incoming_text: null, reply_text: text || `[${mediaType || 'media'}]`,
+          answered_by: 'human',
+        }).then(() => {}, () => {})
+      }
+    } catch {}
+    return NextResponse.json({ ok: true, manual_takeover: true })
+  }
 
   // ── Idempotency guard ──
   // WhatsApp providers (WAWP) frequently deliver the same message webhook more
@@ -87,10 +111,11 @@ export async function POST(req: NextRequest) {
   } catch { /* if the check fails, continue — better to risk a dup than drop a real message */ }
 
   // Find the lead by phone
-  const { data: leads } = await sb.from('leads')
+  // Indexed lookup on the phone variants (previously pulled 3000 leads into
+  // memory on every inbound message — slow and it silently missed lead 3001+).
+  const { data: lead } = await sb.from('leads')
     .select('id, full_name, phone, course_interest, assigned_to, ai_paused')
-    .limit(3000)
-  const lead = (leads || []).find((l: any) => l.phone && variants.includes(l.phone.replace(/[^0-9]/g, '')))
+    .in('phone', variants).order('created_at', { ascending: false }).limit(1).maybeSingle()
 
   // Find the assigned marketer (for voice + sending line + their link)
   let marketer: any = null
