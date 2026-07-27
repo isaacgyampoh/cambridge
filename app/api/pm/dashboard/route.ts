@@ -44,6 +44,13 @@ export async function GET(req: NextRequest) {
 
   const pendingAdmissions = (admissions || []).filter((a: any) => a.status === 'pending').length
 
+  // Registered students = people who actually paid and were admitted (distinct
+  // from lead conversions), plus a this-month figure for momentum.
+  const totalStudents = (admissions || []).length
+  const monthStart = new Date(); monthStart.setDate(1); monthStart.setHours(0, 0, 0, 0)
+  const studentsThisMonth = (admissions || []).filter((a: any) =>
+    a.created_at && new Date(a.created_at).getTime() >= monthStart.getTime()).length
+
   const conversionRate = totalLeads ? Math.round(registered / totalLeads * 100) : 0
 
   // ── Sub-PM oversight ──
@@ -66,6 +73,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     totalLeads, unassigned, registered, newThisWeek, cold,
+    totalStudents, studentsThisMonth,
     conversionRate, pendingAdmissions, leaderboard,
     teamSize: (marketers || []).length,
     subTeam,

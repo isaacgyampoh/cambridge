@@ -162,7 +162,7 @@ export const ALL_PORTALS = [
 // portal ids. ROLE_HOME and the access rules come from the shared module.
 const NAV_BY_ROLE: Record<string, string[]> = {
   super_admin:       ['dashboard','insights','reports','messages','grp_automation','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content','grp_socials'],
-  project_manager:   ['dashboard','reports','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','my_links','clock_in','messages'],
+  project_manager:   ['dashboard','reports','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','academics','my_links','clock_in','messages'],
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','reports','my_attendance','clock_in','messages'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],

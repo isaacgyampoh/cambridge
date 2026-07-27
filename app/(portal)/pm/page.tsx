@@ -25,6 +25,7 @@ export default function PMDashboard() {
         <StatCard label="Total leads" value={s.totalLeads ?? 0} sub={`${s.newThisWeek ?? 0} new this week`} />
         <StatCard label="Unassigned" value={s.unassigned ?? 0} sub="Waiting for a marketer" accent={s.unassigned > 0} />
         <StatCard label="Converted" value={s.registered ?? 0} sub={`${s.conversionRate ?? 0}% conversion`} />
+        <StatCard label="Registered students" value={s.totalStudents ?? 0} sub={`${s.studentsThisMonth ?? 0} this month`} />
         <StatCard label="Pending admissions" value={s.pendingAdmissions ?? 0} sub="Awaiting processing" />
       </div>
 
