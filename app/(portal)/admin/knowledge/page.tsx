@@ -33,7 +33,14 @@ export default function KnowledgeBasePage() {
     try {
       const payload = { ...form, updated_at: new Date().toISOString() }
       if (editing) await mutate('PATCH', 'knowledge_base', payload, [{ col: 'id', val: editing.id }])
-      else await mutate('POST', 'knowledge_base', payload)
+      else {
+        // Don't create a duplicate of something already in the base
+        const norm = (v: any) => String(v || '').toLowerCase().replace(/\s+/g, ' ').trim()
+        const clash = (entries || []).find((x: any) =>
+          x.kind === form.kind && norm(x.question) === norm(form.question) && norm(x.answer) === norm(form.answer))
+        if (clash) { toast.error('That entry already exists'); setSaving(false); return }
+        await mutate('POST', 'knowledge_base', payload)
+      }
       toast.success(editing ? 'Updated' : 'Added to knowledge base')
       setModal(false); refetch()
     } catch (e: any) { toast.error(e.message) }
@@ -61,6 +68,12 @@ export default function KnowledgeBasePage() {
         description="The facts your WhatsApp assistant uses to answer leads. Add FAQs and centre information here — the assistant only answers from what you provide."
         actions={
           <>
+            <Button variant="secondary" onClick={async () => {
+              if (!confirm('Remove duplicated entries? The original of each is kept.')) return
+              const d = await fetch('/api/admin/dedupe-knowledge', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+              if (d.error) toast.error(d.error)
+              else { toast.success(`Removed ${d.removed} duplicate${d.removed === 1 ? '' : 's'} — ${d.kept} entries left`); refetch() }
+            }}>Clean duplicates</Button>
             <Button variant="secondary" onClick={() => openNew('info')} >Add info</Button>
             <Button onClick={() => openNew('faq')} >Add FAQ</Button>
           </>
@@ -85,18 +98,17 @@ export default function KnowledgeBasePage() {
           ) : (
             <div className="space-y-2 mb-10 stagger">
               {faqs.map((e: any) => (
-                <Card key={e.id} className={`p-4 ${!e.is_active ? 'opacity-50' : ''}`}>
+                <Card key={e.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         {e.category && <Badge tone="neutral">{e.category}</Badge>}
-                        {!e.is_active && <Badge tone="muted">Off</Badge>}
+                        
                       </div>
                       <div className="font-medium text-[var(--ink)] text-sm">{e.question}</div>
                       <div className="text-sm text-[var(--ink-soft)] mt-1 whitespace-pre-line">{e.answer}</div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => toggle(e)} className="text-xs font-medium px-2 py-1 rounded-md text-[var(--ink-soft)] hover:bg-[var(--line-soft)]">{e.is_active ? 'Disable' : 'Enable'}</button>
                       <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
                       <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
                     </div>
@@ -113,17 +125,16 @@ export default function KnowledgeBasePage() {
           ) : (
             <div className="space-y-2 stagger">
               {infos.map((e: any) => (
-                <Card key={e.id} className={`p-4 ${!e.is_active ? 'opacity-50' : ''}`}>
+                <Card key={e.id} className="p-4">
                   <div className="flex items-start justify-between gap-4">
                     <div className="min-w-0 flex-1">
                       <div className="flex items-center gap-2 mb-1">
                         {e.category && <Badge tone="accent">{e.category}</Badge>}
-                        {!e.is_active && <Badge tone="muted">Off</Badge>}
+                        
                       </div>
                       <div className="text-sm text-[var(--ink)] whitespace-pre-line">{e.answer}</div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => toggle(e)} className="text-xs font-medium px-2 py-1 rounded-md text-[var(--ink-soft)] hover:bg-[var(--line-soft)]">{e.is_active ? 'Disable' : 'Enable'}</button>
                       <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
                       <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
                     </div>
