@@ -237,6 +237,16 @@ export async function POST(req: NextRequest) {
       admission_letter_sent: true, admitted_at: new Date().toISOString(), status: 'admitted',
     }).eq('lead_id', leadId).then(() => {}, () => {})
 
+    // Send the student their portal link (online students especially — it's
+    // how they join class, get materials and pay).
+    try {
+      const origin = new URL(req.url).origin
+      await fetch(`${origin}/api/student/link`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId }),
+      })
+    } catch {}
+
     // Tell FINANCE + ACADEMICS a student has been registered and admitted.
     try {
       const { data: staff } = await sb.from('profiles')
