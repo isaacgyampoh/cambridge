@@ -74,7 +74,7 @@ export default function ClassesPage() {
   }
   const [form, setForm] = useState<any>({
     name: '', course_id: '', trainer_id: '', class_type: 'physical', status: 'upcoming',
-    start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30,
+    start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30, free_sessions: 1, min_payment_per_session: 500,
   })
 
   async function save() {
@@ -85,12 +85,14 @@ export default function ClassesPage() {
         ...form,
         trainer_id: form.trainer_id || null,
         zoom_link: form.zoom_link || null,
+        free_sessions: Number(form.free_sessions) || 0,
+        min_payment_per_session: Number(form.min_payment_per_session) || 0,
         start_date: form.start_date || null,
         end_date: form.end_date || null,
       })
       toast.success('Class created')
       setModal(false)
-      setForm({ name: '', course_id: '', trainer_id: '', class_type: 'physical', status: 'upcoming', start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30 })
+      setForm({ name: '', course_id: '', trainer_id: '', class_type: 'physical', status: 'upcoming', start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30, free_sessions: 1, min_payment_per_session: 500 })
       load()
     } catch (e: any) {
       toast.error(e.message || 'Could not create the class')
@@ -153,6 +155,24 @@ export default function ClassesPage() {
             {form.class_type === 'physical'
               ? <Field label="Venue"><input value={form.venue} onChange={e => setForm({ ...form, venue: e.target.value })} placeholder="Accra Campus" className={inputClass} /></Field>
               : <Field label="Meeting link"><input value={form.zoom_link} onChange={e => setForm({ ...form, zoom_link: e.target.value })} placeholder="https://…" className={inputClass} /></Field>}
+
+            {/* Spread payment — collect the fee class by class */}
+            <div className="rounded-xl border border-[var(--line)] p-3">
+              <div className="text-[13px] font-semibold text-[var(--ink)] mb-2">Spread payment (online sign-in)</div>
+              <div className="grid grid-cols-2 gap-3">
+                <Field label="Free sessions">
+                  <input type="number" min={0} value={form.free_sessions}
+                    onChange={e => setForm({ ...form, free_sessions: e.target.value as any })} className={inputClass} />
+                </Field>
+                <Field label="Min payment per session (GHS)">
+                  <input type="number" min={0} value={form.min_payment_per_session}
+                    onChange={e => setForm({ ...form, min_payment_per_session: e.target.value as any })} className={inputClass} />
+                </Field>
+              </div>
+              <p className="text-[11px] text-[var(--ink-faint)] mt-1">
+                After the free session(s), a student must have paid this much more each session before they can join. Set 0 to turn the gate off.
+              </p>
+            </div>
             <div className="grid grid-cols-2 gap-3">
               <Field label="Max students"><input type="number" value={form.max_students} onChange={e => setForm({ ...form, max_students: parseInt(e.target.value) || 0 })} className={inputClass} /></Field>
               <Field label="Status">

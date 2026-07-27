@@ -33,7 +33,7 @@ export default function DocumentsPage() {
   const [sending, setSending] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '' })
+  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '' })
   const [courses, setCourses] = useState<any[]>([])
   const sb = createClient()
 
@@ -67,11 +67,12 @@ export default function DocumentsPage() {
         template_fields: form.is_template ? TEMPLATE_FIELDS : null,
         course_id: form.course_id || null,
         delivery_scope: form.type === 'course_material' ? (form.delivery_scope || null) : null,
+        unlock_after_amount: form.type === 'course_material' ? (Number(form.unlock_after_amount) || 0) : 0,
         is_active: true,
         uploaded_by: userId,
       })
       toast.success('Document uploaded!')
-      setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '' })
+      setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '' })
       load()
     } catch (e: any) {
       toast.error(e.message || 'Failed to save document')
@@ -176,6 +177,12 @@ export default function DocumentsPage() {
             </div>
             {form.type === 'course_material' && (
               <div>
+                <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Unlock after student has paid (GHS)</label>
+                <input type="number" min={0} value={form.unlock_after_amount}
+                  onChange={e => setForm(f => ({ ...f, unlock_after_amount: e.target.value }))}
+                  placeholder="e.g. 500 — 0 means available immediately"
+                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
+                <p className="text-[12px] text-[var(--ink-faint)] mt-1 mb-3">Released automatically once their total payments reach this.</p>
                 <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Who receives it?</label>
                 <select value={form.delivery_scope} onChange={e => setForm(f => ({ ...f, delivery_scope: e.target.value }))}
                   className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
