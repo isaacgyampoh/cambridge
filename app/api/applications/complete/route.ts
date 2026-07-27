@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { renderPersonalisedDoc } from '@/lib/documentFill'
 import { generateAdmissionPDF } from '@/lib/generateAdmissionPDF'
 import { sendWelcomeEmail, sendAdmissionLetter, sendUploadedAdmissionLetter } from '@/lib/integrations/email'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
@@ -195,17 +196,39 @@ export async function POST(req: NextRequest) {
     try {
       // Course-specific uploaded letter (tolerate null is_active — only skip if
       // explicitly deactivated).
-      const { data: courseDoc } = await sb.from('documents')
-        .select('file_url, is_active').eq('type', 'admission_letter').eq('course_id', app.course_id)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      if (courseDoc && courseDoc.is_active !== false) letterUrl = courseDoc.file_url || null
-      if (!letterUrl) {
-        const { data: generalDoc } = await sb.from('documents')
-          .select('file_url, is_active').eq('type', 'admission_letter').is('course_id', null)
-          .order('created_at', { ascending: false }).limit(1).maybeSingle()
-        if (generalDoc && generalDoc.is_active !== false) letterUrl = generalDoc.file_url || null
+      const pick = async (courseScoped: boolean) => {
+        let q = sb.from('documents')
+          .select('file_url, is_active, is_template, field_positions').eq('type', 'admission_letter')
+        q = courseScoped ? q.eq('course_id', app.course_id) : q.is('course_id', null)
+        const { data } = await q.order('created_at', { ascending: false }).limit(1).maybeSingle()
+        return (data && (data as any).is_active !== false) ? data : null
       }
-      if (letterUrl) usedUploaded = true
+      const doc: any = (await pick(true)) || (await pick(false))
+      if (doc?.file_url) {
+        letterUrl = doc.file_url
+        usedUploaded = true
+        // If it's marked as a template, personalise a copy for THIS student.
+        if (doc.is_template) {
+          const personalised = await renderPersonalisedDoc({
+            templateUrl: doc.file_url,
+            positions: doc.field_positions || null,
+            folder: 'admission-letters',
+            filename: app.full_name || 'student',
+            values: {
+              full_name: app.full_name || '',
+              admission_number: admissionNo || '',
+              course: letterCourse,
+              batch: '',
+              date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
+              email: app.email || '',
+              phone: app.phone || '',
+              amount: '',
+              receipt_number: '',
+            },
+          })
+          if (personalised) letterUrl = personalised
+        }
+      }
     } catch {}
     if (!letterUrl) {
       letterUrl = await generateAdmissionPDF({

@@ -35,6 +35,36 @@ export default function DocumentsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
   const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '' })
   const [courses, setCourses] = useState<any[]>([])
+  const [posDoc, setPosDoc] = useState<any>(null)
+  const FIELD_KEYS = ['full_name', 'admission_number', 'course', 'batch', 'date', 'amount', 'email', 'phone', 'receipt_number']
+  const [posList, setPosList] = useState<any[]>([])
+  const [previewing, setPreviewing] = useState(false)
+
+  useEffect(() => { setPosList(posDoc?.field_positions || []) }, [posDoc])
+
+  function setPos(key: string, prop: string, val: string) {
+    setPosList(list => {
+      const next = [...(list || [])]
+      const i = next.findIndex((p: any) => p.key === key)
+      const num = val === '' ? undefined : Number(val)
+      if (i === -1) { if (num !== undefined) next.push({ key, x: 0, y: 0, [prop]: num }) }
+      else if (num === undefined && prop === 'x') next.splice(i, 1)
+      else next[i] = { ...next[i], [prop]: num }
+      return next
+    })
+  }
+
+  async function preview() {
+    setPreviewing(true)
+    const d = await fetch('/api/documents/preview', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ documentId: posDoc.id, positions: posList }),
+    }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+    setPreviewing(false)
+    if (d.url) { window.open(d.url, '_blank'); load() }
+    else toast.error(d.error || 'Could not generate preview')
+  }
+
   const sb = createClient()
 
   useEffect(() => {
@@ -197,7 +227,12 @@ export default function DocumentsPage() {
 
         {form.is_template && (
           <div className="bg-[var(--accent-soft)] rounded-xl p-3 mb-4">
-            <p className="text-xs font-semibold text-[var(--accent)] mb-2">Available template fields (use in your PDF):</p>
+            <p className="text-xs font-semibold text-[var(--accent)] mb-1.5">Personalised for each student</p>
+            <p className="text-[12px] text-[var(--ink-soft)] mb-2 leading-relaxed">
+              Two ways to mark where the details go. <b>Best:</b> give your PDF real form fields named
+              like the ones below — they get filled exactly. <b>Otherwise:</b> upload your letterhead
+              and use <b>Position fields</b> on the document below to place them, then preview.
+            </p>
             <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_FIELDS.map(f => (
                 <code key={f} className="text-[12px] bg-white border border-blue-200 text-[var(--accent)] px-2 py-0.5 rounded font-mono">{f}</code>
@@ -254,6 +289,50 @@ export default function DocumentsPage() {
           </div>
         )
       })()}
+
+      {/* Field position editor */}
+      {posDoc && (
+        <Modal open={!!posDoc} onClose={() => setPosDoc(null)} maxWidth="max-w-lg">
+          <div className="p-6">
+            <h2 className="font-semibold text-[var(--ink)] mb-1">Position fields</h2>
+            <p className="text-[13px] text-[var(--ink-soft)] mb-4">
+              {posDoc.name} — set where each detail is printed on your template.
+              X is from the left, Y from the top, in points (A4 is 595 wide by 842 tall).
+              Preview with sample data until it lines up.
+            </p>
+            <div className="space-y-2 max-h-[45vh] overflow-y-auto">
+              {FIELD_KEYS.map(k => {
+                const cur = (posList || []).find((p: any) => p.key === k)
+                return (
+                  <div key={k} className="flex items-center gap-2">
+                    <label className="text-[13px] text-[var(--ink)] w-40 flex-shrink-0">{k.replace(/_/g, ' ')}</label>
+                    <input type="number" placeholder="X" value={cur?.x ?? ''}
+                      onChange={e => setPos(k, 'x', e.target.value)}
+                      className="w-20 h-9 px-2 rounded-lg border border-[var(--line)] text-sm" />
+                    <input type="number" placeholder="Y" value={cur?.y ?? ''}
+                      onChange={e => setPos(k, 'y', e.target.value)}
+                      className="w-20 h-9 px-2 rounded-lg border border-[var(--line)] text-sm" />
+                    <input type="number" placeholder="Size" value={cur?.size ?? ''}
+                      onChange={e => setPos(k, 'size', e.target.value)}
+                      className="w-20 h-9 px-2 rounded-lg border border-[var(--line)] text-sm" />
+                  </div>
+                )
+              })}
+            </div>
+            <div className="flex gap-2 mt-5">
+              <button onClick={preview} disabled={previewing}
+                className="h-11 px-5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold disabled:opacity-50">
+                {previewing ? 'Generating…' : 'Save & preview'}
+              </button>
+              <button onClick={() => setPosDoc(null)}
+                className="h-11 px-5 rounded-xl border border-[var(--line)] text-[var(--ink-soft)] text-sm font-medium">Close</button>
+            </div>
+            <p className="text-[12px] text-[var(--ink-faint)] mt-3">
+              If your PDF already has real form fields, these positions are ignored and the fields are filled directly.
+            </p>
+          </div>
+        </Modal>
+      )}
 
       {/* Send modal */}
       {(
@@ -321,6 +400,10 @@ export default function DocumentsPage() {
                   
                 </div>
                 <div className="flex gap-1 ml-2">
+                  {doc.is_template && (
+                    <button onClick={() => setPosDoc(doc)}
+                      className="text-[12px] font-semibold text-[var(--accent)] mr-3">Position fields</button>
+                  )}
                   {doc.is_template && (
                     <span className="text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded-full">Template</span>
                   )}
