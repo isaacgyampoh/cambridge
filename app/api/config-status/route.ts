@@ -7,7 +7,7 @@ export async function GET() {
   let waLines = 0
   try {
     const sb = createServiceClient()
-    const { count } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('wawp_status', 'connected')
+    const { count } = await sb.from('profiles').select('id', { count: 'exact', head: true }).eq('wasender_status', 'connected')
     waLines = count || 0
   } catch {}
 
@@ -16,7 +16,7 @@ export async function GET() {
     arkesel: !!CONFIG.arkeselApiKey,
     paystack: !!CONFIG.paystackPublicKey && !!CONFIG.paystackSecretKey && CONFIG.paystackPublicKey.startsWith('pk_'),
     paystackLive: CONFIG.paystackPublicKey?.startsWith('pk_live_') || false,
-    wawpCentral: !!CONFIG.wawpInstanceId && !!CONFIG.wawpAccessToken,
+    wawpCentral: !!CONFIG.wasenderApiKey,
     wawpLines: waLines,
     resend: !!CONFIG.resendApiKey,
     storage: !!CONFIG.supabaseUrl && !!CONFIG.supabaseServiceKey,

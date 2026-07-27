@@ -103,7 +103,7 @@ export default function SettingsPage() {
     { label: 'LinkedIn Lead Gen', url: '/api/webhooks/linkedin', platform: 'linkedin', hint: 'Connect via LinkedIn lead sync (often through Zapier/Make) pointing at this URL.' },
     { label: 'Website Forms', url: '/api/webhooks/website', platform: 'website', hint: 'POST your landing-page form submissions here (full_name, email, phone, course_interest, referrer_code).' },
     { label: 'Paystack Payments', url: '/api/webhooks/paystack', platform: 'paystack', hint: 'In your Paystack dashboard, set this as the webhook URL.' },
-    { label: 'WhatsApp Replies (AI assistant)', url: '/api/webhooks/whatsapp', platform: 'whatsapp', hint: 'In WAWP, point the incoming-message webhook here so the AI can reply to leads.' },
+    { label: 'WhatsApp Replies (AI assistant)', url: '/api/webhooks/whatsapp', platform: 'whatsapp', hint: 'In WaSender, point the incoming-message webhook here so the AI can reply to leads.' },
   ]
 
   function copy(text: string) { navigator.clipboard.writeText(text); toast.success('Copied') }

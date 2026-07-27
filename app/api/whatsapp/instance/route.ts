@@ -1,9 +1,10 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 
 /**
- * Save / update a person's own WhatsApp (WAWP) instance credentials.
+ * Save / update a person's own WhatsApp (WaSender) session credentials.
  * Each marketer connects their own WhatsApp line so messages to their
  * leads come from their number and replies land on their phone.
  *
@@ -15,7 +16,7 @@ export async function POST(req: NextRequest) {
   const session = await verifySession(token)
   if (!session.valid) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
 
-  const { staffId, instanceId, accessToken, number, status } = await req.json()
+  const { staffId, apiKey, number, status } = await req.json()
 
   // Only super_admin / project_manager can set for others
   const target = staffId && staffId !== session.userId ? staffId : session.userId
@@ -25,10 +26,9 @@ export async function POST(req: NextRequest) {
 
   const sb = createServiceClient()
   const update: any = {}
-  if (instanceId !== undefined) update.wawp_instance_id = instanceId || null
-  if (accessToken !== undefined) update.wawp_access_token = accessToken || null
-  if (number !== undefined) update.wawp_number = number || null
-  if (status !== undefined) update.wawp_status = status
+  if (apiKey !== undefined && apiKey !== '') update.wasender_api_key = apiKey
+  if (number !== undefined) update.wasender_phone = number || null
+  if (status !== undefined) update.wasender_status = status
 
   const { error } = await sb.from('profiles').update(update).eq('id', target)
   if (error) return NextResponse.json({ error: error.message }, { status: 500 })
@@ -49,38 +49,35 @@ export async function PUT(req: NextRequest) {
 
   const sb = createServiceClient()
   const { data: p } = await sb.from('profiles')
-    .select('wawp_instance_id, wawp_access_token, phone, wawp_number, full_name')
+    .select('wasender_api_key, phone, wasender_phone, full_name')
     .eq('id', target).maybeSingle()
 
-  if (!p?.wawp_instance_id || !p?.wawp_access_token) {
-    return NextResponse.json({ error: 'No instance credentials set for this person yet.' }, { status: 400 })
+  if (!p?.wasender_api_key) {
+    return NextResponse.json({ error: 'No WaSender API key set for this person yet.' }, { status: 400 })
   }
 
-  const testTo = p.wawp_number || p.phone
+  const testTo = p.wasender_phone || p.phone
   if (!testTo) return NextResponse.json({ error: 'No phone number to test with.' }, { status: 400 })
 
-  const phone = testTo.replace(/\s+/g, '').replace(/^\+/, '').replace(/^0/, '233')
+  const phone = '+' + String(testTo).replace(/\s+/g, '').replace(/^\+/, '').replace(/^0/, '233')
   let ok = false, resp: any = null
   try {
-    const res = await fetch('https://app.wawp.net/api/send', {
+    const res = await fetch(CONFIG.wasenderUrl, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${p.wasender_api_key}` },
       body: JSON.stringify({
-        number: phone, type: 'text',
-        message: `Cambridge CCE: your WhatsApp line is now connected to the system, ${p.full_name?.split(' ')[0] || ''}. Messages to your leads will come from this number.`,
-        instance_id: p.wawp_instance_id,
-        access_token: p.wawp_access_token,
+        to: phone,
+        text: `Cambridge CCE: your WhatsApp line is now connected to the system, ${p.full_name?.split(' ')[0] || ''}. Messages to your leads will come from this number.`,
       }),
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(15000),
     })
-    resp = await res.json()
-    ok = res.ok && resp?.status !== 'error'
+    resp = await res.json().catch(() => ({}))
+    ok = res.ok && resp?.success !== false
   } catch (e: any) {
     resp = { error: e.message }
   }
 
-  // Update status based on result
-  await sb.from('profiles').update({ wawp_status: ok ? 'connected' : 'disconnected' }).eq('id', target)
+  await sb.from('profiles').update({ wasender_status: ok ? 'connected' : 'disconnected' }).eq('id', target)
 
   return NextResponse.json({ success: ok, response: resp })
 }

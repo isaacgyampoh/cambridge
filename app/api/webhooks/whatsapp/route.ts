@@ -5,9 +5,9 @@ import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp
 import { CONFIG } from '@/lib/config'
 
 /**
- * Incoming WhatsApp webhook (called by WAWP when a lead replies).
+ * Incoming WhatsApp webhook (called by WaSender when a lead replies).
  * Flow:
- *   1. Parse sender phone + message text (WAWP payloads vary, so we're flexible)
+ *   1. Parse sender phone + message text (provider payloads vary, so we're flexible)
  *   2. Match the phone to a lead, and find the assigned marketer
  *   3. Ask the AI to answer using the FAQ knowledge base, in the marketer's voice
  *   4. Send the reply back through the marketer's own WhatsApp line
@@ -20,7 +20,7 @@ export async function POST(req: NextRequest) {
     try { const t = await req.text(); body = Object.fromEntries(new URLSearchParams(t)) } catch {}
   }
 
-  // Flexible extraction across WAWP payload shapes
+  // Flexible extraction across provider payload shapes
   const pick = (...keys: string[]) => {
     for (const k of keys) {
       const v = k.split('.').reduce((o: any, p) => (o ? o[p] : undefined), body)
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
   }
 
   // ── Idempotency guard ──
-  // WhatsApp providers (WAWP) frequently deliver the same message webhook more
+  // WhatsApp providers frequently deliver the same message webhook more
   // than once. Without this, the lead gets the same reply twice. If we've
   // already handled this exact message (same phone + same text) in the last
   // 60 seconds, skip it silently.

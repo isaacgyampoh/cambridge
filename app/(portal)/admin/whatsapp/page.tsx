@@ -8,31 +8,30 @@ import { toast } from 'sonner'
 
 export default function WhatsAppLinesPage() {
   const { data: staff, loading, refetch } = useData<any>({
-    table: 'profiles', select: 'id, full_name, role, phone, wawp_instance_id, wawp_status, wawp_number, wa_intro',
+    table: 'profiles', select: 'id, full_name, role, phone, wasender_api_key, wasender_status, wasender_phone, wa_intro',
     filters: [{ col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', limit: 200,
   })
 
   const [editing, setEditing] = useState<any>(null)
-  const [form, setForm] = useState({ instanceId: '', accessToken: '', number: '', intro: '' })
+  const [form, setForm] = useState({ apiKey: '', number: '', intro: '' })
   const [saving, setSaving] = useState(false)
   const [testing, setTesting] = useState(false)
 
   function open(s: any) {
     setEditing(s)
-    setForm({ instanceId: s.wawp_instance_id || '', accessToken: '', number: s.wawp_number || s.phone?.replace(/^233/, '0') || '', intro: s.wa_intro || '' })
+    setForm({ apiKey: '', number: s.wasender_phone || s.phone?.replace(/^233/, '0') || '', intro: s.wa_intro || '' })
   }
 
   async function save() {
-    if (!form.instanceId) { toast.error('Enter the instance ID'); return }
+    if (!form.apiKey && !editing?.wasender_api_key) { toast.error('Enter the WaSender API key'); return }
     setSaving(true)
     try {
       const res = await fetch('/api/whatsapp/instance', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           staffId: editing.id,
-          instanceId: form.instanceId,
-          accessToken: form.accessToken || undefined,
+          apiKey: form.apiKey || undefined,
           number: form.number,
           status: 'connecting',
         }),
@@ -60,7 +59,7 @@ export default function WhatsAppLinesPage() {
       })
       const d = await res.json()
       if (d.success) toast.success('Test message sent. Line is connected.')
-      else toast.error('Test failed. Check the credentials and that the line is active in WAWP.')
+      else toast.error('Test failed. Check the API key and that the session is active in WaSender.')
       refetch()
     } catch (e: any) { toast.error(e.message) }
     finally { setTesting(false) }
@@ -69,7 +68,7 @@ export default function WhatsAppLinesPage() {
   const STATUS: Record<string, any> = {
     connected: 'success', connecting: 'warning', disconnected: 'danger', not_connected: 'muted',
   }
-  const connected = staff.filter((s: any) => s.wawp_status === 'connected').length
+  const connected = staff.filter((s: any) => s.wasender_status === 'connected').length
 
   return (
     <div className="fade-in w-full">
@@ -83,7 +82,7 @@ export default function WhatsAppLinesPage() {
         <div className="flex items-start gap-3">
           
           <div className="text-sm text-[var(--accent)]">
-            <strong>How it works:</strong> create an instance for each person in your WAWP account (app.wawp.net), scan the QR with their phone, then paste the Instance ID and Access Token here. Once connected, the system sends that person’s lead messages through their own line. {connected} of {staff.length} connected.
+            <strong>How it works:</strong> in your WaSender account (wasenderapi.com) create a session for each person's number and scan the QR with their phone, then paste that session's API key here. Once connected, the system sends that person's lead messages through their own line. {connected} of {staff.length} connected.
           </div>
         </div>
       </Card>
@@ -102,16 +101,16 @@ export default function WhatsAppLinesPage() {
                   <div className="font-medium text-[var(--ink)] truncate">{s.full_name}</div>
                   <div className="text-xs text-[var(--ink-faint)] capitalize">
                     {s.role?.replace(/_/g, ' ')}
-                    {s.wawp_number && <span> · {s.wawp_number}</span>}
+                    {s.wasender_phone && <span> · {s.wasender_phone}</span>}
                   </div>
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <Badge tone={STATUS[s.wawp_status] || 'muted'}>{(s.wawp_status || 'not connected').replace(/_/g, ' ')}</Badge>
-                {s.wawp_instance_id && (
+                <Badge tone={STATUS[s.wasender_status] || 'muted'}>{(s.wasender_status || 'not connected').replace(/_/g, ' ')}</Badge>
+                {s.wasender_api_key && (
                   <Button size="sm" variant="ghost" onClick={() => testConnection(s.id)} disabled={testing}>Test</Button>
                 )}
-                <Button size="sm" variant="secondary" onClick={() => open(s)}>{s.wawp_instance_id ? 'Edit' : 'Connect'}</Button>
+                <Button size="sm" variant="secondary" onClick={() => open(s)}>{s.wasender_api_key ? 'Edit' : 'Connect'}</Button>
               </div>
             </Card>
           ))}
@@ -134,11 +133,8 @@ export default function WhatsAppLinesPage() {
               <Field label="Personal intro" hint="how the AI introduces them">
                 <input value={form.intro} onChange={e => setForm({ ...form, intro: e.target.value })} placeholder="I'm Ike, your admissions advisor" className={inputClass} />
               </Field>
-              <Field label="Instance ID" required>
-                <input value={form.instanceId} onChange={e => setForm({ ...form, instanceId: e.target.value })} placeholder="From your WAWP dashboard" className={inputClass} />
-              </Field>
-              <Field label="Access token" hint={editing.wawp_instance_id ? 'leave blank to keep current' : ''}>
-                <input value={form.accessToken} onChange={e => setForm({ ...form, accessToken: e.target.value })} placeholder="From your WAWP dashboard" className={inputClass} />
+              <Field label="WaSender API key" required>
+                <input value={form.apiKey} onChange={e => setForm({ ...form, apiKey: e.target.value })} className={inputClass} placeholder="Paste the session API key" />
               </Field>
             </div>
 
