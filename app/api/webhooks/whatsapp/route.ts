@@ -29,13 +29,35 @@ export async function POST(req: NextRequest) {
     return ''
   }
 
-  const fromRaw = pick('from', 'sender', 'phone', 'number', 'data.from', 'data.sender', 'contact.wa_id', 'wa_id')
-  const text = pick('message', 'text', 'body', 'data.message', 'data.body', 'message.text', 'text.body')
-  const fromMe = pick('fromMe', 'from_me', 'data.fromMe') === 'true'
+  // Field names vary by provider. WaSender delivers Baileys-style payloads:
+  //   data.messages.key.remoteJid / .fromMe, data.messages.message.conversation
+  const fromRaw = pick(
+    'data.messages.key.remoteJid', 'data.key.remoteJid', 'key.remoteJid',
+    'from', 'sender', 'phone', 'number', 'data.from', 'data.sender', 'contact.wa_id', 'wa_id',
+  )
+  const text = pick(
+    'data.messages.message.conversation',
+    'data.messages.message.extendedTextMessage.text',
+    'data.message.conversation', 'message.conversation',
+    'message', 'text', 'body', 'data.message', 'data.body', 'message.text', 'text.body',
+  )
+  const fromMe = ['true', '1'].includes(String(
+    pick('data.messages.key.fromMe', 'data.key.fromMe', 'key.fromMe', 'fromMe', 'from_me', 'data.fromMe')
+  ))
   // Media type (voice note, image, document) — the AI can't process these,
   // so they trigger a human handoff.
-  const mediaType = pick('type', 'data.type', 'message.type', 'messageType', 'media_type')
-  const isMedia = /audio|voice|ptt|image|video|document|sticker/i.test(mediaType)
+  const mediaType = pick(
+    'type', 'data.type', 'message.type', 'messageType', 'media_type',
+    'data.messages.message.audioMessage.mimetype',
+    'data.messages.message.imageMessage.mimetype',
+    'data.messages.message.documentMessage.mimetype',
+    'data.messages.message.videoMessage.mimetype',
+  ) || (
+    // Baileys nests media under a *Message key — detect by presence
+    ['audioMessage','imageMessage','videoMessage','documentMessage','stickerMessage']
+      .find(k => (body?.data?.messages?.message || body?.data?.message || {})[k]) || ''
+  )
+  const isMedia = /audio|voice|ptt|image|video|document|sticker/i.test(String(mediaType))
 
   // Ignore our own outbound messages and empty payloads (unless it's media)
   if (!fromRaw || fromMe || (!text && !isMedia)) {

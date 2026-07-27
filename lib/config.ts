@@ -34,7 +34,11 @@ export const CONFIG = {
   arkeselSenderId: 'CambridgeCE',
 
   // ── WAWP WHATSAPP ────────────────────────────────────────────
-  // Add these when you get them from wawp.net
+  // ── WHATSAPP: WaSender API (https://wasenderapi.com) ─────────
+  // Central/system session key. Per-marketer keys live on profiles.
+  wasenderApiKey: env('WASENDER_API_KEY'),
+  wasenderUrl: env('WASENDER_URL') || 'https://wasenderapi.com/api/send-message',
+  // Legacy WAWP (kept so old references compile; no longer used)
   wawpInstanceId: '',
   wawpAccessToken: '',
 

@@ -1,82 +1,96 @@
 import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
 
-// WAWP API — https://app.wawp.net
-const WAWP_URL = 'https://app.wawp.net/api/send'
+// WaSender API — https://wasenderapi.com
+const WASENDER_URL = CONFIG.wasenderUrl || 'https://wasenderapi.com/api/send-message'
 
 function normalizePhone(phone: string): string {
-  // WAWP needs country code without +: 233XXXXXXXXX
-  return phone
+  // WaSender expects full international format: +233XXXXXXXXX
+  const digits = String(phone)
     .replace(/\s+/g, '')
-    .replace(/^\+233/, '233')
+    .replace(/[()\-]/g, '')
     .replace(/^\+/, '')
     .replace(/^0/, '233')
-}
-
-interface Instance {
-  instanceId: string
-  accessToken: string
+  return `+${digits}`
 }
 
 /**
- * Resolve which WhatsApp instance to send through.
- * If a senderId (a profile id) is given and that person has their own
- * connected WAWP instance, use it — so the message comes from THEIR line.
- * Otherwise fall back to the central system instance from CONFIG.
+ * Resolve which WaSender session (API key) to send through.
+ * If a senderId (profile id) is given and that person has their own connected
+ * WaSender session, use it — so the message comes from THEIR WhatsApp line.
+ * Otherwise fall back to the central system key.
  */
-async function resolveInstance(senderId?: string | null): Promise<Instance> {
+async function resolveApiKey(senderId?: string | null): Promise<string> {
   if (senderId) {
     try {
       const sb = createServiceClient()
       const { data } = await sb.from('profiles')
-        .select('wawp_instance_id, wawp_access_token, wawp_status')
+        .select('wasender_api_key, wasender_status')
         .eq('id', senderId)
         .maybeSingle()
-      if (data?.wawp_instance_id && data?.wawp_access_token && data?.wawp_status === 'connected') {
-        return { instanceId: data.wawp_instance_id, accessToken: data.wawp_access_token }
+      if (data?.wasender_api_key && data?.wasender_status !== 'disconnected') {
+        return data.wasender_api_key
       }
     } catch {}
   }
-  return { instanceId: CONFIG.wawpInstanceId, accessToken: CONFIG.wawpAccessToken }
+  return CONFIG.wasenderApiKey
 }
 
-async function wawpSend(
+async function wasenderSend(
   to: string,
   message: string,
   type: 'text' | 'media' = 'text',
   mediaUrl?: string,
   senderId?: string | null,
 ): Promise<boolean> {
-  const { instanceId, accessToken } = await resolveInstance(senderId)
+  const apiKey = await resolveApiKey(senderId)
   const phone = normalizePhone(to)
 
-  const body: Record<string, any> = {
-    number: phone,
-    type,
-    message,
-    instance_id: instanceId,
-    access_token: accessToken,
+  if (!apiKey) {
+    console.error('[WaSender] No API key configured — set WASENDER_API_KEY')
+    try {
+      const sb = createServiceClient()
+      await sb.from('whatsapp_logs').insert({
+        recipient: phone, message, status: 'failed',
+        provider_response: { error: 'No WaSender API key configured' },
+      })
+    } catch {}
+    return false
   }
-  if (type === 'media' && mediaUrl) body.media_url = mediaUrl
+
+  // WaSender payload: { to, text } for text; media uses a *Url field alongside
+  // the caption in `text`.
+  const body: Record<string, any> = { to: phone, text: message }
+  if (type === 'media' && mediaUrl) {
+    const lower = mediaUrl.split('?')[0].toLowerCase()
+    if (/\.(jpg|jpeg|png|gif|webp)$/.test(lower)) body.imageUrl = mediaUrl
+    else if (/\.(mp4|mov|3gp)$/.test(lower)) body.videoUrl = mediaUrl
+    else if (/\.(mp3|ogg|opus|m4a|wav)$/.test(lower)) body.audioUrl = mediaUrl
+    else body.documentUrl = mediaUrl
+  }
 
   let status = 'pending'
   let providerResponse: any = null
 
   try {
-    const res = await fetch(WAWP_URL, {
+    const res = await fetch(WASENDER_URL, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
+      headers: {
+        'Content-Type': 'application/json',
+        Authorization: `Bearer ${apiKey}`,
+      },
       body: JSON.stringify(body),
-      signal: AbortSignal.timeout(12000),
+      signal: AbortSignal.timeout(15000),
     })
-    providerResponse = await res.json()
-    status = res.ok && providerResponse?.status !== 'error' ? 'sent' : 'failed'
-    console.log('[WAWP]', phone, status, providerResponse)
+    providerResponse = await res.json().catch(() => ({}))
+    // WaSender returns { success: true, data: {...} } on success
+    status = res.ok && providerResponse?.success !== false ? 'sent' : 'failed'
+    if (status !== 'sent') console.error('[WaSender]', phone, res.status, providerResponse)
     return status === 'sent'
   } catch (e: any) {
     status = 'failed'
     providerResponse = { error: e.message }
-    console.error('[WAWP] Error:', e.message)
+    console.error('[WaSender] Error:', e.message)
     return false
   } finally {
     try {
@@ -91,14 +105,14 @@ async function wawpSend(
   }
 }
 
-// ── Public API ───────────────────────────────────────────────
+// ── Public API (unchanged surface — everything else keeps working) ─────────
 
 export async function sendWhatsAppText(to: string, message: string, senderId?: string | null): Promise<boolean> {
-  return wawpSend(to, message, 'text', undefined, senderId)
+  return wasenderSend(to, message, 'text', undefined, senderId)
 }
 
 export async function sendWhatsAppMedia(to: string, message: string, mediaUrl: string, senderId?: string | null): Promise<boolean> {
-  return wawpSend(to, message, 'media', mediaUrl, senderId)
+  return wasenderSend(to, message, 'media', mediaUrl, senderId)
 }
 
 // ── WhatsApp Message Templates ───────────────────────────────
