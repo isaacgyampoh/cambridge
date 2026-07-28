@@ -101,7 +101,11 @@ export const ALL_PORTALS = [
       { label: 'Content bank',  href: '/coordinator/content' },
       { label: 'Testimonials',  href: '/coordinator/testimonials' },
     ]},
-  { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings' },
+  { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings',
+    children: [
+      { label: 'Settings',   href: '/admin/settings' },
+      { label: 'Automation', href: '/admin/automation' },
+    ]},
 
   // ── Category groups (used by super_admin for a tidy, organised sidebar) ──
   { id: 'grp_growth', label: 'Growth', icon: TrendingUp, href: '/admin/leads', children: [
