@@ -20,7 +20,7 @@ function normalizePhone(phone: string): string {
  * WaSender session, use it — so the message comes from THEIR WhatsApp line.
  * Otherwise fall back to the central system key.
  */
-async function resolveApiKey(senderId?: string | null): Promise<string> {
+async function resolveApiKey(senderId?: string | null): Promise<{ key: string; profileId: string | null }> {
   if (senderId) {
     try {
       const sb = createServiceClient()
@@ -28,12 +28,12 @@ async function resolveApiKey(senderId?: string | null): Promise<string> {
         .select('wasender_api_key, wasender_status')
         .eq('id', senderId)
         .maybeSingle()
-      if (data?.wasender_api_key && data?.wasender_status !== 'disconnected') {
-        return data.wasender_api_key
+      if (data?.wasender_api_key) {
+        return { key: data.wasender_api_key, profileId: senderId }
       }
     } catch {}
   }
-  return CONFIG.wasenderApiKey
+  return { key: CONFIG.wasenderApiKey, profileId: null }
 }
 
 async function wasenderSend(
@@ -43,7 +43,7 @@ async function wasenderSend(
   mediaUrl?: string,
   senderId?: string | null,
 ): Promise<boolean> {
-  const apiKey = await resolveApiKey(senderId)
+  const { key: apiKey, profileId } = await resolveApiKey(senderId)
   const phone = normalizePhone(to)
 
   if (!apiKey) {
@@ -97,6 +97,13 @@ async function wasenderSend(
   } finally {
     try {
       const sb = createServiceClient()
+      // Keep the line's status honest: a successful send proves it's connected,
+      // an auth/session failure proves it isn't. No manual testing required.
+      if (profileId) {
+        await sb.from('profiles')
+          .update({ wasender_status: status === 'sent' ? 'connected' : 'disconnected' })
+          .eq('id', profileId).then(() => {}, () => {})
+      }
       await sb.from('whatsapp_logs').insert({
         recipient: phone,
         message,

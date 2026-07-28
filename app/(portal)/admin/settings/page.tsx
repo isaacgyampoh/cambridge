@@ -84,7 +84,7 @@ export default function SettingsPage() {
       })
       const d = await res.json()
       setResult({ channel: 'WhatsApp', success: d.sent, ...d })
-      d.success ? toast.success('Test WhatsApp sent') : toast.error('WhatsApp not connected yet')
+      d.sent ? toast.success('Test WhatsApp sent') : toast.error(d.error || d.provider_response?.message || 'WhatsApp send failed — see details below')
     } catch (e: any) { toast.error(e.message) }
     finally { setTesting(null) }
   }
@@ -93,7 +93,7 @@ export default function SettingsPage() {
     { name: 'Database', desc: 'Supabase', icon: Database, ok: status.supabase, detail: status.supabase ? 'Connected' : 'Not configured' },
     { name: 'SMS', desc: `Arkesel · sender "${status.senderId}"`, icon: Smartphone, ok: status.arkesel, detail: status.arkesel ? 'Active' : 'No API key' },
     { name: 'Payments', desc: 'Paystack', icon: CreditCard, ok: status.paystack, detail: status.paystack ? (status.paystackLive ? 'Live keys active' : 'Test keys') : 'Not configured' },
-    { name: 'WhatsApp', desc: `${status.wawpLines} line${status.wawpLines === 1 ? '' : 's'} connected`, icon: MessageSquare, ok: status.wawpLines > 0 || status.wawpCentral, detail: status.wawpLines > 0 ? `${status.wawpLines} connected` : status.wawpCentral ? 'Central line set' : 'No lines yet' },
+    { name: 'WhatsApp', desc: 'WaSender — central line plus each marketer\u2019s own number', icon: MessageSquare, ok: status.wawpCentral || status.wawpLines > 0, detail: !status.wawpCentral && status.wawpLines === 0 ? 'No key set' : `Key set${status.wawpLines > 0 ? ` \u00b7 ${status.wawpLines} staff line${status.wawpLines === 1 ? '' : 's'} verified` : ' \u00b7 no staff lines verified yet'}` },
     { name: 'AI assistant', desc: 'Auto-answers WhatsApp inquiries', icon: Sparkles, ok: status.ai, detail: status.ai ? 'Active' : 'Add Anthropic key' },
     { name: 'Email', desc: 'Resend', icon: Mail, ok: status.resend, detail: status.resend ? 'Active' : 'Optional — not set' },
     { name: 'File storage', desc: 'Supabase Storage · flyers, documents, voice notes, letters', icon: Database, ok: status.storage, detail: status.storage ? 'Connected' : 'Set up the uploads bucket' },
