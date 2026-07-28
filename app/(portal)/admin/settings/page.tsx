@@ -161,6 +161,13 @@ export default function SettingsPage() {
           <input value={testPhone} onChange={e => setTestPhone(e.target.value)} placeholder="Your phone, e.g. 0244 000 000" className={inputClass + ' flex-1'} />
           <Button onClick={testSMS} disabled={testing === 'sms'} >{testing === 'sms' ? 'Sending…' : 'Test SMS'}</Button>
           <Button variant="secondary" onClick={testWhatsApp} disabled={testing === 'wa'} >{testing === 'wa' ? 'Sending…' : 'Test WhatsApp'}</Button>
+          <Button variant="secondary" onClick={async () => {
+            setTesting('ai'); setResult(null)
+            const d = await fetch('/api/test/ai').then(r => r.json()).catch(() => ({ error: 'failed' }))
+            setTesting(null)
+            setResult({ channel: 'AI', success: d.ok, hint: d.diagnosis, provider_response: d.sample_message ? { message: d.sample_message } : undefined, error: d.error })
+            d.ok ? toast.success('AI is working') : toast.error(d.diagnosis || 'AI not working')
+          }} disabled={testing === 'ai'}>{testing === 'ai' ? 'Checking…' : 'Test AI'}</Button>
         </div>
         {result && (
           <div className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-[var(--ok-soft)] text-emerald-800' : 'bg-[var(--warn-soft)] text-amber-800'}`}>
