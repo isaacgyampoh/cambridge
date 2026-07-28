@@ -77,6 +77,23 @@ export async function POST(req: NextRequest) {
     try {
       const { data: lead } = await sb.from('leads')
         .select('id, assigned_to, ai_paused').in('phone', variants).limit(1).maybeSingle()
+
+      // The provider also echoes back messages WE sent. If this text matches
+      // something the system just sent, it is not a human takeover — ignore it.
+      // Without this, the AI's own greeting paused the AI and the lead's reply
+      // never got answered.
+      const norm = (v: string) => String(v || '').replace(/\s+/g, ' ').trim().toLowerCase()
+      let isOurOwn = false
+      if (text) {
+        const { data: recentOut } = await sb.from('ai_conversations')
+          .select('reply_text')
+          .in('phone', variants)
+          .gte('created_at', new Date(Date.now() - 10 * 60000).toISOString())
+          .limit(10)
+        isOurOwn = (recentOut || []).some((r: any) => r.reply_text && norm(r.reply_text) === norm(text))
+      }
+      if (isOurOwn) return NextResponse.json({ ok: true, echo: true })
+
       if (lead?.id) {
         if (!lead.ai_paused) {
           await sb.from('leads').update({
