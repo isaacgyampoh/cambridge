@@ -45,26 +45,22 @@ export default function MarketerNewLead() {
         }
       }
 
-      const res = await fetch('/api/data', {
+      // Route through the intake pipeline so the lead is greeted by the AI on
+      // WhatsApp and enrolled in nurture, exactly like a webhook lead — just
+      // owned by the marketer who added it.
+      const res = await fetch('/api/leads/import', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          table: 'leads',
-          data: {
-            full_name: form.full_name.trim(),
-            phone: form.phone.trim().replace(/^0/, '233') || null,
-            email: form.email.trim() || null,
-            gender: form.gender || null,
-            country: 'Ghana',
-            city: form.city || null,
-            source: 'manual',
-            status: 'new',
-            course_interest: form.course_interest || null,
-            notes: form.notes || null,
-            // Auto-assign to the marketer who created it
-            assigned_to: myId,
-            assigned_at: new Date().toISOString(),
-          },
-        }),
+        body: JSON.stringify({ leads: [{
+          full_name: form.full_name.trim(),
+          phone: form.phone.trim().replace(/^0/, '233') || null,
+          email: form.email.trim() || null,
+          city: form.city || null,
+          source: 'manual',
+          landing_source: 'Added manually',
+          course_interest: form.course_interest || null,
+          notes: form.notes || null,
+          assigned_to: myId,
+        }] }),
       })
       const d = await res.json()
       if (d.error) throw new Error(d.error)

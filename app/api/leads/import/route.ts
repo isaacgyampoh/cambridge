@@ -30,8 +30,11 @@ export async function POST(req: NextRequest) {
         full_name: l.full_name, phone: l.phone, email: l.email,
         course_interest: l.course_interest || null,
         source: l.source || 'manual',
-        landing_source: 'Imported',
-        extra: { city: l.city || null, notes: l.notes || null },
+        landing_source: l.landing_source || 'Imported',
+        // Honour a manually chosen owner; otherwise auto-assign as normal.
+        preferredMarketerId: l.assigned_to || null,
+        city: l.city || null,
+        extra: { notes: l.notes || null },
       })
       if (r.duplicate) duplicates++
       else if (r.leadId) { imported++; if (r.assignedTo) assigned++ }
