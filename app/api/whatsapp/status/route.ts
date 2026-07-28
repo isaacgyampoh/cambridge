@@ -54,7 +54,9 @@ export async function POST(req: NextRequest) {
       body: JSON.stringify({ to, text: 'Cambridge Center of Excellence — WhatsApp is connected and working.' }),
       signal: AbortSignal.timeout(15000),
     })
-    const body = await res.json().catch(() => ({}))
+    const raw = await res.text()
+    let body: any
+    try { body = JSON.parse(raw) } catch { body = { raw: raw.slice(0, 500) } }
     return NextResponse.json({
       sent: res.ok && body?.success !== false,
       to,

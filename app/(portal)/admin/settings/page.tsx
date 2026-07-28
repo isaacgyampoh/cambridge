@@ -78,9 +78,12 @@ export default function SettingsPage() {
   async function testWhatsApp() {
     setTesting('wa'); setResult(null)
     try {
-      const res = await fetch('/api/test/whatsapp', { method: 'POST' })
+      const res = await fetch('/api/whatsapp/status', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: testPhone }),
+      })
       const d = await res.json()
-      setResult({ channel: 'WhatsApp', ...d })
+      setResult({ channel: 'WhatsApp', success: d.sent, ...d })
       d.success ? toast.success('Test WhatsApp sent') : toast.error('WhatsApp not connected yet')
     } catch (e: any) { toast.error(e.message) }
     finally { setTesting(null) }
@@ -164,6 +167,12 @@ export default function SettingsPage() {
             <div className="font-medium mb-1">{result.channel}: {result.success ? 'Delivered to provider' : 'Not delivered'}</div>
             {result.hint && <div className="text-xs">{result.hint}</div>}
             {result.arkeselResponse && <div className="text-[12px] font-mono mt-1 opacity-70">{JSON.stringify(result.arkeselResponse)}</div>}
+            {result.provider_response && (
+              <div className="text-[12px] font-mono mt-1 opacity-80 break-all">
+                {result.http_status ? `HTTP ${result.http_status} — ` : ''}{JSON.stringify(result.provider_response)}
+              </div>
+            )}
+            {result.error && <div className="text-[12px] mt-1">{result.error}</div>}
           </div>
         )}
       </Card>

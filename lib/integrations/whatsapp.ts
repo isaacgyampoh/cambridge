@@ -77,12 +77,14 @@ async function wasenderSend(
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
+        Accept: 'application/json',
         Authorization: `Bearer ${apiKey}`,
       },
       body: JSON.stringify(body),
       signal: AbortSignal.timeout(15000),
     })
-    providerResponse = await res.json().catch(() => ({}))
+    const raw = await res.text()
+    try { providerResponse = JSON.parse(raw) } catch { providerResponse = { raw: raw.slice(0, 400) } }
     // WaSender returns { success: true, data: {...} } on success
     status = res.ok && providerResponse?.success !== false ? 'sent' : 'failed'
     if (status !== 'sent') console.error('[WaSender]', phone, res.status, providerResponse)
