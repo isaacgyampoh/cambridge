@@ -76,6 +76,23 @@ export default function WhatsAppLinesPage() {
         eyebrow="Messaging"
         title="WhatsApp lines"
         description="Give each marketer their own WhatsApp line. Messages to their leads are sent from their number, and replies reach them directly."
+        actions={
+          <Button variant="secondary" onClick={async () => {
+            const st = await fetch('/api/whatsapp/status').then(r => r.json()).catch(() => null)
+            if (!st || st.error) { toast.error(st?.error || 'Could not check'); return }
+            if (!st.central_key_set) { toast.error(st.diagnosis); return }
+            const num = prompt(`WaSender is connected (key ${st.central_key_fingerprint}).\n\nEnter a phone number to send a real test message to:`)
+            if (!num) return
+            toast.loading('Sending test…', { id: 'wa' })
+            const r = await fetch('/api/whatsapp/status', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone: num.trim() }),
+            }).then(x => x.json()).catch(() => ({ error: 'failed' }))
+            if (r.sent) toast.success(`Test message sent to ${r.to}`, { id: 'wa' })
+            else toast.error(`Failed: ${r.error || r.provider_response?.message || 'see console'}`, { id: 'wa' })
+            console.log('WaSender test:', r)
+          }}>Test connection</Button>
+        }
       />
 
       <Card className="p-4 mb-6 bg-[var(--accent-soft)] border-[var(--accent-soft)]">
