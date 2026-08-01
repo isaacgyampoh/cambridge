@@ -237,6 +237,9 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   {lead.city && (
                     <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--line-soft)] text-[var(--ink-soft)]">📍 {lead.city}</span>
                   )}
+                  {lead.profession && (
+                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">{lead.profession}</span>
+                  )}
                   {lead.education_level && (
                     <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--line-soft)] text-[var(--ink-soft)]">🎓 {lead.education_level}</span>
                   )}
@@ -255,6 +258,22 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   className="flex-shrink-0 h-9 px-3 rounded-lg bg-[var(--paper)] border border-[var(--line)] text-[13px] font-semibold text-[var(--ink)] hover:bg-white transition">
                   Resume AI
                 </button>
+              </div>
+            )}
+
+            {(lead.ai_summary || lead.follow_up_at) && (
+              <div className="mx-5 mb-4 bg-[var(--accent-soft)] border border-[var(--accent)]/15 rounded-xl p-4">
+                {lead.ai_summary && (
+                  <>
+                    <div className="text-[11px] font-semibold text-[var(--accent)] uppercase tracking-wide mb-1">Where the conversation stands</div>
+                    <p className="text-[14px] text-[var(--ink)] leading-relaxed">{lead.ai_summary}</p>
+                  </>
+                )}
+                {lead.follow_up_at && (
+                  <p className="text-[13px] text-[var(--ink-soft)] mt-2">
+                    Follow up on <b className="text-[var(--ink)]">{new Date(lead.follow_up_at).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</b>
+                  </p>
+                )}
               </div>
             )}
 

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { readConversation } from '@/lib/integrations/conversationState'
 import { generateAssistantReply } from '@/lib/integrations/ai-assistant'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
@@ -131,7 +132,7 @@ export async function POST(req: NextRequest) {
   // Indexed lookup on the phone variants (previously pulled 3000 leads into
   // memory on every inbound message — slow and it silently missed lead 3001+).
   const { data: lead } = await sb.from('leads')
-    .select('id, full_name, phone, course_interest, assigned_to, ai_paused')
+    .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession')
     .in('phone', variants).order('created_at', { ascending: false }).limit(1).maybeSingle()
 
   // Find the assigned marketer (for voice + sending line + their link)
@@ -278,6 +279,7 @@ export async function POST(req: NextRequest) {
   // Generate the AI reply
   const reply = await generateAssistantReply(text, {
     leadName: lead?.full_name,
+    profession: (lead as any)?.profession || null,
     marketerName: marketer?.full_name,
     marketerIntro: marketer?.wa_intro,
     courseInterest: lead?.course_interest,
@@ -289,6 +291,35 @@ export async function POST(req: NextRequest) {
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
     answeredBy = ok ? 'ai' : 'fallback'
+  }
+
+  // Read what the conversation revealed and update the lead itself: what they
+  // do, how warm they are, and when they asked to be contacted. This is what
+  // moves a lead to "follow up" without a marketer touching it.
+  if (lead?.id && reply) {
+    try {
+      const read = await readConversation(history, text)
+      if (read) {
+        const update: Record<string, any> = {}
+        if (read.profession && !(lead as any).profession) update.profession = read.profession
+        if (read.summary) update.ai_summary = read.summary
+        if (read.followUpAt) update.follow_up_at = new Date(read.followUpAt + 'T09:00:00').toISOString()
+        // Never downgrade a lead that already registered
+        if (read.status && (lead as any).status !== 'registered') update.status = read.status
+        if (Object.keys(update).length) {
+          update.updated_at = new Date().toISOString()
+          await sb.from('leads').update(update).eq('id', lead.id).then(() => {}, () => {})
+          if (read.status === 'interested' && lead.assigned_to) {
+            await sb.from('notifications').insert({
+              user_id: lead.assigned_to, type: 'lead',
+              title: 'Lead is ready to register',
+              body: `${lead.full_name}: ${read.summary || 'showed strong interest'}`,
+              link: `/marketer/leads/${lead.id}`,
+            }).then(() => {}, () => {})
+          }
+        }
+      }
+    } catch {}
   }
 
   // Log
