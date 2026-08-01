@@ -68,7 +68,9 @@ export async function GET(req: NextRequest) {
       endDate: b?.end_date || null,
       canJoin: !cohortEnded && minTopUp <= 0,
       signedInToday: !!todaySignin,
-      zoomLink: (!cohortEnded && minTopUp <= 0) ? (b?.zoom_link || null) : null,
+      // The Zoom link is deliberately NOT sent to the browser — joining goes
+      // through a single-use redirect so a copied URL is worthless.
+      hasLink: !!b?.zoom_link,
     }
   }
 
@@ -84,6 +86,18 @@ export async function GET(req: NextRequest) {
     locked = (allDocs || [])
       .filter((d: any) => (!d.course_id || d.course_id === fee?.course_id) && Number(d.unlock_after_amount || 0) > paid)
       .map((d: any) => ({ name: d.name, unlockAt: Number(d.unlock_after_amount || 0) }))
+  } catch {}
+
+  // Certificate — released only when fees are fully paid AND it's been issued
+  let certificate: any = null
+  try {
+    const feesCleared = fee ? Number(fee.balance ?? 0) <= 0 : false
+    if (feesCleared) {
+      const { data: cert } = await sb.from('certificates')
+        .select('certificate_number, final_url, issued_date, course_name')
+        .eq('lead_id', s.leadId).order('issued_date', { ascending: false }).limit(1).maybeSingle()
+      if (cert?.final_url) certificate = cert
+    }
   } catch {}
 
   // Payment history
@@ -107,6 +121,7 @@ export async function GET(req: NextRequest) {
     session: sessionInfo,
     enrollmentId: enr?.id || null,
     materials: { unlocked, locked },
+    certificate,
     payments: payments || [],
   })
 }

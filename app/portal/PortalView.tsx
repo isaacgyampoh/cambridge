@@ -80,13 +80,18 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     else alert(init?.error || 'Could not start payment. Please try again.')
   }
 
-  function joinClass() {
+  const [joining, setJoining] = useState(false)
+  async function joinClass() {
     if (demo) { alert('In the live portal this opens Zoom — the app launches on a phone, or the Zoom client on a laptop.'); return }
-    const link = d?.session?.zoomLink
-    if (!link) return
-    fetch('/api/student/signin', { method: 'POST' }).catch(() => {})
-    window.location.href = link
-    setTimeout(load, 2500)
+    setJoining(true)
+    // Ask the server for a one-time entry link. The Zoom URL never reaches the
+    // browser, so it cannot be copied and shared with someone who has not paid.
+    const r = await fetch('/api/student/join', { method: 'POST' }).then(x => x.json()).catch(() => null)
+    setJoining(false)
+    if (r?.url) { window.location.href = r.url; setTimeout(load, 3000); return }
+    if (r?.error === 'payment_required') { alert(`You need to pay at least ${ghs(r.minTopUp)} to join this session.`); setTab('fees'); load(); return }
+    if (r?.error === 'cohort_ended') { alert('This class has ended. Please contact the administration.'); load(); return }
+    alert('Could not open the class. Please try again.')
   }
 
   if (loading) return (
@@ -142,7 +147,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     )
     if (s.canJoin) return (
       <>
-        <Btn tone="ok" onClick={joinClass}>{Ico.video} Join class</Btn>
+        <Btn tone="ok" onClick={joinClass} disabled={joining}>{Ico.video} {joining ? 'Opening' : 'Join class'}</Btn>
         <p style={{ fontSize: 12.5, color: C.faint, textAlign: 'center', margin: '10px 0 0' }}>Opens Zoom on your phone or laptop.</p>
       </>
     )
@@ -199,6 +204,22 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
                 </div>
                 <div style={{ fontSize: 12.5, color: C.faint, marginTop: 8 }}>{ghs(f.paid)} paid of {ghs(f.total)}</div>
                 {f.balance > 0 && <div style={{ marginTop: 15 }}><Btn onClick={() => setTab('fees')}>Make payment</Btn></div>}
+              </Card>
+            )}
+
+            {d?.certificate && (
+              <Card style={{ borderColor: '#cde3e6', background: C.tealSoft }}>
+                <Label>Your certificate</Label>
+                <div style={{ fontSize: 15, fontWeight: 600, color: C.ink }}>{d.certificate.course_name}</div>
+                <div style={{ fontSize: 12.5, color: C.soft, marginTop: 3 }}>
+                  {d.certificate.certificate_number}
+                  {d.certificate.issued_date ? ` · issued ${new Date(d.certificate.issued_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}
+                </div>
+                <div style={{ marginTop: 14 }}>
+                  <a href={d.certificate.final_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
+                    <Btn>Download certificate</Btn>
+                  </a>
+                </div>
               </Card>
             )}
 
