@@ -86,9 +86,13 @@ export const ROLE_HOME: Record<string, string> = {
  * portal added to a role later automatically reaches existing users.
  */
 export function resolvePortals(role: string | undefined, savedPortals?: string[] | null): string[] {
-  const defaults = ROLE_DEFAULTS[role || ''] || ['dashboard']
-  const saved = savedPortals?.length ? savedPortals : []
-  return Array.from(new Set([...defaults, ...saved]))
+  // If access has been chosen explicitly for this person, that IS their access
+  // — it is not merged with role defaults, otherwise nothing could ever be
+  // taken away. Role defaults only apply when nothing has been chosen yet.
+  if (savedPortals?.length) {
+    return Array.from(new Set(['dashboard', ...savedPortals]))
+  }
+  return ROLE_DEFAULTS[role || ''] || ['dashboard']
 }
 
 /** All URL paths a user may visit, derived from their resolved portals. */

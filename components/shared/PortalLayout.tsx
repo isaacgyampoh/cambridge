@@ -190,11 +190,13 @@ const ROLE_COLOR: Record<string, string> = {
 }
 
 function getNavItems(profile: any) {
-  // Merge the role defaults with any custom saved portals, so portals added
-  // after a user was created (e.g. My Links) always appear for them.
-  const defaults: string[] = NAV_BY_ROLE[profile?.role] || ['dashboard']
+  // If access was chosen explicitly for this person, show exactly that — it is
+  // not merged with role defaults, or access could never be taken away. Role
+  // defaults apply only when nothing has been chosen.
   const saved: string[] = profile?.portals?.length ? profile.portals : []
-  const ids: string[] = Array.from(new Set([...defaults, ...saved]))
+  const ids: string[] = saved.length
+    ? Array.from(new Set(['dashboard', ...saved]))
+    : (NAV_BY_ROLE[profile?.role] || ['dashboard'])
 
   return ids.map(id => {
     const p = ALL_PORTALS.find(x => x.id === id)

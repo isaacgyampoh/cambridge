@@ -57,7 +57,6 @@ export default function AdminDashboard() {
     readyToJoin: leads.filter((l: any) => l.status === 'ready_to_join').length,
     admitted: admissions.filter((a: any) => a.status === 'admitted').length,
     totalAdmissions: admissions.length,
-    revenue: payments.reduce((a: number, p: any) => a + Number(p.amount), 0),
     activeStaff: profiles.filter((p: any) => p.is_active && p.role !== 'student').length,
   }
 
@@ -78,7 +77,7 @@ export default function AdminDashboard() {
         <StatCard label="Total leads" value={s.totalLeads} sub={`${s.todayLeads} added today`} trend={{ value: `${Math.abs(leadDelta)}%`, up: leadDelta >= 0 }} spark={leadsByDay} />
         <StatCard label="Unassigned" value={s.unassigned} sub={s.unassigned > 0 ? 'Need attention' : 'All assigned'} />
         <StatCard label="Ready to join" value={s.readyToJoin} sub="Awaiting admission" spark={admByDay} />
-        <StatCard label="Revenue" value={formatGHS(s.revenue)} sub="Collected to date" accent />
+        <StatCard label="Registered students" value={s.totalAdmissions ?? 0} sub="Paid and admitted" accent />
         <StatCard label="Admitted" value={s.admitted} sub={`of ${s.totalAdmissions} cases`} />
         <StatCard label="Active staff" value={s.activeStaff} sub="Across all roles" />
       </div>
@@ -121,7 +120,7 @@ export default function AdminDashboard() {
             {[
               { label: 'Assign & manage leads', href: '/admin/leads', sub: `${s.unassigned} unassigned` },
               { label: 'Admissions', href: '/admin/admissions', sub: `${s.readyToJoin} ready to join` },
-              { label: 'Finance', href: '/admin/finance', sub: formatGHS(s.revenue) + ' collected' },
+              { label: 'Finance', href: '/admin/finance', sub: 'Fees and payments' },
               { label: 'Staff', href: '/admin/staff', sub: `${s.activeStaff} active` },
             ].map(l => (
               <Link key={l.href} href={l.href}
