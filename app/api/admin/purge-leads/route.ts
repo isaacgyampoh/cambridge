@@ -25,6 +25,8 @@ async function plan(sb: any, mode: string = 'keep_registered') {
   //                    unassigned backlog so each marketer sees just their own)
   const doomed = all.filter((l: any) => {
     if (protectedIds.has(l.id)) return false
+    // keep_clean: keep anyone who registered OR belongs to a marketer
+    if (mode === 'keep_clean') return l.status !== 'registered' && !l.assigned_to
     if (mode === 'keep_assigned') return !l.assigned_to
     return l.status !== 'registered'
   }).map((l: any) => l.id)

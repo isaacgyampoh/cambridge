@@ -126,8 +126,13 @@ async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
     }
   } catch { /* table optional */ }
 
+  // Don't nurture someone who already registered
+  const { data: statusRow } = await sb.from('leads').select('status').eq('id', leadId).maybeSingle()
+  const alreadyConverted = ['registered', 'not_interested', 'lost'].includes(String(statusRow?.status || ''))
+
   // Auto-enroll into any active "new lead" nurture sequence
   try {
+    if (alreadyConverted) throw new Error('skip')
     const { data: seqs } = await sb.from('sequences')
       .select('id').eq('is_active', true).eq('trigger', 'new_lead').limit(1)
     if (seqs && seqs[0]) {
@@ -145,8 +150,12 @@ async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
   // AI auto-conversation: start the WhatsApp chat through the marketer's line.
   try {
     const { data: full } = await sb.from('leads')
-      .select('full_name, phone, course_interest').eq('id', leadId).maybeSingle()
-    if (full?.phone) {
+      .select('full_name, phone, course_interest, status').eq('id', leadId).maybeSingle()
+    // Never open a sales conversation with someone who has already registered
+    // or was written off — the greeting asks what they do for work, which is
+    // wrong for a paid student.
+    const skipStatuses = ['registered', 'not_interested', 'lost']
+    if (full?.phone && !skipStatuses.includes(String(full.status || ''))) {
       const opening = await generateOpeningMessage({
         leadName: full.full_name,
         marketerName: marketer?.full_name || 'Cambridge',
