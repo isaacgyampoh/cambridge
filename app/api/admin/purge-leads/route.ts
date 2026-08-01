@@ -6,8 +6,8 @@ export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator']
 
 /** GET = dry run (what would go / stay). POST = actually delete. */
-async function plan(sb: any) {
-  const { data: leads } = await sb.from('leads').select('id, status').limit(10000)
+async function plan(sb: any, mode: string = 'keep_registered') {
+  const { data: leads } = await sb.from('leads').select('id, status, assigned_to').limit(10000)
   const all = leads || []
   const byStatus: Record<string, number> = {}
   for (const l of all) byStatus[l.status || 'null'] = (byStatus[l.status || 'null'] || 0) + 1
@@ -20,15 +20,23 @@ async function plan(sb: any) {
   for (const a of adm || []) if (a.lead_id) protectedIds.add(a.lead_id)
   for (const a of paidApps || []) if (a.lead_id) protectedIds.add(a.lead_id)
 
-  const doomed = all.filter((l: any) => l.status !== 'registered' && !protectedIds.has(l.id)).map((l: any) => l.id)
-  return { total: all.length, byStatus, protected: protectedIds.size, toDelete: doomed.length, doomed }
+  // keep_registered  — keep only leads that registered
+  // keep_assigned    — keep only leads that belong to a marketer (clears the
+  //                    unassigned backlog so each marketer sees just their own)
+  const doomed = all.filter((l: any) => {
+    if (protectedIds.has(l.id)) return false
+    if (mode === 'keep_assigned') return !l.assigned_to
+    return l.status !== 'registered'
+  }).map((l: any) => l.id)
+  return { total: all.length, byStatus, protected: protectedIds.size, toDelete: doomed.length, doomed, mode }
 }
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value
   const s: any = token ? await verifySession(token) : { valid: false }
   if (!s.valid || !ALLOWED.includes(s.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
-  const { doomed, ...summary } = await plan(createServiceClient())
+  const mode = new URL(req.url).searchParams.get('mode') || 'keep_registered'
+  const { doomed, ...summary } = await plan(createServiceClient(), mode)
   return NextResponse.json({ dryRun: true, ...summary })
 }
 
@@ -38,7 +46,8 @@ export async function POST(req: NextRequest) {
   if (!s.valid || !ALLOWED.includes(s.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
 
   const sb = createServiceClient()
-  const { doomed, ...summary } = await plan(sb)
+  const mode = new URL(req.url).searchParams.get('mode') || 'keep_registered'
+  const { doomed, ...summary } = await plan(sb, mode)
   const child: [string, string][] = [
     ['lead_activities', 'lead_id'], ['lead_comments', 'lead_id'], ['ai_conversations', 'lead_id'],
     ['lead_assign_pending', 'lead_id'], ['follow_up_queue', 'lead_id'], ['sequence_enrollments', 'lead_id'],
@@ -56,6 +65,6 @@ export async function POST(req: NextRequest) {
     else console.error('[purge-leads]', error.message)
   }
 
-  const after = await plan(sb)
+  const after = await plan(sb, mode)
   return NextResponse.json({ success: true, ...summary, deleted, remaining: after.total, remainingByStatus: after.byStatus })
 }

@@ -102,6 +102,15 @@ export default function AdminLeads() {
               if (d.error) toast.error(d.error, { id: 'purge' })
               else { toast.success(`Deleted ${d.deleted}. ${d.remaining} registered leads remain.`, { id: 'purge' }); refetch?.() }
             }}>Keep only registered</Button>
+            <Button variant="secondary" onClick={async () => {
+              const dry = await fetch('/api/admin/purge-leads?mode=keep_assigned').then(r => r.json()).catch(() => null)
+              if (!dry || dry.error) { toast.error(dry?.error || 'Could not check'); return }
+              if (!confirm(`Remove every lead that is NOT assigned to a marketer?\n\nTotal leads: ${dry.total}\nWill delete: ${dry.toDelete}\nProtected (registered / has paid): ${dry.protected}\n\nThis cannot be undone.`)) return
+              toast.loading('Cleaning up…', { id: 'purge2' })
+              const d = await fetch('/api/admin/purge-leads?mode=keep_assigned', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+              if (d.error) toast.error(d.error, { id: 'purge2' })
+              else { toast.success(`Deleted ${d.deleted}. ${d.remaining} leads remain.`, { id: 'purge2' }); refetch?.() }
+            }}>Keep only assigned</Button>
             <Button variant="secondary" onClick={clearAllLeads} >Delete all</Button>
             <Button variant="secondary" href="/admin/leads/import" >Import</Button>
             <Button variant="secondary" onClick={exportExcel} >Excel</Button>
