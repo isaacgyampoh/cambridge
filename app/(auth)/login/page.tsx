@@ -193,15 +193,25 @@ function LoginForm() {
       </div>
 
       {/* Right panel — login */}
-      <div className="flex flex-col items-center justify-center flex-1 px-6 py-8 sm:py-10" style={{ background: 'var(--canvas)' }}>
-        <div className="w-full max-w-[360px] text-center lg:text-left">
+      <div className="relative flex flex-col items-center justify-center flex-1 px-6 py-8 sm:py-10 overflow-hidden" style={{ background: 'var(--canvas)' }}>
+        {/* Mobile branding: the mark sits behind the screen, plus a soft teal
+            wash top and bottom so it reads as an app rather than a web form. */}
+        <div className="lg:hidden pointer-events-none absolute inset-0 select-none" aria-hidden="true">
+          <div className="absolute inset-x-0 -top-24 h-72"
+            style={{ background: 'radial-gradient(60% 70% at 50% 0%, rgba(26,122,133,.13), transparent 70%)' }} />
+          <div className="absolute inset-x-0 -bottom-28 h-72"
+            style={{ background: 'radial-gradient(60% 70% at 50% 100%, rgba(26,122,133,.09), transparent 70%)' }} />
+          <img src="/brand/logo.png" alt=""
+            className="absolute left-1/2 top-1/2 w-[125vw] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
+            style={{ opacity: 0.035 }} />
+        </div>
+
+        <div className="relative w-full max-w-[360px] text-center lg:text-left">
 
           {/* Mobile logo */}
-          <div className="lg:hidden mb-7 flex flex-col items-center">
-            <div className="w-[84px] h-[84px] rounded-[26px] flex items-center justify-center mb-4 overflow-hidden p-3"
-              style={{ background: 'linear-gradient(155deg, #14636c, #1a7a85)', boxShadow: '0 10px 28px -8px rgba(26,122,133,.55)' }}>
-              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
-            </div>
+          <div className="lg:hidden mb-8 flex flex-col items-center">
+            <img src="/brand/logo.png" alt="Cambridge Center of Excellence"
+              className="w-[76px] h-[76px] object-contain mb-4" />
             <h1 className="font-display text-[var(--ink)] text-[20px] font-semibold leading-snug px-4 text-center">Cambridge Center of Excellence</h1>
             <p className="text-[var(--ink-faint)] text-[13px] mt-1">Staff portal</p>
           </div>
