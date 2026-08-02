@@ -193,22 +193,22 @@ function LoginForm() {
       </div>
 
       {/* Right panel — login */}
-      <div className="flex flex-col items-center justify-center flex-1 px-6 py-10" style={{ background: 'var(--canvas)' }}>
+      <div className="flex flex-col items-center justify-center flex-1 px-6 py-8 sm:py-10" style={{ background: 'var(--canvas)' }}>
         <div className="w-full max-w-[360px] text-center lg:text-left">
 
           {/* Mobile logo */}
-          <div className="lg:hidden mb-10 flex flex-col items-center">
-            <div className="w-16 h-16 rounded-2xl bg-white border border-[var(--line)] flex items-center justify-center mb-4 overflow-hidden p-1">
+          <div className="lg:hidden mb-8 flex flex-col items-center">
+            <div className="w-[72px] h-[72px] rounded-[22px] bg-white border border-[var(--line)] shadow-sm flex items-center justify-center mb-4 overflow-hidden p-2.5">
               <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
             </div>
-            <h1 className="font-display text-[var(--ink)] text-xl font-semibold">Cambridge Center of Excellence</h1>
-            <p className="text-[var(--ink-faint)] text-sm mt-1">Staff portal</p>
+            <h1 className="font-display text-[var(--ink)] text-[19px] font-semibold leading-snug px-4">Cambridge Center of Excellence</h1>
+            <p className="text-[var(--ink-faint)] text-[13px] mt-1">Staff portal</p>
           </div>
 
           {step === 'pin' && (
             <>
               <div className="mb-8">
-                <h2 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
+                <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
                 <p className="text-[var(--ink-soft)] text-sm">Enter your 4-digit PIN to continue.</p>
               </div>
 
