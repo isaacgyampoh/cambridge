@@ -82,41 +82,11 @@ export default function AdminDashboard() {
         <StatCard label="Active staff" value={s.activeStaff} sub="Across all roles" />
       </div>
 
-      {/* Two-column: activity feed + quick links */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
-        <div className="lg:col-span-2">
-          <div className="flex items-center gap-2 mb-4">
-            <span className="text-[15px] font-semibold text-[var(--ink)]">Recent activity</span>
-            <span className="relative flex h-2 w-2">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-[var(--accent)] opacity-60" />
-              <span className="relative inline-flex rounded-full h-2 w-2 bg-[var(--accent)]" />
-            </span>
-          </div>
-          <Card className="p-2">
-            {feed.length === 0 ? (
-              <div className="py-16 text-center">
-                <p className="text-[14px] text-[var(--ink-faint)]">No activity yet today. As leads come in and staff work, it'll show here.</p>
-              </div>
-            ) : (
-              <div className="divide-y divide-[var(--line-soft)]">
-                {feed.map((e, i) => (
-                  <div key={i} className="flex items-start gap-3 px-3 py-3.5">
-                    <div className="min-w-0 flex-1">
-                      <div className="text-[14px] font-medium text-[var(--ink)] leading-snug">{e.title}</div>
-                      {e.sub && <div className="text-[13px] text-[var(--ink-faint)] truncate mt-0.5">{e.sub}</div>}
-                    </div>
-                    <span className="text-[12px] text-[var(--ink-faint)] flex-shrink-0 mt-0.5">{timeAgo(e.at)}</span>
-                  </div>
-                ))}
-              </div>
-            )}
-          </Card>
-        </div>
-
-        {/* Quick links */}
+      {/* Quick links — full width; the activity feed lives on its own page */}
+      <div className="grid grid-cols-1">
         <div>
           <div className="text-[15px] font-semibold text-[var(--ink)] mb-4">Jump to</div>
-          <div className="space-y-2">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
             {[
               { label: 'Assign & manage leads', href: '/admin/leads', sub: `${s.unassigned} unassigned` },
               { label: 'Admissions', href: '/admin/admissions', sub: `${s.readyToJoin} ready to join` },
