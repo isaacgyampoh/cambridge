@@ -18,7 +18,7 @@ const shortPhone = (p: string) => String(p || '').replace(/^233/, '0').replace(/
 export default function ConversationsPage() {
   const { data: convos, loading } = useData<any>({
     table: 'ai_conversations',
-    select: '*, lead:lead_id(full_name, status), marketer:marketer_id(full_name)',
+    select: '*, lead:lead_id(full_name, status, phone, assigned_to), marketer:marketer_id(full_name)',
     orderBy: 'created_at', orderAsc: false, limit: 1000,
   })
 
@@ -53,10 +53,13 @@ export default function ConversationsPage() {
       }
     }
     for (const c of convos || []) {
-      const sid = c.marketer_id || 'unassigned'
+      // Older rows were written before the lead had an owner, so fall back to
+      // whoever the lead belongs to now — otherwise assigned people show as
+      // 'unassigned' forever.
+      const sid = c.marketer_id || c.lead?.assigned_to || 'unassigned'
       if (!out[sid]) {
         out[sid] = {
-          id: sid, name: c.marketer?.full_name || 'Unassigned line',
+          id: sid, name: c.marketer?.full_name || (sid === 'unassigned' ? 'Sent from the main line' : 'Staff'),
           role: null, line: null, connected: false,
           threads: {}, total: 0, last: c.created_at,
         }
@@ -65,7 +68,9 @@ export default function ConversationsPage() {
       const key = shortPhone(c.phone)
       if (!s.threads[key]) {
         s.threads[key] = {
-          phone: key, name: c.lead?.full_name || null,
+          phone: key,
+          leadPhone: c.lead?.phone || c.phone,
+          name: c.lead?.full_name || null,
           status: c.lead?.status || null, leadId: c.lead_id,
           messages: [], last: c.created_at,
         }
@@ -141,7 +146,7 @@ export default function ConversationsPage() {
             <div className="min-w-0 flex-1">
               <div className="font-medium text-[var(--ink)] text-[14.5px] truncate">{s.name}</div>
               <div className="text-[12px] text-[var(--ink-faint)] truncate">
-                {s.line ? shortPhone(s.line) : 'No number'}
+                {s.line ? shortPhone(s.line) : (s.id === 'unassigned' ? 'Central number' : 'No line connected')}
                 {s.threadCount ? ` · ${s.threadCount} chatting` : ' · no chats yet'}
               </div>
             </div>
@@ -180,7 +185,7 @@ export default function ConversationsPage() {
                 <span className="font-medium text-[var(--ink)] text-[14.5px] truncate">{t.name || shortPhone(t.phone)}</span>
                 <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0">{fmtTime(t.last)}</span>
               </div>
-              <div className="text-[12px] text-[var(--ink-faint)] mt-0.5">{shortPhone(t.phone)}</div>
+              <div className="text-[12.5px] text-[var(--ink-soft)] mt-0.5 font-medium">{shortPhone(t.leadPhone || t.phone)}</div>
               {preview && <div className="text-[13px] text-[var(--ink-soft)] mt-1 line-clamp-1">{preview}</div>}
             </button>
           )
@@ -195,8 +200,11 @@ export default function ConversationsPage() {
         <button onClick={() => setPhone(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[16px] font-semibold text-[var(--ink)] truncate">{thread.name || shortPhone(thread.phone)}</h2>
-          <p className="text-[12px] text-[var(--ink-soft)] truncate">
-            {shortPhone(thread.phone)}{thread.status ? ` · ${String(thread.status).replace(/_/g, ' ')}` : ''}
+          <p className="text-[12.5px] text-[var(--ink-soft)] truncate">
+            <a href={`tel:${thread.leadPhone || thread.phone}`} className="font-medium text-[var(--accent)]">
+              {shortPhone(thread.leadPhone || thread.phone)}
+            </a>
+            {thread.status ? ` · ${String(thread.status).replace(/_/g, ' ')}` : ''}
           </p>
         </div>
         {thread.leadId && (

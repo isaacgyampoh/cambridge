@@ -345,7 +345,8 @@ export async function POST(req: NextRequest) {
 
   // If the assistant said it would check, that is an escalation — a human must
   // actually follow up, or the lead is left waiting on a promise nobody keeps.
-  if (reply && /come right back|let me check|i'll check|get back to you|find out and/i.test(reply)) {
+  const deferred = reply && /(come right back|let me (check|confirm|find out)|i'?ll (check|confirm|find out|get back)|get back to you|not sure|don'?t have that|can'?t confirm|will confirm)/i.test(reply)
+  if (deferred) {
     try {
       await sb.from('leads').update({
         needs_human: true, needs_human_at: new Date().toISOString(),

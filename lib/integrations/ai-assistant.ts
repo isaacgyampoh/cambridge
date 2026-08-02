@@ -103,6 +103,9 @@ date, time or figure. Reply exactly in this spirit, briefly:
 
   "Let me check that for you and come right back."
 
+Use that wording, or something close to it, every single time. Never fill the
+gap with a plausible-sounding answer.
+
 Then stop. Someone from the team will pick it up. It is far better to say you
 will check than to give a date or time that turns out to be wrong.
 
