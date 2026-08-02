@@ -193,25 +193,49 @@ function LoginForm() {
       </div>
 
       {/* Right panel — login */}
-      <div className="relative flex flex-col items-center justify-center flex-1 px-6 py-8 sm:py-10 overflow-hidden" style={{ background: 'var(--canvas)' }}>
-        {/* Mobile branding: the mark sits behind the screen, plus a soft teal
-            wash top and bottom so it reads as an app rather than a web form. */}
-        <div className="lg:hidden pointer-events-none absolute inset-0 select-none" aria-hidden="true">
-          <div className="absolute inset-x-0 -top-24 h-72"
-            style={{ background: 'radial-gradient(60% 70% at 50% 0%, rgba(26,122,133,.13), transparent 70%)' }} />
-          <div className="absolute inset-x-0 -bottom-28 h-72"
-            style={{ background: 'radial-gradient(60% 70% at 50% 100%, rgba(26,122,133,.09), transparent 70%)' }} />
-          <img src="/brand/logo.png" alt=""
-            className="absolute left-1/2 top-1/2 w-[125vw] max-w-none -translate-x-1/2 -translate-y-1/2 object-contain"
-            style={{ opacity: 0.035 }} />
+      <div className="relative flex flex-col items-center justify-center lg:justify-center flex-1 px-6 pt-[9vh] pb-8 sm:py-10 lg:pt-10 overflow-hidden" style={{ background: 'var(--canvas)' }}>
+        {/* ── Mobile: a deep brand canvas with a white sheet lifted over it,
+             the way a polished banking app opens. ── */}
+        <div className="lg:hidden pointer-events-none absolute inset-0 select-none overflow-hidden" aria-hidden="true">
+          {/* deep teal field */}
+          <div className="absolute inset-x-0 top-0" style={{
+            height: '52%',
+            background: 'linear-gradient(168deg, #0f5058 0%, #17707a 46%, #1a7a85 100%)',
+          }} />
+          {/* light thrown from the top-right, so it has depth rather than flat colour */}
+          <div className="absolute inset-x-0 top-0" style={{
+            height: '52%',
+            background: 'radial-gradient(120% 85% at 82% -10%, rgba(255,255,255,.20), transparent 62%)',
+          }} />
+          {/* the seal, embossed large into the field */}
+          <img src="/brand/logo.png" alt="" className="absolute object-contain"
+            style={{ width: '92vw', maxWidth: 'none', left: '-14vw', top: '-16vw', opacity: 0.07 }} />
+          {/* two soft rings for movement */}
+          <div className="absolute rounded-full" style={{
+            width: '78vw', height: '78vw', right: '-30vw', top: '4vh',
+            border: '1px solid rgba(255,255,255,.10)',
+          }} />
+          <div className="absolute rounded-full" style={{
+            width: '52vw', height: '52vw', right: '-16vw', top: '13vh',
+            border: '1px solid rgba(255,255,255,.07)',
+          }} />
+          {/* the sheet: curved shoulders rising over the teal */}
+          <div className="absolute inset-x-0 bottom-0" style={{
+            top: '31%',
+            background: 'var(--paper)',
+            borderTopLeftRadius: 34, borderTopRightRadius: 34,
+            boxShadow: '0 -18px 40px -18px rgba(9,52,58,.35)',
+          }} />
         </div>
 
         <div className="relative w-full max-w-[360px] text-center lg:text-left">
 
           {/* Mobile logo */}
-          <div className="lg:hidden mb-8 flex flex-col items-center">
-            <img src="/brand/logo.png" alt="Cambridge Center of Excellence"
-              className="w-[76px] h-[76px] object-contain mb-4" />
+          <div className="lg:hidden mb-7 flex flex-col items-center">
+            <div className="w-[94px] h-[94px] rounded-full bg-white flex items-center justify-center p-3 mb-4"
+              style={{ boxShadow: '0 14px 34px -12px rgba(9,52,58,.45), 0 0 0 1px rgba(9,52,58,.06)' }}>
+              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
+            </div>
             <h1 className="font-display text-[var(--ink)] text-[20px] font-semibold leading-snug px-4 text-center">Cambridge Center of Excellence</h1>
             <p className="text-[var(--ink-faint)] text-[13px] mt-1">Staff portal</p>
           </div>
