@@ -150,7 +150,7 @@ function LoginForm() {
 
 
   return (
-    <div className="min-h-[100dvh] w-full flex" style={{ background: 'var(--paper)' }}>
+    <div className="h-[100dvh] lg:min-h-screen w-full flex overflow-hidden lg:overflow-auto" style={{ background: 'var(--paper)' }}>
 
       {/* Left panel — branding */}
       <div className="hidden lg:flex flex-col justify-between flex-1 relative overflow-hidden px-14 py-12"
@@ -193,38 +193,38 @@ function LoginForm() {
       </div>
 
       {/* Right panel — login */}
-      <div className="relative flex flex-col items-center justify-center lg:justify-center flex-1 px-6 pt-[9vh] pb-8 sm:py-10 lg:pt-10 overflow-hidden" style={{ background: 'var(--canvas)' }}>
-        {/* ── Mobile: a deep brand canvas with a white sheet lifted over it,
-             the way a polished banking app opens. ── */}
+      <div className="relative flex flex-col items-center flex-1 px-6 pt-[calc(46vh-47px)] pb-8 lg:pt-10 lg:justify-center overflow-hidden" style={{ background: 'var(--canvas)' }}>
+        {/* ── Mobile: a composed brand canvas. Everything is anchored to the
+             badge so it reads as deliberate, not as a cropped image. ── */}
         <div className="lg:hidden pointer-events-none absolute inset-0 select-none overflow-hidden" aria-hidden="true">
-          {/* deep teal field */}
+          {/* the field */}
           <div className="absolute inset-x-0 top-0" style={{
-            height: '52%',
-            background: 'linear-gradient(168deg, #0f5058 0%, #17707a 46%, #1a7a85 100%)',
+            height: '46%',
+            background: 'linear-gradient(165deg, #0d4a52 0%, #145f68 40%, #1a7a85 100%)',
           }} />
-          {/* light thrown from the top-right, so it has depth rather than flat colour */}
+          {/* light from the upper right, giving the field depth */}
           <div className="absolute inset-x-0 top-0" style={{
-            height: '52%',
-            background: 'radial-gradient(120% 85% at 82% -10%, rgba(255,255,255,.20), transparent 62%)',
+            height: '46%',
+            background: 'radial-gradient(135% 90% at 88% -18%, rgba(255,255,255,.22), transparent 58%)',
           }} />
-          {/* the seal, embossed large into the field */}
-          <img src="/brand/logo.png" alt="" className="absolute object-contain"
-            style={{ width: '92vw', maxWidth: 'none', left: '-14vw', top: '-16vw', opacity: 0.07 }} />
-          {/* two soft rings for movement */}
-          <div className="absolute rounded-full" style={{
-            width: '78vw', height: '78vw', right: '-30vw', top: '4vh',
-            border: '1px solid rgba(255,255,255,.10)',
-          }} />
-          <div className="absolute rounded-full" style={{
-            width: '52vw', height: '52vw', right: '-16vw', top: '13vh',
-            border: '1px solid rgba(255,255,255,.07)',
-          }} />
-          {/* the sheet: curved shoulders rising over the teal */}
+
+          {/* concentric arcs centred exactly on the badge, so the composition
+              radiates from the mark instead of drifting off-screen */}
+          {[168, 250, 340, 440].map((d, i) => (
+            <div key={d} className="absolute rounded-full" style={{
+              width: d, height: d,
+              left: '50%', top: '46%',
+              transform: 'translate(-50%, -50%)',
+              border: `1px solid rgba(255,255,255,${0.16 - i * 0.033})`,
+            }} />
+          ))}
+
+          {/* the sheet */}
           <div className="absolute inset-x-0 bottom-0" style={{
-            top: '31%',
+            top: '46%',
             background: 'var(--paper)',
-            borderTopLeftRadius: 34, borderTopRightRadius: 34,
-            boxShadow: '0 -18px 40px -18px rgba(9,52,58,.35)',
+            borderTopLeftRadius: 30, borderTopRightRadius: 30,
+            boxShadow: '0 -14px 34px -16px rgba(7,42,47,.32)',
           }} />
         </div>
 
