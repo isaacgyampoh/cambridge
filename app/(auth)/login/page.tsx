@@ -149,6 +149,12 @@ function LoginForm() {
   )
 
 
+  // A sign-in screen should never scroll — lock the document while it is open.
+  useEffect(() => {
+    document.documentElement.classList.add('app-shell')
+    return () => document.documentElement.classList.remove('app-shell')
+  }, [])
+
   return (
     <div className="h-[100dvh] lg:min-h-screen w-full flex overflow-hidden lg:overflow-auto" style={{ background: 'var(--paper)' }}>
 

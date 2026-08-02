@@ -1,7 +1,13 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 
 export default function StudentLogin() {
+  // Never scroll on a sign-in screen
+  useEffect(() => {
+    document.documentElement.classList.add('app-shell')
+    return () => document.documentElement.classList.remove('app-shell')
+  }, [])
+
   const [phone, setPhone] = useState('')
   const [sent, setSent] = useState(false)
   const [busy, setBusy] = useState(false)
@@ -17,10 +23,38 @@ export default function StudentLogin() {
   }
 
   return (
-    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', background: '#fafbfc', padding: 24, fontFamily: 'Inter, system-ui, sans-serif' }}>
-      <div style={{ width: '100%', maxWidth: 360 }}>
+    <div style={{
+      position: 'relative', height: '100dvh', overflow: 'hidden',
+      display: 'flex', flexDirection: 'column', alignItems: 'center',
+      paddingTop: 'calc(46vh - 47px)', paddingInline: 24,
+      background: '#fff', fontFamily: 'Inter, system-ui, sans-serif',
+    }}>
+      {/* Brand canvas: teal field, arcs radiating from the badge, white sheet */}
+      <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', userSelect: 'none', overflow: 'hidden' }}>
+        <div style={{ position: 'absolute', insetInline: 0, top: 0, height: '46%',
+          background: 'linear-gradient(165deg, #0d4a52 0%, #145f68 40%, #1a7a85 100%)' }} />
+        <div style={{ position: 'absolute', insetInline: 0, top: 0, height: '46%',
+          background: 'radial-gradient(135% 90% at 88% -18%, rgba(255,255,255,.22), transparent 58%)' }} />
+        {[168, 250, 340, 440].map((d, i) => (
+          <div key={d} style={{
+            position: 'absolute', width: d, height: d, left: '50%', top: '46%',
+            transform: 'translate(-50%,-50%)', borderRadius: '50%',
+            border: `1px solid rgba(255,255,255,${0.16 - i * 0.033})`,
+          }} />
+        ))}
+        <div style={{ position: 'absolute', insetInline: 0, bottom: 0, top: '46%', background: '#fff',
+          borderTopLeftRadius: 30, borderTopRightRadius: 30, boxShadow: '0 -14px 34px -16px rgba(7,42,47,.32)' }} />
+      </div>
+
+      <div style={{ position: 'relative', width: '100%', maxWidth: 360 }}>
         <div style={{ textAlign: 'center', marginBottom: 24 }}>
-          <img src="/brand/logo.png" alt="" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 12px', display: 'block' }} />
+          <div style={{
+            width: 94, height: 94, borderRadius: '50%', background: '#fff', padding: 12,
+            display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px',
+            boxShadow: '0 14px 34px -12px rgba(9,52,58,.45), 0 0 0 1px rgba(9,52,58,.06)',
+          }}>
+            <img src="/brand/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+          </div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: '#1a2230' }}>Student Portal</h1>
           <p style={{ fontSize: 14, color: '#5a6675', marginTop: 4 }}>Cambridge Center of Excellence</p>
         </div>
