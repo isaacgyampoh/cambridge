@@ -159,3 +159,37 @@ table { border-collapse: collapse; width: 100%; }
 @media (prefers-reduced-motion: reduce) {
   *, *::before, *::after { animation-duration: 0.01ms !important; transition-duration: 0.01ms !important; }
 }
+
+/* ─────────────────────────────────────────────
+   Mobile foundations
+   Applied globally so every screen benefits rather than fixing each in turn.
+   ───────────────────────────────────────────── */
+@media (max-width: 640px) {
+  /* Nothing may push the page sideways */
+  html, body { max-width: 100vw; overflow-x: hidden; }
+
+  /* iOS zooms the page in when a focused field is under 16px */
+  input, select, textarea { font-size: 16px !important; }
+
+  /* Comfortable tap targets */
+  button, [role='button'], a.btn { min-height: 44px; }
+
+  /* Tables never fit a phone — let them scroll instead of breaking layout,
+     with momentum so it feels native */
+  .rtc, .table-wrap, .overflow-x-auto {
+    -webkit-overflow-scrolling: touch;
+    overscroll-behavior-x: contain;
+  }
+
+  /* Modals sit against the top and scroll, rather than being cut off */
+  .modal-panel { max-height: calc(100dvh - 2rem); }
+
+  /* Long words and links must wrap, not overflow */
+  h1, h2, h3, p, span, div { overflow-wrap: anywhere; }
+}
+
+/* Respect the notch and home indicator on phones */
+@supports (padding: max(0px)) {
+  .safe-b { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
+  .safe-t { padding-top: max(0px, env(safe-area-inset-top)); }
+}

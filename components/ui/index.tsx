@@ -16,21 +16,25 @@ export function PageHeader({
   actions?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-4 mb-7">
+    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-5 sm:mb-7">
       <div>
         {eyebrow && (
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-1">
             {eyebrow}
           </div>
         )}
-        <h1 className="font-display text-[26px] sm:text-[28px] font-semibold text-[var(--ink)]">
+        <h1 className="font-display text-[22px] sm:text-[28px] font-semibold text-[var(--ink)] leading-tight">
           {title}
         </h1>
         {description && (
-          <p className="text-[var(--ink-soft)] text-[15px] mt-2 max-w-2xl leading-relaxed">{description}</p>
+          <p className="text-[var(--ink-soft)] text-[14px] sm:text-[15px] mt-1.5 sm:mt-2 max-w-2xl leading-relaxed">{description}</p>
         )}
       </div>
-      {actions && <div className="flex items-center gap-2 flex-shrink-0 flex-wrap">{actions}</div>}
+      {actions && (
+        <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto -mx-5 px-5 pb-1 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap [&>*]:flex-shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          {actions}
+        </div>
+      )}
     </div>
   )
 }
@@ -54,7 +58,7 @@ export function Button({
   children, onClick, href, variant = 'primary', size = 'md', icon, disabled, type = 'button', className = '',
 }: BtnProps) {
   const base = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap select-none'
-  const sizes = { sm: 'h-9 px-3.5 text-[13px]', md: 'h-11 px-5 text-[14px]' }
+  const sizes = { sm: 'h-10 sm:h-9 px-4 sm:px-3.5 text-[13.5px] sm:text-[13px]', md: 'h-12 sm:h-11 px-5 text-[15px] sm:text-[14px]' }
   const variants = {
     primary:   'bg-[var(--accent)] text-white hover:brightness-[1.08] active:brightness-95 shadow-[0_1px_2px_rgba(26,122,133,0.25)]',
     secondary: 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--ink-faint)] hover:bg-[var(--canvas)]',
@@ -81,7 +85,7 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--paper)] border border-[var(--line)] rounded-2xl
+      className={`bg-[var(--paper)] border border-[var(--line)] rounded-2xl sm:rounded-2xl
         ${hover ? 'transition-all duration-200 hover:shadow-[0_2px_12px_rgba(26,34,48,0.06)] hover:border-[var(--line-soft)] cursor-pointer' : ''}
         ${className}`}>
       {children}
@@ -230,11 +234,11 @@ export function Field({
 }
 
 export const inputClass =
-  'w-full h-11 px-3.5 rounded-xl border border-[var(--line)] bg-white text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
+  'w-full h-12 sm:h-11 px-4 sm:px-3.5 rounded-xl border border-[var(--line)] bg-white text-[16px] sm:text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
 
 // For multi-line inputs — same look as inputClass but auto-height with comfortable padding.
 export const textareaClass =
-  'w-full px-3.5 py-3 rounded-xl border border-[var(--line)] bg-white text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
+  'w-full px-4 sm:px-3.5 py-3 rounded-xl border border-[var(--line)] bg-white text-[16px] sm:text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
 
 /* ─────────────────────────────────────────────
    Spinner
