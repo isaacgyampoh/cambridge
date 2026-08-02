@@ -1,238 +1,269 @@
 'use client'
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect } from 'react'
 import { useData } from '@/hooks/useData'
-import { PageHeader, Card, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import { Spinner, EmptyState } from '@/components/ui'
 import { ChevronLeft, Search } from 'lucide-react'
 
-const fmtTime = (t: string) =>
-  new Date(t).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
-
+const fmtTime = (t: string) => {
+  if (!t) return ''
+  const d = new Date(t)
+  const today = new Date()
+  const sameDay = d.toDateString() === today.toDateString()
+  return sameDay
+    ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
+    : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
 const shortPhone = (p: string) => String(p || '').replace(/^233/, '0').replace(/#.*/, '')
 
 export default function ConversationsPage() {
   const { data: convos, loading } = useData<any>({
     table: 'ai_conversations',
-    select: '*, lead:lead_id(full_name, status), marketer:marketer_id(full_name, wasender_phone, phone)',
+    select: '*, lead:lead_id(full_name, status), marketer:marketer_id(full_name)',
     orderBy: 'created_at', orderAsc: false, limit: 1000,
   })
+
+  // Every connected line — including staff who have not chatted yet, so a
+  // newly onboarded number is visible straight away instead of missing.
+  const [lines, setLines] = useState<any[]>([])
+  useEffect(() => {
+    const params = new URLSearchParams({
+      table: 'profiles',
+      select: 'id, full_name, role, phone, wasender_phone, wasender_status, wasender_api_key',
+      limit: '200',
+    })
+    fetch(`/api/data?${params}`).then(r => r.json())
+      .then(d => setLines((d.data || []).filter((p: any) => p.has_wasender_key || p.wasender_status || p.wasender_phone)))
+      .catch(() => {})
+  }, [])
+
   const [staffId, setStaffId] = useState<string | null>(null)
   const [phone, setPhone] = useState<string | null>(null)
   const [search, setSearch] = useState('')
 
-  /* Group: staff line -> lead thread -> messages */
+  /* staff -> threads -> messages */
   const byStaff = useMemo(() => {
     const out: Record<string, any> = {}
+    // seed with every connected line so zero-chat staff still appear
+    for (const p of lines) {
+      out[p.id] = {
+        id: p.id, name: p.full_name, role: p.role,
+        line: p.wasender_phone || p.phone,
+        connected: p.wasender_status === 'connected',
+        threads: {}, total: 0, last: '',
+      }
+    }
     for (const c of convos || []) {
       const sid = c.marketer_id || 'unassigned'
       if (!out[sid]) {
         out[sid] = {
-          id: sid,
-          name: c.marketer?.full_name || 'No staff line',
-          line: c.marketer?.wasender_phone || c.marketer?.phone || null,
-          threads: {} as Record<string, any>,
-          total: 0,
-          last: c.created_at,
+          id: sid, name: c.marketer?.full_name || 'Unassigned line',
+          role: null, line: null, connected: false,
+          threads: {}, total: 0, last: c.created_at,
         }
       }
       const s = out[sid]
       const key = shortPhone(c.phone)
       if (!s.threads[key]) {
         s.threads[key] = {
-          phone: key, rawPhone: c.phone,
-          name: c.lead?.full_name || null,
-          status: c.lead?.status || null,
-          leadId: c.lead_id,
+          phone: key, name: c.lead?.full_name || null,
+          status: c.lead?.status || null, leadId: c.lead_id,
           messages: [], last: c.created_at,
         }
       }
       s.threads[key].messages.push(c)
       s.total++
-      if (c.created_at > s.last) s.last = c.created_at
+      if (!s.last || c.created_at > s.last) s.last = c.created_at
     }
     return out
-  }, [convos])
+  }, [convos, lines])
 
   const staffList = useMemo(() => {
-    let list: any[] = Object.values(byStaff).map((s: any) => ({
-      ...s, threadCount: Object.keys(s.threads).length,
-    }))
+    let list: any[] = Object.values(byStaff).map((s: any) => ({ ...s, threadCount: Object.keys(s.threads).length }))
     if (search) {
       const q = search.toLowerCase()
       list = list.filter(s =>
-        s.name.toLowerCase().includes(q) ||
-        Object.values(s.threads).some((t: any) =>
-          (t.name || '').toLowerCase().includes(q) || t.phone.includes(q)))
+        s.name?.toLowerCase().includes(q) ||
+        String(s.line || '').includes(q) ||
+        Object.values(s.threads).some((t: any) => (t.name || '').toLowerCase().includes(q) || t.phone.includes(q)))
     }
-    return list.sort((a, b) => (b.last || '').localeCompare(a.last || ''))
-  }, [byStaff, search])
+    return list.sort((a, b) => {
+      if (!!b.total !== !!a.total) return b.total - a.total
+      return (b.last || '').localeCompare(a.last || '')
+    })
+  }, [byStaff, search, lines])
 
   const staff = staffId ? byStaff[staffId] : null
-  const threads: any[] = staff
-    ? Object.values(staff.threads).sort((a: any, b: any) => (b.last || '').localeCompare(a.last || ''))
-    : []
+  const threads: any[] = staff ? Object.values(staff.threads).sort((a: any, b: any) => (b.last || '').localeCompare(a.last || '')) : []
   const thread = staff && phone ? staff.threads[phone] : null
 
-  /* Build a readable transcript: oldest first, each turn labelled */
   const turns = useMemo(() => {
     if (!thread) return []
     const rows: any[] = []
     for (const m of [...thread.messages].reverse()) {
       if (m.incoming_text) rows.push({ who: 'lead', text: m.incoming_text, at: m.created_at })
-      if (m.reply_text) {
-        rows.push({
-          who: m.answered_by === 'human' ? 'staff' : 'ai',
-          text: m.reply_text, at: m.created_at,
-        })
-      }
+      if (m.reply_text) rows.push({ who: m.answered_by === 'human' ? 'staff' : 'ai', text: m.reply_text, at: m.created_at })
     }
     return rows
   }, [thread])
 
   if (loading) return <Spinner />
 
-  /* ── Thread view ── */
-  if (thread) {
-    return (
-      <div className="fade-in w-full max-w-3xl">
-        <button onClick={() => setPhone(null)}
-          className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--ink-soft)] mb-4">
-          <ChevronLeft size={16} /> {staff.name}
-        </button>
+  const Avatar = ({ name, on }: { name: string; on?: boolean }) => (
+    <div className="relative flex-shrink-0">
+      <div className="w-9 h-9 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center font-semibold text-[14px]">
+        {(name || '?').charAt(0).toUpperCase()}
+      </div>
+      {on && <span className="absolute -bottom-0.5 -right-0.5 w-3 h-3 rounded-full bg-[var(--ok)] border-2 border-[var(--paper)]" />}
+    </div>
+  )
 
-        <div className="mb-5">
-          <h1 className="font-display text-[22px] font-semibold text-[var(--ink)]">
-            {thread.name || shortPhone(thread.phone)}
-          </h1>
-          <p className="text-[13px] text-[var(--ink-soft)] mt-1">
-            {shortPhone(thread.phone)} · through {staff.name}{staff.line ? ` (${shortPhone(staff.line)})` : ''}
-            {thread.status ? ` · ${String(thread.status).replace(/_/g, ' ')}` : ''}
+  /* ── Panes ── */
+  const StaffPane = (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-[var(--line)]">
+        <h2 className="font-display text-[17px] font-semibold text-[var(--ink)] mb-3">Staff lines</h2>
+        <div className="relative">
+          <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
+          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search"
+            className="w-full h-10 pl-9 pr-3 rounded-lg border border-[var(--line)] bg-[var(--canvas)] text-[14px] focus:outline-none focus:border-[var(--accent)]" />
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {staffList.length === 0 ? (
+          <p className="p-4 text-[13.5px] text-[var(--ink-soft)]">No WhatsApp lines connected yet.</p>
+        ) : staffList.map((s: any) => (
+          <button key={s.id} onClick={() => { setStaffId(s.id); setPhone(null) }}
+            className={`w-full text-left px-4 py-3 flex items-center gap-3 border-l-2 transition ${
+              staffId === s.id
+                ? 'bg-[var(--accent-soft)] border-l-[var(--accent)]'
+                : 'border-l-transparent hover:bg-[var(--line-soft)]'}`}>
+            <Avatar name={s.name} on={s.connected} />
+            <div className="min-w-0 flex-1">
+              <div className="font-medium text-[var(--ink)] text-[14.5px] truncate">{s.name}</div>
+              <div className="text-[12px] text-[var(--ink-faint)] truncate">
+                {s.line ? shortPhone(s.line) : 'No number'}
+                {s.threadCount ? ` · ${s.threadCount} chatting` : ' · no chats yet'}
+              </div>
+            </div>
+            {s.total > 0 && <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0">{fmtTime(s.last)}</span>}
+          </button>
+        ))}
+      </div>
+    </div>
+  )
+
+  const ThreadPane = staff && (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-[var(--line)]">
+        <div className="flex items-center gap-2">
+          <button onClick={() => setStaffId(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
+          <div className="min-w-0">
+            <h2 className="font-display text-[16px] font-semibold text-[var(--ink)] truncate">{staff.name}</h2>
+            <p className="text-[12px] text-[var(--ink-soft)] truncate">
+              {staff.line ? `Sending from ${shortPhone(staff.line)}` : 'No number linked'}
+              {staff.connected ? ' · connected' : ''}
+            </p>
+          </div>
+        </div>
+      </div>
+      <div className="flex-1 overflow-y-auto">
+        {threads.length === 0 ? (
+          <p className="p-4 text-[13.5px] text-[var(--ink-soft)]">No conversations on this line yet.</p>
+        ) : threads.map((t: any) => {
+          const lastMsg = t.messages[0]
+          const preview = lastMsg?.incoming_text || lastMsg?.reply_text || ''
+          return (
+            <button key={t.phone} onClick={() => setPhone(t.phone)}
+              className={`w-full text-left px-4 py-3 border-l-2 transition ${
+                phone === t.phone ? 'bg-[var(--accent-soft)] border-l-[var(--accent)]' : 'border-l-transparent hover:bg-[var(--line-soft)]'}`}>
+              <div className="flex items-baseline justify-between gap-2">
+                <span className="font-medium text-[var(--ink)] text-[14.5px] truncate">{t.name || shortPhone(t.phone)}</span>
+                <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0">{fmtTime(t.last)}</span>
+              </div>
+              <div className="text-[12px] text-[var(--ink-faint)] mt-0.5">{shortPhone(t.phone)}</div>
+              {preview && <div className="text-[13px] text-[var(--ink-soft)] mt-1 line-clamp-1">{preview}</div>}
+            </button>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  const TranscriptPane = thread && (
+    <div className="flex flex-col h-full">
+      <div className="p-4 border-b border-[var(--line)] flex items-center gap-2">
+        <button onClick={() => setPhone(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
+        <div className="min-w-0 flex-1">
+          <h2 className="font-display text-[16px] font-semibold text-[var(--ink)] truncate">{thread.name || shortPhone(thread.phone)}</h2>
+          <p className="text-[12px] text-[var(--ink-soft)] truncate">
+            {shortPhone(thread.phone)}{thread.status ? ` · ${String(thread.status).replace(/_/g, ' ')}` : ''}
           </p>
-          {thread.leadId && (
-            <a href={`/marketer/leads/${thread.leadId}`}
-              className="inline-block mt-2 text-[13px] font-semibold text-[var(--accent)]">Open lead</a>
+        </div>
+        {thread.leadId && (
+          <a href={`/marketer/leads/${thread.leadId}`}
+            className="text-[12.5px] font-semibold text-[var(--accent)] flex-shrink-0">Open lead</a>
+        )}
+      </div>
+      <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--canvas)' }}>
+        {turns.map((t, i) => {
+          const mine = t.who !== 'lead'
+          return (
+            <div key={i} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
+              <div className="max-w-[80%]">
+                <div className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${mine ? 'text-right' : ''} ${
+                  t.who === 'ai' ? 'text-[var(--accent)]' : t.who === 'staff' ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'}`}>
+                  {t.who === 'lead' ? (thread.name || 'Lead') : t.who === 'staff' ? `${staff.name} (typed)` : 'Assistant'}
+                </div>
+                <div className={`rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${
+                  t.who === 'lead' ? 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] rounded-tl-sm'
+                    : t.who === 'staff' ? 'bg-[var(--ok-soft)] text-[var(--ink)] rounded-tr-sm'
+                      : 'bg-[var(--accent)] text-white rounded-tr-sm'}`}>{t.text}</div>
+                <div className={`text-[10.5px] text-[var(--ink-faint)] mt-1 ${mine ? 'text-right' : ''}`}>{fmtTime(t.at)}</div>
+              </div>
+            </div>
+          )
+        })}
+      </div>
+    </div>
+  )
+
+  /* ── Layout: three panes side by side on desktop, drill-down on mobile ── */
+  return (
+    <div className="fade-in w-full">
+      <div className="mb-4 lg:mb-5">
+        <h1 className="font-display text-[22px] sm:text-[26px] font-semibold text-[var(--ink)]">Conversations</h1>
+        <p className="text-[13.5px] sm:text-[14px] text-[var(--ink-soft)] mt-1">
+          Every WhatsApp chat, grouped by the staff line it goes through.
+        </p>
+      </div>
+
+      {/* Desktop: master / detail / transcript */}
+      <div className="hidden lg:grid grid-cols-[280px_320px_1fr] gap-0 bg-[var(--paper)] border border-[var(--line)] rounded-2xl overflow-hidden"
+        style={{ height: 'calc(100dvh - 210px)', minHeight: 460 }}>
+        <div className="border-r border-[var(--line)] min-w-0">{StaffPane}</div>
+        <div className="border-r border-[var(--line)] min-w-0">
+          {staff ? ThreadPane : (
+            <div className="h-full flex items-center justify-center p-6 text-center">
+              <p className="text-[13.5px] text-[var(--ink-faint)]">Select a staff line</p>
+            </div>
           )}
         </div>
-
-        <Card className="p-4 sm:p-5">
-          <div className="space-y-3">
-            {turns.map((t, i) => {
-              const mine = t.who !== 'lead'
-              return (
-                <div key={i} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
-                  <div className="max-w-[85%] sm:max-w-[75%]">
-                    <div className={`text-[10.5px] font-semibold uppercase tracking-wide mb-1 ${mine ? 'text-right' : ''} ${
-                      t.who === 'ai' ? 'text-[var(--accent)]' : t.who === 'staff' ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'
-                    }`}>
-                      {t.who === 'lead' ? (thread.name || 'Lead') : t.who === 'staff' ? `${staff.name} (typed)` : 'Assistant'}
-                    </div>
-                    <div className={`rounded-2xl px-3.5 py-2.5 text-[14px] leading-relaxed whitespace-pre-wrap ${
-                      t.who === 'lead'
-                        ? 'bg-[var(--line-soft)] text-[var(--ink)] rounded-tl-sm'
-                        : t.who === 'staff'
-                          ? 'bg-[var(--ok-soft)] text-[var(--ink)] rounded-tr-sm'
-                          : 'bg-[var(--accent)] text-white rounded-tr-sm'
-                    }`}>{t.text}</div>
-                    <div className={`text-[11px] text-[var(--ink-faint)] mt-1 ${mine ? 'text-right' : ''}`}>{fmtTime(t.at)}</div>
-                  </div>
-                </div>
-              )
-            })}
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-  /* ── Lead list for one staff line ── */
-  if (staff) {
-    return (
-      <div className="fade-in w-full max-w-3xl">
-        <button onClick={() => setStaffId(null)}
-          className="flex items-center gap-1.5 text-[13px] font-medium text-[var(--ink-soft)] mb-4">
-          <ChevronLeft size={16} /> All lines
-        </button>
-
-        <div className="mb-5">
-          <h1 className="font-display text-[22px] font-semibold text-[var(--ink)]">{staff.name}</h1>
-          <p className="text-[13px] text-[var(--ink-soft)] mt-1">
-            {staff.line ? `Sending from ${shortPhone(staff.line)} · ` : ''}
-            {threads.length} {threads.length === 1 ? 'person' : 'people'} chatting through this line
-          </p>
+        <div className="min-w-0">
+          {thread ? TranscriptPane : (
+            <div className="h-full flex items-center justify-center p-6 text-center" style={{ background: 'var(--canvas)' }}>
+              <p className="text-[13.5px] text-[var(--ink-faint)]">
+                {staff ? 'Select a conversation' : 'Choose a line to see its conversations'}
+              </p>
+            </div>
+          )}
         </div>
-
-        <Card className="overflow-hidden">
-          <div className="divide-y divide-[var(--line-soft)]">
-            {threads.map((t: any) => {
-              const lastMsg = t.messages[0]
-              const preview = lastMsg?.incoming_text || lastMsg?.reply_text || ''
-              return (
-                <button key={t.phone} onClick={() => setPhone(t.phone)}
-                  className="w-full text-left p-4 hover:bg-[var(--line-soft)] transition">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0">
-                      <div className="font-medium text-[var(--ink)] text-[15px] truncate">
-                        {t.name || shortPhone(t.phone)}
-                      </div>
-                      <div className="text-[12.5px] text-[var(--ink-faint)] mt-0.5">{shortPhone(t.phone)}</div>
-                      {preview && (
-                        <div className="text-[13px] text-[var(--ink-soft)] mt-1.5 line-clamp-1">{preview}</div>
-                      )}
-                    </div>
-                    <div className="text-right flex-shrink-0">
-                      {t.status && <Badge tone="neutral">{String(t.status).replace(/_/g, ' ')}</Badge>}
-                      <div className="text-[11.5px] text-[var(--ink-faint)] mt-1.5">{fmtTime(t.last)}</div>
-                    </div>
-                  </div>
-                </button>
-              )
-            })}
-          </div>
-        </Card>
-      </div>
-    )
-  }
-
-  /* ── Staff lines ── */
-  return (
-    <div className="fade-in w-full max-w-3xl">
-      <PageHeader eyebrow="Messaging" title="Conversations"
-        description="Every WhatsApp chat, grouped by the staff line it went through. Tap a line to see who they are talking to." />
-
-      <div className="relative mb-5 max-w-sm">
-        <Search size={15} className="absolute left-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
-        <input value={search} onChange={e => setSearch(e.target.value)}
-          placeholder="Search staff, lead or number" className={inputClass + ' pl-9'} />
       </div>
 
-      {staffList.length === 0 ? (
-        <EmptyState title="No conversations yet"
-          description="Once leads start replying on WhatsApp, their chats appear here grouped by staff line." />
-      ) : (
-        <div className="space-y-2">
-          {staffList.map((s: any) => (
-            <button key={s.id} onClick={() => setStaffId(s.id)}
-              className="w-full text-left bg-[var(--paper)] border border-[var(--line)] rounded-xl p-4 hover:border-[var(--accent)]/40 transition">
-              <div className="flex items-center justify-between gap-3">
-                <div className="flex items-center gap-3 min-w-0">
-                  <div className="w-10 h-10 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center font-semibold text-[15px] flex-shrink-0">
-                    {s.name.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="min-w-0">
-                    <div className="font-medium text-[var(--ink)] text-[15px] truncate">{s.name}</div>
-                    <div className="text-[12.5px] text-[var(--ink-soft)] mt-0.5">
-                      {s.line ? <span className="font-medium">{shortPhone(s.line)}</span> : 'No number linked'}
-                    </div>
-                    <div className="text-[12px] text-[var(--ink-faint)] mt-0.5">
-                      {s.threadCount} {s.threadCount === 1 ? 'person' : 'people'} · {s.total} messages
-                    </div>
-                  </div>
-                </div>
-                <div className="text-[11.5px] text-[var(--ink-faint)] flex-shrink-0">{fmtTime(s.last)}</div>
-              </div>
-            </button>
-          ))}
-        </div>
-      )}
+      {/* Mobile: one pane at a time */}
+      <div className="lg:hidden bg-[var(--paper)] border border-[var(--line)] rounded-2xl overflow-hidden"
+        style={{ height: 'calc(100dvh - 200px)', minHeight: 420 }}>
+        {thread ? TranscriptPane : staff ? ThreadPane : StaffPane}
+      </div>
     </div>
   )
 }

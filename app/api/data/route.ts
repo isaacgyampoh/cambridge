@@ -86,6 +86,14 @@ export async function GET(req: NextRequest) {
     result = result.map((row: any) => {
       const clean = { ...row }
       for (const f of MONEY_FIELDS) if (f in clean) delete clean[f]
+      // Secrets must never reach the browser. Expose only whether a line is
+      // configured, not the key itself.
+      for (const f of ['wasender_api_key', 'pin_hash', 'wawp_access_token']) {
+        if (f in clean) {
+          if (f === 'wasender_api_key') clean.has_wasender_key = !!clean[f]
+          delete clean[f]
+        }
+      }
       return clean
     })
   }
