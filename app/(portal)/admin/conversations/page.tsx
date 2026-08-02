@@ -124,7 +124,7 @@ export default function ConversationsPage() {
 
   /* ── Panes ── */
   const StaffPane = (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="p-4 border-b border-[var(--line)]">
         <h2 className="font-display text-[17px] font-semibold text-[var(--ink)] mb-3">Staff lines</h2>
         <div className="relative">
@@ -133,7 +133,7 @@ export default function ConversationsPage() {
             className="w-full h-10 pl-9 pr-3 rounded-lg border border-[var(--line)] bg-[var(--canvas)] text-[14px] focus:outline-none focus:border-[var(--accent)]" />
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {staffList.length === 0 ? (
           <p className="p-4 text-[13.5px] text-[var(--ink-soft)]">No WhatsApp lines connected yet.</p>
         ) : staffList.map((s: any) => (
@@ -158,7 +158,7 @@ export default function ConversationsPage() {
   )
 
   const ThreadPane = staff && (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="p-4 border-b border-[var(--line)]">
         <div className="flex items-center gap-2">
           <button onClick={() => setStaffId(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
@@ -171,7 +171,7 @@ export default function ConversationsPage() {
           </div>
         </div>
       </div>
-      <div className="flex-1 overflow-y-auto">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {threads.length === 0 ? (
           <p className="p-4 text-[13.5px] text-[var(--ink-soft)]">No conversations on this line yet.</p>
         ) : threads.map((t: any) => {
@@ -195,7 +195,7 @@ export default function ConversationsPage() {
   )
 
   const TranscriptPane = thread && (
-    <div className="flex flex-col h-full">
+    <div className="flex flex-col h-full min-h-0">
       <div className="p-4 border-b border-[var(--line)] flex items-center gap-2">
         <button onClick={() => setPhone(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
         <div className="min-w-0 flex-1">
@@ -212,7 +212,7 @@ export default function ConversationsPage() {
             className="text-[12.5px] font-semibold text-[var(--accent)] flex-shrink-0">Open lead</a>
         )}
       </div>
-      <div className="flex-1 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--canvas)' }}>
+      <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--canvas)' }}>
         {turns.map((t, i) => {
           const mine = t.who !== 'lead'
           return (
@@ -238,25 +238,39 @@ export default function ConversationsPage() {
   /* ── Layout: three panes side by side on desktop, drill-down on mobile ── */
   return (
     <div className="fade-in w-full">
-      <div className="mb-4 lg:mb-5">
-        <h1 className="font-display text-[22px] sm:text-[26px] font-semibold text-[var(--ink)]">Conversations</h1>
-        <p className="text-[13.5px] sm:text-[14px] text-[var(--ink-soft)] mt-1">
-          Every WhatsApp chat, grouped by the staff line it goes through.
-        </p>
+      <div className="mb-4 lg:mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
+        <div>
+          <h1 className="font-display text-[22px] sm:text-[26px] font-semibold text-[var(--ink)]">Conversations</h1>
+          <p className="text-[13.5px] sm:text-[14px] text-[var(--ink-soft)] mt-1">
+            Every WhatsApp chat, grouped by the staff line it goes through.
+          </p>
+        </div>
+        <button onClick={async () => {
+          const dry = await fetch('/api/admin/reattribute-chats').then(r => r.json()).catch(() => null)
+          if (!dry || dry.error) return alert(dry?.error || 'Could not check')
+          if (!dry.fixable) return alert('Nothing to move — every chat is already against the right person.')
+          if (!confirm(`Move ${dry.fixable} chat${dry.fixable === 1 ? '' : 's'} from the central line to the marketer who owns that lead?`)) return
+          const d = await fetch('/api/admin/reattribute-chats', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+          if (d.error) alert(d.error)
+          else { alert(`Moved ${d.fixed} chat${d.fixed === 1 ? '' : 's'}.`); location.reload() }
+        }}
+          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
+          Fix chat attribution
+        </button>
       </div>
 
       {/* Desktop: master / detail / transcript */}
-      <div className="hidden lg:grid grid-cols-[280px_320px_1fr] gap-0 bg-[var(--paper)] border border-[var(--line)] rounded-2xl overflow-hidden"
-        style={{ height: 'calc(100dvh - 210px)', minHeight: 460 }}>
-        <div className="border-r border-[var(--line)] min-w-0">{StaffPane}</div>
-        <div className="border-r border-[var(--line)] min-w-0">
+      <div className="hidden lg:grid grid-cols-[300px_340px_minmax(0,1fr)] bg-[var(--paper)] border border-[var(--line)] rounded-2xl overflow-hidden"
+        style={{ height: 'calc(100dvh - 190px)', minHeight: 520 }}>
+        <div className="border-r border-[var(--line)] min-w-0 min-h-0 overflow-hidden">{StaffPane}</div>
+        <div className="border-r border-[var(--line)] min-w-0 min-h-0 overflow-hidden">
           {staff ? ThreadPane : (
             <div className="h-full flex items-center justify-center p-6 text-center">
               <p className="text-[13.5px] text-[var(--ink-faint)]">Select a staff line</p>
             </div>
           )}
         </div>
-        <div className="min-w-0">
+        <div className="min-w-0 min-h-0 overflow-hidden">
           {thread ? TranscriptPane : (
             <div className="h-full flex items-center justify-center p-6 text-center" style={{ background: 'var(--canvas)' }}>
               <p className="text-[13.5px] text-[var(--ink-faint)]">
@@ -269,7 +283,7 @@ export default function ConversationsPage() {
 
       {/* Mobile: one pane at a time */}
       <div className="lg:hidden bg-[var(--paper)] border border-[var(--line)] rounded-2xl overflow-hidden"
-        style={{ height: 'calc(100dvh - 200px)', minHeight: 420 }}>
+        style={{ height: 'calc(100dvh - 185px)', minHeight: 420 }}>
         {thread ? TranscriptPane : staff ? ThreadPane : StaffPane}
       </div>
     </div>

@@ -345,8 +345,11 @@ export async function POST(req: NextRequest) {
 
   // If the assistant said it would check, that is an escalation — a human must
   // actually follow up, or the lead is left waiting on a promise nobody keeps.
+  // Safety net: a reply that states a date, time or amount is only safe if the
+  // assistant actually had that fact. If it invented one, escalate instead.
+  const statesSpecific = reply && /\b(\d{1,2}(st|nd|rd|th)?\s+(jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)|\d{1,2}[:.]\d{2}\s?(am|pm)?|\d{1,2}\s?(am|pm))\b/i.test(reply)
   const deferred = reply && /(come right back|let me (check|confirm|find out)|i'?ll (check|confirm|find out|get back)|get back to you|not sure|don'?t have that|can'?t confirm|will confirm)/i.test(reply)
-  if (deferred) {
+  if (deferred || statesSpecific) {
     try {
       await sb.from('leads').update({
         needs_human: true, needs_human_at: new Date().toISOString(),
@@ -355,7 +358,7 @@ export async function POST(req: NextRequest) {
         await sb.from('notifications').insert({
           user_id: lead.assigned_to, type: 'handoff',
           title: 'Question needs a real answer',
-          body: `${lead.full_name || phone} asked: "${String(text).slice(0, 90)}" — the assistant said it would check. Please reply.`,
+          body: `${lead.full_name || phone} asked: "${String(text).slice(0, 90)}" — please confirm the details with them yourself.`,
           link: `/marketer/leads/${lead.id}`,
         }).then(() => {}, () => {})
         const { data: mp } = await sb.from('profiles').select('phone, full_name').eq('id', lead.assigned_to).maybeSingle()
