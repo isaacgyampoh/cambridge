@@ -25,8 +25,18 @@ export async function createSession(userId: string, ipAddress?: string): Promise
   const token = generateSessionToken()
   const expiresAt = new Date(Date.now() + SESSION_HOURS * 3600000).toISOString()
 
-  // Clean old sessions for this user
-  await sb.from('pin_sessions').delete().eq('user_id', userId)
+  // Remove only EXPIRED sessions. Deleting all of them meant signing in on a
+  // laptop logged you out on your phone — people work on both at once.
+  await sb.from('pin_sessions')
+    .delete().eq('user_id', userId).lt('expires_at', new Date().toISOString())
+
+  // Keep the number of live sessions sane (oldest dropped beyond the cap).
+  const { data: live } = await sb.from('pin_sessions')
+    .select('id').eq('user_id', userId).order('created_at', { ascending: false })
+  if ((live || []).length >= 8) {
+    const stale = (live || []).slice(7).map((r: any) => r.id)
+    if (stale.length) await sb.from('pin_sessions').delete().in('id', stale)
+  }
 
   await sb.from('pin_sessions').insert({
     user_id: userId,

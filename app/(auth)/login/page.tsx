@@ -129,7 +129,7 @@ function LoginForm() {
   // (losing focus and dropping fast input). Calling renderBoxes(...) inlines
   // the elements so the inputs stay mounted and auto-advance works.
   const renderBoxes = (vals: string[], setVals: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) => (
-    <div className="flex gap-3 justify-center lg:justify-start">
+    <div className="flex gap-2.5 sm:gap-3 justify-center lg:justify-start">
       {vals.map((v, i) => (
         <input key={i} ref={refs[i]}
           type={showPin ? 'text' : 'password'}
@@ -142,7 +142,7 @@ function LoginForm() {
             color: v ? '#fff' : 'var(--ink)',
             transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
           }}
-          className="w-[58px] h-[64px] text-center text-2xl font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent"
+          className="w-[clamp(56px,17vw,64px)] h-[clamp(62px,19vw,70px)] text-center text-[26px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm"
         />
       ))}
     </div>
@@ -150,7 +150,7 @@ function LoginForm() {
 
 
   return (
-    <div className="min-h-screen w-screen flex" style={{ background: 'var(--paper)' }}>
+    <div className="min-h-[100dvh] w-full flex" style={{ background: 'var(--paper)' }}>
 
       {/* Left panel — branding */}
       <div className="hidden lg:flex flex-col justify-between flex-1 relative overflow-hidden px-14 py-12"
@@ -197,11 +197,12 @@ function LoginForm() {
         <div className="w-full max-w-[360px] text-center lg:text-left">
 
           {/* Mobile logo */}
-          <div className="lg:hidden mb-8 flex flex-col items-center">
-            <div className="w-[72px] h-[72px] rounded-[22px] bg-white border border-[var(--line)] shadow-sm flex items-center justify-center mb-4 overflow-hidden p-2.5">
-              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
+          <div className="lg:hidden mb-7 flex flex-col items-center">
+            <div className="w-[84px] h-[84px] rounded-[26px] flex items-center justify-center mb-4 overflow-hidden p-3"
+              style={{ background: 'linear-gradient(155deg, #14636c, #1a7a85)', boxShadow: '0 10px 28px -8px rgba(26,122,133,.55)' }}>
+              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" style={{ filter: 'brightness(0) invert(1)' }} />
             </div>
-            <h1 className="font-display text-[var(--ink)] text-[19px] font-semibold leading-snug px-4">Cambridge Center of Excellence</h1>
+            <h1 className="font-display text-[var(--ink)] text-[20px] font-semibold leading-snug px-4 text-center">Cambridge Center of Excellence</h1>
             <p className="text-[var(--ink-faint)] text-[13px] mt-1">Staff portal</p>
           </div>
 
@@ -248,7 +249,7 @@ function LoginForm() {
                 <p className="text-[var(--ink-soft)] text-sm">We sent a 4-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
               </div>
 
-              <div className="flex gap-3 justify-center lg:justify-start">
+              <div className="flex gap-2.5 sm:gap-3 justify-center lg:justify-start">
                 {otp.map((v, i) => (
                   <input key={i} ref={o[i]}
                     type="text" inputMode="numeric" maxLength={1} value={v} autoComplete="off"
@@ -260,7 +261,7 @@ function LoginForm() {
                       color: v ? '#fff' : 'var(--ink)',
                       transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
                     }}
-                    className="w-[58px] h-[64px] text-center text-2xl font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent"
+                    className="w-[clamp(56px,17vw,64px)] h-[clamp(62px,19vw,70px)] text-center text-[26px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm"
                   />
                 ))}
               </div>

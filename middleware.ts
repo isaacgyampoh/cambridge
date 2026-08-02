@@ -19,6 +19,25 @@ const PUBLIC = [
 
 
 
+
+/* Session cache — the lookup below ran on EVERY request, adding a database
+   round-trip to every page view and API call. Cached briefly per token, which
+   removes almost all of them while still noticing a logout within a minute. */
+type Cached = { at: number; role: string; active: boolean; portals: string[] | null; userId: string }
+const SESSION_TTL = 60_000
+const sessionCache = new Map<string, Cached>()
+
+function readCache(token: string): Cached | null {
+  const hit = sessionCache.get(token)
+  if (!hit) return null
+  if (Date.now() - hit.at > SESSION_TTL) { sessionCache.delete(token); return null }
+  return hit
+}
+function writeCache(token: string, v: Omit<Cached, 'at'>) {
+  if (sessionCache.size > 500) sessionCache.clear()   // keep memory bounded
+  sessionCache.set(token, { ...v, at: Date.now() })
+}
+
 export async function middleware(request: NextRequest) {
   const { pathname } = request.nextUrl
 
@@ -38,12 +57,27 @@ export async function middleware(request: NextRequest) {
   if (!token) return NextResponse.redirect(new URL('/login', request.url))
 
   try {
-    const sb = createSupabase(SUPABASE_URL, SERVICE_KEY)
-    const { data } = await sb.from('pin_sessions')
-      .select('user_id, expires_at, profiles(role, is_active, portals)')
-      .eq('session_token', token)
-      .gt('expires_at', new Date().toISOString())
-      .single()
+    const cached = readCache(token)
+    let data: any = null
+
+    if (cached) {
+      data = { user_id: cached.userId, profiles: { role: cached.role, is_active: cached.active, portals: cached.portals } }
+    } else {
+      const sb = createSupabase(SUPABASE_URL, SERVICE_KEY)
+      const res = await sb.from('pin_sessions')
+        .select('user_id, expires_at, profiles(role, is_active, portals)')
+        .eq('session_token', token)
+        .gt('expires_at', new Date().toISOString())
+        .single()
+      data = res.data
+      if (data) {
+        const p: any = data.profiles
+        writeCache(token, {
+          userId: data.user_id,
+          role: p?.role || '', active: p?.is_active !== false, portals: p?.portals || null,
+        })
+      }
+    }
 
     if (!data) {
       const res = NextResponse.redirect(new URL('/login', request.url))
