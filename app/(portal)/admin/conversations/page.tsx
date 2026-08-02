@@ -12,7 +12,7 @@ const shortPhone = (p: string) => String(p || '').replace(/^233/, '0').replace(/
 export default function ConversationsPage() {
   const { data: convos, loading } = useData<any>({
     table: 'ai_conversations',
-    select: '*, lead:lead_id(full_name, status), marketer:marketer_id(full_name)',
+    select: '*, lead:lead_id(full_name, status), marketer:marketer_id(full_name, wasender_phone, phone)',
     orderBy: 'created_at', orderAsc: false, limit: 1000,
   })
   const [staffId, setStaffId] = useState<string | null>(null)
@@ -28,6 +28,7 @@ export default function ConversationsPage() {
         out[sid] = {
           id: sid,
           name: c.marketer?.full_name || 'No staff line',
+          line: c.marketer?.wasender_phone || c.marketer?.phone || null,
           threads: {} as Record<string, any>,
           total: 0,
           last: c.created_at,
@@ -103,7 +104,7 @@ export default function ConversationsPage() {
             {thread.name || shortPhone(thread.phone)}
           </h1>
           <p className="text-[13px] text-[var(--ink-soft)] mt-1">
-            {shortPhone(thread.phone)} · through {staff.name}
+            {shortPhone(thread.phone)} · through {staff.name}{staff.line ? ` (${shortPhone(staff.line)})` : ''}
             {thread.status ? ` · ${String(thread.status).replace(/_/g, ' ')}` : ''}
           </p>
           {thread.leadId && (
@@ -154,6 +155,7 @@ export default function ConversationsPage() {
         <div className="mb-5">
           <h1 className="font-display text-[22px] font-semibold text-[var(--ink)]">{staff.name}</h1>
           <p className="text-[13px] text-[var(--ink-soft)] mt-1">
+            {staff.line ? `Sending from ${shortPhone(staff.line)} · ` : ''}
             {threads.length} {threads.length === 1 ? 'person' : 'people'} chatting through this line
           </p>
         </div>
@@ -218,6 +220,9 @@ export default function ConversationsPage() {
                   <div className="min-w-0">
                     <div className="font-medium text-[var(--ink)] text-[15px] truncate">{s.name}</div>
                     <div className="text-[12.5px] text-[var(--ink-soft)] mt-0.5">
+                      {s.line ? <span className="font-medium">{shortPhone(s.line)}</span> : 'No number linked'}
+                    </div>
+                    <div className="text-[12px] text-[var(--ink-faint)] mt-0.5">
                       {s.threadCount} {s.threadCount === 1 ? 'person' : 'people'} · {s.total} messages
                     </div>
                   </div>

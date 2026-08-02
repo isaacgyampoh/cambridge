@@ -135,8 +135,16 @@ export async function POST(req: NextRequest) {
   // Indexed lookup on the phone variants (previously pulled 3000 leads into
   // memory on every inbound message — slow and it silently missed lead 3001+).
   const { data: lead } = await sb.from('leads')
-    .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession')
+    .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession, status')
     .in('phone', variants).order('created_at', { ascending: false }).limit(1).maybeSingle()
+
+  // ── HARD RULE: the assistant only ever speaks to people who are leads in
+  // this system. A staff WhatsApp line also carries their family, friends and
+  // existing customers — the assistant must never reply to those. If the
+  // number is not a lead, we record nothing and stay silent.
+  if (!lead?.id) {
+    return NextResponse.json({ ok: true, ignored: 'not_a_lead' })
+  }
 
   // Find the assigned marketer (for voice + sending line + their link)
   let marketer: any = null
@@ -333,6 +341,28 @@ export async function POST(req: NextRequest) {
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
     answeredBy = ok ? 'ai' : 'fallback'
+  }
+
+  // If the assistant said it would check, that is an escalation — a human must
+  // actually follow up, or the lead is left waiting on a promise nobody keeps.
+  if (reply && /come right back|let me check|i'll check|get back to you|find out and/i.test(reply)) {
+    try {
+      await sb.from('leads').update({
+        needs_human: true, needs_human_at: new Date().toISOString(),
+      }).eq('id', lead.id).then(() => {}, () => {})
+      if (lead.assigned_to) {
+        await sb.from('notifications').insert({
+          user_id: lead.assigned_to, type: 'handoff',
+          title: 'Question needs a real answer',
+          body: `${lead.full_name || phone} asked: "${String(text).slice(0, 90)}" — the assistant said it would check. Please reply.`,
+          link: `/marketer/leads/${lead.id}`,
+        }).then(() => {}, () => {})
+        const { data: mp } = await sb.from('profiles').select('phone, full_name').eq('id', lead.assigned_to).maybeSingle()
+        if (mp?.phone) {
+          try { await sendSMS(mp.phone, `CCE: ${lead.full_name || phone} asked something the assistant could not answer. Please reply on WhatsApp.`) } catch {}
+        }
+      }
+    } catch {}
   }
 
   // Read what the conversation revealed and update the lead itself: what they

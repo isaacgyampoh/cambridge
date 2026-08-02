@@ -87,6 +87,11 @@ export async function POST(req: NextRequest) {
     portals: dutyPortals.length ? dutyPortals : null,
     is_active: true,
   }
+  // The number we onboard them with IS the WhatsApp line their leads are
+  // messaged from, so record it now — the API key is added later on the
+  // WhatsApp lines page.
+  baseProfile.wasender_phone = phone233
+
   // Newer columns (only present if the latest schema has been run). Included
   // when available; if the DB doesn't have them yet we retry without them so
   // onboarding never breaks mid-launch.
