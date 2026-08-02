@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { readConversation } from '@/lib/integrations/conversationState'
+import { maybeResumeAI } from '@/lib/aiResume'
+import { sendSMS } from '@/lib/integrations/sms'
 import { generateAssistantReply } from '@/lib/integrations/ai-assistant'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
@@ -96,11 +98,12 @@ export async function POST(req: NextRequest) {
       if (isOurOwn) return NextResponse.json({ ok: true, echo: true })
 
       if (lead?.id) {
-        if (!lead.ai_paused) {
-          await sb.from('leads').update({
-            ai_paused: true, needs_human: false,
-          }).eq('id', lead.id).then(() => {}, () => {})
-        }
+        await sb.from('leads').update({
+          ai_paused: true, needs_human: false,
+          ai_paused_at: lead.ai_paused ? undefined : new Date().toISOString(),
+          ai_paused_by: 'human',
+          last_human_at: new Date().toISOString(),
+        }).eq('id', lead.id).then(() => {}, () => {})
         await sb.from('ai_conversations').insert({
           phone, lead_id: lead.id, marketer_id: lead.assigned_to || null,
           incoming_text: null, reply_text: text || `[${mediaType || 'media'}]`,
@@ -187,7 +190,16 @@ export async function POST(req: NextRequest) {
   }
 
   // 2) Lead already handled by a human — don't let the AI butt in.
-  if (lead?.ai_paused) {
+  // A quiet handover means the marketer has moved on — let the assistant pick
+  // it back up rather than leaving the lead waiting. Handoffs raised because
+  // the assistant was out of its depth stay with the human.
+  let paused = !!lead?.ai_paused
+  if (paused && lead?.id) {
+    const resumed = await maybeResumeAI(lead.id)
+    if (resumed) paused = false
+  }
+
+  if (paused) {
     if (marketer?.id) {
       await sb.from('notifications').insert({
         user_id: marketer.id, type: 'message',
@@ -275,6 +287,36 @@ export async function POST(req: NextRequest) {
     if (p.incoming_text) history.push({ role: 'user', content: p.incoming_text })
     if (p.reply_text) history.push({ role: 'assistant', content: p.reply_text })
   })
+
+  // If we have no record of this conversation, the person is replying to
+  // something said outside the system — we cannot see it, so answering would be
+  // guessing. Hand it to the marketer instead of inventing context.
+  if (history.length === 0 && lead?.id) {
+    await sb.from('leads').update({
+      ai_paused: true, needs_human: true,
+      needs_human_at: new Date().toISOString(),
+      ai_paused_at: new Date().toISOString(),
+      ai_paused_by: 'unknown_history',
+    }).eq('id', lead.id).then(() => {}, () => {})
+
+    if (lead.assigned_to) {
+      await sb.from('notifications').insert({
+        user_id: lead.assigned_to, type: 'handoff',
+        title: 'A lead messaged — no chat history',
+        body: `${lead.full_name || phone}: "${String(text).slice(0, 90)}" — this conversation started outside the system, so please reply yourself.`,
+        link: `/marketer/leads/${lead.id}`,
+      }).then(() => {}, () => {})
+      const { data: m } = await sb.from('profiles').select('phone').eq('id', lead.assigned_to).maybeSingle()
+      if (m?.phone) {
+        try { await sendSMS(m.phone, `CCE: ${lead.full_name || phone} messaged on WhatsApp but there's no chat history, so please reply to them yourself.`) } catch {}
+      }
+    }
+    await sb.from('ai_conversations').insert({
+      phone, lead_id: lead.id, marketer_id: lead.assigned_to || null,
+      incoming_text: text, reply_text: null, answered_by: 'handoff_no_history',
+    }).then(() => {}, () => {})
+    return NextResponse.json({ ok: true, handoff: 'no_history' })
+  }
 
   // Generate the AI reply
   const reply = await generateAssistantReply(text, {
