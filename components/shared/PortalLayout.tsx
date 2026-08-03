@@ -105,6 +105,7 @@ export const ALL_PORTALS = [
     children: [
       { label: 'Settings',   href: '/admin/settings' },
       { label: 'Automation', href: '/admin/automation' },
+      { label: 'Incoming WhatsApp', href: '/admin/webhook-log' },
     ]},
 
   // ── Category groups (used by super_admin for a tidy, organised sidebar) ──

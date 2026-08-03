@@ -16,6 +16,17 @@ import { CONFIG } from '@/lib/config'
  *   4. Send the reply back through the marketer's own WhatsApp line
  *   5. Log the exchange for oversight
  */
+
+/** Record what arrived and what we did with it, so nothing fails invisibly. */
+async function logInbound(sb: any, source: string, fromPhone: string | null, text: string | null, outcome: string, detail: string, raw: any) {
+  try {
+    await sb.from('webhook_inbox').insert({
+      source, from_phone: fromPhone, body_text: text ? String(text).slice(0, 500) : null,
+      outcome, detail: detail.slice(0, 300), raw,
+    })
+  } catch {}
+}
+
 export async function POST(req: NextRequest) {
   let body: any = {}
   try { body = await req.json() } catch {
@@ -63,6 +74,10 @@ export async function POST(req: NextRequest) {
   const isMedia = /audio|voice|ptt|image|video|document|sticker/i.test(String(mediaType))
 
   if (!fromRaw || (!text && !isMedia)) {
+    try {
+      await logInbound(createServiceClient(), 'whatsapp', fromRaw || null, text || null,
+        'error', 'Could not read sender or message from the payload', body)
+    } catch {}
     return NextResponse.json({ ok: true, skipped: true })
   }
 
@@ -143,6 +158,8 @@ export async function POST(req: NextRequest) {
   // existing customers — the assistant must never reply to those. If the
   // number is not a lead, we record nothing and stay silent.
   if (!lead?.id) {
+    await logInbound(sb, 'whatsapp', phone, text,
+      'ignored_not_lead', `No lead matches this number. Tried: ${variants.join(', ')}`, body)
     return NextResponse.json({ ok: true, ignored: 'not_a_lead' })
   }
 
@@ -403,6 +420,9 @@ export async function POST(req: NextRequest) {
       }
     } catch {}
   }
+
+  await logInbound(sb, 'whatsapp', phone, text, reply ? 'replied' : 'no_reply',
+    reply ? String(reply).slice(0, 200) : 'The assistant produced no reply', null)
 
   // Log
   await sb.from('ai_conversations').insert({
