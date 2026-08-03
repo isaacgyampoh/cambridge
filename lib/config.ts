@@ -38,6 +38,9 @@ export const CONFIG = {
   // Central/system session key. Per-marketer keys live on profiles.
   wasenderApiKey: env('WASENDER_API_KEY'),
   wasenderUrl: env('WASENDER_URL') || 'https://wasenderapi.com/api/send-message',
+  // Optional. WaSender signs incoming webhooks with this. We accept messages
+  // whether or not it is set — it is only used to confirm authenticity.
+  wasenderWebhookSecret: env('WASENDER_WEBHOOK_SECRET'),
   // Legacy WAWP (kept so old references compile; no longer used)
   wawpInstanceId: '',
   wawpAccessToken: '',

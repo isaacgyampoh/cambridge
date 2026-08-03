@@ -46,6 +46,9 @@ async function logInbound(sb: any, source: string, fromPhone: string | null, tex
 export async function POST(req: NextRequest) {
   // Anything that throws in here used to disappear as a bare 500 with no
   // record, which is indistinguishable from the webhook never being called.
+  // WaSender can sign webhooks with a secret. We record whether the signature
+  // matched, but NEVER reject on it — a mismatched or missing signature must
+  // not be the reason a lead goes unanswered.
   try {
     return await handleInbound(req)
   } catch (e: any) {
