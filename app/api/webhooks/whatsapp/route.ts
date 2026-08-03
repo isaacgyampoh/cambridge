@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { readConversation } from '@/lib/integrations/conversationState'
 import { maybeResumeAI } from '@/lib/aiResume'
 import { sendSMS } from '@/lib/integrations/sms'
+import { intakeLead } from '@/lib/leadIntake'
 import { generateAssistantReply } from '@/lib/integrations/ai-assistant'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
@@ -215,7 +216,7 @@ async function handleInbound(req: NextRequest) {
   // Find the lead by phone
   // Indexed lookup on the phone variants (previously pulled 3000 leads into
   // memory on every inbound message — slow and it silently missed lead 3001+).
-  const { data: lead } = await sb.from('leads')
+  let { data: lead } = await sb.from('leads')
     .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession, status, created_at')
     .in('phone', variants).order('created_at', { ascending: false }).limit(1).maybeSingle()
 
@@ -223,24 +224,35 @@ async function handleInbound(req: NextRequest) {
   // this system. A staff WhatsApp line also carries their family, friends and
   // existing customers — the assistant must never reply to those. If the
   // number is not a lead, we record nothing and stay silent.
+  // Anyone who messages this line gets a reply. If we do not know them yet,
+  // they become a lead here — a real enquiry should never be turned away just
+  // because nobody entered them first.
   if (!lead?.id) {
-    await logInbound(sb, 'whatsapp', phone, text,
-      'ignored_not_lead', `No lead matches this number. Tried: ${variants.join(', ')}`, body)
-    // Tell the line's owner, so a real enquiry from an unknown number is not
-    // lost just because the assistant must stay silent with strangers.
     try {
-      const { data: owner } = await sb.from('profiles')
-        .select('id').not('wasender_api_key', 'is', null).limit(1).maybeSingle()
-      if (owner?.id) {
-        await sb.from('notifications').insert({
-          user_id: owner.id, type: 'message',
-          title: `WhatsApp from an unknown number`,
-          body: `${phone}: "${String(text).slice(0, 90)}" — not a lead in the system.`,
-          link: '/admin/webhook-log',
-        }).then(() => {}, () => {})
+      const created = await intakeLead({
+        full_name: pick('pushName', 'notifyName', 'sender_name', 'name') || 'WhatsApp enquiry',
+        phone,
+        source: 'whatsapp',
+        landing_source: 'Messaged us on WhatsApp',
+      })
+      if (created?.leadId) {
+        const { data: fresh } = await sb.from('leads')
+          .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession, status, created_at')
+          .eq('id', created.leadId).maybeSingle()
+        lead = fresh as any
+        await logInbound(sb, 'whatsapp', phone, text, 'lead_created',
+          'Unknown number messaged us — created a lead and continued', null)
       }
-    } catch {}
-    return NextResponse.json({ ok: true, ignored: 'not_a_lead' })
+    } catch (e: any) {
+      await logInbound(sb, 'whatsapp', phone, text, 'error',
+        `Could not create a lead for this number: ${e?.message || e}`, null)
+    }
+  }
+
+  if (!lead?.id) {
+    await logInbound(sb, 'whatsapp', phone, text, 'no_lead',
+      'Could not match or create a lead for this number', body)
+    return NextResponse.json({ ok: true, ignored: 'no_lead' })
   }
 
   // Find the assigned marketer (for voice + sending line + their link)
@@ -526,27 +538,56 @@ async function handleInbound(req: NextRequest) {
 }
 
 export async function GET() {
-  // Visiting this in a browser confirms the endpoint is reachable AND that it
-  // can record what arrives — if the log table is missing, nothing gets traced.
-  let dbOk = false, logOk = false, recent = 0
+  // Open this in a browser to see whether WhatsApp is actually reaching us.
+  const sb = createServiceClient()
+  let received = 0, lastAt: string | null = null, where = 'none'
+
+  // Count inbound hits from whichever log exists.
   try {
-    const sb = createServiceClient()
-    const { error: e1 } = await sb.from('leads').select('id').limit(1)
-    dbOk = !e1
-    const { count, error: e2 } = await sb.from('webhook_inbox')
-      .select('id', { count: 'exact', head: true })
-      .gte('created_at', new Date(Date.now() - 86400000).toISOString())
-    logOk = !e2
-    recent = count || 0
+    const { data, error } = await sb.from('webhook_inbox')
+      .select('created_at').order('created_at', { ascending: false }).limit(50)
+    if (!error && data) {
+      const day = Date.now() - 86400000
+      received = data.filter((r: any) => new Date(r.created_at).getTime() > day).length
+      lastAt = data[0]?.created_at || null
+      where = 'webhook_inbox'
+    }
   } catch {}
+
+  if (where === 'none') {
+    try {
+      const { data } = await sb.from('whatsapp_logs')
+        .select('created_at').ilike('message', '[INBOUND%')
+        .order('created_at', { ascending: false }).limit(50)
+      if (data) {
+        const day = Date.now() - 86400000
+        received = data.filter((r: any) => new Date(r.created_at).getTime() > day).length
+        lastAt = data[0]?.created_at || null
+        where = 'whatsapp_logs'
+      }
+    } catch {}
+  }
+
+  // Messages leads actually sent us, whatever the outcome.
+  let fromLeads = 0
+  try {
+    const { count } = await sb.from('ai_conversations')
+      .select('id', { count: 'exact', head: true })
+      .not('incoming_text', 'is', null)
+      .gte('created_at', new Date(Date.now() - 86400000).toISOString())
+    fromLeads = count || 0
+  } catch {}
+
+  const anything = received > 0 || fromLeads > 0
   return NextResponse.json({
     ok: true,
-    message: 'WhatsApp webhook is live.',
-    database: dbOk ? 'reachable' : 'NOT reachable',
-    inboxTable: logOk ? 'ready' : 'MISSING — run the latest schema',
-    messagesReceivedLast24h: recent,
-    hint: recent === 0
-      ? 'Nothing has arrived in 24h. If leads are messaging, WaSender is not calling this URL — check the webhook setting in WaSender.'
-      : 'Messages are arriving. Open Settings > Incoming WhatsApp to see what happened to each.',
+    message: 'WhatsApp webhook is live and reachable.',
+    webhookHitsLast24h: received,
+    messagesFromLeadsLast24h: fromLeads,
+    lastReceivedAt: lastAt,
+    readingFrom: where,
+    verdict: anything
+      ? 'WhatsApp IS reaching the system. If a lead got no reply, open Settings > Incoming WhatsApp for the reason against each message.'
+      : 'NOTHING has reached the system in 24 hours. WaSender is not calling this URL. In WaSender, set the webhook to this exact address for EVERY connected session, and enable incoming message events.',
   })
 }
