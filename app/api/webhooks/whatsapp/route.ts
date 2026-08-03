@@ -136,7 +136,7 @@ export async function POST(req: NextRequest) {
           .limit(10)
         isOurOwn = (recentOut || []).some((r: any) => r.reply_text && norm(r.reply_text) === norm(text))
       }
-      if (isOurOwn) return NextResponse.json({ ok: true, echo: true })
+      if (isOurOwn) { await logInbound(sb, 'whatsapp', phone, text, 'ignored_echo', 'Our own outgoing message echoed back', null); return NextResponse.json({ ok: true, echo: true }) }
 
       if (lead?.id) {
         await sb.from('leads').update({
@@ -152,6 +152,7 @@ export async function POST(req: NextRequest) {
         }).then(() => {}, () => {})
       }
     } catch {}
+    await logInbound(sb, 'whatsapp', phone, text, 'paused', 'Treated as a staff reply — assistant paused for this lead', null)
     return NextResponse.json({ ok: true, manual_takeover: true })
   }
 
@@ -169,7 +170,7 @@ export async function POST(req: NextRequest) {
       .gte('created_at', since)
       .limit(5)
     const seen = (recent || []).some((r: any) => text && (r.incoming_text || '').trim() === text.trim())
-    if (seen) return NextResponse.json({ ok: true, duplicate: true })
+    if (seen) { await logInbound(sb, 'whatsapp', phone, text, 'ignored_duplicate', 'Same message already handled in the last 60s', null); return NextResponse.json({ ok: true, duplicate: true }) }
   } catch { /* if the check fails, continue — better to risk a dup than drop a real message */ }
 
   // Find the lead by phone
@@ -237,6 +238,7 @@ export async function POST(req: NextRequest) {
     await handOff('sent a voice note or file')
     const first = (lead?.full_name || '').split(' ')[0]
     await sendWhatsAppText(phone, first ? `Give me a moment, ${first} 🙏` : `Give me a moment 🙏`, marketer?.id || null).catch(() => {})
+    await logInbound(sb, 'whatsapp', phone, text, 'handoff', 'Voice note or attachment — handed to staff', null)
     return NextResponse.json({ ok: true, handoff: 'media' })
   }
 
@@ -246,8 +248,23 @@ export async function POST(req: NextRequest) {
   // the assistant was out of its depth stay with the human.
   let paused = !!lead?.ai_paused
   if (paused && lead?.id) {
-    const resumed = await maybeResumeAI(lead.id)
-    if (resumed) paused = false
+    // Was there ever a genuine human reply on this lead? If the pause was set
+    // by the earlier fault that misread a lead's own message as staff typing,
+    // there will be none — clear it instead of leaving the lead unanswered.
+    const { count: humanTurns } = await sb.from('ai_conversations')
+      .select('id', { count: 'exact', head: true })
+      .in('phone', variants).eq('answered_by', 'human')
+    if (!humanTurns) {
+      await sb.from('leads').update({
+        ai_paused: false, needs_human: false, ai_paused_by: null,
+      }).eq('id', lead.id).then(() => {}, () => {})
+      await logInbound(sb, 'whatsapp', phone, text, 'auto_resumed',
+        'Pause had no matching human reply — assistant resumed', null)
+      paused = false
+    } else {
+      const resumed = await maybeResumeAI(lead.id)
+      if (resumed) paused = false
+    }
   }
 
   if (paused) {
@@ -263,6 +280,7 @@ export async function POST(req: NextRequest) {
       phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
       incoming_text: text, reply_text: null, answered_by: 'human_handling',
     }).then(() => {}, () => {})
+    await logInbound(sb, 'whatsapp', phone, text, 'paused', 'Assistant is paused on this lead — use Resume assistant', null)
     return NextResponse.json({ ok: true, humanHandling: true })
   }
 
@@ -273,6 +291,7 @@ export async function POST(req: NextRequest) {
     await handOff(asksForHuman ? 'asked to speak with someone' : 'seems frustrated')
     const first = (lead?.full_name || '').split(' ')[0]
     await sendWhatsAppText(phone, first ? `One moment, ${first} — let me check on this for you.` : `One moment — let me check on this for you.`, marketer?.id || null).catch(() => {})
+    await logInbound(sb, 'whatsapp', phone, text, 'handoff', 'Lead asked for a person', null)
     return NextResponse.json({ ok: true, handoff: 'requested' })
   }
 
@@ -372,11 +391,12 @@ export async function POST(req: NextRequest) {
       phone, lead_id: lead.id, marketer_id: lead.assigned_to || null,
       incoming_text: text, reply_text: null, answered_by: 'handoff_no_history',
     }).then(() => {}, () => {})
+    await logInbound(sb, 'whatsapp', phone, text, 'handoff', 'No chat history found — treated as an outside conversation', null)
     return NextResponse.json({ ok: true, handoff: 'no_history' })
   }
 
   // Generate the AI reply
-  const reply = await generateAssistantReply(text, {
+  let reply = await generateAssistantReply(text, {
     leadName: lead?.full_name,
     profession: (lead as any)?.profession || null,
     marketerName: marketer?.full_name,
@@ -390,6 +410,28 @@ export async function POST(req: NextRequest) {
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
     answeredBy = ok ? 'ai' : 'fallback'
+    if (!ok) {
+      await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
+        'A reply was written but WhatsApp would not accept it — check the line', null)
+    }
+  } else {
+    // The assistant produced nothing (AI unavailable or refused). The lead must
+    // never be met with silence, so acknowledge and bring in a person.
+    const holding = "Thanks for your message — let me check that and come right back to you."
+    const ok = await sendWhatsAppText(phone, holding, marketer?.id || null)
+    answeredBy = ok ? 'fallback' : 'failed'
+    reply = ok ? holding : null
+    await logInbound(sb, 'whatsapp', phone, text, ok ? 'fallback_sent' : 'no_reply',
+      ok ? 'Assistant gave no answer — sent a holding reply and alerted staff'
+         : 'Assistant gave no answer and the holding reply could not be sent', null)
+    if (lead?.assigned_to) {
+      await sb.from('notifications').insert({
+        user_id: lead.assigned_to, type: 'handoff',
+        title: 'Lead needs a reply',
+        body: `${lead.full_name || phone}: "${String(text).slice(0, 90)}" — the assistant could not answer.`,
+        link: `/marketer/leads/${lead.id}`,
+      }).then(() => {}, () => {})
+    }
   }
 
   // If the assistant said it would check, that is an escalation — a human must
