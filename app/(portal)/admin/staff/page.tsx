@@ -449,6 +449,20 @@ export default function StaffPage() {
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{staff.length} team members across all roles</p>
         </div>
         <div className="flex items-center gap-2">
+          {isSuperAdmin && (
+            <button onClick={async () => {
+              const st = await fetch('/api/admin/clean-logins').then(r => r.json()).catch(() => null)
+              if (!st || st.error) return alert(st?.error || 'Could not check')
+              if (!st.orphans) return alert('No leftover logins — every sign-in account belongs to a current staff member.')
+              if (!confirm(`${st.orphans} sign-in account${st.orphans === 1 ? '' : 's'} no longer belong to any staff member:\n\n${(st.emails || []).join('\n')}\n\nRemove them so these emails can be used again?`)) return
+              const d = await fetch('/api/admin/clean-logins', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+              if (d.error) alert(d.error)
+              else alert(`Removed ${d.removed} leftover login${d.removed === 1 ? '' : 's'}. Those emails can be used again now.`)
+            }}
+              className="inline-flex items-center gap-2 h-10 px-4 border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
+              Clear leftover logins
+            </button>
+          )}
           {isSuperAdmin && staff.filter((s: any) => s.role !== 'super_admin').length > 0 && (
             <button onClick={clearAllStaff}
               className="inline-flex items-center gap-2 h-10 px-4 border border-[var(--danger)]/30 text-[var(--danger)] rounded-lg text-sm font-medium hover:bg-[var(--danger-soft)] transition">
