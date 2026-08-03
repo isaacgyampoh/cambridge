@@ -72,15 +72,39 @@ async function handleInbound(req: NextRequest) {
     try { const t = await req.text(); body = Object.fromEntries(new URLSearchParams(t)) } catch {}
   }
 
+  // WaSender sends an `event` name. Acknowledge its test event clearly so the
+  // simulator shows success, and record it as proof the connection works.
+  const eventName = String(body?.event || '')
+  if (eventName === 'webhook.test' || body?.data?.test === true) {
+    try {
+      const sb = createServiceClient()
+      await logInbound(sb, 'whatsapp', null, 'WaSender test event', 'test_ok',
+        'WaSender reached the system successfully — the webhook is connected', body)
+    } catch {}
+    return NextResponse.json({ ok: true, received: 'webhook.test', message: 'Webhook is connected.' })
+  }
+
+  // Ignore event types that are not an incoming message, but record them so it
+  // is obvious the connection is live even before a lead writes in.
+  if (eventName && !/message|chat/i.test(eventName)) {
+    try {
+      const sb = createServiceClient()
+      await logInbound(sb, 'whatsapp', null, null, 'other_event', `Received "${eventName}"`, null)
+    } catch {}
+    return NextResponse.json({ ok: true, ignored: eventName })
+  }
+
   // Providers differ, and some send `messages` as an ARRAY. Normalise to the
   // single message object first so path lookups actually resolve — otherwise
   // a lookup lands on an object and stringifies to "[object Object]", which is
   // what was being stored as the lead's message.
   const d: any = body?.data ?? body
-  const msgNode: any = Array.isArray(d?.messages) ? d.messages[0]
-    : (d?.messages ?? d?.message ?? d)
+  const rawMsgs: any = d?.messages ?? d?.message ?? d
+  const msgNode: any = Array.isArray(rawMsgs) ? rawMsgs[0] : rawMsgs
 
-  const roots: any[] = [msgNode, d, body].filter(Boolean)
+  // Search the message node, its own nested message, the data wrapper and the
+  // whole body — providers nest this differently and shapes change.
+  const roots: any[] = [msgNode, msgNode?.message, d, body].filter(Boolean)
 
   /** Only ever returns a real string — never an object stringified. */
   const pick = (...keys: string[]): string => {
