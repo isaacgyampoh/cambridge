@@ -46,7 +46,7 @@ export async function POST(req: NextRequest) {
   const key = CONFIG.wasenderApiKey
   if (!key) return NextResponse.json({ error: 'WASENDER_API_KEY is not set on the server.' }, { status: 500 })
 
-  const to = '+' + String(phone).replace(/\s+/g, '').replace(/^\+/, '').replace(/^0/, '233')
+  const to = String(phone).replace(/[^0-9+]/g, '').replace(/^\+/, '').replace(/^0/, '233')
   try {
     const res = await fetch(CONFIG.wasenderUrl, {
       method: 'POST',

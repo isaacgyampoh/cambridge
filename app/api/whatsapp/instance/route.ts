@@ -59,7 +59,7 @@ export async function PUT(req: NextRequest) {
   const testTo = p.wasender_phone || p.phone
   if (!testTo) return NextResponse.json({ error: 'No phone number to test with.' }, { status: 400 })
 
-  const phone = '+' + String(testTo).replace(/\s+/g, '').replace(/^\+/, '').replace(/^0/, '233')
+  const phone = String(testTo).replace(/[^0-9+]/g, '').replace(/^\+/, '').replace(/^0/, '233')
   let ok = false, resp: any = null
   try {
     const res = await fetch(CONFIG.wasenderUrl, {

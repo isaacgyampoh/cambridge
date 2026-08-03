@@ -5,13 +5,12 @@ import { createServiceClient } from '@/lib/supabase/server'
 const WASENDER_URL = CONFIG.wasenderUrl || 'https://wasenderapi.com/api/send-message'
 
 function normalizePhone(phone: string): string {
-  // WaSender expects full international format: +233XXXXXXXXX
-  const digits = String(phone)
-    .replace(/\s+/g, '')
-    .replace(/[()\-]/g, '')
+  // WaSender expects digits only in international form: 233XXXXXXXXX
+  // (their own example sends no leading +, and some accounts reject it).
+  return String(phone)
+    .replace(/[^0-9+]/g, '')
     .replace(/^\+/, '')
     .replace(/^0/, '233')
-  return `+${digits}`
 }
 
 /**

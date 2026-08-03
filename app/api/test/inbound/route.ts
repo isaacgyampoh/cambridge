@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
   })
 
   const { data: sent } = await sb.from('whatsapp_logs')
-    .select('status, provider_response, created_at').in('recipient', variants.map(v => '+' + v.replace(/^\+/, '').replace(/^0/, '233')))
+    .select('status, provider_response, created_at').in('recipient', variants.map(v => v.replace(/^\+/, '').replace(/^0/, '233')))
     .order('created_at', { ascending: false }).limit(1).maybeSingle()
   const sentFresh = sent?.created_at && (Date.now() - new Date(sent.created_at).getTime()) < 90000
 
