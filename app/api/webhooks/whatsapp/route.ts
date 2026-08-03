@@ -34,30 +34,56 @@ export async function POST(req: NextRequest) {
     try { const t = await req.text(); body = Object.fromEntries(new URLSearchParams(t)) } catch {}
   }
 
-  // Flexible extraction across provider payload shapes
-  const pick = (...keys: string[]) => {
-    for (const k of keys) {
-      const v = k.split('.').reduce((o: any, p) => (o ? o[p] : undefined), body)
-      if (v) return String(v)
+  // Providers differ, and some send `messages` as an ARRAY. Normalise to the
+  // single message object first so path lookups actually resolve — otherwise
+  // a lookup lands on an object and stringifies to "[object Object]", which is
+  // what was being stored as the lead's message.
+  const d: any = body?.data ?? body
+  const msgNode: any = Array.isArray(d?.messages) ? d.messages[0]
+    : (d?.messages ?? d?.message ?? d)
+
+  const roots: any[] = [msgNode, d, body].filter(Boolean)
+
+  /** Only ever returns a real string — never an object stringified. */
+  const pick = (...keys: string[]): string => {
+    for (const root of roots) {
+      for (const k of keys) {
+        const v = k.split('.').reduce((o: any, p) => (o == null ? undefined : o[p]), root)
+        if (v == null) continue
+        if (typeof v === 'string' && v.trim()) return v
+        if (typeof v === 'number' || typeof v === 'boolean') return String(v)
+      }
     }
     return ''
+  }
+
+  /** Raw value, for booleans that may legitimately be false. */
+  const pickRaw = (...keys: string[]): any => {
+    for (const root of roots) {
+      for (const k of keys) {
+        const v = k.split('.').reduce((o: any, p) => (o == null ? undefined : o[p]), root)
+        if (v !== undefined) return v
+      }
+    }
+    return undefined
   }
 
   // Field names vary by provider. WaSender delivers Baileys-style payloads:
   //   data.messages.key.remoteJid / .fromMe, data.messages.message.conversation
   const fromRaw = pick(
-    'data.messages.key.remoteJid', 'data.key.remoteJid', 'key.remoteJid',
-    'from', 'sender', 'phone', 'number', 'data.from', 'data.sender', 'contact.wa_id', 'wa_id',
+    'key.remoteJid', 'remoteJid', 'from', 'sender', 'phone', 'number',
+    'chatId', 'contact.wa_id', 'wa_id', 'author',
   )
   const text = pick(
-    'data.messages.message.conversation',
-    'data.messages.message.extendedTextMessage.text',
-    'data.message.conversation', 'message.conversation',
-    'message', 'text', 'body', 'data.message', 'data.body', 'message.text', 'text.body',
+    'message.conversation',
+    'message.extendedTextMessage.text',
+    'message.imageMessage.caption',
+    'message.videoMessage.caption',
+    'conversation', 'text', 'body', 'caption',
+    'message.text', 'text.body',
   )
-  const fromMe = ['true', '1'].includes(String(
-    pick('data.messages.key.fromMe', 'data.key.fromMe', 'key.fromMe', 'fromMe', 'from_me', 'data.fromMe')
-  ))
+  const fromMeRaw = pickRaw('key.fromMe', 'fromMe', 'from_me', 'data.key.fromMe', 'data.messages.key.fromMe')
+  const fromMe = fromMeRaw === true || fromMeRaw === 'true' || fromMeRaw === 1 || fromMeRaw === '1'
   // Media type (voice note, image, document) — the AI can't process these,
   // so they trigger a human handoff.
   const mediaType = pick(
