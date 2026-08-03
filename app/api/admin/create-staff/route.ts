@@ -33,24 +33,53 @@ export async function POST(req: NextRequest) {
 
   // Check phone not already used
   const { data: existingPhone } = await sb.from('profiles')
-    .select('id').eq('phone', phone233).maybeSingle()
+    .select('id, full_name').eq('phone', phone233).maybeSingle()
   if (existingPhone) {
-    return NextResponse.json({ error: 'This phone number is already registered' }, { status: 409 })
+    return NextResponse.json({
+      error: `That phone number already belongs to ${existingPhone.full_name}. Edit that person instead, or delete them first.`,
+    }, { status: 409 })
   }
 
   // Use provided email or generate a placeholder (needed for Supabase Auth)
   const authEmail = email?.trim() || `${phone233}@cambridge.staff`
   const randomPassword = 'CCE-' + Math.random().toString(36).slice(2, 10) + '!'
 
-  const { data: authData, error: authErr } = await sb.auth.admin.createUser({
+  let { data: authData, error: authErr } = await sb.auth.admin.createUser({
     email: authEmail,
     password: randomPassword,
     email_confirm: true,
   })
 
+  // A login can survive without its staff record — for example after clearing
+  // the system, where profiles are deleted but sign-in accounts remain. That
+  // left "email already exists" with no way forward. Adopt the orphaned login
+  // instead of refusing.
+  if (authErr && /already|exists|registered/i.test(authErr.message)) {
+    let existing: any = null
+    for (let page = 1; page <= 10 && !existing; page++) {
+      const { data: list } = await sb.auth.admin.listUsers({ page, perPage: 200 })
+      existing = (list?.users || []).find((u: any) =>
+        (u.email || '').toLowerCase() === authEmail.toLowerCase())
+      if (!list?.users?.length) break
+    }
+    if (!existing) {
+      return NextResponse.json({ error: 'That email is already registered but could not be located. Use a different email.' }, { status: 409 })
+    }
+
+    // Only adopt it if no staff member is using it — never hijack a live account.
+    const { data: inUse } = await sb.from('profiles').select('id, full_name').eq('id', existing.id).maybeSingle()
+    if (inUse) {
+      return NextResponse.json({ error: `That email already belongs to ${inUse.full_name}.` }, { status: 409 })
+    }
+
+    await sb.auth.admin.updateUserById(existing.id, { password: randomPassword, email_confirm: true })
+    authData = { user: existing } as any
+    authErr = null
+  }
+
   if (authErr) return NextResponse.json({ error: authErr.message }, { status: 400 })
 
-  const userId = authData.user.id
+  const userId = authData!.user!.id
   // A person markets if their primary role is marketing_officer OR the
   // "also markets" toggle is on (e.g. a PM or accountant who also converts
   // leads). Marketing staff get a shareable code and enter the lead pool.
