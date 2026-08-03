@@ -1,5 +1,5 @@
 'use client'
-import { useData } from '@/hooks/useData'
+import { useState, useEffect } from 'react'
 import { PageHeader, Card, Badge, Spinner, EmptyState } from '@/components/ui'
 
 const TONE: Record<string, any> = {
@@ -16,9 +16,15 @@ const LABEL: Record<string, string> = {
 }
 
 export default function WebhookLogPage() {
-  const { data: rows, loading, refetch } = useData<any>({
-    table: 'webhook_inbox', select: '*', orderBy: 'created_at', orderAsc: false, limit: 100,
-  })
+  const [data, setData] = useState<any>(null)
+  const [loading, setLoading] = useState(true)
+  const load = () => {
+    setLoading(true)
+    fetch('/api/admin/inbound-log').then(r => r.json()).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
+  }
+  useEffect(() => { load() }, [])
+  const refetch = load
+  const rows = data?.events || []
 
   return (
     <div className="fade-in w-full max-w-3xl">
@@ -40,25 +46,36 @@ export default function WebhookLogPage() {
           <button onClick={() => refetch()} className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)]">Refresh</button>
         </>} />
 
+      {data && (
+        <Card className="p-4 mb-5">
+          <div className="text-[13.5px] text-[var(--ink)] font-medium mb-2">{data.verdict}</div>
+          <div className="text-[12.5px] text-[var(--ink-soft)] space-y-0.5">
+            <div>From leads in 24h: <b>{data.last24h?.messagesFromLeads ?? 0}</b> · sent by us: <b>{data.last24h?.messagesWeSent ?? 0}</b></div>
+            <div>WaSender key: <b>{data.setup?.wasenderKey}</b> · AI key: <b>{data.setup?.openaiKey}</b></div>
+            <div className="break-all">Webhook URL: <b>{data.setup?.webhookUrl}</b></div>
+          </div>
+        </Card>
+      )}
+
       {loading ? <Spinner /> : !rows?.length ? (
         <EmptyState title="Nothing received yet"
           description="If leads are messaging and nothing appears here, WhatsApp is not delivering to the system — check the webhook URL in WaSender." />
       ) : (
         <div className="space-y-2">
           {rows.map((r: any) => (
-            <Card key={r.id} className="p-4">
+            <Card key={r.at + String(r.phone)} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-medium text-[var(--ink)] text-[14.5px]">
-                    {String(r.from_phone || 'unknown').replace(/^233/, '0')}
+                    {String(r.phone || 'unknown').replace(/^233/, '0')}
                   </div>
-                  {r.body_text && <div className="text-[13.5px] text-[var(--ink-soft)] mt-1 line-clamp-2">{r.body_text}</div>}
+                  {r.text && <div className="text-[13.5px] text-[var(--ink-soft)] mt-1 line-clamp-2">{r.text}</div>}
                   {r.detail && <div className="text-[12px] text-[var(--ink-faint)] mt-1.5 break-all">{r.detail}</div>}
                 </div>
                 <div className="text-right flex-shrink-0">
                   <Badge tone={TONE[r.outcome] || 'neutral'}>{LABEL[r.outcome] || r.outcome}</Badge>
                   <div className="text-[11.5px] text-[var(--ink-faint)] mt-1.5">
-                    {new Date(r.created_at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
+                    {new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>
               </div>

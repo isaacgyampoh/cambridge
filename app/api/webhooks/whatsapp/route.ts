@@ -19,12 +19,26 @@ import { CONFIG } from '@/lib/config'
 
 /** Record what arrived and what we did with it, so nothing fails invisibly. */
 async function logInbound(sb: any, source: string, fromPhone: string | null, text: string | null, outcome: string, detail: string, raw: any) {
+  // Preferred: the dedicated inbox table.
   try {
-    await sb.from('webhook_inbox').insert({
+    const { error } = await sb.from('webhook_inbox').insert({
       source, from_phone: fromPhone, body_text: text ? String(text).slice(0, 500) : null,
       outcome, detail: detail.slice(0, 300), raw,
     })
+    if (!error) return
   } catch {}
+
+  // Fallback: if that table has not been created yet, record it in the
+  // existing message log so diagnosis never depends on a schema step.
+  try {
+    await sb.from('whatsapp_logs').insert({
+      recipient: fromPhone || 'unknown',
+      message: `[INBOUND ${outcome}] ${text ? String(text).slice(0, 200) : ''}`.slice(0, 400),
+      status: outcome === 'replied' ? 'sent' : 'inbound',
+      provider_response: { outcome, detail: detail.slice(0, 300) },
+    })
+  } catch {}
+  console.log('[inbound]', outcome, fromPhone, detail.slice(0, 160))
 }
 
 
