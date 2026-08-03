@@ -15,20 +15,28 @@ export interface Inbound {
   eventName: string | null
 }
 
-const PHONE_KEYS = /^(remotejid|jid|chatid|from|sender|author|participant|phone|number|wa_id|waid|msisdn|recipient)$/i
+// The provider's own guidance: remoteJid is often a Linked ID (…@lid), NOT a
+// phone number. The cleaned fields carry the real number, so they win.
+const PHONE_PRIMARY = /^(cleanedsenderpn|cleanedparticipantpn|senderpn|participantpn)$/i
+const PHONE_FALLBACK = /^(remotejid|jid|chatid|from|sender|author|participant|phone|number|wa_id|waid|msisdn|recipient)$/i
+// messageBody is the provider's unified text field and should win over
+// digging through conversation / extendedTextMessage.
+const TEXT_PRIMARY = /^(messagebody)$/i
 const TEXT_KEYS = /^(conversation|text|body|caption|message|content|extendedtext)$/i
 const NAME_KEYS = /^(pushname|notifyname|sendername|name|contactname)$/i
 const MEDIA_KEYS = /(audiomessage|voicemessage|pttmessage|imagemessage|videomessage|documentmessage|stickermessage)$/i
 
 /** A WhatsApp id or phone number, normalised to digits. */
-function asPhone(v: any): string | null {
+function asPhone(v: any, allowLid = false): string | null {
   if (typeof v !== 'string') return null
+  // A Linked ID is an internal identifier, not a number anyone can be reached
+  // on. Treating one as a phone means matching no lead and replying to nobody.
+  if (!allowLid && /@lid$/i.test(v)) return null
+  // Group ids are never a person.
+  if (/@g\.us$/i.test(v)) return null
   const head = v.split('@')[0].split(':')[0]
   const digits = head.replace(/[^0-9]/g, '')
-  // Real numbers are 9–15 digits. Anything else is an id, not a phone.
   if (digits.length < 9 || digits.length > 15) return null
-  // Group ids are long and end in @g.us — never treat those as a person.
-  if (/@g\.us$/i.test(v)) return null
   return digits
 }
 
@@ -42,6 +50,8 @@ export function parseInbound(body: any): Inbound {
   const seen = new Set<any>()
   let bestText: string | null = null
   let bestPhone: string | null = null
+  let primaryPhone: string | null = null
+  let primaryText: string | null = null
 
   const walk = (node: any, depth: number) => {
     if (!node || typeof node !== 'object' || depth > 8 || seen.has(node)) return
@@ -60,8 +70,12 @@ export function parseInbound(body: any): Inbound {
         if (val === true || val === 'true' || val === 1 || val === '1') out.fromMe = true
       }
 
-      // who sent it
-      if (!bestPhone && PHONE_KEYS.test(key)) {
+      // who sent it — the cleaned number always wins over an id
+      if (!primaryPhone && PHONE_PRIMARY.test(key)) {
+        const p = asPhone(val, true)
+        if (p) primaryPhone = p
+      }
+      if (!bestPhone && PHONE_FALLBACK.test(key)) {
         const p = asPhone(val)
         if (p) bestPhone = p
       }
@@ -74,7 +88,10 @@ export function parseInbound(body: any): Inbound {
       // media
       if (!out.mediaType && MEDIA_KEYS.test(key)) out.mediaType = key
 
-      // what they said — prefer a plain string on a text-like key
+      // what they said — the unified body wins over the raw variants
+      if (!primaryText && TEXT_PRIMARY.test(key) && typeof val === 'string' && val.trim()) {
+        primaryText = val.trim()
+      }
       if (!bestText && TEXT_KEYS.test(key) && typeof val === 'string' && val.trim()) {
         bestText = val.trim()
       }
@@ -84,7 +101,7 @@ export function parseInbound(body: any): Inbound {
   }
 
   walk(body, 0)
-  out.phone = bestPhone
-  out.text = bestText
+  out.phone = primaryPhone || bestPhone
+  out.text = primaryText || bestText
   return out
 }
