@@ -257,6 +257,18 @@ export default function ConversationsPage() {
           className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Fix chat attribution
         </button>
+        <button onClick={async () => {
+          const st = await fetch('/api/admin/resume-ai').then(r => r.json()).catch(() => null)
+          if (!st || st.error) return alert(st?.error || 'Could not check')
+          if (!st.paused) return alert('The assistant is active on every lead.')
+          if (!confirm(`The assistant is paused on ${st.paused} lead${st.paused === 1 ? '' : 's'}. Resume it on all of them?`)) return
+          const d = await fetch('/api/admin/resume-ai', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+          if (d.error) alert(d.error)
+          else { alert(`Resumed on ${d.resumed} lead${d.resumed === 1 ? '' : 's'}.`); location.reload() }
+        }}
+          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
+          Resume assistant
+        </button>
       </div>
 
       {/* Desktop: master / detail / transcript */}

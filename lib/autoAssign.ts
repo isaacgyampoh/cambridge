@@ -165,7 +165,7 @@ async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
         const sent = await sendWhatsAppText(full.phone, opening, marketerId)
         if (sent) {
           await sb.from('ai_conversations').insert({
-            lead_id: leadId, phone: full.phone, marketer_id: marketerId,
+            lead_id: leadId, phone: String(full.phone).replace(/[^0-9]/g, '').replace(/^0/, '233'), marketer_id: marketerId,
             incoming_text: null, reply_text: opening, answered_by: 'ai_opening',
           }).then(() => {}, () => {})
         }

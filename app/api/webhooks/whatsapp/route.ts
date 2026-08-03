@@ -124,7 +124,7 @@ export async function POST(req: NextRequest) {
     const since = new Date(Date.now() - 60000).toISOString()
     const { data: recent } = await sb.from('ai_conversations')
       .select('id, incoming_text')
-      .eq('phone', phone)
+      .in('phone', variants)
       .gte('created_at', since)
       .limit(5)
     const seen = (recent || []).some((r: any) => text && (r.incoming_text || '').trim() === text.trim())
@@ -135,7 +135,7 @@ export async function POST(req: NextRequest) {
   // Indexed lookup on the phone variants (previously pulled 3000 leads into
   // memory on every inbound message — slow and it silently missed lead 3001+).
   const { data: lead } = await sb.from('leads')
-    .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession, status')
+    .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession, status, created_at')
     .in('phone', variants).order('created_at', { ascending: false }).limit(1).maybeSingle()
 
   // ── HARD RULE: the assistant only ever speaks to people who are leads in
@@ -287,7 +287,7 @@ export async function POST(req: NextRequest) {
   // Pull short recent history with this phone for continuity
   const { data: prior } = await sb.from('ai_conversations')
     .select('incoming_text, reply_text')
-    .eq('phone', phone)
+    .in('phone', variants)
     .order('created_at', { ascending: false })
     .limit(8)
   const history: { role: 'user' | 'assistant'; content: string }[] = []
@@ -299,7 +299,13 @@ export async function POST(req: NextRequest) {
   // If we have no record of this conversation, the person is replying to
   // something said outside the system — we cannot see it, so answering would be
   // guessing. Hand it to the marketer instead of inventing context.
-  if (history.length === 0 && lead?.id) {
+  // Only treat this as an outside conversation if the lead has been in the
+  // system a while with nothing logged. A brand-new lead with no history is
+  // normal — the assistant is simply starting the conversation.
+  const leadAgeMins = (lead as any)?.created_at
+    ? (Date.now() - new Date((lead as any).created_at).getTime()) / 60000
+    : 0
+  if (history.length === 0 && lead?.id && leadAgeMins > 120) {
     await sb.from('leads').update({
       ai_paused: true, needs_human: true,
       needs_human_at: new Date().toISOString(),
