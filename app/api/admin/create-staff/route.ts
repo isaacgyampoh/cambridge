@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, getSessionFromCookies } from '@/lib/auth/pin'
-import { DUTIES } from '@/lib/access/portals'
+import { DUTIES, ROLE_DEFAULTS } from '@/lib/access/portals'
 
 export const runtime = 'nodejs'
 
@@ -86,7 +86,13 @@ export async function POST(req: NextRequest) {
   // Duties: extra responsibilities layered on the primary role (checkboxes).
   // Each grants portals, merged into the profile so access reflects every job.
   const dutyList: string[] = Array.isArray(duties) ? duties : []
-  const dutyPortals = dutyList.flatMap((d: string) => DUTIES[d]?.portals || [])
+  // A duty ADDS to what the role already grants. Storing only the duty portals
+  // silently removed the person's own role access — a content manager who also
+  // markets lost the content section entirely.
+  const dutyPortals = Array.from(new Set([
+    ...(ROLE_DEFAULTS[role] || []),
+    ...dutyList.flatMap((d: string) => DUTIES[d]?.portals || []),
+  ]))
 
   // A person works leads if their role is marketing_officer, OR they have the
   // marketing duty, OR the legacy also_markets flag is set.

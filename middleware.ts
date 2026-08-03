@@ -24,7 +24,7 @@ const PUBLIC = [
    round-trip to every page view and API call. Cached briefly per token, which
    removes almost all of them while still noticing a logout within a minute. */
 type Cached = { at: number; role: string; active: boolean; portals: string[] | null; userId: string }
-const SESSION_TTL = 60_000
+const SESSION_TTL = 15_000   // short, so a change to someone's access takes effect quickly
 const sessionCache = new Map<string, Cached>()
 
 function readCache(token: string): Cached | null {

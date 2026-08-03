@@ -127,6 +127,28 @@ async function handleInbound(req: NextRequest) {
   // misread here would silence the lead, which is far worse than the assistant
   // and a marketer both being present in a chat.
   if (fromMe) {
+    // Staff can hand the chat back to the assistant, or take it over, with a
+    // short keyword typed from their own WhatsApp — no need to open the portal.
+    const cmd = String(text || '').trim().toLowerCase()
+    const handBack = /^(done|resume|over to you|ai on|bot on)\b/.test(cmd)
+    const takeOver = /^(hold|stop|pause|i'?ll handle|ai off|bot off)\b/.test(cmd)
+    if (handBack || takeOver) {
+      try {
+        const { data: l } = await sb.from('leads').select('id').in('phone', variants).limit(1).maybeSingle()
+        if (l?.id) {
+          await sb.from('leads').update({
+            ai_paused: takeOver, needs_human: takeOver,
+            ai_paused_by: takeOver ? 'manual' : null,
+            last_human_at: new Date().toISOString(),
+          }).eq('id', l.id)
+          await logInbound(sb, 'whatsapp', phone, text,
+            takeOver ? 'staff_took_over' : 'staff_handed_back',
+            takeOver ? 'Staff paused the assistant on this lead' : 'Staff handed the chat back to the assistant', null)
+        }
+      } catch {}
+      return NextResponse.json({ ok: true, command: handBack ? 'resumed' : 'paused' })
+    }
+
     try {
       const { data: lead } = await sb.from('leads')
         .select('id, assigned_to, ai_paused').in('phone', variants).limit(1).maybeSingle()
@@ -466,7 +488,7 @@ async function handleInbound(req: NextRequest) {
         }).then(() => {}, () => {})
         const { data: mp } = await sb.from('profiles').select('phone, full_name').eq('id', lead.assigned_to).maybeSingle()
         if (mp?.phone) {
-          try { await sendSMS(mp.phone, `CCE: ${lead.full_name || phone} asked something the assistant could not answer. Please reply on WhatsApp.`) } catch {}
+          try { await sendSMS(mp.phone, `CCE: ${lead.full_name || phone} asked something the assistant could not answer. Reply to them on WhatsApp, then send "done" in that chat to hand it back.`) } catch {}
         }
       }
     } catch {}

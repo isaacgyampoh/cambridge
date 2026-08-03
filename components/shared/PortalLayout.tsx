@@ -249,7 +249,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       setProfile({ id: s.userId, full_name: s.fullName, role: s.role, email: s.email, phone: s.phone, portals: s.portals })
       setLoading(false)
     }).catch(() => router.replace('/login'))
-  }, [])
+    // Re-read on navigation too: if someone's access is changed while they are
+    // signed in, they should see it without being told to log out and back in.
+  }, [pathname])
 
   useEffect(() => {
     if (!profile) return
