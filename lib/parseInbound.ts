@@ -8,6 +8,10 @@
  */
 export interface Inbound {
   phone: string | null
+  /** The Linked ID digits, if the provider sent one. Leads created before the
+   *  real number was available may be stored under this, so it is kept for
+   *  matching — never for display. */
+  lid: string | null
   text: string | null
   fromMe: boolean
   mediaType: string | null
@@ -41,7 +45,7 @@ function asPhone(v: any, allowLid = false): string | null {
 }
 
 export function parseInbound(body: any): Inbound {
-  const out: Inbound = { phone: null, text: null, fromMe: false, mediaType: null, senderName: null, eventName: null }
+  const out: Inbound = { phone: null, lid: null, text: null, fromMe: false, mediaType: null, senderName: null, eventName: null }
   if (!body || typeof body !== 'object') return out
 
   out.eventName = typeof body.event === 'string' ? body.event
@@ -78,6 +82,11 @@ export function parseInbound(body: any): Inbound {
       if (!bestPhone && PHONE_FALLBACK.test(key)) {
         const p = asPhone(val)
         if (p) bestPhone = p
+      }
+      // Keep the LID for matching leads created before the real number existed
+      if (!out.lid && typeof val === 'string' && /@lid$/i.test(val)) {
+        const digits = val.split('@')[0].replace(/[^0-9]/g, '')
+        if (digits) out.lid = digits
       }
 
       // their name

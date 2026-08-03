@@ -107,7 +107,16 @@ async function handleInbound(req: NextRequest) {
   // device suffix (…:12@…). Stripping non-digits first glued that suffix onto
   // the number, so it matched no lead and the message was dropped in silence.
   const phone = fromRaw
-  const variants = [phone, phone.replace(/^0/, '233'), phone.replace(/^233/, '0'), phone.replace(/^233/, ''), '0' + phone.replace(/^233/, '')]
+  const variants = Array.from(new Set([
+    phone,
+    phone.replace(/^0/, '233'),
+    phone.replace(/^233/, '0'),
+    phone.replace(/^233/, ''),
+    '0' + phone.replace(/^233/, ''),
+    // Leads created before the real number was available were stored under the
+    // Linked ID. Match those too, so existing conversations keep working.
+    ...(parsed.lid ? [parsed.lid, `${parsed.lid}@lid`] : []),
+  ].filter(Boolean)))
 
   const sb = createServiceClient()
 
@@ -188,6 +197,16 @@ async function handleInbound(req: NextRequest) {
   // Anyone who messages this line gets a reply. If we do not know them yet,
   // they become a lead here — a real enquiry should never be turned away just
   // because nobody entered them first.
+  // A lead matched by Linked ID should be corrected to their real number, so
+  // staff see something they can actually call.
+  if (lead?.id && parsed.phone && lead.phone && lead.phone.replace(/[^0-9]/g, '') !== parsed.phone) {
+    const stored = lead.phone.replace(/[^0-9]/g, '')
+    if (parsed.lid && (stored === parsed.lid || stored.length > 15)) {
+      await sb.from('leads').update({ phone: parsed.phone }).eq('id', lead.id).then(() => {}, () => {})
+      lead.phone = parsed.phone
+    }
+  }
+
   if (!lead?.id) {
     try {
       const created = await intakeLead({
