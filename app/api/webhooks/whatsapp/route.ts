@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { parseInbound } from '@/lib/parseInbound'
 import { createServiceClient } from '@/lib/supabase/server'
 import { readConversation } from '@/lib/integrations/conversationState'
 import { maybeResumeAI } from '@/lib/aiResume'
@@ -72,94 +73,27 @@ async function handleInbound(req: NextRequest) {
     try { const t = await req.text(); body = Object.fromEntries(new URLSearchParams(t)) } catch {}
   }
 
-  // WaSender sends an `event` name. Acknowledge its test event clearly so the
-  // simulator shows success, and record it as proof the connection works.
-  const eventName = String(body?.event || '')
+  // Find the sender, message and direction wherever they sit in the payload.
+  // Matching known paths kept failing as providers nest things differently and
+  // change shape without notice.
+  const parsed = parseInbound(body)
+  const eventName = parsed.eventName || ''
+
+  // Acknowledge the provider's test event so their simulator reports success.
   if (eventName === 'webhook.test' || body?.data?.test === true) {
     try {
-      const sb = createServiceClient()
-      await logInbound(sb, 'whatsapp', null, 'WaSender test event', 'test_ok',
-        'WaSender reached the system successfully — the webhook is connected', body)
+      await logInbound(createServiceClient(), 'whatsapp', null, 'WaSender test event',
+        'test_ok', 'WaSender reached the system — the webhook is connected', body)
     } catch {}
     return NextResponse.json({ ok: true, received: 'webhook.test', message: 'Webhook is connected.' })
   }
 
-  // Ignore event types that are not an incoming message, but record them so it
-  // is obvious the connection is live even before a lead writes in.
-  if (eventName && !/message|chat/i.test(eventName)) {
-    try {
-      const sb = createServiceClient()
-      await logInbound(sb, 'whatsapp', null, null, 'other_event', `Received "${eventName}"`, null)
-    } catch {}
-    return NextResponse.json({ ok: true, ignored: eventName })
-  }
-
-  // Providers differ, and some send `messages` as an ARRAY. Normalise to the
-  // single message object first so path lookups actually resolve — otherwise
-  // a lookup lands on an object and stringifies to "[object Object]", which is
-  // what was being stored as the lead's message.
-  const d: any = body?.data ?? body
-  const rawMsgs: any = d?.messages ?? d?.message ?? d
-  const msgNode: any = Array.isArray(rawMsgs) ? rawMsgs[0] : rawMsgs
-
-  // Search the message node, its own nested message, the data wrapper and the
-  // whole body — providers nest this differently and shapes change.
-  const roots: any[] = [msgNode, msgNode?.message, d, body].filter(Boolean)
-
-  /** Only ever returns a real string — never an object stringified. */
-  const pick = (...keys: string[]): string => {
-    for (const root of roots) {
-      for (const k of keys) {
-        const v = k.split('.').reduce((o: any, p) => (o == null ? undefined : o[p]), root)
-        if (v == null) continue
-        if (typeof v === 'string' && v.trim()) return v
-        if (typeof v === 'number' || typeof v === 'boolean') return String(v)
-      }
-    }
-    return ''
-  }
-
-  /** Raw value, for booleans that may legitimately be false. */
-  const pickRaw = (...keys: string[]): any => {
-    for (const root of roots) {
-      for (const k of keys) {
-        const v = k.split('.').reduce((o: any, p) => (o == null ? undefined : o[p]), root)
-        if (v !== undefined) return v
-      }
-    }
-    return undefined
-  }
-
-  // Field names vary by provider. WaSender delivers Baileys-style payloads:
-  //   data.messages.key.remoteJid / .fromMe, data.messages.message.conversation
-  const fromRaw = pick(
-    'key.remoteJid', 'remoteJid', 'from', 'sender', 'phone', 'number',
-    'chatId', 'contact.wa_id', 'wa_id', 'author',
-  )
-  const text = pick(
-    'message.conversation',
-    'message.extendedTextMessage.text',
-    'message.imageMessage.caption',
-    'message.videoMessage.caption',
-    'conversation', 'text', 'body', 'caption',
-    'message.text', 'text.body',
-  )
-  const fromMeRaw = pickRaw('key.fromMe', 'fromMe', 'from_me', 'data.key.fromMe', 'data.messages.key.fromMe')
-  const fromMe = fromMeRaw === true || fromMeRaw === 'true' || fromMeRaw === 1 || fromMeRaw === '1'
-  // Media type (voice note, image, document) — the AI can't process these,
-  // so they trigger a human handoff.
-  const mediaType = pick(
-    'type', 'data.type', 'message.type', 'messageType', 'media_type',
-    'data.messages.message.audioMessage.mimetype',
-    'data.messages.message.imageMessage.mimetype',
-    'data.messages.message.documentMessage.mimetype',
-    'data.messages.message.videoMessage.mimetype',
-  ) || (
-    // Baileys nests media under a *Message key — detect by presence
-    ['audioMessage','imageMessage','videoMessage','documentMessage','stickerMessage']
-      .find(k => (body?.data?.messages?.message || body?.data?.message || {})[k]) || ''
-  )
-  const isMedia = /audio|voice|ptt|image|video|document|sticker/i.test(String(mediaType))
+  const fromRaw = parsed.phone || ''
+  const text = parsed.text || ''
+  const fromMe = parsed.fromMe
+  const mediaType = parsed.mediaType || ''
+  const pushName = parsed.senderName || ''
+  const isMedia = !!parsed.mediaType
 
   if (!fromRaw || (!text && !isMedia)) {
     try {
@@ -172,7 +106,7 @@ async function handleInbound(req: NextRequest) {
   // A WhatsApp id looks like 233XXXXXXXXX@s.whatsapp.net and may carry a
   // device suffix (…:12@…). Stripping non-digits first glued that suffix onto
   // the number, so it matched no lead and the message was dropped in silence.
-  const phone = String(fromRaw).split('@')[0].split(':')[0].replace(/[^0-9]/g, '')
+  const phone = fromRaw
   const variants = [phone, phone.replace(/^0/, '233'), phone.replace(/^233/, '0'), phone.replace(/^233/, ''), '0' + phone.replace(/^233/, '')]
 
   const sb = createServiceClient()
@@ -228,7 +162,7 @@ async function handleInbound(req: NextRequest) {
   // than once. Without this, the lead gets the same reply twice. If we've
   // already handled this exact message (same phone + same text) in the last
   // 60 seconds, skip it silently.
-  const msgId = pick('id', 'message_id', 'data.id', 'messageId', 'key.id')
+  const msgId = String(body?.data?.messages?.key?.id || body?.data?.key?.id || body?.id || '')
   try {
     const since = new Date(Date.now() - 60000).toISOString()
     const { data: recent } = await sb.from('ai_conversations')
@@ -257,7 +191,7 @@ async function handleInbound(req: NextRequest) {
   if (!lead?.id) {
     try {
       const created = await intakeLead({
-        full_name: pick('pushName', 'notifyName', 'sender_name', 'name') || 'WhatsApp enquiry',
+        full_name: pushName || 'WhatsApp enquiry',
         phone,
         source: 'whatsapp',
         landing_source: 'Messaged us on WhatsApp',
