@@ -24,7 +24,21 @@ export default function WebhookLogPage() {
     <div className="fade-in w-full max-w-3xl">
       <PageHeader eyebrow="Diagnostics" title="Incoming WhatsApp"
         description="Every message WhatsApp delivers to the system, and what happened to it. If a lead says they got no reply, look here first."
-        actions={<button onClick={() => refetch()} className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)]">Refresh</button>} />
+        actions={<>
+          <button onClick={async () => {
+            const num = prompt('Enter a LEAD phone number to test with (their number, not staff):')
+            if (!num) return
+            const d = await fetch('/api/test/inbound', {
+              method: 'POST', headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({ phone: num.trim(), message: 'Hello, I want to know more' }),
+            }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+            if (d.error) return alert(d.error)
+            const lines = (d.steps || []).map((s: any) => `${s.ok ? 'OK  ' : 'FAIL'}  ${s.step}\n      ${s.detail}`).join('\n\n')
+            alert(`${d.verdict}\n\n${lines}`)
+            refetch()
+          }} className="h-10 px-4 rounded-xl bg-[var(--accent)] text-white text-[13.5px] font-semibold">Test a reply</button>
+          <button onClick={() => refetch()} className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)]">Refresh</button>
+        </>} />
 
       {loading ? <Spinner /> : !rows?.length ? (
         <EmptyState title="Nothing received yet"
