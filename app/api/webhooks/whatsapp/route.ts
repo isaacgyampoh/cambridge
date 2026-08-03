@@ -127,16 +127,20 @@ async function handleInbound(req: NextRequest) {
     return NextResponse.json({ ok: true, skipped: true })
   }
 
-  const phone = fromRaw.replace(/[^0-9]/g, '').replace(/@.*/, '')
+  // A WhatsApp id looks like 233XXXXXXXXX@s.whatsapp.net and may carry a
+  // device suffix (…:12@…). Stripping non-digits first glued that suffix onto
+  // the number, so it matched no lead and the message was dropped in silence.
+  const phone = String(fromRaw).split('@')[0].split(':')[0].replace(/[^0-9]/g, '')
   const variants = [phone, phone.replace(/^0/, '233'), phone.replace(/^233/, '0'), phone.replace(/^233/, ''), '0' + phone.replace(/^233/, '')]
 
   const sb = createServiceClient()
 
-  // ── MANUAL TAKEOVER DETECTION ──
-  // A fromMe message means a HUMAN (the marketer) just replied from their own
-  // WhatsApp. Pause the AI for that lead so the two never talk over each other,
-  // and record what the marketer said so the AI keeps full context if it later
-  // resumes.
+  // ── OUTGOING MESSAGES ──
+  // fromMe means the message left this WhatsApp line — either the system's own
+  // send echoed back, or the marketer typing. Either way it is not something to
+  // answer. It is recorded for context and the assistant is left running: a
+  // misread here would silence the lead, which is far worse than the assistant
+  // and a marketer both being present in a chat.
   if (fromMe) {
     try {
       const { data: lead } = await sb.from('leads')
@@ -159,10 +163,11 @@ async function handleInbound(req: NextRequest) {
       if (isOurOwn) { await logInbound(sb, 'whatsapp', phone, text, 'ignored_echo', 'Our own outgoing message echoed back', null); return NextResponse.json({ ok: true, echo: true }) }
 
       if (lead?.id) {
+        // Record that a human spoke, but do NOT pause the assistant here.
+        // Outgoing messages are echoed back by the provider, and a single
+        // misread would silence the lead for good. Staff can pause a chat
+        // deliberately from the lead page when they want to take over.
         await sb.from('leads').update({
-          ai_paused: true, needs_human: false,
-          ai_paused_at: lead.ai_paused ? undefined : new Date().toISOString(),
-          ai_paused_by: 'human',
           last_human_at: new Date().toISOString(),
         }).eq('id', lead.id).then(() => {}, () => {})
         await sb.from('ai_conversations').insert({
@@ -207,6 +212,20 @@ async function handleInbound(req: NextRequest) {
   if (!lead?.id) {
     await logInbound(sb, 'whatsapp', phone, text,
       'ignored_not_lead', `No lead matches this number. Tried: ${variants.join(', ')}`, body)
+    // Tell the line's owner, so a real enquiry from an unknown number is not
+    // lost just because the assistant must stay silent with strangers.
+    try {
+      const { data: owner } = await sb.from('profiles')
+        .select('id').not('wasender_api_key', 'is', null).limit(1).maybeSingle()
+      if (owner?.id) {
+        await sb.from('notifications').insert({
+          user_id: owner.id, type: 'message',
+          title: `WhatsApp from an unknown number`,
+          body: `${phone}: "${String(text).slice(0, 90)}" — not a lead in the system.`,
+          link: '/admin/webhook-log',
+        }).then(() => {}, () => {})
+      }
+    } catch {}
     return NextResponse.json({ ok: true, ignored: 'not_a_lead' })
   }
 
@@ -274,7 +293,7 @@ async function handleInbound(req: NextRequest) {
     const { count: humanTurns } = await sb.from('ai_conversations')
       .select('id', { count: 'exact', head: true })
       .in('phone', variants).eq('answered_by', 'human')
-    if (!humanTurns) {
+    if (!humanTurns || (lead as any).ai_paused_by !== 'manual') {
       await sb.from('leads').update({
         ai_paused: false, needs_human: false, ai_paused_by: null,
       }).eq('id', lead.id).then(() => {}, () => {})
@@ -381,39 +400,6 @@ async function handleInbound(req: NextRequest) {
   // If we have no record of this conversation, the person is replying to
   // something said outside the system — we cannot see it, so answering would be
   // guessing. Hand it to the marketer instead of inventing context.
-  // Only treat this as an outside conversation if the lead has been in the
-  // system a while with nothing logged. A brand-new lead with no history is
-  // normal — the assistant is simply starting the conversation.
-  const leadAgeMins = (lead as any)?.created_at
-    ? (Date.now() - new Date((lead as any).created_at).getTime()) / 60000
-    : 0
-  if (history.length === 0 && lead?.id && leadAgeMins > 120) {
-    await sb.from('leads').update({
-      ai_paused: true, needs_human: true,
-      needs_human_at: new Date().toISOString(),
-      ai_paused_at: new Date().toISOString(),
-      ai_paused_by: 'unknown_history',
-    }).eq('id', lead.id).then(() => {}, () => {})
-
-    if (lead.assigned_to) {
-      await sb.from('notifications').insert({
-        user_id: lead.assigned_to, type: 'handoff',
-        title: 'A lead messaged — no chat history',
-        body: `${lead.full_name || phone}: "${String(text).slice(0, 90)}" — this conversation started outside the system, so please reply yourself.`,
-        link: `/marketer/leads/${lead.id}`,
-      }).then(() => {}, () => {})
-      const { data: m } = await sb.from('profiles').select('phone').eq('id', lead.assigned_to).maybeSingle()
-      if (m?.phone) {
-        try { await sendSMS(m.phone, `CCE: ${lead.full_name || phone} messaged on WhatsApp but there's no chat history, so please reply to them yourself.`) } catch {}
-      }
-    }
-    await sb.from('ai_conversations').insert({
-      phone, lead_id: lead.id, marketer_id: lead.assigned_to || null,
-      incoming_text: text, reply_text: null, answered_by: 'handoff_no_history',
-    }).then(() => {}, () => {})
-    await logInbound(sb, 'whatsapp', phone, text, 'handoff', 'No chat history found — treated as an outside conversation', null)
-    return NextResponse.json({ ok: true, handoff: 'no_history' })
-  }
 
   // Generate the AI reply
   let reply = await generateAssistantReply(text, {
