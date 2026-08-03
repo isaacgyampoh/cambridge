@@ -27,7 +27,27 @@ async function logInbound(sb: any, source: string, fromPhone: string | null, tex
   } catch {}
 }
 
+
 export async function POST(req: NextRequest) {
+  // Anything that throws in here used to disappear as a bare 500 with no
+  // record, which is indistinguishable from the webhook never being called.
+  try {
+    return await handleInbound(req)
+  } catch (e: any) {
+    try {
+      const sb = createServiceClient()
+      await sb.from('webhook_inbox').insert({
+        source: 'whatsapp', outcome: 'error',
+        detail: `Crashed: ${e?.message || e}`.slice(0, 300),
+      })
+    } catch {}
+    console.error('[whatsapp webhook] crashed', e)
+    // Always answer 200 — providers disable webhooks that keep erroring.
+    return NextResponse.json({ ok: false, error: String(e?.message || e).slice(0, 200) })
+  }
+}
+
+async function handleInbound(req: NextRequest) {
   let body: any = {}
   try { body = await req.json() } catch {
     // some providers send form-encoded
@@ -506,5 +526,27 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET() {
-  return NextResponse.json({ ok: true, message: 'WhatsApp webhook is live.' })
+  // Visiting this in a browser confirms the endpoint is reachable AND that it
+  // can record what arrives — if the log table is missing, nothing gets traced.
+  let dbOk = false, logOk = false, recent = 0
+  try {
+    const sb = createServiceClient()
+    const { error: e1 } = await sb.from('leads').select('id').limit(1)
+    dbOk = !e1
+    const { count, error: e2 } = await sb.from('webhook_inbox')
+      .select('id', { count: 'exact', head: true })
+      .gte('created_at', new Date(Date.now() - 86400000).toISOString())
+    logOk = !e2
+    recent = count || 0
+  } catch {}
+  return NextResponse.json({
+    ok: true,
+    message: 'WhatsApp webhook is live.',
+    database: dbOk ? 'reachable' : 'NOT reachable',
+    inboxTable: logOk ? 'ready' : 'MISSING — run the latest schema',
+    messagesReceivedLast24h: recent,
+    hint: recent === 0
+      ? 'Nothing has arrived in 24h. If leads are messaging, WaSender is not calling this URL — check the webhook setting in WaSender.'
+      : 'Messages are arriving. Open Settings > Incoming WhatsApp to see what happened to each.',
+  })
 }
