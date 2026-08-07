@@ -12,6 +12,37 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   const [enrolled, setEnrolled] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [addOpen, setAddOpen] = useState(false)
+
+  // Moving a student to a later cohort — everything they have paid follows
+  // them, so an emergency does not cost them their money or their place.
+  const [defer, setDefer] = useState<any>(null)
+  const [batches, setBatches] = useState<any[]>([])
+  const [deferTo, setDeferTo] = useState('')
+  const [deferReason, setDeferReason] = useState('')
+  const [deferring, setDeferring] = useState(false)
+
+  async function openDefer(e: any) {
+    setDefer(e); setDeferTo(''); setDeferReason('')
+    const params = new URLSearchParams({
+      table: 'batches', select: 'id, name, start_date, status',
+      orderBy: 'start_date', limit: '100',
+    })
+    const d = await fetch(`/api/data?${params}`).then(r => r.json()).catch(() => ({ data: [] }))
+    setBatches((d.data || []).filter((b: any) => b.id !== batchId && b.status !== 'completed'))
+  }
+
+  async function confirmDefer() {
+    if (!deferTo) { toast.error('Choose the class they are moving to'); return }
+    setDeferring(true)
+    const d = await fetch('/api/classes/defer', {
+      method: 'POST', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ enrollmentId: defer.id, toBatchId: deferTo, reason: deferReason }),
+    }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+    setDeferring(false)
+    if (d.error) { toast.error(d.error); return }
+    toast.success(`${defer.full_name} moved to ${d.movedTo}. GH₵${Number(d.amountCarried || 0).toFixed(2)} carried over.`)
+    setDefer(null); load()
+  }
   const [search, setSearch] = useState('')
   const [acting, setActing] = useState<string | null>(null)
   const [blasting, setBlasting] = useState(false)
@@ -238,10 +269,16 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 justify-end">
                         {e.status !== 'completed' ? (
+                          <>
+                          <Button size="sm" variant="secondary" disabled={acting === e.id}
+                            onClick={() => openDefer(e)}>
+                            Move class
+                          </Button>
                           <Button size="sm" variant="secondary" disabled={acting === e.id}
                             onClick={() => markComplete(e, true)}>
                             Mark done
                           </Button>
+                          </>
                         ) : (
                           <Button size="sm" variant="ghost" disabled={acting === e.id}
                             onClick={() => markComplete(e, false)}>Reopen</Button>
@@ -258,6 +295,38 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
       )}
 
       {/* Enroll modal */}
+      {/* Move a student to another class */}
+      {defer && (
+        <Modal open={!!defer} onClose={() => setDefer(null)} maxWidth="max-w-md">
+          <div className="p-6">
+            <h2 className="font-semibold text-[var(--ink)] mb-1">Move {defer.full_name}</h2>
+            <p className="text-[13px] text-[var(--ink-soft)] mb-4">
+              Everything they have paid follows them to the new class, and their attendance resets so
+              they start fresh. They will be told by WhatsApp.
+            </p>
+
+            <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Move to</label>
+            <select value={deferTo} onChange={e => setDeferTo(e.target.value)} className={inputClass}>
+              <option value="">Choose a class…</option>
+              {batches.map((b: any) => (
+                <option key={b.id} value={b.id}>
+                  {b.name}{b.start_date ? ` — starts ${new Date(b.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}` : ''}
+                </option>
+              ))}
+            </select>
+
+            <label className="block text-[13px] font-medium text-[var(--ink-soft)] mt-4 mb-1.5">Reason (optional)</label>
+            <input value={deferReason} onChange={e => setDeferReason(e.target.value)}
+              placeholder="e.g. family emergency" className={inputClass} />
+
+            <div className="flex gap-2 mt-6">
+              <Button onClick={confirmDefer} disabled={deferring}>{deferring ? 'Moving…' : 'Move student'}</Button>
+              <Button variant="secondary" onClick={() => setDefer(null)}>Cancel</Button>
+            </div>
+          </div>
+        </Modal>
+      )}
+
       <Modal open={addOpen} onClose={() => setAddOpen(false)} maxWidth="max-w-xl">
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
