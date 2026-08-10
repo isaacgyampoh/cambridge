@@ -441,6 +441,24 @@ async function handleInbound(req: NextRequest) {
 
   let answeredBy = 'skipped'
   if (reply) {
+    // Nobody types a considered answer in half a second. Wait a believable
+    // moment, longer for longer replies, before sending — an instant response
+    // is the clearest sign a machine is on the other end.
+    const words = String(reply).trim().split(/\s+/).length
+    const think = 8000 + Math.random() * 12000            // reading and thinking
+    const typing = Math.min(words * 1100, 32000)          // roughly typing speed
+    await new Promise(r => setTimeout(r, Math.min(think + typing, 55000)))
+
+    // Someone may have written again while we waited, or a colleague may have
+    // stepped in. Check before sending something now out of date.
+    const { data: latest } = await sb.from('leads')
+      .select('ai_paused').eq('id', lead.id).maybeSingle()
+    if (latest?.ai_paused) {
+      await logInbound(sb, 'whatsapp', phone, text, 'skipped_after_wait',
+        'A person took over while the reply was being prepared', null)
+      return NextResponse.json({ ok: true, superseded: true })
+    }
+
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
     answeredBy = ok ? 'ai' : 'fallback'

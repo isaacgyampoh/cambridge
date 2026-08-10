@@ -17,6 +17,7 @@ const DOC_TYPES = [
   { value: 'receipt', label: 'Receipt Template' },
   { value: 'application_form', label: 'Application Form' },
   { value: 'certificate', label: 'Certificate Template' },
+  { value: 'chat_sample', label: 'Chat Sample (teaches the assistant)' },
   { value: 'other', label: 'Other Document' },
 ]
 
@@ -222,6 +223,17 @@ export default function DocumentsPage() {
                 <p className="text-[12px] text-[var(--ink-faint)] mt-1">Course materials are usually for online students.</p>
               </div>
             )}
+          </div>
+        )}
+
+        {form.type === 'chat_sample' && (
+          <div className="bg-[var(--accent-soft)] rounded-xl p-3 mb-4">
+            <p className="text-xs font-semibold text-[var(--accent)] mb-1.5">Teaching the assistant how you talk</p>
+            <p className="text-[12px] text-[var(--ink-soft)] leading-relaxed">
+              Upload real conversations, the way your team actually replies. The assistant reads these
+              and copies the tone, the length, the phrasing and how you answer common questions.
+              Plain text or PDF both work. A few good conversations teach it more than a long list of rules.
+            </p>
           </div>
         )}
 

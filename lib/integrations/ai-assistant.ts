@@ -1,6 +1,7 @@
 import { CONFIG } from '@/lib/config'
 import { createServiceClient } from '@/lib/supabase/server'
 import { aiComplete, aiConfigured } from '@/lib/integrations/ai-client'
+import { getChatStyle } from '@/app/api/admin/chat-style/route'
 
 
 interface AssistantContext {
@@ -17,6 +18,22 @@ interface AssistantContext {
  * centre's own FAQ / knowledge base, written in the assigned marketer's
  * voice. Returns null if AI is disabled or no key is configured.
  */
+/** Last line of defence against the tells a model leaves behind. */
+async function humaniseResult(p: Promise<string | null>): Promise<string | null> {
+  const r = await p
+  return r ? humanise(r) : r
+}
+
+export function humanise(text: string): string {
+  return String(text || '')
+    .replace(/\s*[—–]\s*/g, ', ')     // em/en dashes read as machine-written
+    .replace(/\s*;\s*/g, '. ')        // semicolons too
+    .replace(/,\s*,/g, ',')
+    .replace(/\.\s*\./g, '.')
+    .replace(/\s{2,}/g, ' ')
+    .trim()
+}
+
 export async function generateAssistantReply(
   incomingText: string,
   ctx: AssistantContext,
@@ -49,18 +66,35 @@ export async function generateAssistantReply(
 
 You are writing AS ${intro}. Write in the first person, like a real Ghanaian admissions advisor texting on WhatsApp.
 
-HOW TO WRITE:
-- Very short. One or two sentences. Usually under 25 words.
-- Conversational, the way people actually text — not formal, not corporate.
-- Answer the question directly first. Don't pad it with pleasantries.
-- Ask one short follow-up question when it moves things forward.
-- Use ${firstName}'s name sparingly, not in every message.
+MIRROR HOW THEY WRITE. This matters more than any other rule.
+Read their last message and match it:
+- Short message ("how much?") → answer just as short ("GHS 3,950. You can pay in bits.")
+- Long, careful message → you can be a little fuller, but still short.
+- Lowercase, no punctuation ("wats d price") → drop your capitals and full stops too.
+- Pidgin or Twi mixed in → answer the same way, naturally. Don't switch them to formal English.
+- Casual ("ok cool", "aii") → be casual back.
+- Formal and polite → be polite, but never stiff.
+If they write two words, do not send them three sentences.
 
-NEVER write like this (this is how a machine sounds):
+HOW TO WRITE:
+- One or two sentences. Usually under 25 words. Often much less.
+- Answer first. No preamble, no wind-up.
+- Ask one short follow-up only when it moves things forward — not every time.
+- Use ${firstName}'s name rarely. Once at the start is plenty.
+- Contractions always: I'll, you're, we've, don't.
+
+PUNCTUATION — this is what gives a machine away:
+- NEVER use an em dash or an en dash. Use a comma, a full stop, or start a new sentence.
+- No semicolons. No colons before a list. No brackets for asides.
+- Don't write perfectly balanced sentences. Real people write slightly uneven ones.
+- One thought per message. If you need two, that's two short sentences.
+
+NEVER write like this (this is exactly how a machine sounds):
 - "I'm here to help with any questions you may have"
 - "Feel free to reach out if you need any assistance"
 - "I hope this message finds you well"
 - "Let me know how I can support you"
+- "Additionally", "Furthermore", "That said", "Rest assured"
 - Bullet points, headings, or long paragraphs
 - Emojis (do not use any)
 
@@ -122,11 +156,20 @@ RULES:
 
 ${knowledge || 'No specific knowledge base entries are configured yet. Be warm, acknowledge the message, and say you will call them shortly with full details.'}`
 
-  return aiComplete({
-    system,
+  // Real conversations uploaded by the team teach tone far better than rules.
+  let styleBlock = ''
+  try {
+    const samples = await getChatStyle()
+    if (samples) {
+      styleBlock = `\n\nHOW OUR TEAM ACTUALLY TALKS — copy this tone, length and phrasing closely:\n${samples}`
+    }
+  } catch {}
+
+  return humaniseResult(aiComplete({
+    system: system + styleBlock,
     messages: [...history.slice(-8), { role: 'user', content: incomingText }],
     maxTokens: 400,
-  })
+  }))
 }
 
 /**
@@ -156,9 +199,9 @@ Never ask "what would you like to know" or "how can I help you" — you are the 
 
 Good example: "Hi ${firstName}, this is ${marketer} from Cambridge Center of Excellence. I saw you showed interest in ${course} — before I share the details, what do you currently do for work?"`
 
-  return aiComplete({
+  return humaniseResult(aiComplete({
     system,
     messages: [{ role: 'user', content: `Write the opening message to ${firstName}.` }],
     maxTokens: 300,
-  })
+  }))
 }
