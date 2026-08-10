@@ -209,6 +209,24 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
               </Card>
             )}
 
+            {/* Always shown, so a student knows the certificate is coming and
+                 what still stands between them and it. */}
+            {!d?.certificate && d?.certificateState && d.certificateState !== 'unknown' && (
+              <Card>
+                <Label>Your certificate</Label>
+                <p style={{ fontSize: 14, color: C.soft, lineHeight: 1.6 }}>
+                  {d.certificateState === 'fees_outstanding'
+                    ? 'Your certificate unlocks here once your fees are fully paid and your class is near its end.'
+                    : 'Your fees are cleared. Your certificate appears here in the final sessions of your class.'}
+                </p>
+                {d.certificateState === 'fees_outstanding' && f?.balance > 0 && (
+                  <div style={{ marginTop: 14 }}>
+                    <Btn tone="ghost" onClick={() => setTab('fees')}>See what is left to pay</Btn>
+                  </div>
+                )}
+              </Card>
+            )}
+
             {d?.certificate && (
               <Card style={{ borderColor: '#cde3e6', background: C.tealSoft }}>
                 <Label>Your certificate</Label>

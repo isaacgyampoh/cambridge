@@ -1,5 +1,7 @@
 import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
+import { releaseMaterialsFor } from '@/lib/materialRelease'
+import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { createServiceClient } from '@/lib/supabase/server'
 import { onPaymentConfirmed } from '@/lib/notifications'
 import crypto from 'crypto'
@@ -67,6 +69,8 @@ export async function POST(req: NextRequest) {
       application_id: applicationId,
       amount: parseFloat(amountGHS),
       method: 'paystack',
+      purpose: 'registration',
+      reference: ref,
       status: 'paid',
       paystack_ref: ref,
       paystack_response: event.data,
@@ -100,6 +104,78 @@ export async function POST(req: NextRequest) {
     await onPaymentConfirmed(student, amountGHS, payment?.receipt_number || ref, (app as any).course?.name || 'your program')
 
     return NextResponse.json({ success: true, completed })
+  }
+
+  // ── Course fee paid from the student portal ──
+  // These were falling through every handler, so the money arrived at Paystack
+  // but was never recorded against the student's fees or shown to finance.
+  if (ref.startsWith('CCE-STU-') || event.data?.metadata?.purpose === 'course_fee') {
+    const leadId = event.data?.metadata?.lead_id
+      || (ref.startsWith('CCE-STU-') ? ref.slice('CCE-STU-'.length).replace(/-\d+$/, '') : null)
+    if (!leadId) return NextResponse.json({ received: true, note: 'no lead on course fee' })
+
+    const amt = parseFloat(amountGHS)
+
+    // Don't double-count if Paystack retries the webhook
+    const { data: seen } = await sb.from('payments')
+      .select('id').eq('reference', ref).maybeSingle()
+    if (seen) return NextResponse.json({ received: true, note: 'already recorded' })
+
+    const { data: fee } = await sb.from('student_fees')
+      .select('id, student_name, phone, course_name, total_fee, amount_paid, lead_id')
+      .eq('lead_id', leadId).maybeSingle()
+
+    if (fee) {
+      const newPaid = Number(fee.amount_paid || 0) + amt
+      const newBalance = Math.max(0, Number(fee.total_fee || 0) - newPaid)
+      await sb.from('student_fees').update({
+        amount_paid: newPaid, balance: newBalance,
+        status: newBalance <= 0 ? 'paid' : 'partial',
+        updated_at: new Date().toISOString(),
+      }).eq('id', fee.id)
+
+      // Keep the class record in step, so the join-class gate sees the payment
+      await sb.from('class_enrollments').update({
+        amount_paid: newPaid, balance: newBalance,
+      }).eq('lead_id', leadId).then(() => {}, () => {})
+    }
+
+    // Record it as a COURSE FEE, so finance sees what it actually is
+    const receipt = `RCP-${Date.now().toString().slice(-6)}`
+    await sb.from('payments').insert({
+      lead_id: leadId,
+      amount: amt,
+      method: 'paystack',
+      purpose: 'course_fee',
+      reference: ref,
+      receipt_number: receipt,
+      status: 'paid',
+    }).then(() => {}, () => {})
+
+    // Release any materials this payment now qualifies them for
+    try { await releaseMaterialsFor(leadId) } catch {}
+
+    // Tell the student, and tell finance
+    if (fee?.phone) {
+      const first = (fee.student_name || 'there').split(' ')[0]
+      const bal = Math.max(0, Number(fee.total_fee || 0) - (Number(fee.amount_paid || 0) + amt))
+      const msg = `Hi ${first}, we've received your payment of GHS ${amt.toFixed(2)} for ${fee.course_name || 'your course'}. Receipt ${receipt}.${bal > 0 ? ` Balance left: GHS ${bal.toFixed(2)}.` : ' You are fully paid, thank you.'}`
+      try { await sendWhatsAppText(fee.phone, msg) } catch {}
+    }
+    try {
+      const { data: finance } = await sb.from('profiles')
+        .select('id').eq('is_active', true).in('role', ['accountant', 'administrator']).limit(10)
+      for (const f of finance || []) {
+        await sb.from('notifications').insert({
+          user_id: f.id, type: 'payment',
+          title: 'Course fee paid',
+          body: `${fee?.student_name || 'A student'} paid GHS ${amt.toFixed(2)} through the portal. Receipt ${receipt}.`,
+          link: '/finance',
+        }).then(() => {}, () => {})
+      }
+    } catch {}
+
+    return NextResponse.json({ success: true, purpose: 'course_fee', receipt })
   }
 
   // Check if this is an invoice payment

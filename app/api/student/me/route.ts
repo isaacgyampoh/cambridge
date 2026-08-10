@@ -92,6 +92,7 @@ export async function GET(req: NextRequest) {
 
   // Certificate — released only when fees are fully paid AND it's been issued
   let certificate: any = null
+  let certificateState: string = 'unknown'
   try {
     // Available once fees are cleared AND the course is nearly done — from the
     // last two sessions onward, rather than only after the very end.
@@ -109,6 +110,10 @@ export async function GET(req: NextRequest) {
         : false
       nearlyDone = done || endingSoon || (total > 0 && (attended || 0) >= total - 2)
     }
+    certificateState = !feesCleared
+      ? 'fees_outstanding'
+      : !nearlyDone ? 'too_early' : 'ready'
+
     if (feesCleared && nearlyDone) {
       const { data: cert } = await sb.from('certificates')
         .select('certificate_number, final_url, issued_date, course_name')
@@ -139,6 +144,7 @@ export async function GET(req: NextRequest) {
     enrollmentId: enr?.id || null,
     materials: { unlocked, locked },
     certificate,
+    certificateState,
     payments: payments || [],
   })
 }
