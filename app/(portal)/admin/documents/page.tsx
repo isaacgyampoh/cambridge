@@ -102,6 +102,23 @@ export default function DocumentsPage() {
         is_active: true,
         uploaded_by: userId,
       })
+      // A chat sample is only useful once its text has been pulled out.
+      if (form.type === 'chat_sample') {
+        toast.loading('Reading the conversation…', { id: 'ex' })
+        const { data: justAdded } = await (await fetch(`/api/data?${new URLSearchParams({
+          table: 'documents', select: 'id', filters: JSON.stringify([{ col: 'file_url', op: 'eq', val: publicUrl }]), limit: '1',
+        })}`)).json()
+        const docId = justAdded?.[0]?.id
+        if (docId) {
+          const ex = await fetch('/api/documents/extract', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ documentId: docId }),
+          }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+          if (ex.error) toast.error(ex.error, { id: 'ex' })
+          else toast.success(`Read ${ex.characters} characters. The assistant will copy this style.`, { id: 'ex' })
+        } else { toast.dismiss('ex') }
+      }
+
       toast.success('Document uploaded!')
       setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '' })
       load()

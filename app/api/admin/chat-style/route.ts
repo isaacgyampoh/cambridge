@@ -19,22 +19,16 @@ export async function getChatStyle(): Promise<string> {
   let out = ''
   try {
     const sb = createServiceClient()
+    // Read the text extracted at upload time — never fetch or parse a file
+    // while someone is waiting for a reply.
     const { data } = await sb.from('documents')
-      .select('file_url, name').eq('type', 'chat_sample')
-      .order('created_at', { ascending: false }).limit(4)
+      .select('name, extracted_text').eq('type', 'chat_sample')
+      .not('extracted_text', 'is', null)
+      .order('created_at', { ascending: false }).limit(5)
 
     for (const d of data || []) {
-      if (!d.file_url) continue
-      try {
-        const r = await fetch(d.file_url, { signal: AbortSignal.timeout(8000) })
-        const ct = r.headers.get('content-type') || ''
-        // Only plain text can be read directly; a PDF needs extracting, which
-        // is not worth doing on every message.
-        if (/text|json/i.test(ct)) {
-          const t = await r.text()
-          out += `\n\n--- ${d.name} ---\n${t.slice(0, 4000)}`
-        }
-      } catch {}
+      if (!d.extracted_text) continue
+      out += `\n\n--- ${d.name} ---\n${String(d.extracted_text).slice(0, 4000)}`
     }
   } catch {}
   cache = { text: out.slice(0, 12000), at: Date.now() }
