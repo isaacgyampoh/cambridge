@@ -93,8 +93,23 @@ export async function GET(req: NextRequest) {
   // Certificate — released only when fees are fully paid AND it's been issued
   let certificate: any = null
   try {
+    // Available once fees are cleared AND the course is nearly done — from the
+    // last two sessions onward, rather than only after the very end.
     const feesCleared = fee ? Number(fee.balance ?? 0) <= 0 : false
-    if (feesCleared) {
+    let nearlyDone = false
+    if (enr?.batch_id) {
+      const { data: b } = await sb.from('batches')
+        .select('end_date, status, total_sessions').eq('id', enr.batch_id).maybeSingle()
+      const { count: attended } = await sb.from('class_signins')
+        .select('id', { count: 'exact', head: true }).eq('enrollment_id', enr.id)
+      const total = Number((b as any)?.total_sessions || 0)
+      const done = (b as any)?.status === 'completed'
+      const endingSoon = (b as any)?.end_date
+        ? new Date((b as any).end_date).getTime() - Date.now() < 14 * 86400000
+        : false
+      nearlyDone = done || endingSoon || (total > 0 && (attended || 0) >= total - 2)
+    }
+    if (feesCleared && nearlyDone) {
       const { data: cert } = await sb.from('certificates')
         .select('certificate_number, final_url, issued_date, course_name')
         .eq('lead_id', s.leadId).order('issued_date', { ascending: false }).limit(1).maybeSingle()

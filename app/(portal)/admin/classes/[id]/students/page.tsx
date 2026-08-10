@@ -190,6 +190,18 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         <Badge tone="accent">{enrolled.length} enrolled</Badge>
         <Badge tone="success">{enrolled.filter((e: any) => e.fees_paid).length} fees paid</Badge>
         <Badge tone="neutral">{enrolled.filter((e: any) => e.status === 'completed').length} completed</Badge>
+        <button onClick={async () => {
+          if (!confirm('Issue certificates for everyone in this class who has finished paying?')) return
+          const d = await fetch('/api/certificates/issue', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ batchId }),
+          }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+          if (d.error) toast.error(d.error)
+          else toast.success(`${d.issued} certificate${d.issued === 1 ? '' : 's'} issued${d.skipped ? `. ${d.skipped} skipped (fees outstanding)` : ''}.`)
+        }}
+          className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition mr-2">
+          Issue certificates
+        </button>
         <button onClick={() => { setShowAttendance(s => !s); if (!attendance) loadAttendance() }}
           className="ml-auto text-xs font-medium text-[var(--accent)] hover:underline">
           {showAttendance ? 'Hide attendance' : "Today's attendance"}
