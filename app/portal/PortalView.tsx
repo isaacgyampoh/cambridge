@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState } from 'react'
+import MaterialViewer from './MaterialViewer'
 
 const C = {
   ink: '#12222b', soft: '#5c6b74', faint: '#93a1a9', line: '#e6ebee',
@@ -47,6 +48,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
   const [showIos, setShowIos] = useState(false)
   const [paying, setPaying] = useState(false)
   const [amount, setAmount] = useState('')
+  const [viewing, setViewing] = useState<{ id: string; name: string } | null>(null)
 
   async function load() {
     if (demo) { setD(demoData); setLoading(false); return }
@@ -270,12 +272,12 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
             <Card>
               <Label>Available now</Label>
               {d?.materials?.unlocked?.length ? d.materials.unlocked.map((m: any, i: number) => (
-                <a key={i} href={m.url} target="_blank" rel="noopener noreferrer"
-                  style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i ? `1px solid ${C.line}` : 'none', textDecoration: 'none' }}>
+                <button key={i} onClick={() => m.id && setViewing({ id: m.id, name: m.name })}
+                  style={{ width: '100%', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i ? `1px solid ${C.line}` : 'none', textAlign: 'left', cursor: 'pointer' }}>
                   {Ico.doc}
                   <span style={{ flex: 1, fontSize: 14.5, color: C.ink, fontWeight: 500 }}>{m.name}</span>
-                  {Ico.down}
-                </a>
+                  <span style={{ fontSize: 12, color: C.teal, fontWeight: 700, flexShrink: 0 }}>Open</span>
+                </button>
               )) : (
                 <p style={{ fontSize: 14, color: C.soft, lineHeight: 1.6 }}>
                   You do not have any materials yet. They are released as you make your payments.
@@ -361,6 +363,10 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
           </>
         )}
       </div>
+
+      {viewing && (
+        <MaterialViewer id={viewing.id} name={viewing.name} onClose={() => setViewing(null)} />
+      )}
 
       <nav style={{
         position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff',

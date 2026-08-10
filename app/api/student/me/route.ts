@@ -78,7 +78,9 @@ export async function GET(req: NextRequest) {
   let unlocked: any[] = [], locked: any[] = []
   try {
     const r = await releaseMaterialsFor(s.leadId, { notify: false })
-    unlocked = (r.materials || []).map((m: any) => ({ name: m.name, url: m.file_url }))
+    // The file address is deliberately NOT sent — materials are viewed through
+    // the portal so they cannot be forwarded or resold.
+    unlocked = (r.materials || []).map((m: any) => ({ id: m.id, name: m.name }))
     const paid = Number(fee?.amount_paid || 0)
     const { data: allDocs } = await sb.from('documents')
       .select('id, name, unlock_after_amount, course_id')
