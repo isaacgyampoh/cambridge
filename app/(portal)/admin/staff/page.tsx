@@ -463,6 +463,21 @@ export default function StaffPage() {
               Clear leftover logins
             </button>
           )}
+          {isSuperAdmin && (
+            <button onClick={async () => {
+              const st = await fetch('/api/admin/repair-access').then(r => r.json()).catch(() => null)
+              if (!st || st.error) return alert(st?.error || 'Could not check')
+              if (!st.affected) return alert('Everyone has the access their role should give them.')
+              const list = st.people.map((p: any) => `${p.name} (${p.role}) — restoring: ${p.restoring.join(', ')}`).join('\n')
+              if (!confirm(`${st.affected} staff member${st.affected === 1 ? '' : 's'} are missing sections their role should give them:\n\n${list}\n\nRestore their access?`)) return
+              const d = await fetch('/api/admin/repair-access', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
+              if (d.error) alert(d.error)
+              else alert(`Fixed ${d.fixed}. They will see the difference on their next page load.`)
+            }}
+              className="inline-flex items-center gap-2 h-10 px-4 border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
+              Fix staff access
+            </button>
+          )}
           {isSuperAdmin && staff.filter((s: any) => s.role !== 'super_admin').length > 0 && (
             <button onClick={clearAllStaff}
               className="inline-flex items-center gap-2 h-10 px-4 border border-[var(--danger)]/30 text-[var(--danger)] rounded-lg text-sm font-medium hover:bg-[var(--danger-soft)] transition">
