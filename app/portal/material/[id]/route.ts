@@ -34,8 +34,23 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
     return new NextResponse('This material is locked until your payments reach the required amount.', { status: 403 })
   }
 
-  // Stream it through, so the real file address never reaches the browser.
-  const upstream = await fetch(doc.file_url)
+  // Read it server-side and stream it through. A private file has no public
+  // address at all, so there is nothing for anyone to share or save.
+  let upstream: Response
+  if (String(doc.file_url).startsWith('materials://')) {
+    const path = String(doc.file_url).replace('materials://', '')
+    const { data, error } = await sb.storage.from('materials').download(path)
+    if (error || !data) return new NextResponse('Could not load the file', { status: 502 })
+    return new NextResponse(data.stream() as any, {
+      headers: {
+        'Content-Type': data.type || 'application/pdf',
+        'Content-Disposition': `inline; filename="${doc.name.replace(/"/g, '')}"`,
+        'Cache-Control': 'private, no-store, max-age=0',
+        'X-Content-Type-Options': 'nosniff',
+      },
+    })
+  }
+  upstream = await fetch(doc.file_url)
   if (!upstream.ok) return new NextResponse('Could not load the file', { status: 502 })
 
   return new NextResponse(upstream.body, {

@@ -82,7 +82,8 @@ export default function DocumentsPage() {
 
     let publicUrl = ''
     try {
-      const up = await uploadFile(file, 'documents')
+      // Course materials go to the private bucket; everything else public.
+      const up = await uploadFile(file, form.type === 'course_material' ? 'materials' : 'documents')
       publicUrl = up.url
     } catch (e: any) { toast.error('Upload failed: ' + e.message); setUploading(false); return }
 
@@ -288,6 +289,55 @@ export default function DocumentsPage() {
           {uploading ? 'Uploading...' : 'Choose PDF & Upload'}
         </button>
       </div>
+
+      {/* Course material coverage — what each programme has, and what it unlocks at */}
+      {courses.length > 0 && (() => {
+        const mats = docs.filter((d: any) => d.type === 'course_material')
+        return (
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-6">
+            <h3 className="text-[14px] font-semibold text-[var(--ink)] mb-1">Course materials</h3>
+            <p className="text-[12.5px] text-[var(--ink-soft)] mb-4">
+              What each programme has, and the payment that releases it. Students read these inside
+              the portal only, so they cannot be downloaded or passed on.
+            </p>
+            <div className="space-y-2.5">
+              {courses.map((co: any) => {
+                const mine = mats.filter((m: any) => m.course_id === co.id)
+                const general = mats.filter((m: any) => !m.course_id)
+                const all = [...mine, ...general]
+                return (
+                  <div key={co.id} className="flex items-start justify-between gap-3 py-2 border-b border-[var(--line-soft)] last:border-0">
+                    <div className="min-w-0">
+                      <div className="text-[13.5px] font-medium text-[var(--ink)]">{co.name}</div>
+                      {all.length > 0 ? (
+                        <div className="text-[12px] text-[var(--ink-faint)] mt-1 space-y-0.5">
+                          {all.slice(0, 6).map((m: any) => (
+                            <div key={m.id}>
+                              {m.name}
+                              <span className="text-[var(--ink-faint)]">
+                                {Number(m.unlock_after_amount || 0) > 0
+                                  ? ` — unlocks at GH₵${Number(m.unlock_after_amount).toLocaleString()}`
+                                  : ' — available immediately'}
+                              </span>
+                            </div>
+                          ))}
+                          {all.length > 6 && <div>and {all.length - 6} more</div>}
+                        </div>
+                      ) : (
+                        <div className="text-[12px] text-[var(--warn)] mt-1">No materials uploaded yet</div>
+                      )}
+                    </div>
+                    <span className={`text-[11px] font-semibold px-2 py-1 rounded-full flex-shrink-0 ${
+                      all.length ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
+                      {all.length || 0}
+                    </span>
+                  </div>
+                )
+              })}
+            </div>
+          </div>
+        )
+      })()}
 
       {/* Admission-letter coverage — which programmes have a letter uploaded */}
       {courses.length > 0 && (() => {

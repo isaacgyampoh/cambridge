@@ -14,7 +14,11 @@ export async function POST(req: NextRequest) {
   try {
     const form = await req.formData()
     const file = form.get('file') as File | null
+    // Course materials go to a PRIVATE bucket so they cannot be opened
+    // directly by anyone holding the address. Everything else stays public.
     const folder = (form.get('folder') as string | null)?.replace(/[^a-z0-9_-]/gi, '') || 'misc'
+    const isMaterial = /material/i.test(folder)
+    const bucket = isMaterial ? 'materials' : 'uploads'
     if (!file) return NextResponse.json({ error: 'No file provided.' }, { status: 400 })
 
     const bytes = Buffer.from(await file.arrayBuffer())
@@ -23,14 +27,21 @@ export async function POST(req: NextRequest) {
     const path = `${folder}/${Date.now()}-${Math.random().toString(36).slice(2, 8)}-${safeBase}.${ext}`
 
     const sb = createServiceClient()
-    const { error } = await sb.storage.from('uploads').upload(path, bytes, {
+    const { error } = await sb.storage.from(bucket).upload(path, bytes, {
       contentType: file.type || 'application/octet-stream',
       upsert: false,
     })
     if (error) return NextResponse.json({ error: error.message }, { status: 500 })
 
-    const { data } = sb.storage.from('uploads').getPublicUrl(path)
-    return NextResponse.json({ success: true, url: data.publicUrl, path, name: file.name, size: bytes.length, type: file.type })
+    // A private file has no public address; the portal streams it instead.
+    const url = isMaterial
+      ? `materials://${path}`
+      : sb.storage.from(bucket).getPublicUrl(path).data.publicUrl
+
+    return NextResponse.json({
+      success: true, url, path, bucket,
+      name: file.name, size: bytes.length, type: file.type,
+    })
   } catch (e: any) {
     return NextResponse.json({ error: e?.message || 'Upload failed' }, { status: 500 })
   }
