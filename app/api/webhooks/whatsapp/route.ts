@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseInbound } from '@/lib/parseInbound'
+import { claimJob, markSent, alreadyProcessed } from '@/lib/messageJobs'
 import { createServiceClient } from '@/lib/supabase/server'
 import { readConversation } from '@/lib/integrations/conversationState'
 import { maybeResumeAI } from '@/lib/aiResume'
@@ -194,6 +195,13 @@ async function handleInbound(req: NextRequest) {
   // already handled this exact message (same phone + same text) in the last
   // 60 seconds, skip it silently.
   const msgId = String(body?.data?.messages?.key?.id || body?.data?.key?.id || body?.id || '')
+
+  // The provider retries a webhook it thinks failed, and a retry must never
+  // produce a second reply. Recording the message id in the database — where
+  // the uniqueness is enforced — is the only reliable guard.
+  if (msgId && await alreadyProcessed(msgId)) {
+    return NextResponse.json({ ok: true, duplicate: 'event_already_handled' })
+  }
   try {
     const since = new Date(Date.now() - 60000).toISOString()
     const { data: recent } = await sb.from('ai_conversations')
@@ -387,37 +395,71 @@ async function handleInbound(req: NextRequest) {
     }
   }
 
-  const wantsToRegister = /\b(register|sign ?up|enroll|enrol|join|pay|send.*(link|form)|i'?m ready|am ready|ready to)\b/.test(lower)
-    && /\b(register|sign ?up|enroll|enrol|join|link|form|pay|ready)\b/.test(lower)
+  // Did we just offer to send the link? Then a bare "yes" means yes.
+  let lastWeSaidOfferedLink = false
+  try {
+    const { data: lastOut } = await sb.from('ai_conversations')
+      .select('reply_text').in('phone', variants).not('reply_text', 'is', null)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle()
+    lastWeSaidOfferedLink = /link|regist/i.test(String(lastOut?.reply_text || ''))
+  } catch {}
+
+  // Ready to register — all of these mean the same thing.
+  const wantsToRegister =
+    /\b(i'?m |am |i am )?(interested).{0,30}\b(register|apply|join|sign ?up|enrol|enroll)\b/.test(lower) ||
+    /\b(want|like|ready|wish) to (register|apply|join|sign ?up|enrol|enroll|start my application)\b/.test(lower) ||
+    /\bhow (do|can) i (register|apply|join|enrol|enroll|start)\b/.test(lower) ||
+    /\b(send|share) (me )?(the )?(registration |application )?(link|form)\b/.test(lower) ||
+    /\b(register|sign ?up|enrol|enroll) me\b/.test(lower)     ||
+    // A bare "yes" right after we offered the link counts as agreeing.
+    (/^(yes|yeah|ok|okay|sure|please)[\s,.!]*$/.test(lower.trim()) && lastWeSaidOfferedLink)
 
   if (wantsToRegister && marketer?.marketer_code) {
     const link = `${CONFIG.appUrl}/apply/${marketer.marketer_code}`
 
-    // Three separate messages, the way a person actually sends a link:
-    // acknowledge, pause, send the bare link, then a short line under it.
-    // No signature — nobody signs a WhatsApp message.
-    const ack = ['Alright, give me a minute and I\'ll send you the link.',
-                 'Sure, hold on let me get the link for you.',
-                 'Ok give me a sec, sending the link now.'][Math.floor(Math.random() * 3)]
+    // Claim the right to run this before sending anything. If a retried
+    // webhook or a second run gets here, the claim fails and it stops — which
+    // is what actually prevents the link arriving twice.
+    const jobKey = `reg_link:${lead.id}:${msgId || Math.floor(Date.now() / 120000)}`
+    const mine = await claimJob({
+      dedupeKey: jobKey, leadId: lead.id, phone, kind: 'registration_link',
+      body: link, sourceEvent: msgId || null,
+    })
 
+    if (!mine) {
+      await logInbound(sb, 'whatsapp', phone, text, 'ignored_duplicate',
+        'A registration link is already being sent for this message', null)
+      return NextResponse.json({ ok: true, duplicate: 'registration_link' })
+    }
+
+    // 1) Tell them what is about to happen, warmly and in full.
+    const ack = `Okay, please give me a minute. I'll send you our registration link so you can fill in your details, make your registration payment and submit your application. Once you're done, your admission letter will be sent to you shortly after.`
     const sent = await sendWhatsAppText(phone, ack, marketer.id)
 
     if (sent) {
-      await new Promise(r => setTimeout(r, 14000 + Math.random() * 16000))
+      // 2) Wait the minute you promised.
+      await new Promise(r => setTimeout(r, 50000 + Math.random() * 12000))
+
+      // Someone may have stepped in while we waited.
       const { data: still } = await sb.from('leads').select('ai_paused').eq('id', lead.id).maybeSingle()
       if (!still?.ai_paused) {
-        await sendWhatsAppText(phone, link, marketer.id)            // the link alone
-        await new Promise(r => setTimeout(r, 4000 + Math.random() * 5000))
+        // 3) The link on its own.
+        await sendWhatsAppText(phone, link, marketer.id)
+
+        // 4) Then the short line under it.
+        await new Promise(r => setTimeout(r, 4000 + Math.random() * 4000))
         await sendWhatsAppText(phone,
-          'Fill your details there and pay the 200 registration. Admission letter follows right after.',
+          `This is the registration link I mentioned. Please click on it to continue with your application.`,
           marketer.id)
       }
     }
+    await markSent(jobKey, sent)
 
     await sb.from('ai_conversations').insert({
       phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
       incoming_text: text, reply_text: `${ack}\n${link}`, answered_by: sent ? 'ai_link' : 'fallback',
     })
+
     // Notify the marketer their lead asked to register
     if (marketer.id) {
       await sb.from('notifications').insert({
@@ -476,37 +518,8 @@ async function handleInbound(req: NextRequest) {
       return NextResponse.json({ ok: true, superseded: true })
     }
 
-    // If the assistant promised to send the link, it must actually arrive —
-    // and as its own message, the way a person sends a link. Any link is
-    // stripped out of the sentence and sent separately a moment later.
-    const linkPromised = /(send|share) (you )?(the |a )?(registration )?link|give me a (minute|moment|sec)/i.test(reply)
-    const bareLink = reply.match(/https?:\/\/\S+/)
-    if (bareLink) reply = reply.replace(bareLink[0], '').replace(/\s{2,}/g, ' ').trim()
-
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
-
-    // Then the link on its own, after a believable pause.
-    if (ok && (linkPromised || bareLink)) {
-      const code = marketer?.marketer_code
-      const link = bareLink?.[0] || (code ? `${CONFIG.appUrl}/apply/${code}` : null)
-      if (link) {
-        await new Promise(r => setTimeout(r, 12000 + Math.random() * 18000))
-        const stillActive = await sb.from('leads').select('ai_paused').eq('id', lead.id).maybeSingle()
-        if (!stillActive.data?.ai_paused) {
-          await sendWhatsAppText(phone, link, marketer?.id || null)
-          // and a short line under it, as a separate message
-          await new Promise(r => setTimeout(r, 4000 + Math.random() * 4000))
-          await sendWhatsAppText(phone,
-            'Click it and fill your details, then pay the 200 registration fee. Your admission letter comes right after.',
-            marketer?.id || null)
-          await sb.from('ai_conversations').insert({
-            phone, lead_id: lead.id, marketer_id: marketer?.id || null,
-            incoming_text: null, reply_text: link, answered_by: 'ai',
-          }).then(() => {}, () => {})
-        }
-      }
-    }
     answeredBy = ok ? 'ai' : 'fallback'
     if (!ok) {
       await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
