@@ -184,6 +184,16 @@ export default function DocumentsPage() {
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Document Library</h1>
           <p className="text-[var(--ink-faint)] text-sm mt-0.5">Manage PDF templates and official documents</p>
         </div>
+        <button onClick={async () => {
+          const d = await fetch('/api/admin/chat-style-check').then(r => r.json()).catch(() => null)
+          if (!d || d.error) return alert(d?.error || 'Could not check')
+          const lines = (d.samples || []).map((x: any) =>
+            `${x.beingUsed ? '✓ read' : '✗ not read'}  —  ${x.name} (${x.characters} characters)`).join('\n')
+          alert(`${d.advice}\n\n${lines || 'None uploaded yet.'}`)
+        }}
+          className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition">
+          Check chat samples
+        </button>
       </div>
 
       {/* Upload section */}

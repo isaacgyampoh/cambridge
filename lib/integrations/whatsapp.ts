@@ -131,7 +131,8 @@ export const WA = {
     const m = (marketerName || '').split(' ')[0] || 'your advisor'
     const course = courseInterest ? ` in *${courseInterest}*` : ''
     const intro = marketerIntro || `I'm ${m}`
-    return `Hello ${first}! Thank you so much for your interest in Cambridge Center of Excellence${course}.\n\n${intro}, and I'll personally be helping you through the process. I'll give you a quick call shortly so we can have a brief chat, and you can always reach me right here on WhatsApp anytime.\n\nIn the meantime, feel free to ask me any questions you have. I'm happy to help.`
+    // Short, no sign-off, no corporate phrasing. It reads like a person.
+    return `Hi ${first}, ${intro} from Cambridge Center of Excellence. I saw you showed interest in${course || ' our programmes'}. What do you currently do for work?`
   },
 
   applicationConfirmed: (name: string, course: string) =>

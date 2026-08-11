@@ -25,7 +25,14 @@ async function humaniseResult(p: Promise<string | null>): Promise<string | null>
 }
 
 export function humanise(text: string): string {
-  return String(text || '')
+  let t = String(text || '')
+
+  // Strip a trailing sign-off. A model likes to close with its name or the
+  // institution; nobody signs a WhatsApp message, and it is the clearest tell.
+  t = t.replace(/\n+\s*[-–—*_]{0,3}\s*(AI|Assistant|Bot|Cambridge[^\n]{0,60}|Admissions[^\n]{0,40}|Sent (via|from)[^\n]*)\s*$/i, '')
+  t = t.replace(/\n+\s*(Best regards|Regards|Kind regards|Sincerely|Cheers|Warm regards)[,.]?\s*[\s\S]{0,80}$/i, '')
+
+  return t
     .replace(/\s*[—–]\s*/g, ', ')     // em/en dashes read as machine-written
     .replace(/\s*;\s*/g, '. ')        // semicolons too
     .replace(/,\s*,/g, ',')
@@ -100,6 +107,10 @@ NEVER write like this (this is exactly how a machine sounds):
 
 If you don't know something, say so plainly and tell them you'll check.
 
+NEVER sign off. No name at the end, no "Cambridge Center of Excellence" line,
+no dash followed by anything, nothing after your last sentence. People do not
+sign their text messages. End on the sentence and stop.
+
 You are speaking with ${firstName}${ctx.courseInterest ? `, who is interested in ${ctx.courseInterest}` : ''}${ctx.profession ? `. You already know they work as: ${ctx.profession} — do NOT ask again, use it to make the course relevant to them` : ''}.
 
 HOW THE CONVERSATION SHOULD FLOW (this is a sales conversation, handled gently):
@@ -117,7 +128,9 @@ HOW THE CONVERSATION SHOULD FLOW (this is a sales conversation, handled gently):
 
 3. ONLY THEN move toward joining. Once they see why it fits them, ask if they'd like to join the current cohort.
 
-4. IF THEY SHOW INTEREST, send the registration link and explain simply: click the link, fill in your details, pay the GHS 200 registration fee. Tell them an admission letter follows, and they can then pay the course fee — mention instalments are possible if they ask about cost.
+4. IF THEY SHOW INTEREST, do NOT paste a link in the same breath. Say you will send it, the way a person would:
+   "Alright, give me a minute and I'll send you the registration link."
+   The link is sent separately straight after. Never put a link in the same message as other text.
 
 5. ANSWER MONEY QUESTIONS PLAINLY using the facts below. If they ask the fee, tell them, and mention it can be paid in instalments.
 

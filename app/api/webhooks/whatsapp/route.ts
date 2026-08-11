@@ -392,14 +392,31 @@ async function handleInbound(req: NextRequest) {
 
   if (wantsToRegister && marketer?.marketer_code) {
     const link = `${CONFIG.appUrl}/apply/${marketer.marketer_code}`
-    const first = (lead?.full_name || '').split(' ')[0] || 'there'
-    const mFirst = (marketer.full_name || '').split(' ')[0] || ''
-    const linkMsg = `Wonderful, ${first}. Here is your registration link:\n\n${link}\n\nClick it to fill in your details and pay your registration fee. Once that's done you're all set, and I'll take it from there. Let me know if you need any help.\n\n${mFirst}`
 
-    const sent = await sendWhatsAppText(phone, linkMsg, marketer.id)
+    // Three separate messages, the way a person actually sends a link:
+    // acknowledge, pause, send the bare link, then a short line under it.
+    // No signature — nobody signs a WhatsApp message.
+    const ack = ['Alright, give me a minute and I\'ll send you the link.',
+                 'Sure, hold on let me get the link for you.',
+                 'Ok give me a sec, sending the link now.'][Math.floor(Math.random() * 3)]
+
+    const sent = await sendWhatsAppText(phone, ack, marketer.id)
+
+    if (sent) {
+      await new Promise(r => setTimeout(r, 14000 + Math.random() * 16000))
+      const { data: still } = await sb.from('leads').select('ai_paused').eq('id', lead.id).maybeSingle()
+      if (!still?.ai_paused) {
+        await sendWhatsAppText(phone, link, marketer.id)            // the link alone
+        await new Promise(r => setTimeout(r, 4000 + Math.random() * 5000))
+        await sendWhatsAppText(phone,
+          'Fill your details there and pay the 200 registration. Admission letter follows right after.',
+          marketer.id)
+      }
+    }
+
     await sb.from('ai_conversations').insert({
       phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
-      incoming_text: text, reply_text: linkMsg, answered_by: sent ? 'ai_link' : 'fallback',
+      incoming_text: text, reply_text: `${ack}\n${link}`, answered_by: sent ? 'ai_link' : 'fallback',
     })
     // Notify the marketer their lead asked to register
     if (marketer.id) {
@@ -459,8 +476,37 @@ async function handleInbound(req: NextRequest) {
       return NextResponse.json({ ok: true, superseded: true })
     }
 
+    // If the assistant promised to send the link, it must actually arrive —
+    // and as its own message, the way a person sends a link. Any link is
+    // stripped out of the sentence and sent separately a moment later.
+    const linkPromised = /(send|share) (you )?(the |a )?(registration )?link|give me a (minute|moment|sec)/i.test(reply)
+    const bareLink = reply.match(/https?:\/\/\S+/)
+    if (bareLink) reply = reply.replace(bareLink[0], '').replace(/\s{2,}/g, ' ').trim()
+
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
+
+    // Then the link on its own, after a believable pause.
+    if (ok && (linkPromised || bareLink)) {
+      const code = marketer?.marketer_code
+      const link = bareLink?.[0] || (code ? `${CONFIG.appUrl}/apply/${code}` : null)
+      if (link) {
+        await new Promise(r => setTimeout(r, 12000 + Math.random() * 18000))
+        const stillActive = await sb.from('leads').select('ai_paused').eq('id', lead.id).maybeSingle()
+        if (!stillActive.data?.ai_paused) {
+          await sendWhatsAppText(phone, link, marketer?.id || null)
+          // and a short line under it, as a separate message
+          await new Promise(r => setTimeout(r, 4000 + Math.random() * 4000))
+          await sendWhatsAppText(phone,
+            'Click it and fill your details, then pay the 200 registration fee. Your admission letter comes right after.',
+            marketer?.id || null)
+          await sb.from('ai_conversations').insert({
+            phone, lead_id: lead.id, marketer_id: marketer?.id || null,
+            incoming_text: null, reply_text: link, answered_by: 'ai',
+          }).then(() => {}, () => {})
+        }
+      }
+    }
     answeredBy = ok ? 'ai' : 'fallback'
     if (!ok) {
       await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
