@@ -120,6 +120,18 @@ export async function sendWhatsAppText(to: string, message: string, senderId?: s
 }
 
 export async function sendWhatsAppMedia(to: string, message: string, mediaUrl: string, senderId?: string | null): Promise<boolean> {
+  // Never send a file that will not open. A dead link looks worse than saying
+  // nothing, and people were receiving documents they could not read.
+  if (!mediaUrl || !/^https?:\/\//i.test(mediaUrl)) return false
+  try {
+    const head = await fetch(mediaUrl, { method: 'HEAD', signal: AbortSignal.timeout(6000) })
+    if (!head.ok) return false
+    const len = Number(head.headers.get('content-length') || '0')
+    if (len > 0 && len < 100) return false      // effectively an empty file
+  } catch {
+    return false
+  }
+
   return wasenderSend(to, message, 'media', mediaUrl, senderId)
 }
 

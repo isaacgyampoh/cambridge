@@ -375,24 +375,41 @@ async function handleInbound(req: NextRequest) {
   // registration link straight away instead of a generic reply.
   const lower = text.toLowerCase()
 
-  // ── Brochure intent: send the course brochure PDF ──
-  // If the lead asks about fees, price, details or a brochure, and their
-  // course of interest has a brochure uploaded, send the PDF with the reply.
-  const wantsBrochure = /\b(brochure|flyer|price|prices|pricing|fee|fees|cost|how much|details|more info|information|tell me more)\b/.test(lower)
+  // ── Brochure ──
+  // Only when they actually ask for a brochure, and only if a real, working
+  // file exists. Asking "how much" is a question to answer in words, not a
+  // reason to send a document; and a broken file is worse than none.
+  const wantsBrochure = /\b(brochure|flyer|prospectus|course outline|syllabus)\b/.test(lower)
   if (wantsBrochure && lead?.course_interest) {
     const { data: course } = await sb.from('courses')
       .select('name, brochure_url').or(`code.eq.${lead.course_interest},name.ilike.%${lead.course_interest}%`).maybeSingle()
+
+    let usable = false
     if (course?.brochure_url) {
-      const first = (lead?.full_name || '').split(' ')[0] || 'there'
-      const mFirst = (marketer?.full_name || '').split(' ')[0] || ''
-      const caption = `Here you go, ${first} — full details of our ${course.name} programme are in this brochure. Let me know if you'd like to register or have any questions.${mFirst ? `\n\n${mFirst}` : ''}`
-      const sent = await sendWhatsAppMedia(phone, caption, course.brochure_url, marketer?.id || null)
-      await sb.from('ai_conversations').insert({
-        phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
-        incoming_text: text, reply_text: '[brochure sent] ' + caption, answered_by: sent ? 'ai_brochure' : 'fallback',
-      }).then(() => {}, () => {})
-      if (sent) return NextResponse.json({ ok: true, brochure: true })
+      // Check the file is really there before sending it. A dead link that
+      // will not open makes us look careless.
+      try {
+        const head = await fetch(course.brochure_url, { method: 'HEAD', signal: AbortSignal.timeout(6000) })
+        usable = head.ok && Number(head.headers.get('content-length') || '1') > 0
+      } catch { usable = false }
     }
+
+    if (usable && course) {
+      const jobKey = `brochure:${lead.id}:${msgId || Math.floor(Date.now() / 120000)}`
+      if (await claimJob({ dedupeKey: jobKey, leadId: lead.id, phone, kind: 'brochure', sourceEvent: msgId || null })) {
+        const caption = `Here you go. Everything about our ${course.name} programme is in here.`
+        const sent = await sendWhatsAppMedia(phone, caption, course.brochure_url, marketer?.id || null)
+        await markSent(jobKey, sent)
+        await sb.from('ai_conversations').insert({
+          phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
+          incoming_text: text, reply_text: '[brochure sent] ' + caption, answered_by: sent ? 'ai_brochure' : 'fallback',
+        }).then(() => {}, () => {})
+        if (sent) return NextResponse.json({ ok: true, brochure: true })
+      } else {
+        return NextResponse.json({ ok: true, duplicate: 'brochure' })
+      }
+    }
+    // No usable brochure: fall through and let the assistant answer in words.
   }
 
   // Did we just offer to send the link? Then a bare "yes" means yes.

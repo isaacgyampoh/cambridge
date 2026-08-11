@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { claimJob, markSent } from '@/lib/messageJobs'
 import { createServiceClient } from '@/lib/supabase/server'
 import { createLoginToken, normalisePhone } from '@/lib/student/auth'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
@@ -30,6 +31,13 @@ export async function POST(req: NextRequest) {
   // Never reveal whether a number exists — always answer the same way.
   if (!lead?.phone) return NextResponse.json({ success: true })
 
+  // One portal link per person per few minutes. Without this, a retried call
+  // or a second click sends the same link twice.
+  const jobKey = `portal_link:${lead.id}:${Math.floor(Date.now() / 180000)}`
+  if (!(await claimJob({ dedupeKey: jobKey, leadId: lead.id, phone: lead.phone, kind: 'portal_link' }))) {
+    return NextResponse.json({ success: true, duplicate: true })
+  }
+
   const token = await createLoginToken(lead.id, lead.phone)
   const url = `${CONFIG.appUrl}/portal/enter?t=${token}`
   const first = (lead.full_name || 'there').split(' ')[0]
@@ -38,6 +46,7 @@ export async function POST(req: NextRequest) {
   let ok = false
   try { ok = !!(await sendWhatsAppText(lead.phone, msg, lead.assigned_to || null)) } catch {}
   if (!ok) { try { await sendSMS(lead.phone, msg) } catch {} }
+  await markSent(jobKey, ok)
 
   return NextResponse.json({ success: true })
 }
