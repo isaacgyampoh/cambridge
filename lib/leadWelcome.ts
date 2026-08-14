@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { claimJob, markSent } from '@/lib/messageJobs'
+import { findCourse, findBrochure } from '@/lib/courseMatch'
 
 /**
  * What a new lead receives: a short hello, then the gallery, then the brochure
@@ -23,14 +24,7 @@ export async function sendWelcomePack(opts: {
   const mName = (opts.marketerName || '').split(' ')[0] || 'Cambridge'
 
   // Which course, and does it have its own brochure?
-  let course: any = null
-  if (opts.courseInterest) {
-    const { data } = await sb.from('courses')
-      .select('id, name')
-      .or(`code.eq.${opts.courseInterest},name.ilike.%${opts.courseInterest}%`)
-      .maybeSingle()
-    course = data
-  }
+  const course = await findCourse(opts.courseInterest)
 
   const courseLabel = course?.name || opts.courseInterest || 'our programmes'
 
@@ -66,19 +60,7 @@ export async function sendWelcomePack(opts: {
   //    course-specific brochure — never instead of one.
   const brochureKey = `welcome_brochure:${opts.leadId}`
   if (await claimJob({ dedupeKey: brochureKey, leadId: opts.leadId, phone: opts.phone, kind: 'brochure' })) {
-    let url: string | null = null
-    if (course?.id) {
-      const { data } = await sb.from('documents')
-        .select('file_url').eq('type', 'brochure').eq('course_id', course.id).eq('is_active', true)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      url = data?.file_url || null
-    }
-    if (!url) {
-      const { data } = await sb.from('documents')
-        .select('file_url').eq('type', 'brochure').is('course_id', null).eq('is_active', true)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      url = data?.file_url || null
-    }
+    const url = await findBrochure(course?.id || null)
     if (url) {
       const ok = await sendWhatsAppMedia(opts.phone, `Everything about ${courseLabel} is in here.`, url, opts.marketerId || null)
       await markSent(brochureKey, ok)

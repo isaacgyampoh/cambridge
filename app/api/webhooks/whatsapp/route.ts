@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseInbound } from '@/lib/parseInbound'
 import { claimJob, markSent, alreadyProcessed } from '@/lib/messageJobs'
+import { findCourse, findBrochure } from '@/lib/courseMatch'
 import { createServiceClient } from '@/lib/supabase/server'
 import { readConversation } from '@/lib/integrations/conversationState'
 import { maybeResumeAI } from '@/lib/aiResume'
@@ -381,26 +382,9 @@ async function handleInbound(req: NextRequest) {
   // reason to send a document; and a broken file is worse than none.
   const wantsBrochure = /\b(brochure|flyer|prospectus|course outline|syllabus)\b/.test(lower)
   if (wantsBrochure && lead?.course_interest) {
-    const { data: course } = await sb.from('courses')
-      .select('id, name, brochure_url').or(`code.eq.${lead.course_interest},name.ilike.%${lead.course_interest}%`).maybeSingle()
+    const course = await findCourse(lead.course_interest)
 
-    // A brochure uploaded against this course in Documents wins over the
-    // course's own field, and a general one is the fallback. Previously only
-    // courses.brochure_url was consulted, so uploaded brochures were ignored.
-    let brochureUrl: string | null = null
-    if (course?.id) {
-      const { data: courseDoc } = await sb.from('documents')
-        .select('file_url').eq('type', 'brochure').eq('course_id', course.id)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      brochureUrl = courseDoc?.file_url || null
-    }
-    if (!brochureUrl) {
-      const { data: generalDoc } = await sb.from('documents')
-        .select('file_url').eq('type', 'brochure').is('course_id', null)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      brochureUrl = generalDoc?.file_url || null
-    }
-    if (!brochureUrl) brochureUrl = course?.brochure_url || null
+    const brochureUrl = await findBrochure(course?.id || null)
 
     let usable = false
     if (brochureUrl) {
@@ -559,6 +543,47 @@ async function handleInbound(req: NextRequest) {
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
     answeredBy = ok ? 'ai' : 'fallback'
+
+    // If the assistant said it would send the link, it MUST arrive. Otherwise
+    // a student is left waiting for something that was never queued — the
+    // promise and the delivery have to be the same act, not two.
+    const promisedLink = ok && /(send|share)[^.]{0,30}\b(link|form)\b|\blink\b[^.]{0,20}(shortly|in a (minute|moment)|coming)/i.test(reply)
+    if (promisedLink && marketer?.marketer_code) {
+      const key = `promised_link:${lead.id}:${msgId || Math.floor(Date.now() / 300000)}`
+      if (await claimJob({ dedupeKey: key, leadId: lead.id, phone, kind: 'registration_link', sourceEvent: msgId || null })) {
+        const link = `${CONFIG.appUrl}/apply/${marketer.marketer_code}`
+        await new Promise(r => setTimeout(r, 18000 + Math.random() * 10000))
+        const { data: still } = await sb.from('leads').select('ai_paused').eq('id', lead.id).maybeSingle()
+        if (!still?.ai_paused) {
+          const linkOk = await sendWhatsAppText(phone, link, marketer.id)
+          await markSent(key, linkOk)
+          if (linkOk) {
+            await new Promise(r => setTimeout(r, 4000 + Math.random() * 3000))
+            await sendWhatsAppText(phone,
+              'This is the registration link I mentioned. Please click on it to continue with your application.',
+              marketer.id)
+            await sb.from('ai_conversations').insert({
+              phone, lead_id: lead.id, marketer_id: marketer.id,
+              incoming_text: null, reply_text: link, answered_by: 'ai_link',
+            }).then(() => {}, () => {})
+          } else {
+            // It failed. Tell a human rather than leaving the student waiting.
+            await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
+              'Promised the registration link but it could not be sent', null)
+            if (lead.assigned_to) {
+              await sb.from('notifications').insert({
+                user_id: lead.assigned_to, type: 'handoff',
+                title: 'Registration link did not send',
+                body: `${lead.full_name || phone} was promised the link but it failed to send. Please send it yourself.`,
+                link: `/marketer/leads/${lead.id}`,
+              }).then(() => {}, () => {})
+            }
+          }
+        } else {
+          await markSent(key, false)
+        }
+      }
+    }
     if (!ok) {
       await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
         'A reply was written but WhatsApp would not accept it — check the line', null)
