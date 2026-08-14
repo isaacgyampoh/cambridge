@@ -1,3 +1,4 @@
+import { verifySession } from '@/lib/auth/pin'
 import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -5,6 +6,14 @@ import { sendSMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 
 export async function POST(req: NextRequest) {
+  // Payment reminders reach every student who owes money. Only finance may
+  // trigger that.
+  const token = req.cookies.get('cce_session')?.value
+  const s: any = token ? await verifySession(token) : { valid: false }
+  if (!s.valid || !['super_admin', 'administrator', 'accountant'].includes(s.role)) {
+    return NextResponse.json({ error: 'unauth' }, { status: 401 })
+  }
+
  const authHeader = req.headers.get('authorization')
  if (authHeader !==`Bearer ${CONFIG.cronSecret || 'cce-cron-2024'}`) {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })

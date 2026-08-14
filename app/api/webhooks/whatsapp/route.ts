@@ -382,14 +382,32 @@ async function handleInbound(req: NextRequest) {
   const wantsBrochure = /\b(brochure|flyer|prospectus|course outline|syllabus)\b/.test(lower)
   if (wantsBrochure && lead?.course_interest) {
     const { data: course } = await sb.from('courses')
-      .select('name, brochure_url').or(`code.eq.${lead.course_interest},name.ilike.%${lead.course_interest}%`).maybeSingle()
+      .select('id, name, brochure_url').or(`code.eq.${lead.course_interest},name.ilike.%${lead.course_interest}%`).maybeSingle()
+
+    // A brochure uploaded against this course in Documents wins over the
+    // course's own field, and a general one is the fallback. Previously only
+    // courses.brochure_url was consulted, so uploaded brochures were ignored.
+    let brochureUrl: string | null = null
+    if (course?.id) {
+      const { data: courseDoc } = await sb.from('documents')
+        .select('file_url').eq('type', 'brochure').eq('course_id', course.id)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      brochureUrl = courseDoc?.file_url || null
+    }
+    if (!brochureUrl) {
+      const { data: generalDoc } = await sb.from('documents')
+        .select('file_url').eq('type', 'brochure').is('course_id', null)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle()
+      brochureUrl = generalDoc?.file_url || null
+    }
+    if (!brochureUrl) brochureUrl = course?.brochure_url || null
 
     let usable = false
-    if (course?.brochure_url) {
+    if (brochureUrl) {
       // Check the file is really there before sending it. A dead link that
       // will not open makes us look careless.
       try {
-        const head = await fetch(course.brochure_url, { method: 'HEAD', signal: AbortSignal.timeout(6000) })
+        const head = await fetch(brochureUrl, { method: 'HEAD', signal: AbortSignal.timeout(6000) })
         usable = head.ok && Number(head.headers.get('content-length') || '1') > 0
       } catch { usable = false }
     }
@@ -398,7 +416,7 @@ async function handleInbound(req: NextRequest) {
       const jobKey = `brochure:${lead.id}:${msgId || Math.floor(Date.now() / 120000)}`
       if (await claimJob({ dedupeKey: jobKey, leadId: lead.id, phone, kind: 'brochure', sourceEvent: msgId || null })) {
         const caption = `Here you go. Everything about our ${course.name} programme is in here.`
-        const sent = await sendWhatsAppMedia(phone, caption, course.brochure_url, marketer?.id || null)
+        const sent = await sendWhatsAppMedia(phone, caption, brochureUrl!, marketer?.id || null)
         await markSent(jobKey, sent)
         await sb.from('ai_conversations').insert({
           phone, lead_id: lead?.id || null, marketer_id: marketer?.id || null,
@@ -455,7 +473,8 @@ async function handleInbound(req: NextRequest) {
 
     if (sent) {
       // 2) Wait the minute you promised.
-      await new Promise(r => setTimeout(r, 50000 + Math.random() * 12000))
+      // About 25 seconds, varied a little so it never feels timed.
+      await new Promise(r => setTimeout(r, 21000 + Math.random() * 8000))
 
       // Someone may have stepped in while we waited.
       const { data: still } = await sb.from('leads').select('ai_paused').eq('id', lead.id).maybeSingle()
@@ -521,9 +540,9 @@ async function handleInbound(req: NextRequest) {
     // moment, longer for longer replies, before sending — an instant response
     // is the clearest sign a machine is on the other end.
     const words = String(reply).trim().split(/\s+/).length
-    const think = 8000 + Math.random() * 12000            // reading and thinking
-    const typing = Math.min(words * 1100, 32000)          // roughly typing speed
-    await new Promise(r => setTimeout(r, Math.min(think + typing, 55000)))
+    const think = 6000 + Math.random() * 7000             // reading and thinking
+    const typing = Math.min(words * 550, 14000)           // roughly typing speed
+    await new Promise(r => setTimeout(r, Math.min(think + typing, 28000)))
 
     // Someone may have written again while we waited, or a colleague may have
     // stepped in. Check before sending something now out of date.

@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
@@ -9,7 +10,14 @@ export const runtime = 'nodejs'
  */
 let cache: { text: string; at: number } | null = null
 
-export async function GET() {
+export async function GET(req: NextRequest) {
+  // Defence in depth: middleware guards /api/admin, but a route that returns
+  // internal data should not rely on that alone.
+  const token = req.cookies.get('cce_session')?.value
+  const s: any = token ? await verifySession(token) : { valid: false }
+  if (!s.valid || !['super_admin', 'administrator', 'project_manager'].includes(s.role)) {
+    return NextResponse.json({ error: 'unauth' }, { status: 401 })
+  }
   const text = await getChatStyle()
   return NextResponse.json({ hasSamples: !!text, length: text.length })
 }

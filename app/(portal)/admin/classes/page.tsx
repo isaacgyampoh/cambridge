@@ -81,7 +81,7 @@ export default function ClassesPage() {
     if (!form.name || !form.course_id) { toast.error('Enter a name and select a course'); return }
     setSaving(true)
     try {
-      await mutate('POST', 'batches', {
+      const payload = {
         ...form,
         trainer_id: form.trainer_id || null,
         zoom_link: form.zoom_link || null,
@@ -89,19 +89,60 @@ export default function ClassesPage() {
         min_payment_per_session: Number(form.min_payment_per_session) || 0,
         start_date: form.start_date || null,
         end_date: form.end_date || null,
-      })
-      toast.success('Class created')
+      }
+
+      if (form.id) {
+        // Editing an existing class
+        const { id, ...fields } = payload
+        const d = await fetch('/api/classes/manage', {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ batchId: id, ...fields }),
+        }).then(r => r.json())
+        if (d.error) throw new Error(d.error)
+      } else {
+        await mutate('POST', 'batches', payload)
+      }
+      toast.success(form.id ? 'Class updated' : 'Class created')
       setModal(false)
       setForm({ name: '', course_id: '', trainer_id: '', class_type: 'physical', status: 'upcoming', start_date: '', end_date: '', schedule: '', venue: '', zoom_link: '', max_students: 30, free_sessions: 1, min_payment_per_session: 500 })
       load()
     } catch (e: any) {
-      toast.error(e.message || 'Could not create the class')
+      toast.error(e.message || 'Could not save the class')
     } finally { setSaving(false) }
   }
 
   async function updateStatus(id: string, status: string) {
-    try { await mutate('PATCH', 'batches', { status }, [{ col: 'id', val: id }]); load() }
-    catch (e: any) { toast.error(e.message || 'Could not update status') }
+    const d = await fetch('/api/classes/manage', {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ batchId: id, status }),
+    }).then(r => r.json()).catch(() => ({ error: 'Could not update' }))
+    if (d.error) { toast.error(d.error); return }
+    toast.success(`Class marked ${status}`)
+    load()
+  }
+
+  // Edit an existing class — the form is reused, prefilled.
+  function startEdit(b: any) {
+    setForm({
+      id: b.id,
+      name: b.name || '', course_id: b.course_id || '', trainer_id: b.trainer_id || '',
+      class_type: b.class_type || 'physical', status: b.status || 'upcoming',
+      start_date: b.start_date || '', end_date: b.end_date || '',
+      schedule: b.schedule || '', venue: b.venue || '', zoom_link: b.zoom_link || '',
+      max_students: b.max_students ?? 30,
+      free_sessions: b.free_sessions ?? 1,
+      min_payment_per_session: b.min_payment_per_session ?? 500,
+    })
+    setModal(true)
+  }
+
+  async function removeClass(b: any) {
+    if (!confirm(`Delete "${b.name}"? This cannot be undone.`)) return
+    const d = await fetch(`/api/classes/manage?batchId=${b.id}`, { method: 'DELETE' })
+      .then(r => r.json()).catch(() => ({ error: 'Could not delete' }))
+    if (d.error) { toast.error(d.error); return }
+    toast.success('Class deleted')
+    load()
   }
 
   const STATUS_TONE: Record<string, any> = {
@@ -221,10 +262,16 @@ export default function ClassesPage() {
                       </div>
                     </div>
                   </div>
+                  <div className="flex items-center gap-1.5 flex-shrink-0">
+                  <button onClick={() => startEdit(b)}
+                    className="text-[12px] font-semibold text-[var(--accent)] px-2 py-1.5">Edit</button>
+                  <button onClick={() => removeClass(b)}
+                    className="text-[12px] font-semibold text-[var(--danger)] px-2 py-1.5">Delete</button>
                   <select value={b.status} onChange={e => updateStatus(b.id, e.target.value)}
                     className="text-[12px] font-semibold px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-white text-[var(--ink-soft)] focus:outline-none focus:border-[var(--accent)] cursor-pointer flex-shrink-0">
                     {['upcoming', 'ongoing', 'completed', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
+                  </div>
                 </div>
 
                 {/* Zoom link — send to enrolled students */}

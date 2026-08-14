@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { createLoginToken } from '@/lib/student/auth'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { CONFIG } from '@/lib/config'
@@ -30,12 +31,24 @@ export async function broadcastPaymentReminders(opts: { channels?: string; note?
     .map((f: any) => ({ ...f, balance: Number(f.total_fee || 0) - Number(f.amount_paid || 0) }))
     .filter((f: any) => f.balance > 0.01 && f.phone)
 
-  const payBase = `${CONFIG.appUrl}/pay`
+  // /pay was never built, so every reminder linked to a missing page. Students
+  // pay in their own portal, so send them there — signed in, with their real
+  // balance in front of them.
 
   let notified = 0
   for (const f of owing) {
     const first = (f.student_name || 'there').split(' ')[0]
-    const msg = `Hi ${first}, this is a friendly reminder from Cambridge Center of Excellence. You have an outstanding balance of GHS ${f.balance.toFixed(2)}.${opts.note ? `\n${opts.note}` : ''}\nTo pay: ${payBase}/${f.id}`
+    // A one-time link straight into their portal, so there is nothing to
+    // remember and no page that can be missing.
+    let payLink = `${CONFIG.appUrl}/portal/login`
+    try {
+      if (f.lead_id && f.phone) {
+        const t = await createLoginToken(f.lead_id, f.phone)
+        payLink = `${CONFIG.appUrl}/portal/enter?t=${t}`
+      }
+    } catch {}
+
+    const msg = `Hi ${first}, a quick reminder from Cambridge Center of Excellence. Your balance is GHS ${f.balance.toFixed(2)}.${opts.note ? `\n${opts.note}` : ''}\n\nYou can pay in your student portal here:\n${payLink}`
     // Send through their marketer's line if they have one; the sender falls
     // back to the central number when they do not.
     const owner = f.lead_id ? ownerOf[f.lead_id] || null : null

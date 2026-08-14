@@ -223,7 +223,7 @@ export default function DocumentsPage() {
 
         {/* Programme selector — for admission letters & course materials so the
             right file is sent based on what the student registered for. */}
-        {(form.type === 'admission_letter' || form.type === 'course_material') && (
+        {(form.type === 'admission_letter' || form.type === 'course_material' || form.type === 'brochure' || form.type === 'certificate') && (
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">For which programme?</label>
