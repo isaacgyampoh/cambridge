@@ -60,8 +60,46 @@ export async function generateAssistantReply(
   const faqs = (kb || []).filter(k => k.kind === 'faq')
   const infos = (kb || []).filter(k => k.kind === 'info')
 
+  // Real courses and their fees, straight from the system — so a question about
+  // price is answered with the actual figure rather than deflected.
+  let coursesBlock = ''
+  try {
+    const { data: courses } = await sb.from('courses')
+      .select('name, code, price, duration, description')
+      .eq('is_active', true).order('name').limit(50)
+    if (courses?.length) {
+      coursesBlock = '\nOUR PROGRAMMES AND FEES:\n' + courses.map((co: any) =>
+        `- ${co.name}${co.price ? ` — GHS ${Number(co.price).toLocaleString()}` : ''}` +
+        `${co.duration ? `, ${co.duration}` : ''}`).join('\n')
+    }
+  } catch {}
+
+  // Classes that are actually scheduled, with their real dates — this is what
+  // 'when is the next session' should be answered from.
+  let classesBlock = ''
+  try {
+    const { data: batches } = await sb.from('batches')
+      .select('name, class_type, status, start_date, end_date, schedule, venue, courses(name)')
+      .in('status', ['upcoming', 'ongoing'])
+      .order('start_date', { ascending: true }).limit(20)
+    if (batches?.length) {
+      classesBlock = '\nCLASSES RUNNING OR STARTING SOON:\n' + batches.map((b: any) => {
+        const starts = b.start_date
+          ? new Date(b.start_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+          : null
+        return `- ${b.courses?.name || b.name}` +
+          `${b.class_type === 'online' ? ' (online)' : b.venue ? ` (in person, ${b.venue})` : ''}` +
+          `${starts ? `, starts ${starts}` : ''}` +
+          `${b.schedule ? `, ${b.schedule}` : ''}` +
+          `${b.status === 'ongoing' ? ' — already running' : ''}`
+      }).join('\n')
+    }
+  } catch {}
+
   const knowledge = [
     infos.length ? 'CENTRE INFORMATION:\n' + infos.map(i => `- ${i.category ? `[${i.category}] ` : ''}${i.answer}`).join('\n') : '',
+    coursesBlock,
+    classesBlock,
     faqs.length ? '\nFREQUENTLY ASKED QUESTIONS:\n' + faqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n') : '',
   ].filter(Boolean).join('\n')
 
@@ -167,6 +205,11 @@ will check than to give a date or time that turns out to be wrong.
 
 Never state a class date, class time, venue, exam date, or payment status
 unless that exact detail is written in the facts below.
+
+When someone asks when the next class starts, answer from CLASSES RUNNING OR
+STARTING SOON. If no class is listed there, say you will confirm the next date
+and come back to them. Never guess a date, and never repeat a date from an
+older answer if it is not in that list.
 
 RULES:
 - Only answer using the CENTRE INFORMATION and FAQs below. These are the facts.
