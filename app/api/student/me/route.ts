@@ -29,9 +29,26 @@ export async function GET(req: NextRequest) {
   let sessionInfo: any = null
   if (enr?.batch_id) {
     const { data: b } = await sb.from('batches')
-      .select('id, name, schedule, start_date, end_date, status, zoom_link, class_type, free_sessions, min_payment_per_session, courses(name)')
+      .select('id, name, schedule, start_date, end_date, status, class_type, free_sessions, min_payment_per_session, current_section, courses(name)')
       .eq('id', enr.batch_id).maybeSingle()
     batch = b
+
+    // The section the class is on now — its name and time are safe to show;
+    // its link never leaves the server.
+    let currentSection: any = null
+    let hasLink = false
+    try {
+      const { data: sec } = await sb.from('class_sections')
+        .select('section_no, title, zoom_link, scheduled_at')
+        .eq('batch_id', enr.batch_id).eq('is_current', true).maybeSingle()
+      currentSection = sec || null
+      hasLink = !!sec?.zoom_link
+      if (!hasLink) {
+        const { data: fallback } = await sb.from('batches')
+          .select('zoom_link').eq('id', enr.batch_id).maybeSingle()
+        hasLink = !!fallback?.zoom_link
+      }
+    } catch {}
 
     // How many sessions attended, and what's required for the next one
     const { count: attended } = await sb.from('class_signins')
@@ -70,7 +87,12 @@ export async function GET(req: NextRequest) {
       signedInToday: !!todaySignin,
       // The Zoom link is deliberately NOT sent to the browser — joining goes
       // through a single-use redirect so a copied URL is worthless.
-      hasLink: !!b?.zoom_link,
+      // Whether a link exists — never the link itself. The student presses
+      // Join and the server resolves it at that moment.
+      hasLink,
+      sectionNo: currentSection?.section_no ?? (b as any)?.current_section ?? null,
+      sectionTitle: currentSection?.title || null,
+      sectionAt: currentSection?.scheduled_at || null,
     }
   }
 
@@ -80,39 +102,33 @@ export async function GET(req: NextRequest) {
     const r = await releaseMaterialsFor(s.leadId, { notify: false })
     // The file address is deliberately NOT sent — materials are viewed through
     // the portal so they cannot be forwarded or resold.
-    unlocked = (r.materials || []).map((m: any) => ({ id: m.id, name: m.name }))
-    const paid = Number(fee?.amount_paid || 0)
-    const { data: allDocs } = await sb.from('documents')
-      .select('id, name, unlock_after_amount, course_id')
-      .eq('type', 'course_material').order('unlock_after_amount', { ascending: true }).limit(200)
-    locked = (allDocs || [])
-      .filter((d: any) => (!d.course_id || d.course_id === fee?.course_id) && Number(d.unlock_after_amount || 0) > paid)
-      .map((d: any) => ({ name: d.name, unlockAt: Number(d.unlock_after_amount || 0) }))
+    unlocked = (r.materials || []).map((m: any) => ({ id: m.id, name: m.name, section: m.section_no || null }))
+    locked = (r.locked || []).map((m: any) => ({
+      name: m.name,
+      section: m.section_no || null,
+      unlockAt: Number(m.unlock_after_amount || 0),
+    }))
   } catch {}
 
-  // Certificate — released only when fees are fully paid AND it's been issued
+  // Certificate — once fees are cleared and the course is nearly done.
   let certificate: any = null
-  let certificateState: string = 'unknown'
+  let certificateState = 'unknown'
   try {
-    // Available once fees are cleared AND the course is nearly done — from the
-    // last two sessions onward, rather than only after the very end.
     const feesCleared = fee ? Number(fee.balance ?? 0) <= 0 : false
     let nearlyDone = false
     if (enr?.batch_id) {
-      const { data: b } = await sb.from('batches')
+      const { data: b2 } = await sb.from('batches')
         .select('end_date, status, total_sessions').eq('id', enr.batch_id).maybeSingle()
       const { count: attended } = await sb.from('class_signins')
         .select('id', { count: 'exact', head: true }).eq('enrollment_id', enr.id)
-      const total = Number((b as any)?.total_sessions || 0)
-      const done = (b as any)?.status === 'completed'
-      const endingSoon = (b as any)?.end_date
-        ? new Date((b as any).end_date).getTime() - Date.now() < 14 * 86400000
+      const totalS = Number((b2 as any)?.total_sessions || 0)
+      const done = (b2 as any)?.status === 'completed'
+      const endingSoon = (b2 as any)?.end_date
+        ? new Date((b2 as any).end_date).getTime() - Date.now() < 14 * 86400000
         : false
-      nearlyDone = done || endingSoon || (total > 0 && (attended || 0) >= total - 2)
+      nearlyDone = done || endingSoon || (totalS > 0 && (attended || 0) >= totalS - 2)
     }
-    certificateState = !feesCleared
-      ? 'fees_outstanding'
-      : !nearlyDone ? 'too_early' : 'ready'
+    certificateState = !feesCleared ? 'fees_outstanding' : !nearlyDone ? 'too_early' : 'ready'
 
     if (feesCleared && nearlyDone) {
       const { data: cert } = await sb.from('certificates')

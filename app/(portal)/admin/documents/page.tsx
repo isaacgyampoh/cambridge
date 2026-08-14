@@ -34,7 +34,7 @@ export default function DocumentsPage() {
   const [sending, setSending] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '', is_gallery: false })
+  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '', is_gallery: false, section_no: '' })
   const [courses, setCourses] = useState<any[]>([])
   const [posDoc, setPosDoc] = useState<any>(null)
   const FIELD_KEYS = ['full_name', 'admission_number', 'course', 'batch', 'date', 'amount', 'email', 'phone', 'receipt_number']
@@ -100,6 +100,7 @@ export default function DocumentsPage() {
         course_id: form.course_id || null,
         delivery_scope: form.type === 'course_material' ? (form.delivery_scope || null) : null,
         unlock_after_amount: form.type === 'course_material' ? (Number(form.unlock_after_amount) || 0) : 0,
+        section_no: form.type === 'course_material' && form.section_no ? Number(form.section_no) : null,
         is_active: true,
         uploaded_by: userId,
       })
@@ -121,7 +122,7 @@ export default function DocumentsPage() {
       }
 
       toast.success('Document uploaded!')
-      setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '', is_gallery: false })
+      setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '', is_gallery: false, section_no: '' })
       load()
     } catch (e: any) {
       toast.error(e.message || 'Failed to save document')
@@ -236,6 +237,15 @@ export default function DocumentsPage() {
             </div>
             {form.type === 'course_material' && (
               <div>
+                <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Which section is this for?</label>
+                <input type="number" min={1} value={form.section_no}
+                  onChange={e => setForm(f => ({ ...f, section_no: e.target.value }))}
+                  placeholder="e.g. 1 — leave blank if it applies to the whole course"
+                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
+                <p className="text-[12px] text-[var(--ink-faint)] mt-1 mb-3">
+                  Students see it when the class reaches this section. Paying in full opens every section at once.
+                </p>
+
                 <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Unlock after student has paid (GHS)</label>
                 <input type="number" min={0} value={form.unlock_after_amount}
                   onChange={e => setForm(f => ({ ...f, unlock_after_amount: e.target.value }))}

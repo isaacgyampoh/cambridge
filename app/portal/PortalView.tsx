@@ -186,6 +186,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
                   {d.batch.schedule && <div style={{ fontSize: 13.5, color: C.soft, marginTop: 4 }}>{d.batch.schedule}</div>}
                   {s && !s.cohortEnded && (
                     <div style={{ fontSize: 13, color: C.faint, marginTop: 8 }}>
+                      {s.sectionNo ? `${s.sectionTitle || `Section ${s.sectionNo}`} · ` : ''}
                       Session {s.sessionNumber}{s.signedInToday ? ' · you signed in today' : ''}
                     </div>
                   )}
@@ -293,7 +294,10 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
                 <button key={i} onClick={() => m.id && setViewing({ id: m.id, name: m.name })}
                   style={{ width: '100%', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i ? `1px solid ${C.line}` : 'none', textAlign: 'left', cursor: 'pointer' }}>
                   {Ico.doc}
-                  <span style={{ flex: 1, fontSize: 14.5, color: C.ink, fontWeight: 500 }}>{m.name}</span>
+                  <span style={{ flex: 1, minWidth: 0 }}>
+                    <span style={{ display: 'block', fontSize: 14.5, color: C.ink, fontWeight: 500 }}>{m.name}</span>
+                    {m.section && <span style={{ display: 'block', fontSize: 11.5, color: C.faint, marginTop: 2 }}>Section {m.section}</span>}
+                  </span>
                   <span style={{ fontSize: 12, color: C.teal, fontWeight: 700, flexShrink: 0 }}>Open</span>
                 </button>
               )) : (
@@ -304,15 +308,22 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
             </Card>
             {d?.materials?.locked?.length > 0 && (
               <Card>
-                <Label>Released later</Label>
+                <Label>Not open yet</Label>
                 {d.materials.locked.map((m: any, i: number) => (
                   <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i ? `1px solid ${C.line}` : 'none' }}>
                     {Ico.lock}
-                    <span style={{ flex: 1, fontSize: 14.5, color: C.faint }}>{m.name}</span>
+                    <div style={{ flex: 1, minWidth: 0 }}>
+                      <div style={{ fontSize: 14.5, color: C.faint }}>{m.name}</div>
+                      {m.section && (
+                        <div style={{ fontSize: 11.5, color: C.faint, marginTop: 2 }}>Section {m.section}</div>
+                      )}
+                    </div>
                   </div>
                 ))}
                 <p style={{ fontSize: 12.5, color: C.faint, margin: '12px 0 0', lineHeight: 1.55 }}>
-                  These become available as your payments continue.
+                  {f && f.balance > 0
+                    ? 'These open as you complete your payments. Paying in full opens every section at once.'
+                    : 'These open as your class reaches each section.'}
                 </p>
               </Card>
             )}

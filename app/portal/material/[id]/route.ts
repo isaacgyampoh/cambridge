@@ -18,20 +18,52 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const sb = createServiceClient()
 
   const { data: doc } = await sb.from('documents')
-    .select('id, name, file_url, unlock_after_amount, course_id, type').eq('id', id).maybeSingle()
+    .select('id, name, file_url, unlock_after_amount, course_id, type, section_no').eq('id', id).maybeSingle()
   if (!doc?.file_url || doc.type !== 'course_material') {
     return new NextResponse('Not found', { status: 404 })
   }
 
-  // Have they paid enough for this one?
+  // Every rule is checked here, on the server. Nothing in the browser can be
+  // altered to reveal a locked file.
   const { data: fee } = await sb.from('student_fees')
-    .select('amount_paid, course_id').eq('lead_id', s.leadId).maybeSingle()
-  const paid = Number(fee?.amount_paid || 0)
-  const needed = Number(doc.unlock_after_amount || 0)
-  const rightCourse = !doc.course_id || doc.course_id === fee?.course_id
+    .select('amount_paid, total_fee, course_id').eq('lead_id', s.leadId).maybeSingle()
+  if (!fee) return new NextResponse('No enrolment found.', { status: 403 })
 
-  if (!rightCourse || paid < needed) {
-    return new NextResponse('This material is locked until your payments reach the required amount.', { status: 403 })
+  const paid = Number(fee.amount_paid || 0)
+  const total = Number(fee.total_fee || 0)
+  const fullyPaid = total > 0 ? paid >= total : paid > 0
+  const needed = Number(doc.unlock_after_amount || 0)
+
+  // 1) Their course
+  if (doc.course_id && doc.course_id !== fee.course_id) {
+    return new NextResponse('This material is not part of your course.', { status: 403 })
+  }
+
+  // 2) Enrolment still active
+  const { data: enr } = await sb.from('class_enrollments')
+    .select('batch_id, status').eq('lead_id', s.leadId)
+    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  if (enr && ['cancelled', 'withdrawn'].includes(String(enr.status || ''))) {
+    return new NextResponse('Your enrolment is not active. Please contact the administration.', { status: 403 })
+  }
+
+  // 3) Paid enough for this material
+  if (paid < needed) {
+    return new NextResponse('This material opens once your payments reach the required amount.', { status: 403 })
+  }
+
+  // 4) The class has reached its section — unless they have paid in full,
+  //    which opens everything.
+  if (!fullyPaid && doc.section_no) {
+    let reached = 1
+    if (enr?.batch_id) {
+      const { data: b } = await sb.from('batches')
+        .select('current_section').eq('id', enr.batch_id).maybeSingle()
+      reached = Number((b as any)?.current_section || 1)
+    }
+    if (Number(doc.section_no) > reached) {
+      return new NextResponse('This material opens when your class reaches that section.', { status: 403 })
+    }
   }
 
   // Read it server-side and stream it through. A private file has no public
