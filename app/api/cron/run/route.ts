@@ -13,6 +13,7 @@ export const maxDuration = 300
  */
 const TASKS: { name: string; path: string; everyMins: number }[] = [
   { name: 'lead_notify',        path: '/api/leads/notify-pending',    everyMins: 5 },
+  { name: 'lead_followup',      path: '/api/leads/followup',          everyMins: 10 },
   { name: 'sequences',          path: '/api/sequences/run',           everyMins: 15 },
   { name: 'class_start',        path: '/api/classes/start-reminders', everyMins: 10 },
   { name: 'info_sessions',      path: '/api/info-sessions/run',       everyMins: 15 },

@@ -21,13 +21,23 @@ export async function POST(req: NextRequest) {
   if (!enr?.batch_id) return NextResponse.json({ error: 'no_class' }, { status: 404 })
 
   const { data: b } = await sb.from('batches')
-    .select('end_date, status, free_sessions, min_payment_per_session, zoom_link').eq('id', enr.batch_id).maybeSingle()
-  if (!b?.zoom_link) return NextResponse.json({ error: 'no_link' }, { status: 404 })
+    .select('end_date, status, free_sessions, min_payment_per_session, zoom_link, current_section').eq('id', enr.batch_id).maybeSingle()
+
+  // The link for the section the class is on now. Admin changes it there and
+  // every student sees the new one immediately, with no old link cached.
+  let joinLink = b?.zoom_link || null
+  try {
+    const { data: sec } = await sb.from('class_sections')
+      .select('zoom_link').eq('batch_id', enr.batch_id).eq('is_current', true).maybeSingle()
+    if (sec?.zoom_link) joinLink = sec.zoom_link
+  } catch {}
+
+  if (!joinLink) return NextResponse.json({ error: 'no_link' }, { status: 404 })
 
   // Cohort over?
-  const endsAt = b.end_date ? new Date(b.end_date) : null
+  const endsAt = b?.end_date ? new Date(b.end_date) : null
   if (endsAt) endsAt.setHours(23, 59, 59, 999)
-  if (b.status === 'completed' || (endsAt && endsAt.getTime() < Date.now())) {
+  if (b?.status === 'completed' || (endsAt && endsAt.getTime() < Date.now())) {
     return NextResponse.json({ error: 'cohort_ended' }, { status: 403 })
   }
 
@@ -35,8 +45,8 @@ export async function POST(req: NextRequest) {
   const { count: attended } = await sb.from('class_signins')
     .select('id', { count: 'exact', head: true }).eq('enrollment_id', enr.id)
   const sessionNumber = (attended || 0) + 1
-  const freeSessions = Number(b.free_sessions ?? 1)
-  const perSession = Number(b.min_payment_per_session ?? 0)
+  const freeSessions = Number(b?.free_sessions ?? 1)
+  const perSession = Number(b?.min_payment_per_session ?? 0)
   const paid = Number(enr.amount_paid || 0)
   const totalFee = Number(enr.total_fee || 0)
   if (perSession > 0 && sessionNumber > freeSessions) {

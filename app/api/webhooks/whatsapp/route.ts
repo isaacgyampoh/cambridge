@@ -540,9 +540,11 @@ async function handleInbound(req: NextRequest) {
     // moment, longer for longer replies, before sending — an instant response
     // is the clearest sign a machine is on the other end.
     const words = String(reply).trim().split(/\s+/).length
-    const think = 6000 + Math.random() * 7000             // reading and thinking
-    const typing = Math.min(words * 550, 14000)           // roughly typing speed
-    await new Promise(r => setTimeout(r, Math.min(think + typing, 28000)))
+    // About ten seconds — long enough to read as human, short enough to feel
+    // attentive.
+    const think = 4000 + Math.random() * 4000
+    const typing = Math.min(words * 260, 7000)
+    await new Promise(r => setTimeout(r, Math.min(think + typing, 14000)))
 
     // Someone may have written again while we waited, or a colleague may have
     // stepped in. Check before sending something now out of date.

@@ -18,8 +18,16 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
   }
   await sb.from('class_access_tokens').update({ used: true }).eq('token', token)
 
-  const { data: b } = await sb.from('batches').select('zoom_link').eq('id', t.batch_id).maybeSingle()
-  if (!b?.zoom_link) return NextResponse.redirect(home, { status: 302 })
+  // Always the current section's link, read at the moment of joining.
+  let target: string | null = null
+  const { data: sec } = await sb.from('class_sections')
+    .select('zoom_link').eq('batch_id', t.batch_id).eq('is_current', true).maybeSingle()
+  target = sec?.zoom_link || null
+  if (!target) {
+    const { data: b } = await sb.from('batches').select('zoom_link').eq('id', t.batch_id).maybeSingle()
+    target = b?.zoom_link || null
+  }
+  if (!target) return NextResponse.redirect(home, { status: 302 })
 
   // Record attendance
   try {
@@ -39,5 +47,5 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ token: stri
     }
   } catch {}
 
-  return NextResponse.redirect(b.zoom_link, { status: 302 })
+  return NextResponse.redirect(target, { status: 302 })
 }

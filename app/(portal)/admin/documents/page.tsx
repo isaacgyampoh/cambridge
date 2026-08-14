@@ -34,7 +34,7 @@ export default function DocumentsPage() {
   const [sending, setSending] = useState(false)
   const [userId, setUserId] = useState<string | null>(null)
   const fileRef = useRef<HTMLInputElement>(null)
-  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '' })
+  const [form, setForm] = useState({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '', is_gallery: false })
   const [courses, setCourses] = useState<any[]>([])
   const [posDoc, setPosDoc] = useState<any>(null)
   const FIELD_KEYS = ['full_name', 'admission_number', 'course', 'batch', 'date', 'amount', 'email', 'phone', 'receipt_number']
@@ -121,7 +121,7 @@ export default function DocumentsPage() {
       }
 
       toast.success('Document uploaded!')
-      setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '' })
+      setForm({ name: '', type: 'admission_letter', description: '', is_template: false, course_id: '', delivery_scope: '', unlock_after_amount: '', is_gallery: false })
       load()
     } catch (e: any) {
       toast.error(e.message || 'Failed to save document')
@@ -252,6 +252,20 @@ export default function DocumentsPage() {
               </div>
             )}
           </div>
+        )}
+
+        {/* Mark one document as the gallery — it is sent to every new lead
+             alongside the brochure for their course. */}
+        {(form.type === 'other' || form.type === 'brochure') && (
+          <label className="flex items-start gap-2.5 mb-4 cursor-pointer">
+            <input type="checkbox" checked={form.is_gallery}
+              onChange={e => setForm(f => ({ ...f, is_gallery: e.target.checked }))}
+              className="mt-0.5" />
+            <span className="text-[13px] text-[var(--ink-soft)]">
+              <b className="text-[var(--ink)]">This is our gallery.</b> It is sent to every new lead
+              with the brochure for their course, before the conversation starts.
+            </span>
+          </label>
         )}
 
         {form.type === 'chat_sample' && (

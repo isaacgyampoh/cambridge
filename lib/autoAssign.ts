@@ -156,6 +156,18 @@ async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
     // wrong for a paid student.
     const skipStatuses = ['registered', 'not_interested', 'lost']
     if (full?.phone && !skipStatuses.includes(String(full.status || ''))) {
+      // Hello, gallery, then the brochure for their course. Only after that
+      // does the conversation begin, so the lead has something to look at.
+      try {
+        const { sendWelcomePack } = await import('@/lib/leadWelcome')
+        const pack = await sendWelcomePack({
+          leadId, phone: full.phone,
+          leadName: full.full_name, courseInterest: full.course_interest,
+          marketerId: marketerId, marketerName: marketer?.full_name,
+        })
+        if (pack.sent) return          // the welcome pack IS the opening
+      } catch (e) { console.error('[welcome pack]', e) }
+
       const opening = await generateOpeningMessage({
         leadName: full.full_name,
         marketerName: marketer?.full_name || 'Cambridge',

@@ -21,6 +21,17 @@ export async function POST(req: NextRequest) {
     const bucket = isMaterial ? 'materials' : 'uploads'
     if (!file) return NextResponse.json({ error: 'No file provided.' }, { status: 400 })
 
+    // Say plainly what is wrong, rather than a bare failure.
+    const MAX = 50 * 1024 * 1024
+    if (file.size > MAX) {
+      return NextResponse.json({
+        error: `That file is ${(file.size / 1048576).toFixed(1)} MB. The limit is 50 MB — please compress it and try again.`,
+      }, { status: 413 })
+    }
+    if (file.size === 0) {
+      return NextResponse.json({ error: 'That file is empty.' }, { status: 400 })
+    }
+
     const bytes = Buffer.from(await file.arrayBuffer())
     const ext = (file.name?.split('.').pop() || 'bin').toLowerCase().replace(/[^a-z0-9]/g, '')
     const safeBase = (file.name?.replace(/\.[^.]+$/, '') || 'file').replace(/[^a-z0-9_-]/gi, '-').slice(0, 40)
@@ -56,7 +67,18 @@ export async function POST(req: NextRequest) {
       error = retry.error
     }
 
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) {
+      // Translate the storage error into something actionable.
+      const m = String(error.message || '')
+      const friendly =
+        /bucket.*not found|does not exist/i.test(m) ? 'Storage is not set up yet. Run COMPLETE-SETUP.sql in Supabase, then try again.'
+        : /exceeded.*size|payload too large/i.test(m) ? 'That file is larger than the 50 MB limit.'
+        : /duplicate|already exists/i.test(m) ? 'A file with that name was just uploaded. Try again.'
+        : /policy|permission|denied|row-level/i.test(m) ? 'Storage permissions are blocking this. Run COMPLETE-SETUP.sql in Supabase.'
+        : m || 'The upload failed.'
+      console.error('[upload] failed:', m)
+      return NextResponse.json({ error: friendly, detail: m }, { status: 500 })
+    }
 
     // A private file has no public address; the portal streams it instead.
     const url = (isMaterial && usedBucket === 'materials')
