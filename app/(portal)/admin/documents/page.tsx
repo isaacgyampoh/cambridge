@@ -98,7 +98,10 @@ export default function DocumentsPage() {
         is_template: form.is_template,
         template_fields: form.is_template ? TEMPLATE_FIELDS : null,
         course_id: form.course_id || null,
-        delivery_scope: form.type === 'course_material' ? (form.delivery_scope || null) : null,
+        // Admission letters differ by delivery mode — online students pay a
+        // different fee and receive a different letter.
+        delivery_scope: ['course_material', 'admission_letter'].includes(form.type)
+          ? (form.delivery_scope || null) : null,
         unlock_after_amount: form.type === 'course_material' ? (Number(form.unlock_after_amount) || 0) : 0,
         section_no: form.type === 'course_material' && form.section_no ? Number(form.section_no) : null,
         is_active: true,
@@ -276,6 +279,21 @@ export default function DocumentsPage() {
               with the brochure for their course, before the conversation starts.
             </span>
           </label>
+        )}
+
+        {form.type === 'admission_letter' && (
+          <div className="mb-4">
+            <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Which students is this letter for?</label>
+            <select value={form.delivery_scope} onChange={e => setForm(f => ({ ...f, delivery_scope: e.target.value }))}
+              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              <option value="">Both online and in person</option>
+              <option value="online">Online students only</option>
+              <option value="in_person">In-person students only</option>
+            </select>
+            <p className="text-[12px] text-[var(--ink-faint)] mt-1">
+              Online and in-person students pay different fees, so upload a letter for each.
+            </p>
+          </div>
         )}
 
         {form.type === 'chat_sample' && (

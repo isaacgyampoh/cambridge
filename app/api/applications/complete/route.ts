@@ -61,6 +61,25 @@ export async function POST(req: NextRequest) {
     }).eq('id', applicationId)
   }
 
+  // Both the payment webhook and the return page call this, so it can run
+  // twice for one payment — which is why registrations appeared duplicated.
+  // Claim the application first: the second caller finds it already claimed
+  // and stops.
+  const claimKey = `app_complete:${applicationId}`
+  const { error: claimErr } = await sb.from('message_jobs').insert({
+    dedupe_key: claimKey, kind: 'application_complete', status: 'sent',
+    body: applicationId, sent_at: new Date().toISOString(),
+  })
+  if (claimErr) {
+    // Already being processed, or already done.
+    const { data: done } = await sb.from('admissions')
+      .select('admission_number').eq('application_id', applicationId).maybeSingle()
+    return NextResponse.json({
+      success: true, alreadyProcessed: true,
+      admissionNumber: done?.admission_number || null,
+    })
+  }
+
   const { data: app } = await sb.from('applications').select('*, course:course_id(name)').eq('id', applicationId).single()
   if (!app) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
 
@@ -160,6 +179,7 @@ export async function POST(req: NextRequest) {
   if (!existingAdm) {
     admissionNo = `CCE/${new Date().getFullYear()}/${String(Math.floor(1000 + Math.random() * 9000))}`
     const { data: admission } = await sb.from('admissions').insert({
+      application_id: applicationId,
       lead_id: leadId,
       course_id: app.course_id,
       admission_number: admissionNo,
@@ -196,14 +216,30 @@ export async function POST(req: NextRequest) {
     try {
       // Course-specific uploaded letter (tolerate null is_active — only skip if
       // explicitly deactivated).
-      const pick = async (courseScoped: boolean) => {
+      // Online and in-person students pay different fees and get different
+      // letters. Picking without checking the delivery mode is why virtual
+      // students were receiving the physical letter.
+      const wantScope = (app.delivery || 'in_person') === 'online' ? 'online' : 'in_person'
+
+      const pick = async (courseScoped: boolean, scopeMatch: 'exact' | 'any') => {
         let q = sb.from('documents')
-          .select('file_url, is_active, is_template, field_positions').eq('type', 'admission_letter')
+          .select('file_url, is_active, is_template, field_positions, delivery_scope')
+          .eq('type', 'admission_letter')
         q = courseScoped ? q.eq('course_id', app.course_id) : q.is('course_id', null)
-        const { data } = await q.order('created_at', { ascending: false }).limit(1).maybeSingle()
-        return (data && (data as any).is_active !== false) ? data : null
+        if (scopeMatch === 'exact') q = q.eq('delivery_scope', wantScope)
+        const { data } = await q.order('created_at', { ascending: false }).limit(20)
+        const rows = (data || []).filter((d: any) => d.is_active !== false)
+        if (scopeMatch === 'exact') return rows[0] || null
+        // 'any' means a letter that suits both, never one meant for the other mode.
+        return rows.find((d: any) => !d.delivery_scope || d.delivery_scope === 'both') || null
       }
-      const doc: any = (await pick(true)) || (await pick(false))
+
+      // Most specific first: this course AND this delivery mode.
+      const doc: any =
+        (await pick(true, 'exact')) ||
+        (await pick(true, 'any')) ||
+        (await pick(false, 'exact')) ||
+        (await pick(false, 'any'))
       if (doc?.file_url) {
         letterUrl = doc.file_url
         usedUploaded = true
