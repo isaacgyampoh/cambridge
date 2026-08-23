@@ -285,6 +285,17 @@ export default function MarketerPerformancePage() {
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
       ) : (
         <div className="space-y-4">
+      {/* How leads are shared — so the tiers are not misread */}
+      <div className="bg-[var(--accent-soft)] border border-[var(--accent)]/15 rounded-xl p-4 mb-5">
+        <div className="text-[13px] font-semibold text-[var(--ink)] mb-1.5">How shared leads are split</div>
+        <p className="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">
+          Leads nobody introduced are shared by tier: <b>high performers take 45%</b>,
+          <b> mid 35%</b>, <b> low 20%</b>. Each tier's share is divided evenly among the people
+          in it, so five mid performers get about 7% each, not 35% each. Leads from a
+          marketer's own link are never shared.
+        </p>
+      </div>
+
           {marketers.map(m => {
             const sc = STATUS_CONFIG[m.status]
             return (

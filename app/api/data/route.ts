@@ -24,13 +24,13 @@ export async function GET(req: NextRequest) {
   // Role-based table access control
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
-    exam_coordinator: ['documents','prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
+    exam_coordinator: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
     project_manager: ['documents','leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles','courses'],
     admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
     accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    trainer: ['documents','batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
+    trainer: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     student: ['invoices','payments','batch_students','batches','courses','attendance','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
   }
 
@@ -52,7 +52,9 @@ export async function GET(req: NextRequest) {
 
   // Marketers only ever see their OWN leads (and own lead activities),
   // never the whole CRM, regardless of filters they send.
-  if (session.role === 'marketing_officer' && table === 'leads') {
+  // Anyone with a "My Leads" page sees only their own — never the whole CRM.
+  const ownLeadsOnly = ['marketing_officer', 'exam_coordinator', 'trainer']
+  if (ownLeadsOnly.includes(session.role || '') && table === 'leads') {
     query = query.eq('assigned_to', session.userId)
   }
 
@@ -147,13 +149,13 @@ export async function DELETE(req: NextRequest) {
 
   const ALLOWED: Record<string, string[]> = {
     super_admin: ['*'],
-    exam_coordinator: ['documents','prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
+    exam_coordinator: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
     project_manager: ['documents','leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles'],
     admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
     accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    trainer: ['documents','batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
+    trainer: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
     student: ['invoices','payments','batch_students','batches','courses','attendance','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
   }
   const allowed = ALLOWED[session.role || ''] || []
