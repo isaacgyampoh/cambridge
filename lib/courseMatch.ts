@@ -74,7 +74,40 @@ export async function findBrochure(courseId?: string | null): Promise<string | n
     if (co?.brochure_url) return co.brochure_url
   }
 
-  // Only reached when the course genuinely has no brochure of its own.
+  // Nothing tied to the course. Before falling back, look for a brochure whose
+  // NAME names the course — people often upload "PMP Overview" without picking
+  // a course from the list, and sending another course's brochure instead is
+  // far worse than sending none.
+  if (courseId) {
+    const { data: co } = await sb.from('courses').select('name, code').eq('id', courseId).maybeSingle()
+    const terms = [co?.code, co?.name].filter(Boolean) as string[]
+    if (terms.length) {
+      const { data: named } = await sb.from('documents')
+        .select('file_url, name').eq('type', 'brochure').eq('is_active', true).limit(50)
+      const hit = (named || []).find((d: any) => {
+        const n = String(d.name || '').toLowerCase()
+        return terms.some(t => new RegExp(`\\b${String(t).toLowerCase().replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}\\b`).test(n))
+      })
+      if (hit?.file_url) return hit.file_url
+    }
+
+    // A general brochure is only safe if it does not name a DIFFERENT course.
+    const { data: allCourses } = await sb.from('courses').select('name, code').eq('is_active', true).limit(200)
+    const others = (allCourses || []).filter((x: any) => x.code !== co?.code)
+
+    const { data: generals } = await sb.from('documents')
+      .select('file_url, name').eq('type', 'brochure').is('course_id', null).eq('is_active', true)
+      .order('created_at', { ascending: false }).limit(20)
+
+    const safe = (generals || []).find((d: any) => {
+      const n = String(d.name || '').toLowerCase()
+      return !others.some((o: any) =>
+        (o.code && new RegExp(`\\b${String(o.code).toLowerCase()}\\b`).test(n)) ||
+        (o.name && n.includes(String(o.name).toLowerCase())))
+    })
+    return safe?.file_url || null      // send nothing rather than the wrong one
+  }
+
   const { data: general } = await sb.from('documents')
     .select('file_url').eq('type', 'brochure').is('course_id', null).eq('is_active', true)
     .order('created_at', { ascending: false }).limit(1).maybeSingle()

@@ -199,6 +199,16 @@ export default function DocumentsPage() {
           className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition">
           Check chat samples
         </button>
+        <button onClick={async () => {
+          const d = await fetch('/api/admin/brochure-check').then(r => r.json()).catch(() => null)
+          if (!d || d.error) return alert(d?.error || 'Could not check')
+          const lines = (d.courses || []).map((r: any) =>
+            `${r.ok ? '✓' : '✗'}  ${r.course}  →  ${r.willSend || 'NOTHING'}`).join('\n')
+          alert(`${d.advice}\n\n${lines}`)
+        }}
+          className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition ml-2">
+          Check brochures
+        </button>
       </div>
 
       {/* Upload section */}
