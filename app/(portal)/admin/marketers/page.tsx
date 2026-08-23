@@ -289,9 +289,10 @@ export default function MarketerPerformancePage() {
       <div className="bg-[var(--accent-soft)] border border-[var(--accent)]/15 rounded-xl p-4 mb-5">
         <div className="text-[13px] font-semibold text-[var(--ink)] mb-1.5">How shared leads are split</div>
         <p className="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">
-          Leads nobody introduced are shared by tier: <b>high performers take 45%</b>,
-          <b> mid 35%</b>, <b> low 20%</b>. Each tier's share is divided evenly among the people
-          in it, so five mid performers get about 7% each, not 35% each. Leads from a
+          Leads nobody introduced are shared by weight. Each <b>high performer counts 45</b>,
+          each <b>mid 35</b>, each <b>low or support 20</b>. So a high performer receives about
+          1.3 leads for every 1 a mid performer gets, and 2.25 for every 1 a low performer gets.
+          Adding someone to a tier does not reduce anyone else's weight. Leads from a
           marketer's own link are never shared.
         </p>
       </div>

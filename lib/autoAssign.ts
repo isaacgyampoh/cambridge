@@ -70,30 +70,12 @@ export async function autoAssignLead(leadId: string, preferredMarketerId?: strin
   // ── Weighted-by-tier lottery ──
   // high=4, mid=3, low=2, support=1. A high performer is 4x as likely as
   // support to receive any given lead (≈40/30/20/10 across tiers over time).
-  // The share each tier receives, as agreed: high performers 45%, mid 35%,
-  // low 20%. These are percentages of the pool, split evenly among the people
-  // in that tier — so two high performers get roughly 22.5% each, not 45% each.
-  const TIER_SHARE: Record<string, number> = { high: 45, mid: 35, low: 20, support: 20 }
-
-  const inTier: Record<string, number> = {}
-  for (const m of pool) {
-    const t = (m.performance_tier as string) || 'mid'
-    inTier[t] = (inTier[t] || 0) + 1
-  }
-
-  // Only count tiers that actually have someone in them, then scale back up so
-  // the shares always total 100. Otherwise an empty tier would quietly lose
-  // its share of the leads.
-  const presentTotal = Object.keys(inTier).reduce((sum, t) => sum + (TIER_SHARE[t] ?? 35), 0)
-
-  const weightOf = (m: any) => {
-    const t = (m.performance_tier as string) || 'mid'
-    const share = TIER_SHARE[t] ?? 35
-    const headcount = inTier[t] || 1
-    // Each person's slice of their tier's share, normalised across the tiers
-    // that actually have people in them.
-    return (share / presentTotal) / headcount
-  }
+  // Each PERSON carries their tier's weight: a high performer counts 45, a mid
+  // performer 35, a low or support performer 20. So a high performer receives
+  // roughly 1.3 leads for every 1 a mid performer gets, and adding another high
+  // performer does not reduce anyone else's weight — the pool simply grows.
+  const TIER_WEIGHT: Record<string, number> = { high: 45, mid: 35, low: 20, support: 20 }
+  const weightOf = (m: any) => TIER_WEIGHT[(m.performance_tier as string) || 'mid'] ?? 35
 
   // Build a weighted pool, then pick proportionally. To also keep things fair
   // for people who are behind, we lightly favour the less-loaded person within
