@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -9,7 +10,7 @@ export const runtime = 'nodejs'
  */
 export async function GET() {
   const pub = CONFIG.paystackPublicKey || ''
-  const sec = CONFIG.paystackSecretKey || ''
+  const sec = SECRETS.paystackSecretKey || ''
   return NextResponse.json({
     public_key_set: !!pub,
     public_key_fingerprint: pub ? `${pub.slice(0, 12)}…${pub.slice(-4)}` : null,

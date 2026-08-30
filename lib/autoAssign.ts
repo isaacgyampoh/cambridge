@@ -1,191 +1,177 @@
+import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import { generateOpeningMessage } from '@/lib/integrations/ai-assistant'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
+import { eligibleMarketers, isEligible } from '@/lib/leads/eligibility'
 
 /**
- * Round-robin auto-assignment for system-generated leads (Facebook,
- * website, etc). Distributes evenly by giving the new lead to the active
- * marketer who currently has the FEWEST open leads — so the workload
- * stays balanced. Returns the assigned marketer id, or null if none.
+ * Assign a lead to a marketer.
  *
- * Controlled by the 'auto_assign_leads' setting (defaults ON). When off,
- * leads stay unassigned for a PM to distribute manually.
+ * Two things were wrong before, and between them they account for the report
+ * that some staff receive leads while others never do:
+ *
+ *  1. The candidate pool was every active non-super-admin profile — trainers,
+ *     accountants, receptionists, students. Leads were assigned to people with
+ *     no leads page, which looks exactly like a lead vanishing. Eligibility is
+ *     now decided by lib/leads/eligibility.ts, from the same portal rules the
+ *     navigation and route guard use.
+ *
+ *  2. Selection was `Math.random()` over tier-weighted tickets, despite the
+ *     docblock claiming round robin. A support-tier marketer holding nineteen
+ *     open leads had one ticket against a high performer's forty-five, so on a
+ *     quiet day they could receive nothing at all. Selection is now weighted
+ *     least-loaded inside a locked database function: deterministic, still
+ *     tier-weighted, and incapable of starving anyone.
+ *
+ * Assignment is also now separated from onboarding. The AI opening message and
+ * WhatsApp welcome used to be awaited inside this call, which put an external
+ * API on the critical path of every inbound lead — a slow provider delayed
+ * assignment and a serverless timeout could abandon it half-done. Onboarding
+ * runs after the assignment is committed and can fail harmlessly.
  */
-export async function autoAssignLead(leadId: string, preferredMarketerId?: string | null, source?: string | null): Promise<string | null> {
+export async function autoAssignLead(
+  leadId: string,
+  preferredMarketerId?: string | null,
+  source?: string | null
+): Promise<string | null> {
   const sb = createServiceClient()
 
-  // If a specific marketer owns this lead (e.g. their personal referral/flyer
-  // link), assign straight to them — skip round-robin — but still fire the AI
-  // opening + nurture below.
-  if (preferredMarketerId) {
-    const { data: pref } = await sb.from('profiles')
-      .select('id, is_active').eq('id', preferredMarketerId).maybeSingle()
-    if (pref?.is_active) {
-      await sb.from('leads').update({ assigned_to: preferredMarketerId, assigned_at: new Date().toISOString() }).eq('id', leadId)
-      await fireLeadOnboarding(sb, leadId, preferredMarketerId)
+  // A personal referral or flyer link names its owner. Honour it, but only if
+  // that person is genuinely eligible — otherwise fall through to the pool
+  // rather than parking the lead somewhere it will never be seen.
+  if (preferredMarketerId && await isEligible(preferredMarketerId)) {
+    const { data: claimed } = await sb.rpc('assign_lead_to', {
+      p_lead_id: leadId,
+      p_marketer: preferredMarketerId,
+      p_actor: null,
+      p_reason: 'referral_link',
+      p_source: source || null,
+      p_force: false,          // never steal a lead that is already owned
+    })
+    if (claimed) {
+      await onLeadAssigned(leadId, preferredMarketerId)
       return preferredMarketerId
     }
-    // if the preferred marketer is invalid/inactive, fall through to round-robin
+    // Not claimed → it already had an owner. Report that owner.
+    const { data: lead } = await sb.from('leads').select('assigned_to').eq('id', leadId).maybeSingle()
+    if (lead?.assigned_to) return lead.assigned_to
   }
 
-  // Respect the toggle (defaults ON if the setting/table isn't present)
+  // Respect the master toggle. Defaults ON when the setting is absent.
   try {
     const { data: setting } = await sb.from('settings')
       .select('value').eq('key', 'auto_assign_leads').maybeSingle()
     if (setting && setting.value === 'false') return null
   } catch { /* no settings table yet — default ON */ }
 
-  // Source-based routing:
-  //  - google  -> ONLY people flagged gets_google_leads
-  //  - website -> ONLY people flagged gets_website_leads
-  //  - everything else (facebook/campaign/manual) -> the whole active pool
-  const src = (source || '').toLowerCase()
-  const { data: marketers } = await sb.from('profiles')
-    .select('id, full_name, in_lead_pool, performance_tier, gets_google_leads, gets_website_leads')
-    .neq('role', 'super_admin').eq('is_active', true)
-
-  let pool = (marketers || []).filter(m => m.in_lead_pool !== false)
-  if (src === 'google') {
-    const exclusive = (marketers || []).filter((m: any) => m.gets_google_leads === true)
-    if (exclusive.length > 0) pool = exclusive   // only chosen people
-    // if nobody is flagged yet, fall back to the normal pool so leads aren't lost
-  } else if (src === 'website') {
-    const exclusive = (marketers || []).filter((m: any) => m.gets_website_leads === true)
-    if (exclusive.length > 0) pool = exclusive
+  const candidates = await eligibleMarketers({ source })
+  if (!candidates.length) {
+    console.warn('[autoAssign] no eligible marketer for lead', leadId,
+      '— nobody active has the my_leads portal')
+    return null
   }
-  if (pool.length === 0) return null
 
-  // Count each person's current OPEN leads (for tie-breaking within a tier)
-  const { data: openLeads } = await sb.from('leads')
-    .select('assigned_to')
-    .not('assigned_to', 'is', null)
-    .not('status', 'in', '(registered,lost,not_interested)')
-
-  const load: Record<string, number> = {}
-  pool.forEach(m => { load[m.id] = 0 })
-  ;(openLeads || []).forEach((l: any) => {
-    if (l.assigned_to in load) load[l.assigned_to]++
+  // The database picks and claims in one locked step.
+  const { data: chosen, error } = await sb.rpc('assign_lead_atomic', {
+    p_lead_id: leadId,
+    p_candidates: candidates.map(c => c.id),
+    p_weights: candidates.map(c => c.weight),
+    p_actor: null,
+    p_reason: 'auto',
+    p_source: source || null,
+    p_force: false,
   })
 
-  // ── Weighted-by-tier lottery ──
-  // high=4, mid=3, low=2, support=1. A high performer is 4x as likely as
-  // support to receive any given lead (≈40/30/20/10 across tiers over time).
-  // Each PERSON carries their tier's weight: a high performer counts 45, a mid
-  // performer 35, a low or support performer 20. So a high performer receives
-  // roughly 1.3 leads for every 1 a mid performer gets, and adding another high
-  // performer does not reduce anyone else's weight — the pool simply grows.
-  const TIER_WEIGHT: Record<string, number> = { high: 45, mid: 35, low: 20, support: 20 }
-  const weightOf = (m: any) => TIER_WEIGHT[(m.performance_tier as string) || 'mid'] ?? 35
-
-  // Build a weighted pool, then pick proportionally. To also keep things fair
-  // for people who are behind, we lightly favour the less-loaded person within
-  // the same weight by using weight / (1 + openLeads) as the effective ticket.
-  const tickets = pool.map(m => ({ m, ticket: weightOf(m) / (1 + (load[m.id] ?? 0)) }))
-  const totalTickets = tickets.reduce((sum, t) => sum + t.ticket, 0)
-
-  let chosen = pool[0]
-  if (totalTickets > 0) {
-    let r = Math.random() * totalTickets
-    for (const t of tickets) {
-      r -= t.ticket
-      if (r <= 0) { chosen = t.m; break }
-    }
+  if (error) {
+    console.error('[autoAssign] assign_lead_atomic failed:', error.message)
+    return null
   }
+  if (!chosen) return null
 
-  // Assign
-  await sb.from('leads').update({
-    assigned_to: chosen.id,
-    assigned_at: new Date().toISOString(),
-  }).eq('id', leadId)
-
-  await fireLeadOnboarding(sb, leadId, chosen.id)
-  return chosen.id
+  await onLeadAssigned(leadId, chosen as string)
+  return chosen as string
 }
 
 /**
- * After a lead is assigned to a marketer (round-robin OR a specific marketer),
- * notify the marketer, enroll in the new-lead nurture sequence, and fire the
- * AI WhatsApp opening message through that marketer's line.
+ * Everything that should happen once a lead has an owner.
+ *
+ * Deliberately best-effort throughout: the assignment is already committed, so
+ * nothing in here may throw its way back out. A failed WhatsApp message must
+ * never cost us the lead.
  */
-async function fireLeadOnboarding(sb: any, leadId: string, marketerId: string) {
-  const { data: marketer } = await sb.from('profiles').select('full_name').eq('id', marketerId).maybeSingle()
+export async function onLeadAssigned(leadId: string, marketerId: string): Promise<void> {
+  const sb = createServiceClient()
 
-  // Notify the marketer in-app
-  const { data: lead } = await sb.from('leads').select('full_name, source').eq('id', leadId).maybeSingle()
-  await sb.from('notifications').insert({
-    user_id: marketerId, type: 'lead',
-    title: 'New lead assigned to you',
-    body: `${lead?.full_name || 'A new lead'} (${lead?.source || 'system'}) was assigned to you. Reach out soon.`,
-    link: `/marketer/leads/${leadId}`,
-  }).then(() => {}, () => {})
-
-  // Increment the pending-SMS counter (a cron sends ONE consolidated SMS per
-  // marketer, so 20 leads = 1 text, not 20). Never blocks assignment.
   try {
-    const { data: p } = await sb.from('lead_assign_pending').select('pending').eq('marketer_id', marketerId).maybeSingle()
-    if (p) {
-      await sb.from('lead_assign_pending').update({ pending: (p.pending || 0) + 1, last_lead_at: new Date().toISOString() }).eq('marketer_id', marketerId)
-    } else {
-      await sb.from('lead_assign_pending').insert({ marketer_id: marketerId, pending: 1, last_lead_at: new Date().toISOString() })
-    }
-  } catch { /* table optional */ }
+    const [{ data: lead }, { data: marketer }] = await Promise.all([
+      sb.from('leads').select('full_name, source, phone, course_interest, status').eq('id', leadId).maybeSingle(),
+      sb.from('profiles').select('full_name').eq('id', marketerId).maybeSingle(),
+    ])
 
-  // Don't nurture someone who already registered
-  const { data: statusRow } = await sb.from('leads').select('status').eq('id', leadId).maybeSingle()
-  const alreadyConverted = ['registered', 'not_interested', 'lost'].includes(String(statusRow?.status || ''))
+    // In-app notification.
+    await sb.from('notifications').insert({
+      user_id: marketerId,
+      type: 'lead',
+      title: 'New lead assigned to you',
+      body: `${lead?.full_name || 'A new lead'} (${lead?.source || 'system'}) was assigned to you. Reach out soon.`,
+      link: `/marketer/leads/${leadId}`,
+    }).then(() => {}, () => {})
 
-  // Auto-enroll into any active "new lead" nurture sequence
-  try {
-    if (alreadyConverted) throw new Error('skip')
-    const { data: seqs } = await sb.from('sequences')
-      .select('id').eq('is_active', true).eq('trigger', 'new_lead').limit(1)
-    if (seqs && seqs[0]) {
-      const { data: steps } = await sb.from('sequence_steps')
-        .select('delay_hours').eq('sequence_id', seqs[0].id).order('step_order', { ascending: true }).limit(1)
-      const firstDelay = steps?.[0]?.delay_hours ?? 24
-      await sb.from('sequence_enrollments').upsert({
-        sequence_id: seqs[0].id, lead_id: leadId,
-        current_step: 0, next_run_at: new Date(Date.now() + firstDelay * 3600000).toISOString(),
-        status: 'active',
-      }, { onConflict: 'sequence_id,lead_id' })
-    }
-  } catch { /* sequences optional */ }
+    // Pending-SMS counter, incremented atomically. A cron sends ONE
+    // consolidated text per marketer, so twenty leads is one message.
+    await sb.rpc('bump_lead_pending', { p_marketer: marketerId }).then(() => {}, () => {})
 
-  // AI auto-conversation: start the WhatsApp chat through the marketer's line.
-  try {
-    const { data: full } = await sb.from('leads')
-      .select('full_name, phone, course_interest, status').eq('id', leadId).maybeSingle()
-    // Never open a sales conversation with someone who has already registered
-    // or was written off — the greeting asks what they do for work, which is
-    // wrong for a paid student.
-    const skipStatuses = ['registered', 'not_interested', 'lost']
-    if (full?.phone && !skipStatuses.includes(String(full.status || ''))) {
-      // Hello, gallery, then the brochure for their course. Only after that
-      // does the conversation begin, so the lead has something to look at.
+    // Never start a sales conversation with someone already converted or
+    // written off — the opening asks what they do for work, which is wrong
+    // for a paid student.
+    const skip = ['registered', 'not_interested', 'lost']
+    if (skip.includes(String(lead?.status || ''))) return
+
+    // Nurture sequence enrolment.
+    try {
+      const { data: seqs } = await sb.from('sequences')
+        .select('id').eq('is_active', true).eq('trigger', 'new_lead').limit(1)
+      if (seqs?.[0]) {
+        const { data: steps } = await sb.from('sequence_steps')
+          .select('delay_hours').eq('sequence_id', seqs[0].id)
+          .order('step_order', { ascending: true }).limit(1)
+        const firstDelay = steps?.[0]?.delay_hours ?? 24
+        await sb.from('sequence_enrollments').upsert({
+          sequence_id: seqs[0].id, lead_id: leadId,
+          current_step: 0,
+          next_run_at: new Date(Date.now() + firstDelay * 3600000).toISOString(),
+          status: 'active',
+        }, { onConflict: 'sequence_id,lead_id' })
+      }
+    } catch { /* sequences are optional */ }
+
+    // Opening conversation through the marketer's own WhatsApp line.
+    if (lead?.phone) {
       try {
         const { sendWelcomePack } = await import('@/lib/leadWelcome')
         const pack = await sendWelcomePack({
-          leadId, phone: full.phone,
-          leadName: full.full_name, courseInterest: full.course_interest,
-          marketerId: marketerId, marketerName: marketer?.full_name,
+          leadId, phone: lead.phone,
+          leadName: lead.full_name, courseInterest: lead.course_interest,
+          marketerId, marketerName: marketer?.full_name,
         })
         if (pack.sent) return          // the welcome pack IS the opening
-      } catch (e) { console.error('[welcome pack]', e) }
+      } catch (e) { console.error('[onLeadAssigned] welcome pack:', e) }
 
       const opening = await generateOpeningMessage({
-        leadName: full.full_name,
+        leadName: lead.full_name,
         marketerName: marketer?.full_name || 'Cambridge',
-        courseInterest: full.course_interest,
+        courseInterest: lead.course_interest,
       })
-      if (opening) {
-        const sent = await sendWhatsAppText(full.phone, opening, marketerId)
-        if (sent) {
-          await sb.from('ai_conversations').insert({
-            lead_id: leadId, phone: String(full.phone).replace(/[^0-9]/g, '').replace(/^0/, '233'), marketer_id: marketerId,
-            incoming_text: null, reply_text: opening, answered_by: 'ai_opening',
-          }).then(() => {}, () => {})
-        }
+      if (opening && await sendWhatsAppText(lead.phone, opening, marketerId)) {
+        await sb.from('ai_conversations').insert({
+          lead_id: leadId,
+          phone: String(lead.phone).replace(/[^0-9]/g, '').replace(/^0/, '233'),
+          marketer_id: marketerId,
+          incoming_text: null, reply_text: opening, answered_by: 'ai_opening',
+        }).then(() => {}, () => {})
       }
     }
-  } catch { /* AI opening optional — never block assignment */ }
+  } catch (e) {
+    console.error('[onLeadAssigned] failed for lead', leadId, e)
+  }
 }

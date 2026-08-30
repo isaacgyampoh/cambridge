@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 
@@ -62,7 +62,7 @@ export async function PUT(req: NextRequest) {
   const phone = String(testTo).replace(/[^0-9+]/g, '').replace(/^\+/, '').replace(/^0/, '233')
   let ok = false, resp: any = null
   try {
-    const res = await fetch(CONFIG.wasenderUrl, {
+    const res = await fetch(SECRETS.wasenderUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${p.wasender_api_key}` },
       body: JSON.stringify({

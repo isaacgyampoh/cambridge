@@ -1,385 +1,56 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { createServiceClient } from '@/lib/supabase/server'
-import { renderPersonalisedDoc } from '@/lib/documentFill'
-import { generateAdmissionPDF } from '@/lib/generateAdmissionPDF'
-import { sendWelcomeEmail, sendAdmissionLetter, sendUploadedAdmissionLetter } from '@/lib/integrations/email'
-import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
-import { sendSMS } from '@/lib/integrations/sms'
+import { completeApplication } from '@/lib/registration/complete'
+import { z } from 'zod'
 
 export const runtime = 'nodejs'
+export const maxDuration = 60
 
 /**
- * Called when a student completes the registration link AND pays the
- * GHS 200 registration fee via Paystack.
+ * Complete a registration after the fee is paid.
  *
- * Because payment = registration, this:
- *  1. Ensures a lead exists (creates/links one)
- *  2. Credits the marketer: programme points + GHS 200 commission
- *  3. Marks the lead 'registered'
- *  4. Creates the admission record + sends the welcome email
+ * The work now lives in lib/registration/complete.ts so the payment webhook
+ * can call it directly instead of issuing an HTTP request from the deployment
+ * back to its own origin — a round trip that could fail or time out on its
+ * own, leaving a paid application half-processed.
  *
- * All point-crediting uses the SAME logic as /api/leads/status so the
- * marketer's rank, salary and commission update identically no matter
- * how the student registered (link payment, pipeline, or manual).
+ * This endpoint remains for the browser return page. Both callers race for the
+ * same claim inside completeApplication, and exactly one does the work.
  */
-
-// Map a course name to a programme code for points
-function matchProgram(courseName: string | null, programs: any[]): any | null {
-  if (!courseName) return null
-  const t = courseName.toLowerCase()
-  for (const p of programs) {
-    if (t.includes(p.code.toLowerCase()) || t.includes(p.name.toLowerCase())) return p
-  }
-  const map: Record<string, string> = {
-    'pmp': 'PMP', 'project management': 'PMP',
-    'sphr': 'SPHRI', 'phri': 'SPHRI', 'human resource': 'SPHRI', 'hr': 'SPHRI',
-    'aphri': 'APHRI', 'capm': 'CAPM', 'ngo': 'NGO',
-    'project financing': 'PROJFIN', 'financing': 'PROJFIN',
-    'ms project': 'MSPROJ', 'microsoft project': 'MSPROJ',
-    'commercial law': 'COMLAW', 'law': 'COMLAW',
-    'instructor': 'INSTR', 'corporate': 'CORP',
-  }
-  for (const [kw, code] of Object.entries(map)) {
-    if (t.includes(kw)) { const p = programs.find(x => x.code === code); if (p) return p }
-  }
-  return null
-}
+const Body = z.object({
+  applicationId: z.string().uuid('That registration reference is not valid.'),
+  paystack_ref: z.string().max(120).optional().nullable(),
+})
 
 export async function POST(req: NextRequest) {
-  const { applicationId, paystack_ref } = await req.json()
-  if (!applicationId) return NextResponse.json({ error: 'Missing applicationId' }, { status: 400 })
-
-  const sb = createServiceClient()
-
-  // Record the payment (service role — bypasses RLS). Marks the application
-  // paid + submitted so admission processing can proceed.
-  if (paystack_ref) {
-    await sb.from('applications').update({
-      payment_status: 'paid', paystack_ref,
-      paid_at: new Date().toISOString(), amount_paid: 200,
-      is_submitted: true, submitted_at: new Date().toISOString(),
-    }).eq('id', applicationId)
+  const parsed = Body.safeParse(await req.json().catch(() => null))
+  if (!parsed.success) {
+    return NextResponse.json(
+      { error: parsed.error.issues[0]?.message || 'Invalid request.' },
+      { status: 400 }
+    )
   }
 
-  // Both the payment webhook and the return page call this, so it can run
-  // twice for one payment — which is why registrations appeared duplicated.
-  // Claim the application first: the second caller finds it already claimed
-  // and stops.
-  const claimKey = `app_complete:${applicationId}`
-  const { error: claimErr } = await sb.from('message_jobs').insert({
-    dedupe_key: claimKey, kind: 'application_complete', status: 'sent',
-    body: applicationId, sent_at: new Date().toISOString(),
-  })
-  if (claimErr) {
-    // Already being processed, or already done.
-    const { data: done } = await sb.from('admissions')
-      .select('admission_number').eq('application_id', applicationId).maybeSingle()
+  try {
+    const result = await completeApplication(parsed.data.applicationId, parsed.data.paystack_ref)
+
+    if (!result.ok) {
+      console.error('[applications/complete]', result.reason)
+      return NextResponse.json(
+        { error: 'We could not finish your registration. Our team has been notified.' },
+        { status: 500 }
+      )
+    }
+
     return NextResponse.json({
-      success: true, alreadyProcessed: true,
-      admissionNumber: done?.admission_number || null,
+      success: true,
+      alreadyProcessed: result.alreadyProcessed ?? false,
+      admissionNumber: result.admissionNumber ?? null,
     })
+  } catch (e) {
+    console.error('[applications/complete] threw:', e)
+    return NextResponse.json(
+      { error: 'We could not finish your registration. Our team has been notified.' },
+      { status: 500 }
+    )
   }
-
-  const { data: app } = await sb.from('applications').select('*, course:course_id(name)').eq('id', applicationId).single()
-  if (!app) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
-
-  const courseName = (app as any).course?.name || null
-
-  // 1. Ensure a lead exists — LINK the person's existing lead if they already
-  // came in (flyer, webhook, AI chat, manual add) rather than creating a
-  // duplicate; match by phone in BOTH formats (233… / 0…) or email.
-  let leadId = app.lead_id
-  if (!leadId && (app.phone || app.email)) {
-    const phone233 = app.phone ? String(app.phone).replace(/^0/, '233') : null
-    const phone0 = app.phone ? String(app.phone).replace(/^233/, '0') : null
-    let existing: any = null
-    if (phone233) {
-      const { data } = await sb.from('leads').select('id').in('phone', [phone233, phone0].filter(Boolean) as string[])
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      existing = data
-    }
-    if (!existing && app.email) {
-      const { data } = await sb.from('leads').select('id').eq('email', app.email)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      existing = data
-    }
-    if (existing) {
-      leadId = existing.id
-      await sb.from('applications').update({ lead_id: leadId }).eq('id', applicationId)
-    }
-  }
-  if (!leadId) {
-    const { data: lead } = await sb.from('leads').insert({
-      full_name: app.full_name,
-      email: app.email,
-      phone: app.phone,
-      source: app.marketer_id ? 'referral' : 'website',
-      status: 'new',
-      course_interest: courseName,
-      assigned_to: app.marketer_id || null,
-    }).select().single()
-    leadId = lead?.id
-    if (leadId) await sb.from('applications').update({ lead_id: leadId }).eq('id', applicationId)
-  }
-
-  if (!leadId) return NextResponse.json({ error: 'Could not create lead' }, { status: 500 })
-
-  // The registration link belongs to a specific marketer — whoever's link was
-  // used OWNS this lead. Force the assignment so it can never sit unassigned.
-  if (app.marketer_id) {
-    await sb.from('leads').update({ assigned_to: app.marketer_id, assigned_at: new Date().toISOString() }).eq('id', leadId)
-  }
-
-  const { data: lead } = await sb.from('leads').select('*').eq('id', leadId).single()
-  const creditTo = app.marketer_id || lead?.assigned_to || null
-
-  // 2. Credit remuneration (only if paid and not already credited)
-  if (app.payment_status === 'paid') {
-    const { data: already } = await sb.from('marketer_enrollments')
-      .select('id').eq('lead_id', leadId).limit(1).maybeSingle()
-
-    if (!already && creditTo) {
-      const { data: programs } = await sb.from('program_points').select('*').eq('is_active', true)
-      const prog = matchProgram(courseName, programs || [])
-      if (prog) {
-        let points = Number(prog.points || 0)
-        if (prog.is_corporate) points = 40
-        await sb.from('marketer_enrollments').insert({
-          marketer_id: creditTo, lead_id: leadId,
-          program_code: prog.code, program_name: prog.name,
-          points, registration_fee: 200, delivery: app.delivery || 'in_person',
-          is_pipeline: false, year: new Date().getFullYear(),
-        })
-        await sb.from('notifications').insert({
-          user_id: creditTo, type: 'points',
-          title: `+${points} points earned`,
-          body: `${app.full_name} registered and paid for ${prog.name}. ${points} points + GHS 200 registration added to your annual total.`,
-          link: '/marketer/earnings',
-        })
-      }
-    }
-
-    // 3. Mark registered (payment = registration)
-    await sb.from('leads').update({ status: 'registered' }).eq('id', leadId)
-    await sb.from('lead_activities').insert({
-      lead_id: leadId, activity_type: 'note', subject: 'Registered via link',
-      description: `Paid GHS 200 registration for ${courseName || 'programme'} through the registration link.`,
-    })
-  } else {
-    // Not paid yet — just move toward ready_to_join
-    if (lead && lead.status !== 'ready_to_join') {
-      await sb.from('leads').update({ status: 'ready_to_join' }).eq('id', leadId)
-    }
-  }
-
-  // 4. Admission record (idempotent — don't duplicate)
-  let admissionNo = ''
-  const { data: existingAdm } = await sb.from('admissions').select('id, admission_number, admission_letter_sent').eq('lead_id', leadId).maybeSingle()
-  const letterAlreadySent = (existingAdm as any)?.admission_letter_sent === true
-  if (!existingAdm) {
-    admissionNo = `CCE/${new Date().getFullYear()}/${String(Math.floor(1000 + Math.random() * 9000))}`
-    const { data: admission } = await sb.from('admissions').insert({
-      application_id: applicationId,
-      lead_id: leadId,
-      course_id: app.course_id,
-      admission_number: admissionNo,
-      status: app.payment_status === 'paid' ? 'awaiting_forms' : 'pending',
-    }).select().single()
-    if (admission) {
-      await sb.from('applications').update({ admission_id: admission.id }).eq('id', applicationId)
-    }
-  } else {
-    admissionNo = existingAdm.admission_number || ''
-  }
-
-  // 5. AUTO admission letter — a personalized PDF (name, admission no,
-  // programme, start date) generated on the fly, saved to Supabase, and sent
-  // on BOTH WhatsApp and email. No manual admin step.
-  if ((app.phone || app.email) && !letterAlreadySent) {
-    // Welcome email (once — gated with the letter so reconcile re-runs never duplicate)
-    if (app.email) { try { await sendWelcomeEmail(app.email, app.full_name, courseName || 'your programme') } catch {} }
-    const letterCourse = (app as any).course?.name || 'your programme'
-    const first = (app.full_name || '').split(' ')[0] || 'there'
-
-    let startDate: string | undefined
-    try {
-      const { data: batch } = await sb.from('batches')
-        .select('start_date').eq('course_id', app.course_id).order('start_date', { ascending: true }).limit(1).maybeSingle()
-      if (batch?.start_date) startDate = new Date(batch.start_date).toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
-    } catch {}
-
-    // Find the admission-letter document for THIS programme (uploaded in the
-    // Documents area). Prefer a course-specific one; fall back to a general
-    // admission letter; finally fall back to an auto-generated PDF.
-    let letterUrl: string | null = null
-    let usedUploaded = false
-    try {
-      // Course-specific uploaded letter (tolerate null is_active — only skip if
-      // explicitly deactivated).
-      // Online and in-person students pay different fees and get different
-      // letters. Picking without checking the delivery mode is why virtual
-      // students were receiving the physical letter.
-      const wantScope = (app.delivery || 'in_person') === 'online' ? 'online' : 'in_person'
-
-      const pick = async (courseScoped: boolean, scopeMatch: 'exact' | 'any') => {
-        let q = sb.from('documents')
-          .select('file_url, is_active, is_template, field_positions, delivery_scope')
-          .eq('type', 'admission_letter')
-        q = courseScoped ? q.eq('course_id', app.course_id) : q.is('course_id', null)
-        if (scopeMatch === 'exact') q = q.eq('delivery_scope', wantScope)
-        const { data } = await q.order('created_at', { ascending: false }).limit(20)
-        const rows = (data || []).filter((d: any) => d.is_active !== false)
-        if (scopeMatch === 'exact') return rows[0] || null
-        // 'any' means a letter that suits both, never one meant for the other mode.
-        return rows.find((d: any) => !d.delivery_scope || d.delivery_scope === 'both') || null
-      }
-
-      // Most specific first: this course AND this delivery mode.
-      const doc: any =
-        (await pick(true, 'exact')) ||
-        (await pick(true, 'any')) ||
-        (await pick(false, 'exact')) ||
-        (await pick(false, 'any'))
-      if (doc?.file_url) {
-        letterUrl = doc.file_url
-        usedUploaded = true
-        // If it's marked as a template, personalise a copy for THIS student.
-        if (doc.is_template) {
-          const personalised = await renderPersonalisedDoc({
-            templateUrl: doc.file_url,
-            positions: doc.field_positions || null,
-            folder: 'admission-letters',
-            filename: app.full_name || 'student',
-            values: {
-              full_name: app.full_name || '',
-              admission_number: admissionNo || '',
-              course: letterCourse,
-              batch: '',
-              date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-              email: app.email || '',
-              phone: app.phone || '',
-              amount: '',
-              receipt_number: '',
-            },
-          })
-          if (personalised) letterUrl = personalised
-        }
-      }
-    } catch {}
-    if (!letterUrl) {
-      letterUrl = await generateAdmissionPDF({
-        name: app.full_name || 'Student', course: letterCourse,
-        admissionNo: admissionNo || '', startDate, delivery: app.delivery,
-      })
-    }
-
-    const letterLine = letterUrl ? `\n\nYour admission letter:\n${letterUrl}` : ''
-    const msg = `Dear ${first}, congratulations! 🎉 You have been admitted to ${letterCourse} at Cambridge Center of Excellence.${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLine}\n\nWelcome aboard.`
-
-    if (app.phone) {
-      let waOk = false
-      try { waOk = !!(await sendWhatsAppText(app.phone, msg)) } catch {}
-      if (!waOk) { try { await sendSMS(app.phone, msg) } catch {} }
-    }
-    if (app.email) {
-      if (usedUploaded && letterUrl) {
-        // Use the admission letter YOU uploaded as the actual letter — a simple
-        // covering email that presents your document, not a templated letter.
-        try {
-          await sendUploadedAdmissionLetter(app.email, app.full_name || 'Student', letterCourse, admissionNo, letterUrl)
-        } catch {}
-      } else {
-        try { await sendAdmissionLetter(app.email, app.full_name || 'Student', letterCourse, admissionNo, startDate, letterUrl || undefined) } catch {}
-      }
-    }
-    await sb.from('admissions').update({
-      admission_letter_sent: true, admitted_at: new Date().toISOString(), status: 'admitted',
-    }).eq('lead_id', leadId).then(() => {}, () => {})
-
-    // Send the student their portal link (online students especially — it's
-    // how they join class, get materials and pay).
-    try {
-      const origin = new URL(req.url).origin
-      await fetch(`${origin}/api/student/link`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leadId }),
-      })
-    } catch {}
-
-    // Tell FINANCE + ACADEMICS a student has been registered and admitted.
-    try {
-      const { data: staff } = await sb.from('profiles')
-        .select('id, full_name, phone')
-        .eq('is_active', true)
-        .in('role', ['accountant', 'admissions_officer', 'exam_coordinator', 'administrator'])
-        .limit(20)
-      const note = `CCE: ${app.full_name} has registered for ${letterCourse}${admissionNo ? ` (${admissionNo})` : ''} and their admission letter has been sent.`
-      for (const st of staff || []) {
-        await sb.from('notifications').insert({
-          user_id: st.id, type: 'admission',
-          title: 'New registered student',
-          body: note, link: '/admission/process',
-        }).then(() => {}, () => {})
-        if (st.phone) { try { await sendSMS(st.phone, note) } catch {} }
-      }
-    } catch {}
-  }
-
-  // 6. STUDENT FEES — create the fee ledger so the student appears on the
-  // finance page with their course fee owed. Idempotent per application.
-  try {
-    const { data: existingFee } = await sb.from('student_fees').select('id').eq('application_id', applicationId).maybeSingle()
-    if (!existingFee) {
-      // Course fee from the course record (the total school fee)
-      let totalFee = 0, courseName = (app as any).course?.name || null
-      if (app.course_id) {
-        const { data: course } = await sb.from('courses').select('name, course_fee, course_fee_online').eq('id', app.course_id).maybeSingle()
-        if (course) {
-          courseName = course.name
-          // Online students pay the online fee where one is set; otherwise the standard fee
-          const isOnline = (app.delivery || 'in_person') === 'online'
-          const onlineFee = Number(course.course_fee_online) || 0
-          totalFee = isOnline && onlineFee > 0 ? onlineFee : (Number(course.course_fee) || 0)
-        }
-      }
-      await sb.from('student_fees').insert({
-        application_id: applicationId, lead_id: leadId,
-        student_name: app.full_name, email: app.email, phone: app.phone,
-        course_id: app.course_id, course_name: courseName,
-        delivery: app.delivery || 'in_person',
-        total_fee: totalFee, amount_paid: 0, balance: totalFee,
-        status: totalFee > 0 ? 'owing' : 'paid',
-      })
-    }
-  } catch { /* fee ledger optional — never block registration */ }
-
-  // ── Auto-enrol into the exam-prep pipeline ──────────────────────────
-  // If the student registered for an exam-prep programme (PMP / PHRi / SPHRi),
-  // create their prep record so the coordinator starts prepping them
-  // automatically. Matched to the coordinator via program_code.
-  try {
-    const cName = ((app as any).course?.name || '').toLowerCase()
-    let progCode: string | null = null, progName: string | null = null
-    if (cName.includes('pmp') || cName.includes('project management')) { progCode = 'PMP'; progName = 'PMP' }
-    else if (cName.includes('sphri') || cName.includes('senior professional')) { progCode = 'SPHRI'; progName = 'SPHRi' }
-    else if (cName.includes('phri') || cName.includes('professional in human')) { progCode = 'PHRI'; progName = 'PHRi' }
-
-    if (progCode) {
-      const { data: existingPrep } = await sb.from('prep_records').select('id').eq('lead_id', leadId).maybeSingle()
-      if (!existingPrep) {
-        // Match the coordinator who runs this programme
-        const { data: coord } = await sb.from('profiles').select('id')
-          .eq('role', 'exam_coordinator').eq('coordinator_program', progCode).maybeSingle()
-        await sb.from('prep_records').insert({
-          lead_id: leadId, application_id: applicationId,
-          student_name: app.full_name, email: app.email, phone: app.phone,
-          program_code: progCode, program_name: progName,
-          coordinator_id: coord?.id || null,
-          prep_status: 'ongoing',
-        })
-      }
-    }
-  } catch { /* prep enrolment optional — never block registration */ }
-
-  return NextResponse.json({ success: true, credited: app.payment_status === 'paid' })
 }

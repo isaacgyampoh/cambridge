@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { generateOpeningMessage } from '@/lib/integrations/ai-assistant'
 import { aiConfigured } from '@/lib/integrations/ai-client'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager']
@@ -20,9 +20,9 @@ export async function GET(req: NextRequest) {
   if (!configured) {
     return NextResponse.json({
       ok: false,
-      key_set: !!CONFIG.openaiApiKey,
-      enabled: CONFIG.aiAssistantEnabled,
-      diagnosis: !CONFIG.openaiApiKey
+      key_set: !!SECRETS.openaiApiKey,
+      enabled: SECRETS.aiAssistantEnabled,
+      diagnosis: !SECRETS.openaiApiKey
         ? 'OPENAI_API_KEY is not reaching the server. Add it in Vercel and redeploy.'
         : 'AI replies are switched off in config.',
     })
@@ -41,7 +41,7 @@ export async function GET(req: NextRequest) {
 
   return NextResponse.json({
     ok: !!message,
-    model: CONFIG.openaiModel,
+    model: SECRETS.openaiModel,
     took_ms: Date.now() - started,
     sample_message: message,
     error,

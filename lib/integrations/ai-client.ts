@@ -1,4 +1,4 @@
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 /**
  * One AI client for the whole system. Both the WhatsApp assistant and the
@@ -9,7 +9,7 @@ import { CONFIG } from '@/lib/config'
 export type AIMessage = { role: 'user' | 'assistant'; content: string }
 
 export function aiConfigured(): boolean {
-  return CONFIG.aiProvider === 'openai' ? !!CONFIG.openaiApiKey : !!CONFIG.anthropicApiKey
+  return SECRETS.aiProvider === 'openai' ? !!SECRETS.openaiApiKey : !!SECRETS.anthropicApiKey
 }
 
 /**
@@ -24,16 +24,16 @@ export async function aiComplete(opts: {
 }): Promise<string | null> {
   const { system, messages, maxTokens = 1000, temperature } = opts
   try {
-    if (CONFIG.aiProvider === 'openai') {
-      if (!CONFIG.openaiApiKey) return null
+    if (SECRETS.aiProvider === 'openai') {
+      if (!SECRETS.openaiApiKey) return null
       const res = await fetch('https://api.openai.com/v1/chat/completions', {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',
-          'Authorization': `Bearer ${CONFIG.openaiApiKey}`,
+          'Authorization': `Bearer ${SECRETS.openaiApiKey}`,
         },
         body: JSON.stringify({
-          model: CONFIG.openaiModel || 'gpt-4o',
+          model: SECRETS.openaiModel || 'gpt-4o',
           max_tokens: maxTokens,
           ...(temperature != null ? { temperature } : {}),
           messages: [{ role: 'system', content: system }, ...messages],
@@ -46,16 +46,16 @@ export async function aiComplete(opts: {
     }
 
     // Anthropic
-    if (!CONFIG.anthropicApiKey) return null
+    if (!SECRETS.anthropicApiKey) return null
     const res = await fetch('https://api.anthropic.com/v1/messages', {
       method: 'POST',
       headers: {
         'Content-Type': 'application/json',
-        'x-api-key': CONFIG.anthropicApiKey,
+        'x-api-key': SECRETS.anthropicApiKey,
         'anthropic-version': '2023-06-01',
       },
       body: JSON.stringify({
-        model: CONFIG.aiModel,
+        model: SECRETS.aiModel,
         max_tokens: maxTokens,
         ...(temperature != null ? { temperature } : {}),
         system,

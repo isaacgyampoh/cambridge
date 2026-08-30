@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { eligibleMarketers } from '@/lib/leads/eligibility'
 
 export const runtime = 'nodejs'
 
@@ -14,11 +15,16 @@ export async function GET(req: NextRequest) {
   const sb = createServiceClient()
   const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString()
 
-  const [{ data: leads }, { data: marketers }, { data: admissions }] = await Promise.all([
+  // The marketer list feeds the assign dropdown, so it must show exactly who
+  // can actually receive a lead. It previously listed every active non-super-
+  // admin profile, letting a PM assign to someone with no leads page — which
+  // is how leads ended up somewhere nobody would ever look at them.
+  const [{ data: leads }, marketerPool, { data: admissions }] = await Promise.all([
     sb.from('leads').select('status, assigned_to, created_at, updated_at').limit(8000),
-    sb.from('profiles').select('id, full_name').eq('is_active', true).neq('role', 'super_admin').limit(500),
+    eligibleMarketers(),
     sb.from('admissions').select('status').limit(5000),
   ])
+  const marketers = marketerPool.map(m => ({ id: m.id, full_name: m.fullName }))
 
   const all = leads || []
   const totalLeads = all.length

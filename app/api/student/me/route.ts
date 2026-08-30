@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifyStudent, STUDENT_COOKIE } from '@/lib/student/auth'
 import { releaseMaterialsFor } from '@/lib/materialRelease'
+import { parseClassMode, classModeLabel } from '@/lib/classMode'
 
 export const runtime = 'nodejs'
 
@@ -138,13 +139,41 @@ export async function GET(req: NextRequest) {
     }
   } catch {}
 
+  // Admission record — the canonical source for the student's admission
+  // number and the letter they were actually sent.
+  let admission: { number: string | null; status: string | null; letterUrl: string | null } | null = null
+  try {
+    const { data: adm } = await sb.from('admissions')
+      .select('admission_number, status, admission_letter_sent, letter_url')
+      .eq('lead_id', s.leadId).maybeSingle()
+    if (adm) {
+      admission = {
+        number: adm.admission_number || null,
+        status: adm.status || null,
+        letterUrl: adm.admission_letter_sent ? (adm as { letter_url?: string }).letter_url || null : null,
+      }
+    }
+  } catch { /* admissions are optional for a student not yet admitted */ }
+
   // Payment history
   const { data: payments } = await sb.from('payments')
     .select('amount, method, receipt_number, created_at')
     .eq('lead_id', s.leadId).order('created_at', { ascending: false }).limit(20)
 
+  // The class mode, read once through the canonical parser so the portal can
+  // never label a virtual student as in-person or the reverse.
+  const classMode = parseClassMode(fee?.delivery) ?? parseClassMode((batch as { class_type?: string } | null)?.class_type)
+
   return NextResponse.json({
-    student: { name: lead.full_name, phone: lead.phone },
+    student: {
+      name: lead.full_name,
+      phone: lead.phone,
+      classMode,
+      classModeLabel: classMode ? classModeLabel(classMode) : null,
+      admissionNumber: admission?.number ?? null,
+      admissionStatus: admission?.status ?? null,
+    },
+    admission,
     course: fee?.course_name || (batch as any)?.courses?.name || lead.course_interest || null,
     fee: fee ? {
       total: Number(fee.total_fee || 0),

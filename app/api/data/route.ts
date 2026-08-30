@@ -1,172 +1,251 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
-import { verifySession } from '@/lib/auth/pin'
+import { requireSession, GuardError } from '@/lib/auth/guard'
+import { recordAudit } from '@/lib/audit'
+import {
+  canRead, canWrite, canDelete, ownerColumnFor, isValidIdentifier,
+  embeddedRelations, FK_TARGETS, scrubRow,
+  SECRET_COLUMNS, MONEY_COLUMNS, ROLES_THAT_SEE_MONEY, UNWRITABLE_COLUMNS,
+} from '@/lib/data/policy'
 
-// Universal data endpoint — bypasses RLS using service role
-// Pages call: /api/data?table=payments&select=*,student:student_id(full_name)&limit=100
+export const runtime = 'nodejs'
+
+/**
+ * Generic data endpoint.
+ *
+ * This runs client-supplied queries with the service role, which bypasses RLS,
+ * so every request is checked against lib/data/policy.ts. It should eventually
+ * be replaced by typed per-resource endpoints; until then the policy module is
+ * the single place these rules live.
+ */
+
+const MAX_LIMIT = 500
+
+type Filter = { col: string; op?: string; val?: unknown }
+
+/** Filters come from the browser, so both the column and operator are checked. */
+function parseFilters(raw: string | null): Filter[] {
+  if (!raw) return []
+  try {
+    const parsed = JSON.parse(raw)
+    if (!Array.isArray(parsed)) return []
+    return parsed.filter((f: Filter) => f && typeof f.col === 'string' && isValidIdentifier(f.col))
+  } catch {
+    return []
+  }
+}
+
+const ALLOWED_OPS = new Set(['eq', 'neq', 'is_null', 'gte', 'lte', 'gt', 'lt', 'in', 'ilike'])
+
+function fail(message: string, status = 403) {
+  return NextResponse.json({ error: message }, { status })
+}
+
+/** Refuse a select string that reaches tables the role may not read. */
+function checkSelect(select: string, role: string): string | null {
+  if (select.length > 2000) return 'That query is too complex.'
+  for (const rel of embeddedRelations(select)) {
+    const target = FK_TARGETS[rel] || rel
+    if (!isValidIdentifier(target)) return 'That query is not valid.'
+    if (!canRead(target, role)) {
+      return 'You do not have access to some of the information in that request.'
+    }
+  }
+  return null
+}
+
 export async function GET(req: NextRequest) {
-  const token = req.cookies.get('cce_session')?.value
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  
-  const session = await verifySession(token)
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let ctx
+  try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
+  const role = ctx.session.role
+  const userId = ctx.session.userId
 
   const { searchParams } = req.nextUrl
-  const table = searchParams.get('table')
+  const table = searchParams.get('table') || ''
   const select = searchParams.get('select') || '*'
-  const limit = parseInt(searchParams.get('limit') || '200')
+
+  if (!table || !isValidIdentifier(table)) return fail('Missing or invalid table.', 400)
+  if (!canRead(table, role)) return fail('You do not have access to this information.')
+
+  const selectError = checkSelect(select, role)
+  if (selectError) return fail(selectError)
+
+  const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '200', 10) || 200, 1), MAX_LIMIT)
   const orderBy = searchParams.get('orderBy') || 'created_at'
   const orderAsc = searchParams.get('orderAsc') === 'true'
-  const filters = searchParams.get('filters') // JSON encoded filter array
-
-  if (!table) return NextResponse.json({ error: 'Missing table' }, { status: 400 })
-
-  // Role-based table access control
-  const ALLOWED: Record<string, string[]> = {
-    super_admin: ['*'],
-    exam_coordinator: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
-    project_manager: ['documents','leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles','courses'],
-    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
-    accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    trainer: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    student: ['invoices','payments','batch_students','batches','courses','attendance','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-  }
-
-  const allowed = ALLOWED[session.role || ''] || []
-  if (!allowed.includes('*') && !allowed.includes(table)) {
-    return NextResponse.json({ error: 'Access denied to this table' }, { status: 403 })
-  }
 
   const sb = createServiceClient()
-  let query: any = sb.from(table).select(select).limit(limit)
+  let query = sb.from(table).select(select).limit(limit)
 
-  // Privacy guard: only oversight roles can read other staff's profiles.
-  // Everyone else (marketers, trainers, reception, students) is locked to
-  // their OWN profile row, regardless of the filters they send.
-  const canReadAllProfiles = ['super_admin', 'project_manager', 'accountant', 'admissions_officer'].includes(session.role || '')
-  if (table === 'profiles' && !canReadAllProfiles) {
-    query = query.eq('id', session.userId)
+  // Row scoping is applied regardless of the filters the caller sent.
+  const ownerCol = ownerColumnFor(table, role)
+  if (ownerCol) query = query.eq(ownerCol, userId)
+
+  if (orderBy && isValidIdentifier(orderBy)) {
+    query = query.order(orderBy, { ascending: orderAsc })
   }
 
-  // Marketers only ever see their OWN leads (and own lead activities),
-  // never the whole CRM, regardless of filters they send.
-  // Anyone with a "My Leads" page sees only their own — never the whole CRM.
-  const ownLeadsOnly = ['marketing_officer', 'exam_coordinator', 'trainer']
-  if (ownLeadsOnly.includes(session.role || '') && table === 'leads') {
-    query = query.eq('assigned_to', session.userId)
-  }
-
-  if (orderBy) query = query.order(orderBy, { ascending: orderAsc })
-
-  // Apply filters: [{col, op, val}]
-  if (filters) {
-    try {
-      const f = JSON.parse(filters)
-      for (const { col, op, val } of f) {
-        if (op === 'eq') query = query.eq(col, val)
-        else if (op === 'neq') query = query.neq(col, val)
-        else if (op === 'is_null') query = query.is(col, null)
-        else if (op === 'gte') query = query.gte(col, val)
-        else if (op === 'lte') query = query.lte(col, val)
-        else if (op === 'in') query = query.in(col, val)
-        else if (op === 'ilike') query = query.ilike(col, `%${val}%`)
-      }
-    } catch {}
+  for (const { col, op = 'eq', val } of parseFilters(searchParams.get('filters'))) {
+    if (!ALLOWED_OPS.has(op)) continue
+    // A caller must not widen their own scope by filtering on the owner column.
+    if (ownerCol && col === ownerCol) continue
+    if (op === 'eq') query = query.eq(col, val)
+    else if (op === 'neq') query = query.neq(col, val)
+    else if (op === 'is_null') query = query.is(col, null)
+    else if (op === 'gte') query = query.gte(col, val)
+    else if (op === 'lte') query = query.lte(col, val)
+    else if (op === 'gt') query = query.gt(col, val)
+    else if (op === 'lt') query = query.lt(col, val)
+    else if (op === 'in' && Array.isArray(val)) query = query.in(col, val)
+    else if (op === 'ilike') query = query.ilike(col, `%${String(val)}%`)
   }
 
   const { data, error, count } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-
-  // Field-level privacy: academics/admissions/reception/trainer must not
-  // see money amounts. Only finance, marketers, PMs and super admin do.
-  const MONEY_FIELDS = ['amount', 'amount_paid', 'registration_fee', 'gross_salary', 'total_amount', 'outstanding', 'paystack_response']
-  const canSeeMoney = ['super_admin', 'accountant', 'marketing_officer', 'project_manager'].includes(session.role || '')
-  let result = data || []
-  if (!canSeeMoney && result.length) {
-    result = result.map((row: any) => {
-      const clean = { ...row }
-      for (const f of MONEY_FIELDS) if (f in clean) delete clean[f]
-      // Secrets must never reach the browser. Expose only whether a line is
-      // configured, not the key itself.
-      for (const f of ['wasender_api_key', 'pin_hash', 'wawp_access_token']) {
-        if (f in clean) {
-          if (f === 'wasender_api_key') clean.has_wasender_key = !!clean[f]
-          delete clean[f]
-        }
-      }
-      return clean
-    })
+  if (error) {
+    console.error(`[data] select on ${table} failed:`, error.message)
+    return NextResponse.json({ error: 'Could not load that information. Please try again.' }, { status: 500 })
   }
 
-  return NextResponse.json({ data: result, count })
+  // Credentials are stripped for EVERY role, including super admin, and from
+  // nested embeds as well as top-level rows.
+  let rows = scrubRow(data || [], SECRET_COLUMNS) as unknown[]
+  if (!ROLES_THAT_SEE_MONEY.includes(role)) {
+    rows = scrubRow(rows, MONEY_COLUMNS) as unknown[]
+  }
+
+  return NextResponse.json({ data: rows, count })
 }
 
 export async function POST(req: NextRequest) {
-  const token = req.cookies.get('cce_session')?.value
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const session = await verifySession(token)
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let ctx
+  try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
+  const role = ctx.session.role
 
-  const { table, data, upsert, onConflict } = await req.json()
-  if (!table || !data) return NextResponse.json({ error: 'Missing table or data' }, { status: 400 })
+  const body = await req.json().catch(() => null)
+  if (!body?.table || body.data === undefined) return fail('Missing table or data.', 400)
+
+  const table = String(body.table)
+  if (!isValidIdentifier(table)) return fail('Invalid table.', 400)
+  if (!canWrite(table, role)) return fail('You do not have permission to add to this.')
+
+  const rows = Array.isArray(body.data) ? body.data : [body.data]
+  for (const row of rows) {
+    const blocked = Object.keys(row || {}).find(k => UNWRITABLE_COLUMNS.includes(k))
+    if (blocked) return fail(`The field "${blocked}" cannot be set here.`, 400)
+  }
 
   const sb = createServiceClient()
-  const { data: result, error } = upsert
-    ? await sb.from(table).upsert(data, { onConflict }).select()
-    : await sb.from(table).insert(data).select()
+  const { data: result, error } = body.upsert
+    ? await sb.from(table).upsert(body.data, { onConflict: body.onConflict }).select()
+    : await sb.from(table).insert(body.data).select()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
-  return NextResponse.json({ data: result })
+  if (error) {
+    console.error(`[data] insert into ${table} failed:`, error.message)
+    return NextResponse.json({ error: 'Could not save that. Please try again.' }, { status: 500 })
+  }
+
+  await recordAudit({
+    actorId: ctx.session.userId,
+    action: body.upsert ? 'data.upsert' : 'data.insert',
+    resource: table,
+    success: true,
+    metadata: { rows: rows.length },
+    request: req,
+  })
+
+  return NextResponse.json({ data: scrubRow(result, SECRET_COLUMNS) })
 }
 
 export async function PATCH(req: NextRequest) {
-  const token = req.cookies.get('cce_session')?.value
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const session = await verifySession(token)
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let ctx
+  try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
+  const role = ctx.session.role
+  const userId = ctx.session.userId
 
-  const { table, data, filters } = await req.json()
-  if (!table || !data || !filters) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
+  const body = await req.json().catch(() => null)
+  if (!body?.table || !body.data || !body.filters) return fail('Missing table, data or filters.', 400)
+
+  const table = String(body.table)
+  if (!isValidIdentifier(table)) return fail('Invalid table.', 400)
+  if (!canWrite(table, role)) return fail('You do not have permission to change this.')
+
+  const blocked = Object.keys(body.data).find(k => UNWRITABLE_COLUMNS.includes(k))
+  if (blocked) return fail(`The field "${blocked}" cannot be changed here.`, 400)
+
+  const filters: Filter[] = Array.isArray(body.filters) ? body.filters : []
+  if (!filters.length) return fail('An update must say which rows to change.', 400)
+  if (filters.some(f => !isValidIdentifier(String(f.col)))) return fail('Invalid filter.', 400)
 
   const sb = createServiceClient()
-  let query: any = sb.from(table).update(data)
-  for (const { col, val } of filters) { query = query.eq(col, val) }
+  let query = sb.from(table).update(body.data)
+
+  // Scope the update to rows this user owns, where the table calls for it.
+  const ownerCol = ownerColumnFor(table, role)
+  if (ownerCol) query = query.eq(ownerCol, userId)
+
+  for (const { col, val } of filters) {
+    if (ownerCol && col === ownerCol) continue
+    query = query.eq(col, val)
+  }
+
   const { error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error(`[data] update on ${table} failed:`, error.message)
+    return NextResponse.json({ error: 'Could not save that change. Please try again.' }, { status: 500 })
+  }
+
+  await recordAudit({
+    actorId: userId,
+    action: 'data.update',
+    resource: table,
+    success: true,
+    metadata: { fields: Object.keys(body.data), filters: filters.map(f => f.col) },
+    request: req,
+  })
+
   return NextResponse.json({ success: true })
 }
 
 export async function DELETE(req: NextRequest) {
-  const token = req.cookies.get('cce_session')?.value
-  if (!token) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
-  const session = await verifySession(token)
-  if (!session.valid) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  let ctx
+  try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
+  const role = ctx.session.role
+  const userId = ctx.session.userId
 
-  const { table, filters } = await req.json()
-  if (!table || !filters?.length) return NextResponse.json({ error: 'Missing params' }, { status: 400 })
+  const body = await req.json().catch(() => null)
+  if (!body?.table || !body.filters?.length) return fail('Missing table or filters.', 400)
 
-  const ALLOWED: Record<string, string[]> = {
-    super_admin: ['*'],
-    exam_coordinator: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
-    project_manager: ['documents','leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments','profiles'],
-    admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
-    accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    trainer: ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'documents','batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-    student: ['invoices','payments','batch_students','batches','courses','attendance','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','notifications','program_points','rank_bands','marketer_enrollments'],
-  }
-  const allowed = ALLOWED[session.role || ''] || []
-  if (!allowed.includes('*') && !allowed.includes(table)) {
-    return NextResponse.json({ error: 'Access denied to this table' }, { status: 403 })
-  }
+  const table = String(body.table)
+  if (!isValidIdentifier(table)) return fail('Invalid table.', 400)
+  if (!canDelete(table, role)) return fail('You do not have permission to delete this.')
+
+  const filters: Filter[] = body.filters
+  if (filters.some(f => !isValidIdentifier(String(f.col)))) return fail('Invalid filter.', 400)
 
   const sb = createServiceClient()
-  let query: any = sb.from(table).delete()
-  for (const { col, val } of filters) { query = query.eq(col, val) }
+  let query = sb.from(table).delete()
+
+  const ownerCol = ownerColumnFor(table, role)
+  if (ownerCol) query = query.eq(ownerCol, userId)
+  for (const { col, val } of filters) {
+    if (ownerCol && col === ownerCol) continue
+    query = query.eq(col, val)
+  }
+
   const { error } = await query
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) {
+    console.error(`[data] delete on ${table} failed:`, error.message)
+    return NextResponse.json({ error: 'Could not delete that. Please try again.' }, { status: 500 })
+  }
+
+  await recordAudit({
+    actorId: userId,
+    action: 'data.delete',
+    resource: table,
+    success: true,
+    metadata: { filters: filters.map(f => f.col) },
+    request: req,
+  })
+
   return NextResponse.json({ success: true })
 }

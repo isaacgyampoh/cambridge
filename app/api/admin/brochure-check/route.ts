@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { findBrochure } from '@/lib/courseMatch'
+import { resolveBrochure } from '@/lib/documents/resolve'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager']
@@ -24,7 +24,7 @@ export async function GET(req: NextRequest) {
 
   const rows: any[] = []
   for (const co of courses || []) {
-    const url = await findBrochure(co.id)
+    const url = await resolveBrochure(co.id, null)
     const doc = (brochures || []).find((b: any) => b.file_url === url)
     rows.push({
       course: co.name,

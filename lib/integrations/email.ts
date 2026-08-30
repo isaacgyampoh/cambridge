@@ -1,4 +1,4 @@
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import nodemailer from 'nodemailer'
 
@@ -8,18 +8,18 @@ const RESEND_URL = 'https://api.resend.com/emails'
 let transporter: nodemailer.Transporter | null = null
 function getTransporter() {
   if (transporter) return transporter
-  if (!CONFIG.smtpHost || !CONFIG.smtpUser || !CONFIG.smtpPass) return null
+  if (!SECRETS.smtpHost || !SECRETS.smtpUser || !SECRETS.smtpPass) return null
   transporter = nodemailer.createTransport({
-    host: CONFIG.smtpHost,
-    port: CONFIG.smtpPort,
-    secure: CONFIG.smtpSecure,
-    auth: { user: CONFIG.smtpUser, pass: CONFIG.smtpPass },
+    host: SECRETS.smtpHost,
+    port: SECRETS.smtpPort,
+    secure: SECRETS.smtpSecure,
+    auth: { user: SECRETS.smtpUser, pass: SECRETS.smtpPass },
   })
   return transporter
 }
 
 export async function sendEmail(to: string, subject: string, html: string, text?: string) {
-  const from = CONFIG.resendFromEmail || 'Cambridge CE <portal@cambridge.edu.gh>'
+  const from = SECRETS.resendFromEmail || 'Cambridge CE <portal@cambridge.edu.gh>'
   let status = 'pending'
   let providerResponse: any = null
 
@@ -38,12 +38,12 @@ export async function sendEmail(to: string, subject: string, html: string, text?
   }
 
   // 2) Fallback: Resend (only if a key is set)
-  if (CONFIG.resendApiKey) {
+  if (SECRETS.resendApiKey) {
     status = 'pending'; providerResponse = null
     try {
       const res = await fetch(RESEND_URL, {
         method: 'POST',
-        headers: { 'Authorization': `Bearer ${CONFIG.resendApiKey}`, 'Content-Type': 'application/json' },
+        headers: { 'Authorization': `Bearer ${SECRETS.resendApiKey}`, 'Content-Type': 'application/json' },
         body: JSON.stringify({ from, to, subject, html, text }),
         signal: AbortSignal.timeout(10000),
       })

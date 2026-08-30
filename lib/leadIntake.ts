@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { autoAssignLead } from '@/lib/autoAssign'
-import { sendSMS, SMS } from '@/lib/integrations/sms'
+import { SMS } from '@/lib/integrations/sms'
+import { queueSMS } from '@/lib/notifications/sms'
 
 /**
  * SINGLE ENTRY POINT for every inbound lead — Facebook, Google, LinkedIn,
@@ -100,7 +101,19 @@ export async function intakeLead(input: IncomingLead): Promise<{ leadId: string 
         body: `${lead.full_name} came in from ${srcLabel}.`,
         data: { lead_id: lead.id, source: input.source },
       }).then(() => {}, () => {})
-      if (pm.phone) { try { await sendSMS(pm.phone, SMS.newLeadToPM(lead.full_name, srcLabel, unassigned || 1)) } catch {} }
+      // Queued rather than sent inline: a slow SMS provider must not hold up
+      // lead creation, and a failed text must never cost us the lead. The
+      // dedupe key means a retried webhook cannot text the same PM twice
+      // about the same lead.
+      if (pm.phone) {
+        await queueSMS({
+          to: pm.phone,
+          message: SMS.newLeadToPM(lead.full_name, srcLabel, unassigned || 1),
+          kind: 'new_lead_pm',
+          entityId: lead.id,
+          dedupeKey: `new_lead_pm:${lead.id}:${pm.id}`,
+        })
+      }
     }
   } catch (e) { console.error('[intakeLead] notify failed', e) }
 

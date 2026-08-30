@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 300
@@ -12,6 +13,9 @@ export const maxDuration = 300
  * cron_runs records when each last ran so failures are visible.
  */
 const TASKS: { name: string; path: string; everyMins: number }[] = [
+  // Runs first and most often: everything else queues messages, and this is
+  // what actually gets a failed one delivered.
+  { name: 'sms_queue',          path: '/api/sms/queue',               everyMins: 5 },
   { name: 'lead_notify',        path: '/api/leads/notify-pending',    everyMins: 5 },
   { name: 'lead_followup',      path: '/api/leads/followup',          everyMins: 10 },
   { name: 'sequences',          path: '/api/sequences/run',           everyMins: 15 },
@@ -28,7 +32,7 @@ const TASKS: { name: string; path: string; everyMins: number }[] = [
 
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
-  if (url.searchParams.get('key') !== CONFIG.setupSecret) {
+  if (!isValidCronRequest(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const only = url.searchParams.get('task')   // optional: run one task now
@@ -48,7 +52,11 @@ export async function GET(req: NextRequest) {
 
     let status = 'ok', detail = ''
     try {
-      const r = await fetch(`${origin}${t.path}?key=${encodeURIComponent(CONFIG.setupSecret)}`, {
+      // Sent as a header rather than a query parameter: query strings are
+      // recorded in access logs, so a long-lived shared secret does not belong
+      // in one.
+      const r = await fetch(`${origin}${t.path}`, {
+        headers: { authorization: `Bearer ${SECRETS.cronSecret}` },
         signal: AbortSignal.timeout(60000),
       })
       const body = await r.text()

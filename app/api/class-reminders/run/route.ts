@@ -1,14 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { broadcastClassReminder } from '@/lib/classReminderBroadcast'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
 /** Cron: /api/class-reminders/run?key=SETUP_SECRET every ~15 min. */
 export async function GET(req: NextRequest) {
   const key = new URL(req.url).searchParams.get('key')
-  if (key !== CONFIG.setupSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isValidCronRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sb = createServiceClient()
   const now = new Date().toISOString()

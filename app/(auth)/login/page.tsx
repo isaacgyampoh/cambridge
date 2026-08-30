@@ -7,8 +7,9 @@ import { Eye, EyeOff } from 'lucide-react'
 function LoginForm() {
   const router = useRouter()
   const [step,    setStep]    = useState<'pin' | 'otp' | 'set-pin'>('pin')
+  const [identifier, setIdentifier] = useState('')
   const [pin,     setPin]     = useState(['', '', '', ''])
-  const [otp,     setOtp]     = useState(['', '', '', ''])
+  const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
   const [otpUserId, setOtpUserId] = useState('')
   const [emailHint, setEmailHint] = useState('')
   const [pendingChangePin, setPendingChangePin] = useState(false)
@@ -22,9 +23,10 @@ function LoginForm() {
   const p = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const n = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const c = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
-  const o = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
+  const o = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
+  const idRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { setTimeout(() => p[0].current?.focus(), 120) }, [])
+  useEffect(() => { setTimeout(() => idRef.current?.focus(), 120) }, [])
 
   function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) {
     if (!/^\d*$/.test(val)) return
@@ -36,11 +38,11 @@ function LoginForm() {
     next[i] = ch
     set(next)
     if (!ch) return
-    if (i < 3) {
+    if (i < arr.length - 1) {
       refs[i + 1].current?.focus()
     } else {
       const full = next.join('')
-      if (full.length === 4 && onFull && !busy.current) {
+      if (full.length === arr.length && onFull && !busy.current) {
         onFull(full)
       }
     }
@@ -54,10 +56,18 @@ function LoginForm() {
   }
 
   async function submitPin(pinStr: string) {
+    // The PIN alone no longer identifies anyone — the server looks the account
+    // up by email or phone and checks the PIN against that one row.
+    if (!identifier.trim()) {
+      setError('Enter your staff email or phone number first')
+      setPin(['', '', '', ''])
+      setTimeout(() => idRef.current?.focus(), 80)
+      return
+    }
     busy.current = true; setLoading(true); setError('')
     const res = await fetch('/api/auth/verify-pin', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ pin: pinStr }),
+      body: JSON.stringify({ identifier: identifier.trim(), pin: pinStr }),
     })
     const d = await res.json()
     busy.current = false; setLoading(false)
@@ -90,7 +100,7 @@ function LoginForm() {
     busy.current = false; setLoading(false)
     if (!d.success) {
       setError(d.error || 'Incorrect code')
-      setOtp(['', '', '', ''])
+      setOtp(['', '', '', '', '', ''])
       setTimeout(() => o[0].current?.focus(), 80)
       return
     }
@@ -101,7 +111,7 @@ function LoginForm() {
   async function resendOtp() {
     // Re-run the PIN step silently using the stored PIN isn't possible (we don't keep it),
     // so ask the user to re-enter the PIN.
-    setError(''); setOtp(['', '', '', '']); setStep('pin'); setPin(['', '', '', ''])
+    setError(''); setOtp(['', '', '', '', '', '']); setStep('pin'); setPin(['', '', '', ''])
     setTimeout(() => p[0].current?.focus(), 100)
   }
 
@@ -250,9 +260,25 @@ function LoginForm() {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
-                <p className="text-[var(--ink-soft)] text-sm">Enter your 4-digit PIN to continue.</p>
+                <p className="text-[var(--ink-soft)] text-sm">Sign in with your staff email or phone number and your PIN.</p>
               </div>
 
+              <div className="mb-6 text-left">
+                <label htmlFor="identifier"
+                  className="block text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-2">
+                  Email or phone
+                </label>
+                <input id="identifier" ref={idRef}
+                  type="text" inputMode="email" autoComplete="username"
+                  value={identifier}
+                  onChange={e => { setIdentifier(e.target.value); if (error) setError('') }}
+                  onKeyDown={e => { if (e.key === 'Enter') p[0].current?.focus() }}
+                  placeholder="you@cambridge.edu.gh"
+                  className="w-full h-12 px-4 rounded-xl border-2 text-[15px] bg-[var(--paper)] text-[var(--ink)] border-[var(--line)] focus:outline-none focus:border-[var(--accent)] transition-colors"
+                />
+              </div>
+
+              <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">PIN</p>
               {renderBoxes(pin, setPin, p, submitPin)}
 
               <div className="mt-4 flex justify-center lg:justify-start">
@@ -286,10 +312,10 @@ function LoginForm() {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Check your email</h2>
-                <p className="text-[var(--ink-soft)] text-sm">We sent a 4-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
+                <p className="text-[var(--ink-soft)] text-sm">We sent a 6-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
               </div>
 
-              <div className="flex gap-2.5 sm:gap-3 justify-center lg:justify-start">
+              <div className="flex gap-1.5 sm:gap-2 justify-center lg:justify-start">
                 {otp.map((v, i) => (
                   <input key={i} ref={o[i]}
                     type="text" inputMode="numeric" maxLength={1} value={v} autoComplete="off"
@@ -301,7 +327,7 @@ function LoginForm() {
                       color: v ? '#fff' : 'var(--ink)',
                       transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
                     }}
-                    className="w-[clamp(56px,17vw,64px)] h-[clamp(62px,19vw,70px)] text-center text-[26px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm"
+                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[20px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm"
                   />
                 ))}
               </div>

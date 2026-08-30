@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { claimJob, markSent } from '@/lib/messageJobs'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120
@@ -14,7 +15,7 @@ export const maxDuration = 120
  * Cron: /api/leads/followup?key=SECRET  (every 10 minutes)
  */
 export async function GET(req: NextRequest) {
-  if (new URL(req.url).searchParams.get('key') !== CONFIG.setupSecret) {
+  if (!isValidCronRequest(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

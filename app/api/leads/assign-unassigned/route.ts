@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { autoAssignLead } from '@/lib/autoAssign'
+import { eligibleMarketers } from '@/lib/leads/eligibility'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'project_manager']
@@ -18,17 +19,17 @@ export async function GET(req: NextRequest) {
   const sb = createServiceClient()
   const { count: unassigned } = await sb.from('leads').select('id', { count: 'exact', head: true }).is('assigned_to', null)
 
-  const { data: staff } = await sb.from('profiles')
-    .select('id, full_name, role, is_active, in_lead_pool')
-    .neq('role', 'super_admin').eq('is_active', true)
-  const pool = (staff || []).filter((m: any) => m.in_lead_pool !== false)
+  // The pool comes from the shared eligibility module, so this diagnostic
+  // shows exactly who assignment will actually consider — it used to build
+  // its own list and could disagree with the assigner.
+  const pool = await eligibleMarketers()
 
   return NextResponse.json({
     unassigned: unassigned || 0,
     poolSize: pool.length,
-    pool: pool.map((m: any) => ({ name: m.full_name, role: m.role })),
+    pool: pool.map(m => ({ name: m.fullName, role: m.role, tier: m.tier })),
     reason: pool.length === 0
-      ? 'No one is in the lead pool. Add at least one active marketer (or toggle "in lead pool" on a staff member).'
+      ? 'Nobody can currently receive leads. A person is eligible only when their access includes the Leads portal and they are not opted out of the lead pool.'
       : null,
   })
 }

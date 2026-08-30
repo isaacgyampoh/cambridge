@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager']
@@ -53,8 +53,8 @@ export async function GET(req: NextRequest) {
   } catch {}
 
   out.setup = {
-    wasenderKey: CONFIG.wasenderApiKey ? 'set' : 'MISSING',
-    openaiKey: CONFIG.openaiApiKey ? 'set' : 'MISSING',
+    wasenderKey: SECRETS.wasenderApiKey ? 'set' : 'MISSING',
+    openaiKey: SECRETS.openaiApiKey ? 'set' : 'MISSING',
     webhookUrl: `${new URL(req.url).origin}/api/webhooks/whatsapp`,
   }
   out.verdict = out.last24h?.messagesFromLeads

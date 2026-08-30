@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager']
@@ -113,6 +113,6 @@ export async function POST(req: NextRequest) {
     verdict: failed
       ? `Stops at: ${failed.step}. ${failed.detail}`
       : 'Working end to end. If real leads still get nothing, WaSender is not delivering their messages — check the webhook URL in WaSender.',
-    apiKeySet: !!CONFIG.wasenderApiKey,
+    apiKeySet: !!SECRETS.wasenderApiKey,
   })
 }

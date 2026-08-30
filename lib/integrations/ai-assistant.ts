@@ -1,4 +1,4 @@
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { aiComplete, aiConfigured } from '@/lib/integrations/ai-client'
 import { getChatStyle } from '@/app/api/admin/chat-style/route'
@@ -46,7 +46,7 @@ export async function generateAssistantReply(
   ctx: AssistantContext,
   history: { role: 'user' | 'assistant'; content: string }[] = [],
 ): Promise<string | null> {
-  if (!CONFIG.aiAssistantEnabled || !aiConfigured()) return null
+  if (!SECRETS.aiAssistantEnabled || !aiConfigured()) return null
 
   const sb = createServiceClient()
   const { data: kb } = await sb
@@ -259,7 +259,7 @@ ${knowledge || 'No specific knowledge base entries are configured yet. Be warm, 
  * knowledge. Returns null if AI is disabled/unconfigured.
  */
 export async function generateOpeningMessage(ctx: AssistantContext): Promise<string | null> {
-  if (!CONFIG.aiAssistantEnabled || !aiConfigured()) return null
+  if (!SECRETS.aiAssistantEnabled || !aiConfigured()) return null
 
   const firstName = (ctx.leadName || '').split(' ')[0] || 'there'
   const marketer = ctx.marketerName?.split(' ')[0] || 'your advisor'

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifyStudent, STUDENT_COOKIE } from '@/lib/student/auth'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
   const amt = Number(amount)
   if (!(amt > 0)) return NextResponse.json({ error: 'Enter a valid amount.' }, { status: 400 })
 
-  const secret = CONFIG.paystackSecretKey
+  const secret = SECRETS.paystackSecretKey
   if (!secret) return NextResponse.json({ error: 'Payment is not configured yet.' }, { status: 500 })
 
   const sb = createServiceClient()

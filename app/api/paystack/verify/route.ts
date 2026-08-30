@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -14,7 +14,7 @@ export async function POST(req: NextRequest) {
 
   try {
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${CONFIG.paystackSecretKey}` },
+      headers: { Authorization: `Bearer ${SECRETS.paystackSecretKey}` },
     })
     const data = await res.json()
     if (!data.status || data.data?.status !== 'success') {

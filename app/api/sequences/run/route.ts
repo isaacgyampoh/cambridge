@@ -1,8 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 /**
  * Cron runner — sends all due drip-sequence messages.
@@ -16,7 +17,7 @@ import { CONFIG } from '@/lib/config'
  */
 export async function GET(req: NextRequest) {
   const key = new URL(req.url).searchParams.get('key')
-  if (key !== CONFIG.setupSecret) {
+  if (!isValidCronRequest(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
 

@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager']
@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
   const s: any = token ? await verifySession(token) : { valid: false }
   if (!s.valid || !ALLOWED.includes(s.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
 
-  const key = CONFIG.wasenderApiKey || ''
+  const key = SECRETS.wasenderApiKey || ''
   const sb = createServiceClient()
   const { data: lines } = await sb.from('profiles')
     .select('full_name, wasender_phone, wasender_status')
@@ -25,7 +25,7 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     central_key_set: !!key,
     central_key_fingerprint: key ? `${key.slice(0, 6)}…${key.slice(-4)}` : null,
-    endpoint: CONFIG.wasenderUrl,
+    endpoint: SECRETS.wasenderUrl,
     staff_lines: (lines || []).map((l: any) => ({
       name: l.full_name, number: l.wasender_phone, status: l.wasender_status || 'not tested',
     })),
@@ -43,12 +43,12 @@ export async function POST(req: NextRequest) {
   const { phone } = await req.json().catch(() => ({}))
   if (!phone) return NextResponse.json({ error: 'Enter a phone number to test.' }, { status: 400 })
 
-  const key = CONFIG.wasenderApiKey
+  const key = SECRETS.wasenderApiKey
   if (!key) return NextResponse.json({ error: 'WASENDER_API_KEY is not set on the server.' }, { status: 500 })
 
   const to = String(phone).replace(/[^0-9+]/g, '').replace(/^\+/, '').replace(/^0/, '233')
   try {
-    const res = await fetch(CONFIG.wasenderUrl, {
+    const res = await fetch(SECRETS.wasenderUrl, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${key}` },
       body: JSON.stringify({ to, text: 'Cambridge Center of Excellence — WhatsApp is connected and working.' }),

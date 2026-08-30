@@ -56,8 +56,16 @@ export async function findCourse(interest?: string | null) {
 }
 
 /**
- * The brochure for a course: its own first, a general one only if that course
- * has none. Never another course's brochure.
+ * SUPERSEDED by resolveBrochure() in lib/documents/resolve.ts.
+ *
+ * This version selected on course alone — class mode was never a parameter —
+ * so an online and an in-person applicant on the same programme necessarily
+ * received the identical brochure. That is the wrong-brochure defect. Kept
+ * only so that any straggling import still compiles; do not call it in new
+ * code. Its safeguard against sending another programme's brochure lives on
+ * inside resolveBrochure.
+ *
+ * @deprecated Use resolveBrochure(courseId, classMode).
  */
 export async function findBrochure(courseId?: string | null): Promise<string | null> {
   const sb = createServiceClient()

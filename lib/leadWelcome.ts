@@ -1,7 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { claimJob, markSent } from '@/lib/messageJobs'
-import { findCourse, findBrochure } from '@/lib/courseMatch'
+import { findCourse } from '@/lib/courseMatch'
+import { resolveBrochure } from '@/lib/documents/resolve'
 
 /**
  * What a new lead receives: a short hello, then the gallery, then the brochure
@@ -60,7 +61,7 @@ export async function sendWelcomePack(opts: {
   //    course-specific brochure — never instead of one.
   const brochureKey = `welcome_brochure:${opts.leadId}`
   if (await claimJob({ dedupeKey: brochureKey, leadId: opts.leadId, phone: opts.phone, kind: 'brochure' })) {
-    const url = await findBrochure(course?.id || null)
+    const url = await resolveBrochure(course?.id || null, null)
     if (url) {
       const ok = await sendWhatsAppMedia(opts.phone, `Everything about ${courseLabel} is in here.`, url, opts.marketerId || null)
       await markSent(brochureKey, ok)

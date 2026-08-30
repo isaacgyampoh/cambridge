@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidCronRequest } from '@/lib/auth/guard'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'accountant']
@@ -12,7 +13,7 @@ const ALLOWED = ['super_admin', 'administrator', 'accountant']
  * closed) — assignment, credit, registered status, admission letter.
  */
 export async function GET(req: NextRequest) {
-  if (new URL(req.url).searchParams.get('key') !== CONFIG.setupSecret) {
+  if (!isValidCronRequest(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }
   const origin = new URL(req.url).origin
@@ -80,7 +81,7 @@ async function sweep(origin: string) {
 async function verifyAndComplete(reference: string, origin: string) {
   try {
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${CONFIG.paystackSecretKey}` },
+      headers: { Authorization: `Bearer ${SECRETS.paystackSecretKey}` },
     })
     const data = await res.json()
     if (!data.status || data.data?.status !== 'success') return { ok: false, reference, reason: 'not successful on Paystack' }

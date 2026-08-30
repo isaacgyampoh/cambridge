@@ -6,7 +6,11 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "typecheck": "tsc --noEmit",
+    "test": "node --conditions=react-server --test \"tests/**/*.test.ts\"",
+    "verify": "npm run typecheck && npm run lint && npm run test && npm run build",
+    "preflight": "node scripts/preflight.mjs"
   },
   "dependencies": {
     "@fontsource/fraunces": "^5.2.9",
@@ -27,6 +31,7 @@
     "react-hook-form": "^7.78.0",
     "recharts": "^3.8.1",
     "resend": "^6.12.4",
+    "server-only": "^0.0.1",
     "sonner": "^2.0.7",
     "tailwind-merge": "^3.6.0",
     "xlsx": "^0.18.5",

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Email and amount are required.' }, { status: 400 })
   }
 
-  const secret = CONFIG.paystackSecretKey
+  const secret = SECRETS.paystackSecretKey
   if (!secret || !secret.startsWith('sk_')) {
     return NextResponse.json({ error: 'Payment is not configured on the server (missing secret key). Please set PAYSTACK_SECRET_KEY in Vercel and redeploy.' }, { status: 500 })
   }

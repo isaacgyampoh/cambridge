@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +13,7 @@ export const runtime = 'nodejs'
  * POST -> subscribes that Page to leadgen
  */
 async function getPage() {
-  const token = CONFIG.facebookPageAccessToken
+  const token = SECRETS.facebookPageAccessToken
   if (!token) return { error: 'No FACEBOOK_PAGE_ACCESS_TOKEN set in Vercel.' }
   // What does this token belong to? (User vs Page)
   const meRes = await fetch(`https://graph.facebook.com/v18.0/me?fields=id,name&access_token=${token}`, { signal: AbortSignal.timeout(8000) })
@@ -51,9 +51,9 @@ export async function POST(req: NextRequest) {
   // Determine which Page to subscribe and which token to use.
   // If this is a User token, use the Page's own access_token from /me/accounts.
   let pageId = page.id
-  let pageToken = CONFIG.facebookPageAccessToken
+  let pageToken = SECRETS.facebookPageAccessToken
   try {
-    const pagesRes = await fetch(`https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token&access_token=${CONFIG.facebookPageAccessToken}`, { signal: AbortSignal.timeout(8000) })
+    const pagesRes = await fetch(`https://graph.facebook.com/v18.0/me/accounts?fields=id,name,access_token&access_token=${SECRETS.facebookPageAccessToken}`, { signal: AbortSignal.timeout(8000) })
     const pages = await pagesRes.json()
     if (pages?.data?.length) {
       pageId = pages.data[0].id

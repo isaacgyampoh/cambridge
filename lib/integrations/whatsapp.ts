@@ -1,8 +1,8 @@
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 
 // WaSender API — https://wasenderapi.com
-const WASENDER_URL = CONFIG.wasenderUrl || 'https://wasenderapi.com/api/send-message'
+const WASENDER_URL = SECRETS.wasenderUrl || 'https://wasenderapi.com/api/send-message'
 
 function normalizePhone(phone: string): string {
   // WaSender expects digits only in international form: 233XXXXXXXXX
@@ -32,7 +32,7 @@ async function resolveApiKey(senderId?: string | null): Promise<{ key: string; p
       }
     } catch {}
   }
-  return { key: CONFIG.wasenderApiKey, profileId: null }
+  return { key: SECRETS.wasenderApiKey, profileId: null }
 }
 
 async function wasenderSend(

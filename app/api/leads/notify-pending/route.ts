@@ -1,7 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS } from '@/lib/integrations/sms'
 import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +15,7 @@ export const runtime = 'nodejs'
  */
 export async function GET(req: NextRequest) {
   const key = new URL(req.url).searchParams.get('key')
-  if (key !== CONFIG.setupSecret) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
+  if (!isValidCronRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sb = createServiceClient()
   const settleCutoff = new Date(Date.now() - 3 * 60000).toISOString()  // last lead 3+ min ago

@@ -1,7 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseInbound } from '@/lib/parseInbound'
 import { claimJob, markSent, alreadyProcessed } from '@/lib/messageJobs'
-import { findCourse, findBrochure } from '@/lib/courseMatch'
+import { findCourse } from '@/lib/courseMatch'
+import { resolveBrochure } from '@/lib/documents/resolve'
 import { createServiceClient } from '@/lib/supabase/server'
 import { readConversation } from '@/lib/integrations/conversationState'
 import { maybeResumeAI } from '@/lib/aiResume'
@@ -384,7 +385,7 @@ async function handleInbound(req: NextRequest) {
   if (wantsBrochure && lead?.course_interest) {
     const course = await findCourse(lead.course_interest)
 
-    const brochureUrl = await findBrochure(course?.id || null)
+    const brochureUrl = await resolveBrochure(course?.id || null, null)
 
     let usable = false
     if (brochureUrl) {

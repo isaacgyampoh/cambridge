@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { intakeLead } from '@/lib/leadIntake'
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -13,7 +13,7 @@ export async function GET() {
     ok: true,
     endpoint: 'google-lead-webhook',
     ready: true,
-    keyConfigured: !!CONFIG.googleLeadKey,
+    keyConfigured: !!SECRETS.googleLeadKey,
     note: 'Google Lead Form Extensions should POST here. Leads auto-assign to a marketer on arrival.',
   })
 }
@@ -27,7 +27,7 @@ export async function POST(req: NextRequest) {
   const body = await req.json()
 
   // Optional shared-secret check (Google lets you set a "key" on the form)
-  if (CONFIG.googleLeadKey && body.google_key && body.google_key !== CONFIG.googleLeadKey) {
+  if (SECRETS.googleLeadKey && body.google_key && body.google_key !== SECRETS.googleLeadKey) {
     return NextResponse.json({ error: 'Invalid key' }, { status: 401 })
   }
 

@@ -1,4 +1,6 @@
 import { CONFIG } from '@/lib/config'
+import { isValidCronRequest } from '@/lib/auth/guard'
+import { SECRETS } from '@/lib/config.server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
@@ -16,7 +18,7 @@ function generateClassCode(): string {
 export async function POST(req: NextRequest) {
  // Verify this is a legit cron call
  const authHeader = req.headers.get('authorization')
- if (authHeader !==`Bearer ${CONFIG.cronSecret || 'cce-cron-2024'}`) {
+ if (!isValidCronRequest(req)) {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
  }
 
@@ -117,12 +119,12 @@ export async function POST(req: NextRequest) {
 export async function GET(req: NextRequest) {
  const url = new URL(req.url)
  const secret = url.searchParams.get('secret')
- if (secret !== (CONFIG.cronSecret || 'cce-cron-2024')) {
+ if (!isValidCronRequest(req)) {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
  }
 
  return POST(new NextRequest(req.url, {
  method: 'POST',
- headers: { authorization:`Bearer ${CONFIG.cronSecret || 'cce-cron-2024'}` },
+ headers: { authorization:`Bearer ${SECRETS.cronSecret}` },
  }))
 }

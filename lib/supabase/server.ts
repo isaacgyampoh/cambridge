@@ -2,6 +2,7 @@ import { createServerClient } from '@supabase/ssr'
 import { createClient as createSupabaseClient } from '@supabase/supabase-js'
 import { cookies } from 'next/headers'
 import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 export async function createClient() {
   const cookieStore = await cookies()
@@ -18,5 +19,5 @@ export async function createClient() {
 }
 
 export function createServiceClient() {
-  return createSupabaseClient(CONFIG.supabaseUrl, CONFIG.supabaseServiceKey)
+  return createSupabaseClient(CONFIG.supabaseUrl, SECRETS.supabaseServiceKey)
 }

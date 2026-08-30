@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server'
 import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function GET() {
@@ -12,15 +13,15 @@ export async function GET() {
   } catch {}
 
   return NextResponse.json({
-    supabase: !!CONFIG.supabaseUrl && !!CONFIG.supabaseServiceKey,
-    arkesel: !!CONFIG.arkeselApiKey,
-    paystack: !!CONFIG.paystackPublicKey && !!CONFIG.paystackSecretKey && CONFIG.paystackPublicKey.startsWith('pk_'),
+    supabase: !!CONFIG.supabaseUrl && !!SECRETS.supabaseServiceKey,
+    arkesel: !!SECRETS.arkeselApiKey,
+    paystack: !!CONFIG.paystackPublicKey && !!SECRETS.paystackSecretKey && CONFIG.paystackPublicKey.startsWith('pk_'),
     paystackLive: CONFIG.paystackPublicKey?.startsWith('pk_live_') || false,
-    wawpCentral: !!CONFIG.wasenderApiKey,
+    wawpCentral: !!SECRETS.wasenderApiKey,
     wawpLines: waLines,
-    resend: !!CONFIG.resendApiKey,
-    storage: !!CONFIG.supabaseUrl && !!CONFIG.supabaseServiceKey,
-    ai: (CONFIG.aiProvider === 'openai' ? !!CONFIG.openaiApiKey : !!CONFIG.anthropicApiKey) && CONFIG.aiAssistantEnabled,
+    resend: !!SECRETS.resendApiKey,
+    storage: !!CONFIG.supabaseUrl && !!SECRETS.supabaseServiceKey,
+    ai: (SECRETS.aiProvider === 'openai' ? !!SECRETS.openaiApiKey : !!SECRETS.anthropicApiKey) && SECRETS.aiAssistantEnabled,
     senderId: CONFIG.arkeselSenderId,
   })
 }

@@ -1,4 +1,4 @@
-import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { intakeLead } from '@/lib/leadIntake'
@@ -13,7 +13,7 @@ export async function GET(req: NextRequest) {
   const token = searchParams.get('hub.verify_token')
   const challenge = searchParams.get('hub.challenge')
 
-  if (mode === 'subscribe' && token === CONFIG.facebookVerifyToken) {
+  if (mode === 'subscribe' && token === SECRETS.facebookVerifyToken) {
     return new Response(challenge, { status: 200 })
   }
   return NextResponse.json({ error: 'Forbidden' }, { status: 403 })
@@ -28,7 +28,7 @@ export async function POST(req: NextRequest) {
   // Remove once Facebook leads are confirmed flowing.
   const sig = req.headers.get('x-hub-signature-256') || ''
   const expected = 'sha256=' + crypto
-    .createHmac('sha256', CONFIG.facebookAppSecret || '')
+    .createHmac('sha256', SECRETS.facebookAppSecret || '')
     .update(body)
     .digest('hex')
   const sigOk = sig === expected
@@ -39,8 +39,8 @@ export async function POST(req: NextRequest) {
         received: true,
         signaturePresent: !!sig,
         signatureMatches: sigOk,
-        appSecretSet: !!CONFIG.facebookAppSecret,
-        pageTokenSet: !!CONFIG.facebookPageAccessToken,
+        appSecretSet: !!SECRETS.facebookAppSecret,
+        pageTokenSet: !!SECRETS.facebookPageAccessToken,
         bodyPreview: body.slice(0, 500),
       }),
     })
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
       let leadData: any = {}
       try {
         const res = await fetch(
-          `https://graph.facebook.com/v18.0/${leadgen_id}?access_token=${CONFIG.facebookPageAccessToken}`,
+          `https://graph.facebook.com/v18.0/${leadgen_id}?access_token=${SECRETS.facebookPageAccessToken}`,
           { signal: AbortSignal.timeout(8000) }
         )
         leadData = await res.json()

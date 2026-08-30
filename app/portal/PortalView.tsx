@@ -1,420 +1,655 @@
 'use client'
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useCallback, useSyncExternalStore } from 'react'
 import MaterialViewer from './MaterialViewer'
 
-const C = {
-  ink: '#12222b', soft: '#5c6b74', faint: '#93a1a9', line: '#e6ebee',
-  teal: '#1a7a85', tealDeep: '#125c66', tealSoft: '#eef6f7',
-  ok: '#1f7a4d', warn: '#a35a08', warnSoft: '#fdf3e6',
-  danger: '#a32020', dangerSoft: '#fbeceb', bg: '#f4f6f7',
-}
-const ghs = (n: number) => 'GHS ' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
-const font = "'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif"
+/**
+ * The student portal.
+ *
+ * Built mobile-first: a thumb-reachable tab bar at the bottom on a phone, the
+ * same information architecture as a side rail from `lg` up. It is not a
+ * desktop layout that has been squeezed.
+ *
+ * Colours come from the shared design tokens in app/globals.css rather than
+ * the local constants this file used to carry, so the portal and the staff ERP
+ * stay one system. Everything here is Tailwind against those variables.
+ */
 
-const Ico = {
-  home: (a: boolean) => <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={a ? C.teal : C.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></svg>,
-  klass: (a: boolean) => <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={a ? C.teal : C.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="2.5" y="5" width="19" height="13" rx="2" /><path d="M9 21h6" /><path d="M12 18v3" /></svg>,
-  book: (a: boolean) => <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={a ? C.teal : C.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v18H5.5A1.5 1.5 0 0 1 4 19.5z" /><path d="M8 3v18" /></svg>,
-  wallet: (a: boolean) => <svg width="21" height="21" viewBox="0 0 24 24" fill="none" stroke={a ? C.teal : C.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /></svg>,
-  lock: <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={C.faint} strokeWidth="2" strokeLinecap="round"><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></svg>,
-  doc: <svg width="17" height="17" viewBox="0 0 24 24" fill="none" stroke={C.teal} strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round"><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></svg>,
-  down: <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke={C.faint} strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><path d="M12 4v12" /><path d="m7 12 5 5 5-5" /><path d="M5 20h14" /></svg>,
-  video: <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#fff" strokeWidth="2.1" strokeLinecap="round" strokeLinejoin="round"><rect x="2" y="6" width="14" height="12" rx="2" /><path d="m16 10 6-3v10l-6-3z" /></svg>,
+const ghs = (n: number) =>
+  'GHS ' + Number(n || 0).toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })
+
+const longDate = (d: string) =>
+  new Date(d).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
+
+type Tab = 'home' | 'class' | 'materials' | 'payments' | 'profile'
+
+type Material = { id?: string; name: string; section?: number | null; unlockAt?: number }
+type PortalData = {
+  student?: { name?: string; phone?: string; classMode?: string | null; classModeLabel?: string | null; admissionNumber?: string | null; admissionStatus?: string | null }
+  course?: string | null
+  fee?: { total: number; paid: number; balance: number; status?: string } | null
+  batch?: { id: string; name: string; schedule?: string; startDate?: string; type?: string } | null
+  session?: {
+    canJoin?: boolean; cohortEnded?: boolean; minTopUp?: number; sessionNumber?: number
+    sectionNo?: number | null; sectionTitle?: string | null; signedInToday?: boolean; endDate?: string
+  } | null
+  materials?: { unlocked: Material[]; locked: Material[] }
+  admission?: { number: string | null; status: string | null; letterUrl: string | null } | null
+  certificate?: { certificate_number?: string; final_url?: string; issued_date?: string; course_name?: string } | null
+  certificateState?: string
+  payments?: Array<{ amount: number; method?: string; receipt_number?: string; created_at: string }>
 }
 
-const Card = ({ children, style }: any) => (
-  <div style={{ background: '#fff', border: `1px solid ${C.line}`, borderRadius: 16, padding: 18, marginBottom: 14, ...style }}>{children}</div>
+// ── Icons: 24px stroke set, sized for a 44px touch target ────────────────────
+const icon = (path: React.ReactNode) => (
+  <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+    strokeWidth="1.9" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">{path}</svg>
 )
-const Label = ({ children }: any) => (
-  <div style={{ fontSize: 11, fontWeight: 700, color: C.faint, letterSpacing: '0.09em', textTransform: 'uppercase', marginBottom: 12 }}>{children}</div>
-)
-const Btn = ({ children, onClick, tone = 'teal', disabled }: any) => {
-  const bg = tone === 'ok' ? C.ok : tone === 'ghost' ? '#fff' : C.teal
+const Icons = {
+  home: icon(<><path d="M3 10.5 12 3l9 7.5" /><path d="M5 9.5V21h14V9.5" /></>),
+  klass: icon(<><rect x="2.5" y="5" width="19" height="13" rx="2" /><path d="M9 21h6" /><path d="M12 18v3" /></>),
+  book: icon(<><path d="M4 4.5A1.5 1.5 0 0 1 5.5 3H19v18H5.5A1.5 1.5 0 0 1 4 19.5z" /><path d="M8 3v18" /></>),
+  wallet: icon(<><rect x="3" y="6" width="18" height="13" rx="2" /><path d="M3 10h18" /></>),
+  user: icon(<><circle cx="12" cy="8" r="4" /><path d="M4 21v-1a6 6 0 0 1 6-6h4a6 6 0 0 1 6 6v1" /></>),
+  lock: icon(<><rect x="4" y="10" width="16" height="11" rx="2" /><path d="M8 10V7a4 4 0 0 1 8 0v3" /></>),
+  doc: icon(<><path d="M14 3H7a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2V8z" /><path d="M14 3v5h5" /></>),
+  video: icon(<><rect x="2" y="6" width="14" height="12" rx="2" /><path d="m16 10 6-3v10l-6-3z" /></>),
+  award: icon(<><circle cx="12" cy="9" r="6" /><path d="m8.5 14-1.5 7 5-3 5 3-1.5-7" /></>),
+}
+
+const TABS: Array<{ k: Tab; label: string; icon: React.ReactNode }> = [
+  { k: 'home', label: 'Home', icon: Icons.home },
+  { k: 'class', label: 'Class', icon: Icons.klass },
+  { k: 'materials', label: 'Materials', icon: Icons.book },
+  { k: 'payments', label: 'Payments', icon: Icons.wallet },
+  { k: 'profile', label: 'Profile', icon: Icons.user },
+]
+
+const TITLES: Record<Tab, string> = {
+  home: 'Home', class: 'Your class', materials: 'Course materials',
+  payments: 'Payments', profile: 'Your profile',
+}
+
+// ── Building blocks ──────────────────────────────────────────────────────────
+
+function Card({ children, tone = 'plain', className = '' }: {
+  children: React.ReactNode; tone?: 'plain' | 'accent' | 'warn' | 'danger' | 'ok'; className?: string
+}) {
+  const tones = {
+    plain: 'bg-[var(--paper)] border-[var(--line)]',
+    accent: 'bg-[var(--accent-soft)] border-[var(--accent)]/20',
+    warn: 'bg-[var(--warn-soft)] border-[var(--warn)]/25',
+    danger: 'bg-[var(--danger-soft)] border-[var(--danger)]/25',
+    ok: 'bg-[var(--ok-soft)] border-[var(--ok)]/25',
+  }
   return (
-    <button onClick={onClick} disabled={disabled} style={{
-      width: '100%', minHeight: 52, border: tone === 'ghost' ? `1px solid ${C.line}` : 'none',
-      borderRadius: 13, fontSize: 15.5, fontWeight: 700, fontFamily: font,
-      background: disabled ? '#c8d2d6' : bg, color: tone === 'ghost' ? C.ink : '#fff',
-      display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 9, cursor: 'pointer',
-    }}>{children}</button>
+    <div className={`rounded-2xl border p-4 sm:p-5 mb-3.5 ${tones[tone]} ${className}`}>{children}</div>
   )
 }
 
-export default function PortalView({ demo, demoData }: { demo?: boolean; demoData?: any }) {
-  const [d, setD] = useState<any>(null)
-  const [loading, setLoading] = useState(true)
-  const [tab, setTab] = useState<'home' | 'class' | 'materials' | 'fees'>('home')
-  const [installEvt, setInstallEvt] = useState<any>(null)
-  const [showIos, setShowIos] = useState(false)
+function Label({ children }: { children: React.ReactNode }) {
+  return (
+    <div className="text-[11px] font-bold text-[var(--ink-faint)] tracking-[0.09em] uppercase mb-3">
+      {children}
+    </div>
+  )
+}
+
+function Button({ children, onClick, tone = 'accent', disabled, type = 'button' }: {
+  children: React.ReactNode; onClick?: () => void
+  tone?: 'accent' | 'ok' | 'ghost'; disabled?: boolean; type?: 'button' | 'submit'
+}) {
+  const tones = {
+    accent: 'bg-[var(--accent)] text-white hover:brightness-110',
+    ok: 'bg-[var(--ok)] text-white hover:brightness-110',
+    ghost: 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] hover:bg-[var(--line-soft)]',
+  }
+  return (
+    <button type={type} onClick={onClick} disabled={disabled}
+      className={`w-full min-h-[52px] rounded-xl text-[15.5px] font-bold inline-flex items-center
+        justify-center gap-2.5 transition-all disabled:opacity-45 disabled:pointer-events-none
+        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+        focus-visible:ring-offset-2 ${tones[tone]}`}>
+      {children}
+    </button>
+  )
+}
+
+/** A dismissible message. Replaces alert(), which cannot be styled or read out well. */
+function Notice({ text, tone, onClose }: { text: string; tone: 'warn' | 'danger' | 'ok'; onClose: () => void }) {
+  const tones = {
+    warn: 'bg-[var(--warn-soft)] border-[var(--warn)]/30 text-[var(--warn)]',
+    danger: 'bg-[var(--danger-soft)] border-[var(--danger)]/30 text-[var(--danger)]',
+    ok: 'bg-[var(--ok-soft)] border-[var(--ok)]/30 text-[var(--ok)]',
+  }
+  return (
+    <div role="status" aria-live="polite"
+      className={`rounded-xl border px-4 py-3 mb-3.5 text-[13.5px] leading-relaxed flex gap-3 ${tones[tone]}`}>
+      <span className="flex-1">{text}</span>
+      <button onClick={onClose} aria-label="Dismiss"
+        className="font-bold opacity-60 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current rounded px-1">
+        ×
+      </button>
+    </div>
+  )
+}
+
+function Row({ label, value }: { label: string; value: React.ReactNode }) {
+  return (
+    <div className="flex items-baseline justify-between gap-4 py-2.5 border-b border-[var(--line-soft)] last:border-0">
+      <span className="text-[13px] text-[var(--ink-soft)]">{label}</span>
+      <span className="text-[14px] font-semibold text-[var(--ink)] text-right">{value}</span>
+    </div>
+  )
+}
+
+function Empty({ children }: { children: React.ReactNode }) {
+  return <p className="text-[14px] text-[var(--ink-soft)] leading-relaxed">{children}</p>
+}
+
+// ── The portal ───────────────────────────────────────────────────────────────
+
+export default function PortalView({ demo, demoData }: { demo?: boolean; demoData?: PortalData }) {
+  // Demo content is initial state rather than something an effect writes, so
+  // the first paint is already correct and no cascading render is triggered.
+  const [d, setD] = useState<PortalData | null>(demo ? demoData ?? null : null)
+  const [loading, setLoading] = useState(!demo)
+  const [tab, setTab] = useState<Tab>('home')
+  const [installEvt, setInstallEvt] = useState<{ prompt: () => void } | null>(null)
+  const [iosHintDismissed, setIosHintDismissed] = useState(false)
   const [paying, setPaying] = useState(false)
+  const [joining, setJoining] = useState(false)
   const [amount, setAmount] = useState('')
   const [viewing, setViewing] = useState<{ id: string; name: string } | null>(null)
+  const [notice, setNotice] = useState<{ text: string; tone: 'warn' | 'danger' | 'ok' } | null>(null)
 
-  async function load() {
-    if (demo) { setD(demoData); setLoading(false); return }
-    const r = await fetch('/api/student/me')
-    if (r.status === 401) { window.location.href = '/portal/login'; return }
-    setD(await r.json()); setLoading(false)
-  }
-  useEffect(() => { load() }, [demo, demoData])
+  /** Refetch on demand — after paying, or after joining a class. */
+  const load = useCallback(async () => {
+    if (demo) return
+    try {
+      const r = await fetch('/api/student/me')
+      if (r.status === 401) { window.location.href = '/portal/login'; return }
+      setD(await r.json())
+    } catch {
+      setNotice({ text: 'We could not load your portal. Check your connection and try again.', tone: 'danger' })
+    } finally {
+      setLoading(false)
+    }
+  }, [demo])
 
+  // The initial fetch. Written as a promise chain with a cancellation flag so
+  // that state is only ever set from a callback — never synchronously in the
+  // effect body — and a response arriving after the student has navigated away
+  // cannot update an unmounted view.
   useEffect(() => {
-    const h = (e: any) => { e.preventDefault(); setInstallEvt(e) }
+    if (demo) return
+    let cancelled = false
+
+    fetch('/api/student/me')
+      .then(async r => {
+        if (r.status === 401) { window.location.href = '/portal/login'; return }
+        const json = await r.json()
+        if (!cancelled) { setD(json); setLoading(false) }
+      })
+      .catch(() => {
+        if (cancelled) return
+        setNotice({ text: 'We could not load your portal. Check your connection and try again.', tone: 'danger' })
+        setLoading(false)
+      })
+
+    return () => { cancelled = true }
+  }, [demo])
+
+  // The install prompt is a genuine external subscription, so state is only
+  // set from its callback.
+  useEffect(() => {
+    const h = (e: Event) => { e.preventDefault(); setInstallEvt(e as unknown as { prompt: () => void }) }
     window.addEventListener('beforeinstallprompt', h)
-    const isIos = /iphone|ipad|ipod/i.test(navigator.userAgent)
-    const standalone = window.matchMedia('(display-mode: standalone)').matches || (navigator as any).standalone
-    if (isIos && !standalone) setShowIos(true)
     return () => window.removeEventListener('beforeinstallprompt', h)
   }, [])
 
+  /*
+   * Whether to offer the iOS "add to home screen" hint is a one-off read of a
+   * platform API, not state the app owns. useSyncExternalStore reads it during
+   * render with an explicit server snapshot of false, which both avoids a
+   * hydration mismatch and keeps it out of an effect.
+   */
+  const isIosBrowser = useSyncExternalStore(
+    () => () => {},
+    () => /iphone|ipad|ipod/i.test(navigator.userAgent)
+      && !window.matchMedia('(display-mode: standalone)').matches
+      && !(navigator as Navigator & { standalone?: boolean }).standalone,
+    () => false,
+  )
+  const showIos = isIosBrowser && !iosHintDismissed
+
   async function pay() {
-    if (demo) { alert('In the live portal this opens Paystack so the student can pay by mobile money or card.'); return }
+    if (demo) { setNotice({ text: 'In the live portal this opens Paystack to pay by mobile money or card.', tone: 'ok' }); return }
     const amt = Number(amount)
     const min = Number(d?.session?.minTopUp || 0)
-    if (!(amt > 0)) return alert('Enter an amount')
-    if (min > 0 && amt + 0.01 < min) return alert(`You need to pay at least ${ghs(min)} to join the next class. You may pay more.`)
+    if (!(amt > 0)) { setNotice({ text: 'Enter the amount you would like to pay.', tone: 'warn' }); return }
+    if (min > 0 && amt + 0.01 < min) {
+      setNotice({ text: `You need to pay at least ${ghs(min)} to join the next class. You may pay more.`, tone: 'warn' })
+      return
+    }
     setPaying(true)
-    const init = await fetch('/api/student/pay-init', {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ amount: amt }),
-    }).then(r => r.json()).catch(() => null)
-    setPaying(false)
-    if (init?.authorization_url) window.location.href = init.authorization_url
-    else alert(init?.error || 'Could not start payment. Please try again.')
+    try {
+      const init = await fetch('/api/student/pay-init', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ amount: amt }),
+      }).then(r => r.json())
+      if (init?.authorization_url) { window.location.href = init.authorization_url; return }
+      setNotice({ text: init?.error || 'We could not start the payment. Please try again.', tone: 'danger' })
+    } catch {
+      setNotice({ text: 'We could not reach the payment service. Please try again.', tone: 'danger' })
+    } finally {
+      setPaying(false)
+    }
   }
 
-  const [joining, setJoining] = useState(false)
   async function joinClass() {
-    if (demo) { alert('In the live portal this opens Zoom — the app launches on a phone, or the Zoom client on a laptop.'); return }
+    if (demo) { setNotice({ text: 'In the live portal this opens Zoom on your phone or laptop.', tone: 'ok' }); return }
     setJoining(true)
-    // Ask the server for a one-time entry link. The Zoom URL never reaches the
-    // browser, so it cannot be copied and shared with someone who has not paid.
-    const r = await fetch('/api/student/join', { method: 'POST' }).then(x => x.json()).catch(() => null)
-    setJoining(false)
-    if (r?.url) { window.location.href = r.url; setTimeout(load, 3000); return }
-    if (r?.error === 'payment_required') { alert(`You need to pay at least ${ghs(r.minTopUp)} to join this session.`); setTab('fees'); load(); return }
-    if (r?.error === 'cohort_ended') { alert('This class has ended. Please contact the administration.'); load(); return }
-    alert('Could not open the class. Please try again.')
+    try {
+      // The server issues a one-time entry link; the Zoom URL never reaches the
+      // browser, so it cannot be copied and shared with someone who has not paid.
+      const r = await fetch('/api/student/join', { method: 'POST' }).then(x => x.json())
+      if (r?.url) { window.location.href = r.url; setTimeout(load, 3000); return }
+      if (r?.error === 'payment_required') {
+        setNotice({ text: `You need to pay at least ${ghs(r.minTopUp)} to join this session.`, tone: 'warn' })
+        setTab('payments'); load(); return
+      }
+      if (r?.error === 'cohort_ended') {
+        setNotice({ text: 'This class has ended. Please contact the administration.', tone: 'warn' })
+        load(); return
+      }
+      setNotice({ text: 'We could not open the class. Please try again.', tone: 'danger' })
+    } catch {
+      setNotice({ text: 'We could not open the class. Check your connection and try again.', tone: 'danger' })
+    } finally {
+      setJoining(false)
+    }
   }
 
-  if (loading) return (
-    <div style={{ minHeight: '100dvh', display: 'grid', placeItems: 'center', background: C.bg, fontFamily: font }}>
-      <div style={{ width: 34, height: 34, border: `3px solid ${C.line}`, borderTopColor: C.teal, borderRadius: '50%', animation: 'sp .8s linear infinite' }} />
-      <style>{`@keyframes sp{to{transform:rotate(360deg)}}`}</style>
-    </div>
-  )
+  if (loading) {
+    return (
+      <div className="min-h-[100dvh] grid place-items-center bg-[var(--canvas)]">
+        <div role="status" aria-label="Loading your portal"
+          className="w-9 h-9 rounded-full border-[3px] border-[var(--line)] border-t-[var(--accent)] animate-spin" />
+      </div>
+    )
+  }
 
   const f = d?.fee, s = d?.session
-  const first = (d?.student?.name || '').split(' ')[0]
+  const first = (d?.student?.name || '').split(' ')[0] || 'there'
   const pct = f?.total ? Math.min(100, (f.paid / f.total) * 100) : 0
 
-  const TABS = [
-    { k: 'home', label: 'Home', icon: Ico.home },
-    { k: 'class', label: 'Class', icon: Ico.klass },
-    { k: 'materials', label: 'Materials', icon: Ico.book },
-    { k: 'fees', label: 'Fees', icon: Ico.wallet },
-  ] as const
+  // ── Shared pieces ──
 
-  const InstallBanner = () => (
+  const installBanner = () => (
     <>
       {installEvt && (
-        <Card style={{ background: C.tealSoft, borderColor: '#cde3e6' }}>
-          <div style={{ fontWeight: 700, color: C.ink, fontSize: 14.5 }}>Install your portal</div>
-          <p style={{ fontSize: 13.5, color: C.soft, margin: '6px 0 13px', lineHeight: 1.55 }}>Add it to your home screen so it opens like an app.</p>
-          <Btn onClick={async () => { installEvt.prompt(); setInstallEvt(null) }}>Install</Btn>
+        <Card tone="accent">
+          <div className="font-bold text-[14.5px] text-[var(--ink)]">Install your portal</div>
+          <p className="text-[13.5px] text-[var(--ink-soft)] mt-1.5 mb-3.5 leading-relaxed">
+            Add it to your home screen so it opens like an app.
+          </p>
+          <Button onClick={() => { installEvt.prompt(); setInstallEvt(null) }}>Install</Button>
         </Card>
       )}
       {showIos && !installEvt && (
-        <Card style={{ background: C.tealSoft, borderColor: '#cde3e6' }}>
-          <div style={{ fontWeight: 700, color: C.ink, fontSize: 14.5 }}>Add to your home screen</div>
-          <p style={{ fontSize: 13.5, color: C.soft, margin: '6px 0 0', lineHeight: 1.6 }}>
+        <Card tone="accent">
+          <div className="font-bold text-[14.5px] text-[var(--ink)]">Add to your home screen</div>
+          <p className="text-[13.5px] text-[var(--ink-soft)] mt-1.5 leading-relaxed">
             In Safari, tap <b>Share</b> at the bottom of the screen, then choose <b>Add to Home Screen</b>.
           </p>
-          <button onClick={() => setShowIos(false)} style={{ background: 'none', border: 'none', color: C.teal, fontSize: 13.5, fontWeight: 700, marginTop: 10, padding: 0, fontFamily: font }}>Got it</button>
+          <button onClick={() => setIosHintDismissed(true)}
+            className="text-[var(--accent)] text-[13.5px] font-bold mt-2.5 focus-visible:outline-none focus-visible:underline">
+            Got it
+          </button>
         </Card>
       )}
     </>
   )
 
-  const ClassStatus = () => {
-    if (!d?.batch) return <p style={{ fontSize: 14, color: C.soft, lineHeight: 1.6 }}>Your class will appear here once you have been added to a group.</p>
+  const classStatus = () => {
+    if (!d?.batch) return <Empty>Your class will appear here once you have been added to a group.</Empty>
     if (!s) return null
+
     if (s.cohortEnded) return (
-      <div style={{ background: C.dangerSoft, border: '1px solid #f0cfcd', borderRadius: 13, padding: 15 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.danger }}>This class has ended</div>
-        <p style={{ fontSize: 13.5, color: C.soft, margin: '7px 0 0', lineHeight: 1.6 }}>
-          Your group finished{s.endDate ? ` on ${new Date(s.endDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}, so the class link is no longer available.
-          To rejoin, please contact the administration to be placed in a new group.
+      <div className="rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] p-4">
+        <div className="text-[14px] font-bold text-[var(--danger)]">This class has ended</div>
+        <p className="text-[13.5px] text-[var(--ink-soft)] mt-2 leading-relaxed">
+          Your group finished{s.endDate ? ` on ${longDate(s.endDate)}` : ''}, so the class link is no longer
+          available. To rejoin, please contact the administration to be placed in a new group.
         </p>
       </div>
     )
+
     if (s.canJoin) return (
       <>
-        <Btn tone="ok" onClick={joinClass} disabled={joining}>{Ico.video} {joining ? 'Opening' : 'Join class'}</Btn>
-        <p style={{ fontSize: 12.5, color: C.faint, textAlign: 'center', margin: '10px 0 0' }}>Opens Zoom on your phone or laptop.</p>
+        <Button tone="ok" onClick={joinClass} disabled={joining}>
+          {Icons.video}{joining ? 'Opening…' : 'Join class'}
+        </Button>
+        <p className="text-[12.5px] text-[var(--ink-faint)] text-center mt-2.5">
+          Opens Zoom on your phone or laptop.
+        </p>
       </>
     )
+
     return (
-      <div style={{ background: C.warnSoft, border: '1px solid #f2ddc0', borderRadius: 13, padding: 15 }}>
-        <div style={{ fontSize: 14, fontWeight: 700, color: C.warn }}>Payment required to join</div>
-        <p style={{ fontSize: 13.5, color: C.soft, margin: '7px 0 13px', lineHeight: 1.6 }}>
-          Pay at least <b style={{ color: C.ink }}>{ghs(s.minTopUp)}</b> to unlock session {s.sessionNumber}. You may pay more.
+      <div className="rounded-xl border border-[var(--warn)]/25 bg-[var(--warn-soft)] p-4">
+        <div className="text-[14px] font-bold text-[var(--warn)]">Payment required to join</div>
+        <p className="text-[13.5px] text-[var(--ink-soft)] mt-2 mb-3.5 leading-relaxed">
+          Pay at least <b className="text-[var(--ink)]">{ghs(s.minTopUp || 0)}</b> to unlock
+          session {s.sessionNumber}. You may pay more.
         </p>
-        <Btn onClick={() => setTab('fees')}>Make payment</Btn>
+        <Button onClick={() => setTab('payments')}>Make payment</Button>
       </div>
     )
   }
 
-  return (
-    <div style={{ minHeight: '100dvh', background: C.bg, fontFamily: font, paddingBottom: 86 }}>
-      <div style={{ background: `linear-gradient(160deg, ${C.teal}, ${C.tealDeep})`, padding: '20px 20px 24px', color: '#fff' }}>
-        <div style={{ fontSize: 11.5, opacity: 0.82, letterSpacing: '0.05em', textTransform: 'uppercase' }}>Cambridge Center of Excellence</div>
-        <div style={{ fontSize: 22, fontWeight: 700, marginTop: 5, letterSpacing: '-0.01em' }}>
-          {tab === 'home' ? `Hello, ${first}` : tab === 'class' ? 'Your class' : tab === 'materials' ? 'Course materials' : 'Your fees'}
+  const feeSummary = () => f ? (
+    <>
+      <div className="flex items-baseline justify-between mb-3">
+        <div>
+          <div className="text-[26px] font-semibold text-[var(--ink)] leading-none tabular-nums">
+            {ghs(f.balance)}
+          </div>
+          <div className="text-[12.5px] text-[var(--ink-faint)] mt-1.5">
+            {f.balance > 0 ? 'still to pay' : 'fully paid — thank you'}
+          </div>
         </div>
-        {d?.course && <div style={{ fontSize: 13, opacity: 0.9, marginTop: 3 }}>{d.course}</div>}
+        <div className="text-right text-[12.5px] text-[var(--ink-soft)]">
+          <div className="tabular-nums">{ghs(f.paid)} paid</div>
+          <div className="tabular-nums text-[var(--ink-faint)]">of {ghs(f.total)}</div>
+        </div>
       </div>
+      <div className="h-2 rounded-full bg-[var(--line-soft)] overflow-hidden"
+        role="progressbar" aria-valuenow={Math.round(pct)} aria-valuemin={0} aria-valuemax={100}
+        aria-label="Fees paid">
+        <div className="h-full rounded-full bg-[var(--accent)] transition-all duration-500"
+          style={{ width: `${pct}%` }} />
+      </div>
+    </>
+  ) : <Empty>Your fee details will appear here once your registration is complete.</Empty>
 
-      <div style={{ padding: 16, maxWidth: 560, margin: '0 auto' }}>
-        {tab === 'home' && (
-          <>
-            <InstallBanner />
-            <Card>
-              <Label>Next class</Label>
-              {d?.batch ? (
-                <>
-                  <div style={{ fontSize: 17.5, fontWeight: 700, color: C.ink }}>{d.batch.name}</div>
-                  {d.batch.schedule && <div style={{ fontSize: 13.5, color: C.soft, marginTop: 4 }}>{d.batch.schedule}</div>}
-                  {s && !s.cohortEnded && (
-                    <div style={{ fontSize: 13, color: C.faint, marginTop: 8 }}>
-                      {s.sectionNo ? `${s.sectionTitle || `Section ${s.sectionNo}`} · ` : ''}
-                      Session {s.sessionNumber}{s.signedInToday ? ' · you signed in today' : ''}
-                    </div>
-                  )}
-                  <div style={{ marginTop: 15 }}><ClassStatus /></div>
-                </>
-              ) : <ClassStatus />}
-            </Card>
+  // ── Tab panels ──
 
-            {f && (
-              <Card>
-                <Label>Fees</Label>
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <span style={{ fontSize: 13.5, color: C.soft }}>Balance</span>
-                  <span style={{ fontSize: 22, fontWeight: 700, color: f.balance > 0 ? C.warn : C.ok, letterSpacing: '-0.01em' }}>{ghs(f.balance)}</span>
-                </div>
-                <div style={{ height: 8, background: '#eaeef0', borderRadius: 99, marginTop: 13, overflow: 'hidden' }}>
-                  <div style={{ height: '100%', width: `${pct}%`, background: C.teal, borderRadius: 99 }} />
-                </div>
-                <div style={{ fontSize: 12.5, color: C.faint, marginTop: 8 }}>{ghs(f.paid)} paid of {ghs(f.total)}</div>
-                {f.balance > 0 && <div style={{ marginTop: 15 }}><Btn onClick={() => setTab('fees')}>Make payment</Btn></div>}
-              </Card>
-            )}
-
-            {/* Always shown, so a student knows the certificate is coming and
-                 what still stands between them and it. */}
-            {!d?.certificate && d?.certificateState && d.certificateState !== 'unknown' && (
-              <Card>
-                <Label>Your certificate</Label>
-                <p style={{ fontSize: 14, color: C.soft, lineHeight: 1.6 }}>
-                  {d.certificateState === 'fees_outstanding'
-                    ? 'Your certificate unlocks here once your fees are fully paid and your class is near its end.'
-                    : 'Your fees are cleared. Your certificate appears here in the final sessions of your class.'}
-                </p>
-                {d.certificateState === 'fees_outstanding' && f?.balance > 0 && (
-                  <div style={{ marginTop: 14 }}>
-                    <Btn tone="ghost" onClick={() => setTab('fees')}>See what is left to pay</Btn>
-                  </div>
-                )}
-              </Card>
-            )}
-
-            {d?.certificate && (
-              <Card style={{ borderColor: '#cde3e6', background: C.tealSoft }}>
-                <Label>Your certificate</Label>
-                <div style={{ fontSize: 15, fontWeight: 600, color: C.ink }}>{d.certificate.course_name}</div>
-                <div style={{ fontSize: 12.5, color: C.soft, marginTop: 3 }}>
-                  {d.certificate.certificate_number}
-                  {d.certificate.issued_date ? ` · issued ${new Date(d.certificate.issued_date).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}
-                </div>
-                <div style={{ marginTop: 14 }}>
-                  <a href={d.certificate.final_url} target="_blank" rel="noopener noreferrer" style={{ textDecoration: 'none' }}>
-                    <Btn>Download certificate</Btn>
-                  </a>
-                </div>
-              </Card>
-            )}
-
-            <Card>
-              <Label>Course materials</Label>
-              <div style={{ fontSize: 14, color: C.soft }}>
-                {d?.materials?.unlocked?.length
-                  ? `${d.materials.unlocked.length} available to download`
-                  : 'Your materials are released as you make payments.'}
-              </div>
-              <div style={{ marginTop: 14 }}><Btn tone="ghost" onClick={() => setTab('materials')}>View materials</Btn></div>
-            </Card>
-          </>
-        )}
-
-        {tab === 'class' && (
-          <>
-            <Card>
-              <Label>Your group</Label>
-              {d?.batch ? (
-                <>
-                  <div style={{ fontSize: 18, fontWeight: 700, color: C.ink }}>{d.batch.name}</div>
-                  {d.batch.schedule && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 14, fontSize: 14 }}>
-                      <span style={{ color: C.soft }}>Schedule</span><b style={{ color: C.ink }}>{d.batch.schedule}</b>
-                    </div>
-                  )}
-                  {d.batch.startDate && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 9, fontSize: 14 }}>
-                      <span style={{ color: C.soft }}>Started</span>
-                      <b style={{ color: C.ink }}>{new Date(d.batch.startDate).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}</b>
-                    </div>
-                  )}
-                  {s && (
-                    <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 9, fontSize: 14 }}>
-                      <span style={{ color: C.soft }}>Session</span><b style={{ color: C.ink }}>{s.sessionNumber}</b>
-                    </div>
-                  )}
-                </>
-              ) : <p style={{ fontSize: 14, color: C.soft }}>You have not been added to a class group yet.</p>}
-            </Card>
-            <Card><Label>Join</Label><ClassStatus /></Card>
-          </>
-        )}
-
-        {tab === 'materials' && (
-          <>
-            <Card>
-              <Label>Available now</Label>
-              {d?.materials?.unlocked?.length ? d.materials.unlocked.map((m: any, i: number) => (
-                <button key={i} onClick={() => m.id && setViewing({ id: m.id, name: m.name })}
-                  style={{ width: '100%', background: 'none', border: 'none', display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i ? `1px solid ${C.line}` : 'none', textAlign: 'left', cursor: 'pointer' }}>
-                  {Ico.doc}
-                  <span style={{ flex: 1, minWidth: 0 }}>
-                    <span style={{ display: 'block', fontSize: 14.5, color: C.ink, fontWeight: 500 }}>{m.name}</span>
-                    {m.section && <span style={{ display: 'block', fontSize: 11.5, color: C.faint, marginTop: 2 }}>Section {m.section}</span>}
-                  </span>
-                  <span style={{ fontSize: 12, color: C.teal, fontWeight: 700, flexShrink: 0 }}>Open</span>
-                </button>
-              )) : (
-                <p style={{ fontSize: 14, color: C.soft, lineHeight: 1.6 }}>
-                  You do not have any materials yet. They are released as you make your payments.
-                </p>
+  const panels: Record<Tab, React.ReactNode> = {
+    home: (
+      <>
+        {installBanner()}
+        <Card>
+          <Label>Next class</Label>
+          {d?.batch ? (
+            <>
+              <div className="text-[17.5px] font-bold text-[var(--ink)]">{d.batch.name}</div>
+              {d.batch.schedule && (
+                <div className="text-[13.5px] text-[var(--ink-soft)] mt-1">{d.batch.schedule}</div>
               )}
-            </Card>
-            {d?.materials?.locked?.length > 0 && (
-              <Card>
-                <Label>Not open yet</Label>
-                {d.materials.locked.map((m: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', alignItems: 'center', gap: 12, padding: '13px 0', borderTop: i ? `1px solid ${C.line}` : 'none' }}>
-                    {Ico.lock}
-                    <div style={{ flex: 1, minWidth: 0 }}>
-                      <div style={{ fontSize: 14.5, color: C.faint }}>{m.name}</div>
-                      {m.section && (
-                        <div style={{ fontSize: 11.5, color: C.faint, marginTop: 2 }}>Section {m.section}</div>
-                      )}
-                    </div>
-                  </div>
-                ))}
-                <p style={{ fontSize: 12.5, color: C.faint, margin: '12px 0 0', lineHeight: 1.55 }}>
-                  {f && f.balance > 0
-                    ? 'These open as you complete your payments. Paying in full opens every section at once.'
-                    : 'These open as your class reaches each section.'}
-                </p>
-              </Card>
-            )}
-          </>
-        )}
+              {s && !s.cohortEnded && (
+                <div className="text-[13px] text-[var(--ink-faint)] mt-2">
+                  {s.sectionNo ? `${s.sectionTitle || `Section ${s.sectionNo}`} · ` : ''}
+                  Session {s.sessionNumber}{s.signedInToday ? ' · you signed in today' : ''}
+                </div>
+              )}
+              <div className="mt-4">{classStatus()}</div>
+            </>
+          ) : classStatus()}
+        </Card>
 
-        {tab === 'fees' && (
-          <>
-            {f ? (
-              <>
-                <Card>
-                  <Label>Summary</Label>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', fontSize: 14.5 }}>
-                    <span style={{ color: C.soft }}>Course fee</span><b style={{ color: C.ink }}>{ghs(f.total)}</b>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, fontSize: 14.5 }}>
-                    <span style={{ color: C.soft }}>Paid</span><b style={{ color: C.ok }}>{ghs(f.paid)}</b>
-                  </div>
-                  <div style={{ display: 'flex', justifyContent: 'space-between', marginTop: 10, paddingTop: 13, borderTop: `1px solid ${C.line}`, fontSize: 15 }}>
-                    <span style={{ color: C.ink, fontWeight: 600 }}>Balance</span>
-                    <b style={{ color: f.balance > 0 ? C.warn : C.ok, fontSize: 17 }}>{ghs(f.balance)}</b>
-                  </div>
-                  <div style={{ height: 8, background: '#eaeef0', borderRadius: 99, marginTop: 14, overflow: 'hidden' }}>
-                    <div style={{ height: '100%', width: `${pct}%`, background: C.teal, borderRadius: 99 }} />
-                  </div>
-                </Card>
+        <Card>
+          <Label>Fees</Label>
+          {feeSummary()}
+          {f && f.balance > 0 && (
+            <div className="mt-4"><Button onClick={() => setTab('payments')}>Make a payment</Button></div>
+          )}
+        </Card>
 
-                {f.balance > 0 && (
-                  <Card>
-                    <Label>Make a payment</Label>
-                    {s?.minTopUp > 0 && (
-                      <div style={{ background: C.warnSoft, border: '1px solid #f2ddc0', borderRadius: 11, padding: 13, marginBottom: 14 }}>
-                        <p style={{ fontSize: 13.5, color: C.soft, margin: 0, lineHeight: 1.6 }}>
-                          To join session {s.sessionNumber} you need to pay at least <b style={{ color: C.ink }}>{ghs(s.minTopUp)}</b>.
-                        </p>
-                      </div>
-                    )}
-                    <input value={amount} onChange={e => setAmount(e.target.value)} inputMode="decimal"
-                      placeholder={s?.minTopUp ? `Minimum ${ghs(s.minTopUp)}` : 'Enter amount'}
-                      style={{ width: '100%', height: 52, padding: '0 15px', borderRadius: 13, border: `1px solid ${C.line}`, fontSize: 16, boxSizing: 'border-box', fontFamily: font, color: C.ink }} />
-                    <div style={{ marginTop: 12 }}>
-                      <Btn onClick={pay} disabled={paying}>{paying ? 'Opening payment' : 'Pay now'}</Btn>
-                    </div>
-                    <p style={{ fontSize: 12.5, color: C.faint, textAlign: 'center', margin: '11px 0 0' }}>Mobile money or card</p>
-                  </Card>
+        {d?.certificate?.final_url && (
+          <Card tone="ok">
+            <Label>Your certificate</Label>
+            <div className="flex items-center gap-3">
+              <span className="text-[var(--ok)]">{Icons.award}</span>
+              <div className="flex-1 min-w-0">
+                <div className="text-[14.5px] font-bold text-[var(--ink)] truncate">
+                  {d.certificate.course_name || 'Certificate'}
+                </div>
+                {d.certificate.certificate_number && (
+                  <div className="text-[12.5px] text-[var(--ink-soft)]">{d.certificate.certificate_number}</div>
                 )}
-              </>
-            ) : <Card><p style={{ fontSize: 14, color: C.soft }}>No fee record found yet.</p></Card>}
-
-            {d?.payments?.length > 0 && (
-              <Card>
-                <Label>Payment history</Label>
-                {d.payments.map((p: any, i: number) => (
-                  <div key={i} style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', padding: '12px 0', borderTop: i ? `1px solid ${C.line}` : 'none' }}>
-                    <div>
-                      <div style={{ fontSize: 15, fontWeight: 600, color: C.ink }}>{ghs(p.amount)}</div>
-                      <div style={{ fontSize: 12, color: C.faint, marginTop: 2 }}>{p.receipt_number || p.method}</div>
-                    </div>
-                    <div style={{ fontSize: 12.5, color: C.faint }}>
-                      {new Date(p.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short', year: 'numeric' })}
-                    </div>
-                  </div>
-                ))}
-              </Card>
-            )}
-          </>
+              </div>
+              <a href={d.certificate.final_url} target="_blank" rel="noopener noreferrer"
+                className="text-[13.5px] font-bold text-[var(--ok)] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ok)] rounded px-1">
+                Open
+              </a>
+            </div>
+          </Card>
         )}
+      </>
+    ),
+
+    class: (
+      <Card>
+        <Label>Your class</Label>
+        {d?.batch ? (
+          <>
+            <div className="text-[17.5px] font-bold text-[var(--ink)]">{d.batch.name}</div>
+            {d.course && <div className="text-[13.5px] text-[var(--ink-soft)] mt-1">{d.course}</div>}
+            <div className="mt-3">
+              {d.batch.schedule && <Row label="Schedule" value={d.batch.schedule} />}
+              {d.batch.startDate && <Row label="Starts" value={longDate(d.batch.startDate)} />}
+              {d.student?.classModeLabel && <Row label="Class type" value={d.student.classModeLabel} />}
+              {s?.sessionNumber !== undefined && <Row label="Session" value={s.sessionNumber} />}
+            </div>
+            <div className="mt-4">{classStatus()}</div>
+          </>
+        ) : classStatus()}
+      </Card>
+    ),
+
+    materials: (
+      <Card>
+        <Label>Course materials</Label>
+        {!d?.materials?.unlocked?.length && !d?.materials?.locked?.length && (
+          <Empty>Your course materials will appear here once your class begins.</Empty>
+        )}
+
+        {d?.materials?.unlocked?.map(m => (
+          <button key={m.id} onClick={() => m.id && setViewing({ id: m.id, name: m.name })}
+            className="w-full flex items-center gap-3 py-3 border-b border-[var(--line-soft)] last:border-0
+              text-left min-h-[52px] rounded-lg focus-visible:outline-none focus-visible:ring-2
+              focus-visible:ring-[var(--accent)] hover:bg-[var(--line-soft)] px-1 transition-colors">
+            <span className="text-[var(--accent)] shrink-0">{Icons.doc}</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[14.5px] font-semibold text-[var(--ink)] truncate">{m.name}</span>
+              {m.section && <span className="block text-[12.5px] text-[var(--ink-faint)]">Section {m.section}</span>}
+            </span>
+            <span className="text-[12.5px] font-bold text-[var(--accent)]">Open</span>
+          </button>
+        ))}
+
+        {d?.materials?.locked?.map((m, i) => (
+          <div key={`locked-${i}`} className="flex items-center gap-3 py-3 border-b border-[var(--line-soft)] last:border-0 opacity-70">
+            <span className="text-[var(--ink-faint)] shrink-0">{Icons.lock}</span>
+            <span className="flex-1 min-w-0">
+              <span className="block text-[14.5px] font-semibold text-[var(--ink-soft)] truncate">{m.name}</span>
+              <span className="block text-[12.5px] text-[var(--ink-faint)]">
+                Unlocks after {ghs(m.unlockAt || 0)} paid
+              </span>
+            </span>
+          </div>
+        ))}
+      </Card>
+    ),
+
+    payments: (
+      <>
+        <Card>
+          <Label>Balance</Label>
+          {feeSummary()}
+        </Card>
+
+        {f && f.balance > 0 && (
+          <Card>
+            <Label>Make a payment</Label>
+            <label htmlFor="pay-amount" className="block text-[13px] text-[var(--ink-soft)] mb-2">
+              Amount in Ghana cedis
+            </label>
+            <input id="pay-amount" type="number" inputMode="decimal" min="1" value={amount}
+              onChange={e => setAmount(e.target.value)}
+              placeholder={s?.minTopUp ? String(s.minTopUp) : '0.00'}
+              className="w-full h-[52px] px-4 rounded-xl border-2 border-[var(--line)] bg-[var(--paper)]
+                text-[16px] text-[var(--ink)] mb-3 focus:outline-none focus:border-[var(--accent)] transition-colors" />
+            {s?.minTopUp ? (
+              <p className="text-[12.5px] text-[var(--ink-faint)] mb-3">
+                At least {ghs(s.minTopUp)} to unlock the next session. You may pay more.
+              </p>
+            ) : null}
+            <Button onClick={pay} disabled={paying}>{paying ? 'Opening payment…' : 'Pay now'}</Button>
+          </Card>
+        )}
+
+        <Card>
+          <Label>Payment history</Label>
+          {!d?.payments?.length && <Empty>Your payments will be listed here.</Empty>}
+          {d?.payments?.map((p, i) => (
+            <div key={i} className="flex items-center justify-between gap-3 py-3 border-b border-[var(--line-soft)] last:border-0">
+              <div className="min-w-0">
+                <div className="text-[14.5px] font-semibold text-[var(--ink)] tabular-nums">{ghs(p.amount)}</div>
+                <div className="text-[12.5px] text-[var(--ink-faint)]">
+                  {longDate(p.created_at)}{p.method ? ` · ${p.method}` : ''}
+                </div>
+              </div>
+              {p.receipt_number && (
+                <div className="text-[12px] text-[var(--ink-faint)] font-mono shrink-0">{p.receipt_number}</div>
+              )}
+            </div>
+          ))}
+        </Card>
+      </>
+    ),
+
+    profile: (
+      <>
+        <Card>
+          <Label>Your details</Label>
+          <Row label="Name" value={d?.student?.name || '—'} />
+          <Row label="Phone" value={d?.student?.phone || '—'} />
+          <Row label="Programme" value={d?.course || '—'} />
+          <Row label="Class type" value={d?.student?.classModeLabel || 'Not set'} />
+          {d?.student?.admissionNumber && <Row label="Admission number" value={d.student.admissionNumber} />}
+          {d?.student?.admissionStatus && (
+            <Row label="Admission status" value={
+              <span className="capitalize">{String(d.student.admissionStatus).replace(/_/g, ' ')}</span>
+            } />
+          )}
+        </Card>
+
+        <Card>
+          <Label>Your documents</Label>
+          {d?.admission?.letterUrl ? (
+            <a href={d.admission.letterUrl} target="_blank" rel="noopener noreferrer"
+              className="flex items-center gap-3 py-3 min-h-[52px] rounded-lg px-1 hover:bg-[var(--line-soft)]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] transition-colors">
+              <span className="text-[var(--accent)] shrink-0">{Icons.doc}</span>
+              <span className="flex-1 text-[14.5px] font-semibold text-[var(--ink)]">Admission letter</span>
+              <span className="text-[12.5px] font-bold text-[var(--accent)]">Open</span>
+            </a>
+          ) : (
+            <Empty>
+              Your admission letter will appear here once your admission has been processed.
+            </Empty>
+          )}
+        </Card>
+
+        <Card>
+          <Label>Signing out</Label>
+          <p className="text-[13.5px] text-[var(--ink-soft)] mb-3.5 leading-relaxed">
+            You will need your sign-in link to get back in. If you lose it, contact the office.
+          </p>
+          <Button tone="ghost" onClick={async () => {
+            if (demo) { setNotice({ text: 'Sign out is disabled in the demo.', tone: 'ok' }); return }
+            await fetch('/api/student/auth', { method: 'DELETE' }).catch(() => {})
+            window.location.href = '/portal/login'
+          }}>
+            Sign out
+          </Button>
+        </Card>
+      </>
+    ),
+  }
+
+  return (
+    <div className="min-h-[100dvh] bg-[var(--canvas)] lg:flex">
+
+      {/* Desktop side rail — same information architecture, laid out for a pointer */}
+      <nav aria-label="Portal sections"
+        className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:border-r lg:border-[var(--line)] lg:bg-[var(--paper)] lg:p-4">
+        <div className="px-3 py-4 mb-2">
+          <div className="text-[11.5px] uppercase tracking-[0.06em] text-[var(--ink-faint)] font-semibold">
+            Cambridge CE
+          </div>
+          <div className="text-[16px] font-semibold text-[var(--ink)] mt-1 leading-snug">
+            {d?.student?.name || 'Student portal'}
+          </div>
+        </div>
+        {TABS.map(t => (
+          <button key={t.k} onClick={() => setTab(t.k)}
+            aria-current={tab === t.k ? 'page' : undefined}
+            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-[14.5px] font-semibold mb-1
+              transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+              ${tab === t.k
+                ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)]'}`}>
+            {t.icon}{t.label}
+          </button>
+        ))}
+      </nav>
+
+      <div className="flex-1 min-w-0">
+        {/* Header */}
+        <header className="bg-gradient-to-br from-[var(--accent)] to-[#125c66] text-white px-5 pt-5 pb-6 lg:pb-5">
+          <div className="max-w-[640px] mx-auto lg:max-w-none">
+            <div className="text-[11.5px] uppercase tracking-[0.05em] opacity-80 lg:hidden">
+              Cambridge Center of Excellence
+            </div>
+            <h1 className="text-[22px] font-bold mt-1.5 tracking-[-0.01em] lg:mt-0">
+              {tab === 'home' ? `Hello, ${first}` : TITLES[tab]}
+            </h1>
+            {d?.course && <div className="text-[13px] opacity-90 mt-1">{d.course}</div>}
+          </div>
+        </header>
+
+        {/* Panel */}
+        <main className="px-4 py-4 max-w-[640px] mx-auto lg:max-w-3xl lg:px-6 pb-[calc(86px+env(safe-area-inset-bottom))] lg:pb-10">
+          {notice && <Notice text={notice.text} tone={notice.tone} onClose={() => setNotice(null)} />}
+          <div role="tabpanel" aria-label={TITLES[tab]}>{panels[tab]}</div>
+        </main>
       </div>
+
+      {/* Mobile tab bar — thumb-reachable, safe-area aware, 5 targets ≥ 56px */}
+      <nav aria-label="Portal sections"
+        className="lg:hidden fixed bottom-0 inset-x-0 z-40 bg-[var(--paper)] border-t border-[var(--line)]
+          pb-[env(safe-area-inset-bottom)]">
+        <div className="grid grid-cols-5 max-w-[640px] mx-auto">
+          {TABS.map(t => (
+            <button key={t.k} onClick={() => setTab(t.k)}
+              aria-current={tab === t.k ? 'page' : undefined}
+              className={`flex flex-col items-center justify-center gap-1 min-h-[58px] py-2
+                transition-colors focus-visible:outline-none focus-visible:ring-2
+                focus-visible:ring-inset focus-visible:ring-[var(--accent)]
+                ${tab === t.k ? 'text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>
+              {t.icon}
+              <span className="text-[10.5px] font-semibold leading-none">{t.label}</span>
+            </button>
+          ))}
+        </div>
+      </nav>
 
       {viewing && (
         <MaterialViewer id={viewing.id} name={viewing.name} onClose={() => setViewing(null)} />
       )}
-
-      <nav style={{
-        position: 'fixed', bottom: 0, left: 0, right: 0, background: '#fff',
-        borderTop: `1px solid ${C.line}`, display: 'flex', justifyContent: 'space-around',
-        padding: '9px 0 max(9px, env(safe-area-inset-bottom))', zIndex: 50,
-      }}>
-        {TABS.map(t => {
-          const active = tab === t.k
-          return (
-            <button key={t.k} onClick={() => setTab(t.k as any)} style={{
-              background: 'none', border: 'none', display: 'flex', flexDirection: 'column',
-              alignItems: 'center', gap: 4, padding: '3px 14px', cursor: 'pointer', fontFamily: font,
-            }}>
-              {t.icon(active)}
-              <span style={{ fontSize: 11, fontWeight: active ? 700 : 500, color: active ? C.teal : C.faint }}>{t.label}</span>
-            </button>
-          )
-        })}
-      </nav>
     </div>
   )
 }

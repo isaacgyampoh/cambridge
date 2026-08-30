@@ -6,6 +6,9 @@ export default function SetupPage() {
   const [status, setStatus] = useState<any>(null)
   const [checking, setChecking] = useState(false)
   const [creating, setCreating] = useState(false)
+  // Typed in by the operator running setup. Hardcoding it here shipped the
+  // real secret to every visitor's browser, on a page that is public.
+  const [setupSecret, setSetupSecret] = useState('')
   const [result, setResult] = useState<any>(null)
 
   async function checkStatus() {
@@ -21,9 +24,15 @@ export default function SetupPage() {
   }
 
   async function runSetup() {
+    if (!setupSecret.trim()) {
+      setResult({ error: 'Enter the setup secret to continue.' })
+      return
+    }
     setCreating(true)
     try {
-      const res = await fetch('/api/auth/first-run?secret=cce-setup-2024')
+      const res = await fetch('/api/auth/first-run', {
+        headers: { authorization: `Bearer ${setupSecret.trim()}` },
+      })
       setResult(await res.json())
       checkStatus()
     } catch (e: any) {
@@ -111,7 +120,15 @@ export default function SetupPage() {
             )}
           </div>
 
-          <button onClick={runSetup} disabled={creating}
+          <label htmlFor="setup-secret" className="block text-slate-400 text-xs font-bold uppercase tracking-wider mb-2">
+            Setup secret
+          </label>
+          <input id="setup-secret" type="password" value={setupSecret} autoComplete="off"
+            onChange={e => setSetupSecret(e.target.value)}
+            placeholder="Value of SETUP_SECRET in your environment"
+            className="w-full h-12 px-4 mb-3 rounded-xl bg-slate-950 border border-slate-700 text-white placeholder:text-slate-600 focus:outline-none focus:border-blue-500" />
+
+          <button onClick={runSetup} disabled={creating || !setupSecret.trim()}
             className="w-full h-12 bg-blue-600 text-white rounded-xl font-bold hover:bg-blue-700 disabled:opacity-50 transition flex items-center justify-center gap-2 mb-3">
             {creating ? <><Loader size={16} className="animate-spin"/> Creating...</> : 'Create Super Admin Account'}
           </button>
@@ -122,8 +139,8 @@ export default function SetupPage() {
                 <>
                   <div className="font-bold text-green-400 mb-2"> {result.message}</div>
                   <div className="text-slate-300 space-y-1">
-                    <div>Phone: <strong className="text-white">{result.login?.phone}</strong></div>
-                    <div>PIN: <strong className="text-white text-xl tracking-widest">{result.login?.pin}</strong></div>
+                    <div>Sign in with: <strong className="text-white">{result.signIn?.identifier}</strong></div>
+                    <div>PIN: <strong className="text-white text-xl tracking-widest">{result.signIn?.pin}</strong></div>
                     <div className="text-slate-400 text-xs mt-2">{result.login?.note}</div>
                   </div>
                 </>

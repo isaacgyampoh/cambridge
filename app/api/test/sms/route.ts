@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 const ARKESEL_URL = 'https://sms.arkesel.com/api/v2/sms/send'
 
@@ -14,7 +15,7 @@ export async function POST(req: NextRequest) {
   let phone = '0201234567'
   try { const body = await req.json(); if (body?.phone) phone = body.phone } catch {}
 
-  const apiKey = CONFIG.arkeselApiKey
+  const apiKey = SECRETS.arkeselApiKey
   const senderId = CONFIG.arkeselSenderId || 'CambridgeCE'
   const recipient = phone.replace(/\s+/g, '').replace(/^\+233/, '233').replace(/^\+/, '').replace(/^0/, '233')
 

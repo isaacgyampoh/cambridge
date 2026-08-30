@@ -1,204 +1,290 @@
-import { CONFIG } from '@/lib/config'
 import { NextRequest, NextResponse } from 'next/server'
+import { createServiceClient } from '@/lib/supabase/server'
 import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
-import { createServiceClient } from '@/lib/supabase/server'
-import { onPaymentConfirmed } from '@/lib/notifications'
-import crypto from 'crypto'
+import { queueSMS } from '@/lib/notifications/sms'
+import { SMS } from '@/lib/integrations/sms'
+import { recordAudit } from '@/lib/audit'
+import { parseClassMode, classModeLabel } from '@/lib/classMode'
+import {
+  verifyPaystackSignature, classifyPayment, eventKey,
+  minorUnitsToGHS, amountIsAcceptable, type PaystackEvent,
+} from '@/lib/payments/verify'
 
+export const runtime = 'nodejs'
+export const maxDuration = 60
+
+/**
+ * Paystack webhook.
+ *
+ * Idempotency is the whole point of this file. Paystack retries on any
+ * non-2xx, and delivers the same event more than once in normal operation, so
+ * "check whether it exists, then insert" is not good enough: two concurrent
+ * deliveries both pass the check before either writes.
+ *
+ * The order here is deliberate:
+ *
+ *   1. verify the signature (timing-safe)
+ *   2. CLAIM the event id — one atomic insert, unique primary key
+ *   3. only then do any business work
+ *
+ * Step 2 is what makes everything after it exactly-once. A second delivery
+ * loses the claim and returns 200 immediately, having changed nothing. The
+ * payment insert behind it is separately protected by a unique index on
+ * payments.reference, so even if the claim table were lost the money could
+ * still only be recorded once.
+ *
+ * Returning 200 for anything we have decided not to act on is intentional:
+ * a non-2xx makes Paystack retry, and retrying an event we have deliberately
+ * rejected achieves nothing but noise.
+ */
 export async function POST(req: NextRequest) {
-  const body = await req.text()
+  const rawBody = await req.text()
 
-  // Verify signature
-  const hash = crypto
-    .createHmac('sha512', CONFIG.paystackSecretKey)
-    .update(body)
-    .digest('hex')
-
-  if (hash !== req.headers.get('x-paystack-signature')) {
+  if (!verifyPaystackSignature(rawBody, req.headers.get('x-paystack-signature'))) {
+    // 401 and no detail: a caller who cannot sign gets nothing to work with.
     return NextResponse.json({ error: 'Invalid signature' }, { status: 401 })
   }
 
-  const event = JSON.parse(body)
-  if (event.event !== 'charge.success') return NextResponse.json({ received: true })
+  let event: PaystackEvent
+  try {
+    event = JSON.parse(rawBody)
+  } catch {
+    return NextResponse.json({ received: true, note: 'unparseable body' })
+  }
 
-  const ref = event.data.reference
-  const amountGHS = (event.data.amount / 100).toFixed(2)
+  if (event.event !== 'charge.success') {
+    return NextResponse.json({ received: true, note: `ignoring ${event.event}` })
+  }
+
+  const key = eventKey(event)
+  if (!key) return NextResponse.json({ received: true, note: 'event has no identity' })
+
+  const reference = String(event.data?.reference || '')
+  if (!reference) return NextResponse.json({ received: true, note: 'no reference' })
+
+  const amount = minorUnitsToGHS(event.data?.amount)
+  if (amount === null) return NextResponse.json({ received: true, note: 'no usable amount' })
+
   const sb = createServiceClient()
 
-  // Check if this is an application payment
-  if (ref.startsWith('CCE-APP-') || event.data?.metadata?.application_id) {
-    // The application ID is a UUID (contains dashes), so we CANNOT reliably
-    // pull it out of the reference by splitting on '-'. Read it from the
-    // Paystack metadata (set at init); fall back to stripping the known
-    // prefix/suffix off the reference.
-    let applicationId = event.data?.metadata?.application_id || null
-    if (!applicationId && ref.startsWith('CCE-APP-')) {
-      // ref = CCE-APP-{uuid}-{timestamp}; remove prefix + trailing -timestamp
-      const withoutPrefix = ref.slice('CCE-APP-'.length)
-      applicationId = withoutPrefix.replace(/-\d+$/, '')
+  // ── The claim. Everything below runs at most once per event. ──
+  const { data: won, error: claimErr } = await sb.rpc('claim_event', {
+    p_event_id: key,
+    p_source: 'paystack',
+  })
+
+  if (claimErr) {
+    // We could not establish whether this event was already handled. Doing the
+    // work anyway risks a duplicate; the payment insert is separately
+    // protected, but the notifications are not. Ask Paystack to retry.
+    console.error('[paystack] claim_event failed:', claimErr.message)
+    return NextResponse.json({ error: 'Could not verify event state' }, { status: 503 })
+  }
+
+  if (!won) {
+    return NextResponse.json({ received: true, note: 'already processed' })
+  }
+
+  const purpose = classifyPayment(event)
+
+  try {
+    if (purpose.kind === 'application') {
+      return await handleApplicationPayment(sb, purpose.applicationId, reference, amount, event, req)
     }
-    if (!applicationId) return NextResponse.json({ received: true, note: 'no application id' })
-
-    const { data: app } = await sb.from('applications').select('*, course:course_id(name)').eq('id', applicationId).maybeSingle()
-    if (!app) return NextResponse.json({ received: true, note: 'application not found' })
-
-    // Was the whole flow already completed (letter sent)? Only skip then.
-    // Previously we skipped whenever payment_status was 'paid' — but the
-    // browser path sets that BEFORE completing, so if its completion call
-    // failed the student got a receipt and never an admission letter.
-    let alreadyDone = false
-    if (app.lead_id) {
-      const { data: adm } = await sb.from('admissions')
-        .select('admission_letter_sent').eq('lead_id', app.lead_id).maybeSingle()
-      alreadyDone = (adm as any)?.admission_letter_sent === true
+    if (purpose.kind === 'course_fee') {
+      return await handleCourseFeePayment(sb, purpose.leadId, reference, amount, event, req)
     }
-    if (alreadyDone) return NextResponse.json({ received: true, note: 'already processed' })
 
-    await sb.from('applications').update({
-      payment_status: 'paid',
-      paystack_ref: ref,
-      paid_at: new Date().toISOString(),
-      amount_paid: parseFloat(amountGHS),
-      is_submitted: true,
-      submitted_at: new Date().toISOString(),
-    }).eq('id', applicationId)
+    console.warn('[paystack] unclassified payment', reference)
+    await recordAudit({
+      action: 'payment.unclassified', resource: 'payments',
+      success: false, metadata: { reference }, request: req,
+    })
+    return NextResponse.json({ received: true, note: 'unclassified' })
+  } catch (e) {
+    console.error('[paystack] handler threw for', reference, e)
+    // The claim is already taken, so a retry would be a no-op. Record it as a
+    // failure that a human needs to look at rather than pretending success.
+    await recordAudit({
+      action: 'payment.processing_failed', resource: 'payments',
+      success: false, metadata: { reference, error: String(e) }, request: req,
+    })
+    return NextResponse.json({ received: true, note: 'recorded for review' })
+  }
+}
 
-    // Record payment
-    const { data: payment } = await sb.from('payments').insert({
-      application_id: applicationId,
-      amount: parseFloat(amountGHS),
-      method: 'paystack',
-      purpose: 'registration',
-      reference: ref,
-      status: 'paid',
-      paystack_ref: ref,
-      paystack_response: event.data,
-      paid_at: new Date().toISOString(),
-    }).select().single()
+type SB = ReturnType<typeof createServiceClient>
 
-    // Complete registration — credits the marketer points + GHS 200
-    // commission, marks the lead registered, creates the admission.
-    // This is the reliable server-side path (fires even if the student
-    // closed their browser before the client callback ran).
-    const origin = new URL(req.url).origin
-    let completed = false
-    try {
-      const r = await fetch(`${origin}/api/applications/complete`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ applicationId, paystack_ref: ref }),
+/** Registration fee for an application. */
+async function handleApplicationPayment(
+  sb: SB, applicationId: string, reference: string,
+  amount: number, event: PaystackEvent, req: NextRequest
+) {
+  const { data: app } = await sb.from('applications')
+    .select('*, course:course_id(id, name, registration_fee)')
+    .eq('id', applicationId).maybeSingle()
+
+  if (!app) {
+    await recordAudit({
+      action: 'payment.unknown_application', resource: 'applications',
+      resourceId: applicationId, success: false, metadata: { reference }, request: req,
+    })
+    return NextResponse.json({ received: true, note: 'application not found' })
+  }
+
+  // Amount check. Underpayment is refused; overpayment is accepted at its true
+  // value, because refusing a registration for paying too much would be absurd.
+  const course = (app as { course?: { registration_fee?: number; name?: string } }).course
+  const expected = typeof course?.registration_fee === 'number' ? course.registration_fee : null
+  const check = amountIsAcceptable(amount, expected)
+  if (!check.ok) {
+    console.warn('[paystack] amount mismatch on', reference, check.reason)
+    await recordAudit({
+      action: 'payment.amount_mismatch', resource: 'applications',
+      resourceId: applicationId, success: false,
+      metadata: { reference, received: amount, expected }, request: req,
+    })
+    // Recorded, not silently accepted, and not retried.
+    return NextResponse.json({ received: true, note: 'amount mismatch recorded' })
+  }
+
+  // Record the payment. The unique index on reference is the real guard.
+  const { data: rows, error: payErr } = await sb.rpc('record_payment_once', {
+    p_reference: reference,
+    p_amount: amount,
+    p_method: 'paystack',
+    p_purpose: 'registration',
+    p_application: applicationId,
+    p_student: null,
+    p_response: event.data ?? null,
+  })
+  if (payErr) {
+    console.error('[paystack] record_payment_once failed:', payErr.message)
+    throw new Error(payErr.message)
+  }
+  const payment = Array.isArray(rows) ? rows[0] : rows
+
+  await sb.from('applications').update({
+    payment_status: 'paid',
+    paystack_ref: reference,
+    paid_at: new Date().toISOString(),
+    amount_paid: amount,
+    is_submitted: true,
+    submitted_at: new Date().toISOString(),
+  }).eq('id', applicationId)
+
+  // Complete the registration. Called directly rather than through an internal
+  // HTTP request to our own origin — that round trip could time out or fail on
+  // its own, leaving a paid application half-processed, and it made the whole
+  // flow depend on the deployment being reachable from itself.
+  const { completeApplication } = await import('@/lib/registration/complete')
+  const completion = await completeApplication(applicationId, reference)
+
+  // ── Registration confirmation SMS (D4) ──
+  // Queued, never awaited on the provider: registration is already committed
+  // and must not depend on Arkesel being reachable at this instant. The dedupe
+  // key means a repeated webhook cannot text the applicant twice.
+  const classMode = parseClassMode(app.delivery)
+  if (app.phone && classMode) {
+    await queueSMS({
+      to: app.phone,
+      message: SMS.registrationConfirmed(
+        String(app.full_name || 'there'),
+        course?.name || 'your programme',
+        classModeLabel(classMode),
+      ),
+      kind: 'registration_confirmed',
+      entityId: applicationId,
+      dedupeKey: `registration_confirmed:${applicationId}`,
+    })
+  } else if (app.phone && !classMode) {
+    // The class mode is missing or unrecognised. Say nothing rather than name
+    // the wrong one — that is exactly the defect being fixed.
+    console.error('[paystack] application', applicationId, 'has no valid class mode; confirmation SMS withheld')
+    await recordAudit({
+      action: 'registration.class_mode_missing', resource: 'applications',
+      resourceId: applicationId, success: false,
+      metadata: { delivery: app.delivery }, request: req,
+    })
+  }
+
+  await recordAudit({
+    action: 'payment.registration_recorded', resource: 'payments',
+    resourceId: applicationId, success: true,
+    metadata: { reference, amount, wasNew: payment?.was_new !== false }, request: req,
+  })
+
+  return NextResponse.json({
+    success: true,
+    completed: completion.ok,
+    admissionNumber: completion.admissionNumber ?? null,
+  })
+}
+
+/** Course fee paid from the student portal. */
+async function handleCourseFeePayment(
+  sb: SB, leadId: string, reference: string,
+  amount: number, event: PaystackEvent, req: NextRequest
+) {
+  const { data: rows, error: payErr } = await sb.rpc('record_payment_once', {
+    p_reference: reference,
+    p_amount: amount,
+    p_method: 'paystack',
+    p_purpose: 'course_fee',
+    p_application: null,
+    p_student: null,
+    p_response: event.data ?? null,
+  })
+  if (payErr) throw new Error(payErr.message)
+
+  const payment = Array.isArray(rows) ? rows[0] : rows
+  if (payment?.was_new === false) {
+    return NextResponse.json({ received: true, note: 'payment already recorded' })
+  }
+
+  // Atomic increment: the balance arithmetic happens inside the UPDATE, so two
+  // payments landing together cannot overwrite one another's total.
+  const { data: feeRows, error: feeErr } = await sb.rpc('apply_fee_payment', {
+    p_lead: leadId, p_amount: amount,
+  })
+  if (feeErr) {
+    console.error('[paystack] apply_fee_payment failed:', feeErr.message)
+    throw new Error(feeErr.message)
+  }
+
+  const fee = Array.isArray(feeRows) ? feeRows[0] : feeRows
+  if (!fee) {
+    return NextResponse.json({ received: true, note: 'no fee ledger for this student' })
+  }
+
+  const { data: lead } = await sb.from('leads')
+    .select('full_name, phone').eq('id', leadId).maybeSingle()
+
+  try { await releaseMaterialsFor(leadId) } catch (e) { console.error('[paystack] material release:', e) }
+
+  if (lead?.phone) {
+    const balance = Number(fee.balance || 0)
+    const msg = balance > 0
+      ? `CCE: Payment of GHS ${amount.toFixed(2)} received, thank you. Your outstanding balance is GHS ${balance.toFixed(2)}.`
+      : `CCE: Payment of GHS ${amount.toFixed(2)} received, thank you. Your fees are now fully paid.`
+
+    let waOk = false
+    try { waOk = Boolean(await sendWhatsAppText(lead.phone, msg)) } catch { /* fall through to SMS */ }
+    if (!waOk) {
+      await queueSMS({
+        to: lead.phone, message: msg,
+        kind: 'course_fee_receipt', entityId: leadId,
+        dedupeKey: `course_fee_receipt:${reference}`,
       })
-      completed = r.ok
-      if (!r.ok) console.error('[paystack webhook] complete failed', r.status, await r.text().catch(() => ''))
-    } catch (e: any) {
-      console.error('[paystack webhook] complete threw', e?.message)
-    }
-
-    // Notify student
-    const student = {
-      full_name: app.full_name,
-      email: app.email,
-      phone: app.phone,
-    }
-    await onPaymentConfirmed(student, amountGHS, payment?.receipt_number || ref, (app as any).course?.name || 'your program')
-
-    return NextResponse.json({ success: true, completed })
-  }
-
-  // ── Course fee paid from the student portal ──
-  // These were falling through every handler, so the money arrived at Paystack
-  // but was never recorded against the student's fees or shown to finance.
-  if (ref.startsWith('CCE-STU-') || event.data?.metadata?.purpose === 'course_fee') {
-    const leadId = event.data?.metadata?.lead_id
-      || (ref.startsWith('CCE-STU-') ? ref.slice('CCE-STU-'.length).replace(/-\d+$/, '') : null)
-    if (!leadId) return NextResponse.json({ received: true, note: 'no lead on course fee' })
-
-    const amt = parseFloat(amountGHS)
-
-    // Don't double-count if Paystack retries the webhook
-    const { data: seen } = await sb.from('payments')
-      .select('id').eq('reference', ref).maybeSingle()
-    if (seen) return NextResponse.json({ received: true, note: 'already recorded' })
-
-    const { data: fee } = await sb.from('student_fees')
-      .select('id, student_name, phone, course_name, total_fee, amount_paid, lead_id')
-      .eq('lead_id', leadId).maybeSingle()
-
-    if (fee) {
-      const newPaid = Number(fee.amount_paid || 0) + amt
-      const newBalance = Math.max(0, Number(fee.total_fee || 0) - newPaid)
-      await sb.from('student_fees').update({
-        amount_paid: newPaid, balance: newBalance,
-        status: newBalance <= 0 ? 'paid' : 'partial',
-        updated_at: new Date().toISOString(),
-      }).eq('id', fee.id)
-
-      // Keep the class record in step, so the join-class gate sees the payment
-      await sb.from('class_enrollments').update({
-        amount_paid: newPaid, balance: newBalance,
-      }).eq('lead_id', leadId).then(() => {}, () => {})
-    }
-
-    // Record it as a COURSE FEE, so finance sees what it actually is
-    const receipt = `RCP-${Date.now().toString().slice(-6)}`
-    await sb.from('payments').insert({
-      lead_id: leadId,
-      amount: amt,
-      method: 'paystack',
-      purpose: 'course_fee',
-      reference: ref,
-      receipt_number: receipt,
-      status: 'paid',
-    }).then(() => {}, () => {})
-
-    // Release any materials this payment now qualifies them for
-    try { await releaseMaterialsFor(leadId) } catch {}
-
-    // Tell the student, and tell finance
-    if (fee?.phone) {
-      const first = (fee.student_name || 'there').split(' ')[0]
-      const bal = Math.max(0, Number(fee.total_fee || 0) - (Number(fee.amount_paid || 0) + amt))
-      const msg = `Hi ${first}, we've received your payment of GHS ${amt.toFixed(2)} for ${fee.course_name || 'your course'}. Receipt ${receipt}.${bal > 0 ? ` Balance left: GHS ${bal.toFixed(2)}.` : ' You are fully paid, thank you.'}`
-      try { await sendWhatsAppText(fee.phone, msg) } catch {}
-    }
-    try {
-      const { data: finance } = await sb.from('profiles')
-        .select('id').eq('is_active', true).in('role', ['accountant', 'administrator']).limit(10)
-      for (const f of finance || []) {
-        await sb.from('notifications').insert({
-          user_id: f.id, type: 'payment',
-          title: 'Course fee paid',
-          body: `${fee?.student_name || 'A student'} paid GHS ${amt.toFixed(2)} through the portal. Receipt ${receipt}.`,
-          link: '/finance',
-        }).then(() => {}, () => {})
-      }
-    } catch {}
-
-    return NextResponse.json({ success: true, purpose: 'course_fee', receipt })
-  }
-
-  // Check if this is an invoice payment
-  const { data: invoice } = await sb.from('invoices').select('*, student:student_id(*)').eq('id', ref).maybeSingle()
-  if (invoice) {
-    const newPaid = Number(invoice.amount_paid) + parseFloat(amountGHS)
-    await sb.from('invoices').update({ amount_paid: newPaid }).eq('id', ref)
-
-    const { data: payment } = await sb.from('payments').insert({
-      invoice_id: ref,
-      student_id: invoice.student_id,
-      amount: parseFloat(amountGHS),
-      method: 'paystack',
-      status: 'paid',
-      paystack_ref: ref,
-      paystack_response: event.data,
-      paid_at: new Date().toISOString(),
-    }).select().single()
-
-    if ((invoice as any).student) {
-      await onPaymentConfirmed((invoice as any).student, amountGHS, payment?.receipt_number || ref, 'Course Fee')
     }
   }
 
-  return NextResponse.json({ received: true })
+  await recordAudit({
+    action: 'payment.course_fee_recorded', resource: 'payments',
+    resourceId: leadId, success: true,
+    metadata: { reference, amount, balance: fee.balance }, request: req,
+  })
+
+  return NextResponse.json({ success: true, balance: fee.balance })
 }
