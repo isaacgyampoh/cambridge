@@ -187,12 +187,6 @@ const ROLE_LABEL: Record<string, string> = {
   trainer:'Trainer', student:'Student',
 }
 
-const ROLE_COLOR: Record<string, string> = {
-  super_admin:'#7c3aed', project_manager:'#2563eb',
-  marketing_officer:'#16a34a', content_manager:'#db2777', admissions_officer:'#4338ca',
-  accountant:'#d97706', receptionist:'#db2777',
-  trainer:'#ea580c', student:'#6b7280',
-}
 
 function getNavItems(profile: any) {
   // If access was chosen explicitly for this person, show exactly that — it is
@@ -219,26 +213,22 @@ function getNavItems(profile: any) {
   }).filter(Boolean) as typeof ALL_PORTALS
 }
 
-const W_ICON = 68
 const W_FULL = 256
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router   = useRouter()
   const pathname = usePathname()
 
-  // Auto-close the desktop sidebar whenever the route changes, so it pops up,
-  // you pick a page, and it gets out of your way — full-width workspace.
-  useEffect(() => { setCollapsed(true); setMobileOpen(false) }, [pathname])
-
   const [profile,    setProfile]    = useState<any>(null)
   const [loading,    setLoading]    = useState(true)
   const [mobileOpen, setMobileOpen] = useState(false)
   const [collapsed,  setCollapsed]  = useState(true)   // desktop: hidden by default for a full-width workspace
-  const [hovered,    setHovered]    = useState(false)
+
+  // Auto-close the desktop sidebar whenever the route changes, so it pops up,
+  // you pick a page, and it gets out of your way — full-width workspace.
+  useEffect(() => { setCollapsed(true); setMobileOpen(false) }, [pathname])
   const [openGroup,  setOpenGroup]  = useState<string | null>(null)
-  const [unread,     setUnread]     = useState(0)
   const [courses,    setCourses]    = useState<any[]>([])
-  const leaveTimer = useRef<any>(null)
 
   // The portal manages its own scroll inside <main>; lock the document
   // height only while the portal is mounted. Public pages scroll normally.
@@ -257,17 +247,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     // signed in, they should see it without being told to log out and back in.
   }, [pathname])
 
-  useEffect(() => {
-    if (!profile) return
-    const params = new URLSearchParams({
-      table: 'notifications', select: 'id',
-      filters: JSON.stringify([{ col: 'user_id', op: 'eq', val: profile.id }, { col: 'is_read', op: 'eq', val: false }]),
-      limit: '50',
-    })
-    fetch(`/api/data?${params}`).then(r => r.ok ? r.json() : null).then(d => setUnread(d?.data?.length || 0)).catch(() => {})
-  }, [profile?.id])
-
-  useEffect(() => { setMobileOpen(false); setHovered(false) }, [pathname])
+  useEffect(() => { setMobileOpen(false) }, [pathname])
 
   // Load active courses to build per-course lead nav entries (admin/PM/marketer)
   useEffect(() => {
@@ -292,9 +272,6 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       }
     }
   }, [pathname, profile?.id])
-
-  function onEnter() { clearTimeout(leaveTimer.current); setHovered(true) }
-  function onLeave() { leaveTimer.current = setTimeout(() => setHovered(false), 150) }
 
   async function logout() {
     await fetch('/api/auth/logout', { method: 'POST' })
@@ -332,10 +309,13 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   const roleColor = 'var(--accent)'  // unified teal accent
   const segments  = pathname.split('/').filter(Boolean)
   const canGoBack = segments.length > 1
-  const expanded  = hovered || mobileOpen
 
   /* ── Sidebar nav rows ───────────────────────────────────────── */
-  const NavRows = ({ wide }: { wide: boolean }) => (
+  /* NOTE: these are plain render functions, NOT nested components. Declaring
+     a component inside render gives it a fresh identity every pass, so React
+     unmounts and remounts the whole sidebar — losing scroll position and
+     snapping open groups shut. Calling them inlines the elements instead. */
+  const navRows = (wide: boolean) => (
     <>
       {groupNavItems(navItems).map(({ section, items }, sectionIndex) => (
         <div key={section.id} className={sectionIndex > 0 ? 'mt-4' : ''}>
@@ -407,7 +387,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     </>
   )
 
-  const SidebarPanel = ({ wide, mobile = false }: { wide: boolean; mobile?: boolean }) => (
+  const sidebarPanel = ({ wide, mobile = false }: { wide: boolean; mobile?: boolean }) => (
     <div className="flex flex-col h-full bg-[var(--paper)]">
       {/* Brand */}
       <div className={`flex items-center border-b border-[var(--line)] flex-shrink-0 ${wide ? 'px-4 gap-3' : 'justify-center'}`} style={{ height: 60 }}>
@@ -429,7 +409,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
       {/* Nav */}
       <nav className="flex-1 overflow-y-auto py-3 px-2.5">
-        <NavRows wide={wide} />
+        {navRows(wide)}
       </nav>
 
       {/* Footer */}
@@ -487,7 +467,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           style={{ width: W_FULL, transform: collapsed ? `translateX(-${W_FULL}px)` : 'translateX(0)' }}
           onClick={() => setCollapsed(true)}>
           <div onClick={e => e.stopPropagation()} className="h-full">
-            <SidebarPanel wide={true} />
+            {sidebarPanel({ wide: true })}
           </div>
         </div>
       </div>
@@ -497,7 +477,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div className="lg:hidden fixed inset-0 z-50">
           <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
           <div className="absolute inset-y-0 left-0 shadow-2xl" style={{ width: W_FULL }}>
-            <SidebarPanel wide={true} mobile />
+            {sidebarPanel({ wide: true, mobile: true })}
           </div>
         </div>
       )}
