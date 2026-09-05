@@ -48,6 +48,7 @@ const REQUIRED_FUNCTIONS = [
   ['record_payment_once', '0004', 'Recording a payment exactly once.'],
   ['apply_fee_payment', '0004', 'Atomic fee balance increment.'],
   ['next_admission_number', '0005', 'Collision-free admission numbers.'],
+  ['prune_old_logs', '0007', 'Nightly log retention. Absent → webhook_inbox grows unbounded.'],
 ]
 
 const REQUIRED_TABLES = [
@@ -113,19 +114,50 @@ if (!url || !key) {
   const { createClient } = await import('@supabase/supabase-js')
   const sb = createClient(url, key)
 
-  // Each function is probed by calling it with no arguments. A function that
-  // exists reports an argument-type error; one that does not exist reports
-  // "could not find" — that difference is what we test. Nothing is written.
+  /*
+   * Functions are checked against PostgREST's own OpenAPI description, which
+   * lists every RPC it exposes.
+   *
+   * The obvious approach — call each function and see whether it errors — does
+   * not work, and gave confident false negatives when this script was first
+   * written: calling a function with no arguments fails to match its signature,
+   * so PostgREST reports "Could not find the function in the schema cache",
+   * which is indistinguishable from the function genuinely not existing. Every
+   * function taking required parameters was reported MISSING while sitting
+   * happily in the database.
+   */
+  let exposed = null
+  try {
+    const res = await fetch(`${url}/rest/v1/`, {
+      headers: { apikey: key, Authorization: `Bearer ${key}` },
+    })
+    if (res.ok) {
+      const spec = await res.json()
+      exposed = new Set(
+        Object.keys(spec.paths || {})
+          .filter(p => p.startsWith('/rpc/'))
+          .map(p => p.slice('/rpc/'.length))
+      )
+    }
+  } catch { /* fall through to the per-call probe below */ }
+
   for (const [fn, migration, why] of REQUIRED_FUNCTIONS) {
-    const { error } = await sb.rpc(fn, {})
-    const missing = error && /could not find|does not exist|schema cache/i.test(error.message)
-    if (missing) {
+    let present
+    if (exposed) {
+      present = exposed.has(fn)
+    } else {
+      // Fallback when the OpenAPI description is unavailable: a call that
+      // reaches the function proves it exists, whatever it then complains about.
+      const { error } = await sb.rpc(fn, {})
+      present = !(error && /could not find|does not exist|schema cache/i.test(error.message))
+    }
+
+    if (present) {
+      console.log(`  ${c.green('OK')}    ${fn}()`)
+    } else {
       failures++
       console.log(`  ${c.red('MISSING')} ${fn}()  ${c.dim('← migration ' + migration)}`)
       console.log(`          ${c.dim(why)}`)
-    } else {
-      // Any other error (wrong argument types, etc.) still proves it exists.
-      console.log(`  ${c.green('OK')}    ${fn}()`)
     }
   }
 

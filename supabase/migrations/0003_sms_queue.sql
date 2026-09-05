@@ -14,6 +14,19 @@
 
 BEGIN;
 
+/*
+ * When the message was QUEUED, as distinct from when it was sent.
+ *
+ * sms_logs had only sent_at, which is the wrong clock for a queue: a message
+ * that has never been delivered has no sent_at at all, so there was nothing to
+ * order the backlog by or to age rows out on. Existing rows are backfilled
+ * from sent_at, which for already-sent messages is the closest truth available.
+ */
+ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS created_at    TIMESTAMPTZ;
+UPDATE sms_logs SET created_at = COALESCE(sent_at, NOW()) WHERE created_at IS NULL;
+ALTER TABLE sms_logs ALTER COLUMN created_at SET DEFAULT NOW();
+ALTER TABLE sms_logs ALTER COLUMN created_at SET NOT NULL;
+
 -- What the message was for, and which record it belongs to.
 ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS kind          TEXT;
 ALTER TABLE sms_logs ADD COLUMN IF NOT EXISTS entity_id     UUID;
