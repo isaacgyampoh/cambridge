@@ -2,6 +2,7 @@
 
 import { useState, useEffect, useRef } from 'react'
 import { ROLE_HOME } from '@/lib/access/portals'
+import { groupNavItems } from '@/lib/access/navSections'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import CommandPalette from '@/components/shared/CommandPalette'
@@ -336,7 +337,20 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   /* ── Sidebar nav rows ───────────────────────────────────────── */
   const NavRows = ({ wide }: { wide: boolean }) => (
     <>
-      {navItems.map(item => {
+      {groupNavItems(navItems).map(({ section, items }, sectionIndex) => (
+        <div key={section.id} className={sectionIndex > 0 ? 'mt-4' : ''}>
+          {/* The heading only appears in the wide sidebar. In the icon rail
+              there is no room for it, so a hairline separates the groups
+              instead — the grouping is still legible, just quieter. */}
+          {wide ? (
+            <div className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase
+              tracking-[0.1em] text-[var(--ink-faint)] select-none">
+              {section.label}
+            </div>
+          ) : sectionIndex > 0 ? (
+            <div className="mx-3 mb-2 border-t border-[var(--line)]" aria-hidden="true" />
+          ) : null}
+      {items.map(item => {
         const Icon = item.icon
         const hasKids = !!item.children?.length
         const isOpen  = openGroup === item.id
@@ -388,6 +402,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           </Link>
         )
       })}
+        </div>
+      ))}
     </>
   )
 
