@@ -28,6 +28,9 @@ const TASKS: { name: string; path: string; everyMins: number }[] = [
   { name: 'payment_reminders',  path: '/api/payment-reminders/run',   everyMins: 1440 },
   { name: 'reports',            path: '/api/reports/generate',        everyMins: 1440 },
   { name: 'tiers',              path: '/api/tiers/recalc',            everyMins: 10080 },
+  // Nightly. Keeps webhook_inbox and the message logs from growing without
+  // limit; audit_logs is never pruned.
+  { name: 'prune_logs',         path: '/api/maintenance/prune',       everyMins: 1440 },
 ]
 
 export async function GET(req: NextRequest) {
