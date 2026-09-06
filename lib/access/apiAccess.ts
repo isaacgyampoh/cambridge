@@ -27,6 +27,7 @@ export const SHARED_API_PATHS: string[] = [
   '/api/courses',
   '/api/upload',
   '/api/assistant',
+  '/api/dashboard',      // scoped inside: a marketer sees only their own figures
 ]
 
 /** API prefix → the portals that grant it. Any one portal is enough. */

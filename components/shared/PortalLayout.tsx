@@ -3,6 +3,8 @@
 import { useState, useEffect, useRef } from 'react'
 import { ROLE_HOME } from '@/lib/access/portals'
 import { groupNavItems } from '@/lib/access/navSections'
+import MobileTabBar from '@/components/shared/MobileTabBar'
+import { resolvePortals } from '@/lib/access/portals'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import CommandPalette from '@/components/shared/CommandPalette'
@@ -539,8 +541,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
         {/* Page */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: 'var(--canvas)' }}>
-          <div className="w-full px-4 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-9 pb-[max(1.5rem,env(safe-area-inset-bottom))] mx-auto max-w-[1500px]">{children}</div>
+          <div className="w-full px-4 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-9 pb-[calc(74px+env(safe-area-inset-bottom))] lg:pb-9 mx-auto max-w-[1500px]">{children}</div>
         </main>
+
+      {/* Thumb-reachable navigation on a phone. The drawer stays as "More",
+          so every section remains reachable. Hidden from lg up, where the
+          sidebar is the right shape for a pointer. */}
+      <MobileTabBar
+        portals={resolvePortals(profile?.role, profile?.portals)}
+        role={profile?.role || ''}
+        onOpenMore={() => setMobileOpen(true)}
+      />
       </div>
     </div>
   )

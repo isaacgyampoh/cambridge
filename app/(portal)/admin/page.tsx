@@ -1,110 +1,157 @@
 'use client'
-import { useData } from '@/hooks/useData'
-import { useState, useEffect } from 'react'
-import {
-  Users, TrendingUp, DollarSign, GraduationCap, UserCheck,
-  Radio, CalendarCheck, BarChart3, FolderOpen, ArrowUpRight, Kanban,
-  UserPlus, CreditCard, ClipboardList, Clock, Activity,
-} from 'lucide-react'
-import Link from 'next/link'
-import { formatGHS } from '@/lib/utils'
-import { StatCard, SectionLabel, Card } from '@/components/ui'
 
-const FEED_ICON: Record<string, any> = {
-  lead: UserPlus, payment: CreditCard, admission: UserCheck, signin: ClipboardList, attendance: Clock,
-}
-function timeAgo(d: string) {
-  const s = Math.floor((Date.now() - new Date(d).getTime()) / 1000)
-  if (s < 60) return 'just now'
-  if (s < 3600) return `${Math.floor(s / 60)}m ago`
-  if (s < 86400) return `${Math.floor(s / 3600)}h ago`
-  return `${Math.floor(s / 86400)}d ago`
+import { useEffect, useState, useCallback } from 'react'
+import Link from 'next/link'
+import { StatCard } from '@/components/ui'
+import { SkeletonStat, ErrorState } from '@/components/ui/states'
+
+/**
+ * The dashboard.
+ *
+ * It used to pull 500 leads, 200 admissions, 500 payments and 200 profiles
+ * into the browser and count them in JavaScript — about 1,400 rows to render
+ * eight numbers. Two of those fetches were dead: `payments` was never read,
+ * and the activity feed was loaded into state nothing rendered. A third was
+ * broken: the admissions sparkline filtered on `created_at`, which the query
+ * did not select, so it was always zero.
+ *
+ * Now one call to /api/dashboard/summary, counted in Postgres, with a skeleton
+ * while it loads and a retry if it fails.
+ */
+
+type Summary = {
+  scope: 'centre' | 'mine'
+  leads: { total: number; today: number; unassigned: number; readyToJoin: number }
+  trend: { thisWeek: number; lastWeek: number; deltaPercent: number | null }
+  admissions: { total: number; admitted: number }
+  staff: { active: number }
 }
 
 export default function AdminDashboard() {
-  const { data: leads } = useData({ table: 'leads', select: 'id, status, assigned_to, created_at', limit: 500 })
-  const { data: admissions } = useData({ table: 'admissions', select: 'id, status', limit: 200 })
-  const { data: payments } = useData({ table: 'payments', select: 'amount, status', filters: [{ col: 'status', op: 'eq', val: 'paid' }], limit: 500 })
-  const { data: profiles } = useData({ table: 'profiles', select: 'id, role, is_active', limit: 200 })
-  const [feed, setFeed] = useState<any[]>([])
+  const [data, setData] = useState<Summary | null>(null)
+  const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
 
-  useEffect(() => {
-    fetch('/api/activity-feed').then(r => r.ok ? r.json() : { events: [] }).then(d => setFeed(d.events || [])).catch(() => {})
+  const load = useCallback(async () => {
+    setState('loading')
+    try {
+      const res = await fetch('/api/dashboard/summary')
+      if (!res.ok) throw new Error(String(res.status))
+      setData(await res.json())
+      setState('ready')
+    } catch {
+      setState('error')
+    }
   }, [])
 
-  const today = new Date().toISOString().slice(0, 10)
-
-  // 7-day lead trend (oldest -> newest) for sparklines
-  const last7 = Array.from({ length: 7 }, (_, i) => {
-    const d = new Date(); d.setDate(d.getDate() - (6 - i))
-    return d.toISOString().slice(0, 10)
-  })
-  const leadsByDay = last7.map(day => leads.filter((l: any) => l.created_at?.startsWith(day)).length)
-  const admByDay = last7.map(day => admissions.filter((a: any) => a.created_at?.startsWith(day)).length)
-  // week-over-week delta
-  const thisWeek = leadsByDay.reduce((a, b) => a + b, 0)
-  const prevWeekLeads = leads.filter((l: any) => {
-    if (!l.created_at) return false
-    const d = new Date(l.created_at); const days = (Date.now() - d.getTime()) / 86400000
-    return days >= 7 && days < 14
-  }).length
-  const leadDelta = prevWeekLeads > 0 ? Math.round(((thisWeek - prevWeekLeads) / prevWeekLeads) * 100) : (thisWeek > 0 ? 100 : 0)
-
-  const s = {
-    totalLeads: leads.length,
-    todayLeads: leads.filter((l: any) => l.created_at?.startsWith(today)).length,
-    unassigned: leads.filter((l: any) => !l.assigned_to).length,
-    readyToJoin: leads.filter((l: any) => l.status === 'ready_to_join').length,
-    admitted: admissions.filter((a: any) => a.status === 'admitted').length,
-    totalAdmissions: admissions.length,
-    activeStaff: profiles.filter((p: any) => p.is_active && p.role !== 'student').length,
-  }
+  useEffect(() => {
+    let cancelled = false
+    fetch('/api/dashboard/summary')
+      .then(async res => {
+        if (!res.ok) throw new Error(String(res.status))
+        const json = await res.json()
+        if (!cancelled) { setData(json); setState('ready') }
+      })
+      .catch(() => { if (!cancelled) setState('error') })
+    return () => { cancelled = true }
+  }, [])
 
   const now = new Date()
-  const greeting = now.getHours() < 12 ? 'Good morning' : now.getHours() < 17 ? 'Good afternoon' : 'Good evening'
-  const dateStr = now.toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })
+  const greeting = now.getHours() < 12 ? 'Good morning'
+    : now.getHours() < 17 ? 'Good afternoon' : 'Good evening'
+
+  const mine = data?.scope === 'mine'
 
   return (
     <div className="fade-in w-full">
-      {/* Header */}
-      <div className="mb-8">
-        <h1 className="font-display text-[28px] sm:text-[32px] font-semibold text-[var(--ink)]">{greeting}</h1>
-        <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">Here's what's happening across the centre today.</p>
-      </div>
+      <header className="mb-7 sm:mb-8">
+        <h1 className="font-display text-[26px] sm:text-[32px] font-semibold text-[var(--ink)] leading-tight">
+          {greeting}
+        </h1>
+        <p className="text-[var(--ink-soft)] text-[14px] sm:text-[15px] mt-1.5">
+          {mine
+            ? 'Your leads and what needs attention today.'
+            : 'What is happening across the centre today.'}
+        </p>
+      </header>
 
-      {/* Metrics */}
-      <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 mb-10">
-        <StatCard label="Total leads" value={s.totalLeads} sub={`${s.todayLeads} added today`} trend={{ value: `${Math.abs(leadDelta)}%`, up: leadDelta >= 0 }} spark={leadsByDay} />
-        <StatCard label="Unassigned" value={s.unassigned} sub={s.unassigned > 0 ? 'Need attention' : 'All assigned'} />
-        <StatCard label="Ready to join" value={s.readyToJoin} sub="Awaiting admission" spark={admByDay} />
-        <StatCard label="Registered students" value={s.totalAdmissions ?? 0} sub="Paid and admitted" accent />
-        <StatCard label="Admitted" value={s.admitted} sub={`of ${s.totalAdmissions} cases`} />
-        <StatCard label="Active staff" value={s.activeStaff} sub="Across all roles" />
-      </div>
+      {state === 'error' && (
+        <ErrorState
+          title="Could not load your dashboard"
+          message="The figures did not come back. Check your connection and try again."
+          onRetry={load}
+        />
+      )}
 
-      {/* Quick links — full width; the activity feed lives on its own page */}
-      <div className="grid grid-cols-1">
-        <div>
-          <div className="text-[15px] font-semibold text-[var(--ink)] mb-4">Jump to</div>
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
-            {[
-              { label: 'Assign & manage leads', href: '/admin/leads', sub: `${s.unassigned} unassigned` },
-              { label: 'Admissions', href: '/admin/admissions', sub: `${s.readyToJoin} ready to join` },
-              { label: 'Finance', href: '/admin/finance', sub: 'Fees and payments' },
-              { label: 'Staff', href: '/admin/staff', sub: `${s.activeStaff} active` },
-            ].map(l => (
-              <Link key={l.href} href={l.href}
-                className="flex items-center justify-between px-4 py-3.5 rounded-xl border border-[var(--line)] bg-[var(--paper)] hover:border-[var(--ink-faint)] hover:bg-[var(--canvas)] transition group">
-                <div>
-                  <div className="text-[14px] font-medium text-[var(--ink)]">{l.label}</div>
-                  <div className="text-[12px] text-[var(--ink-faint)] mt-0.5">{l.sub}</div>
-                </div>
-                <span className="text-[var(--ink-faint)] group-hover:text-[var(--accent)] transition">›</span>
-              </Link>
-            ))}
-          </div>
+      {state === 'loading' && (
+        <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {Array.from({ length: 6 }).map((_, i) => <SkeletonStat key={i} />)}
         </div>
-      </div>
+      )}
+
+      {state === 'ready' && data && (
+        <>
+          <div className="grid grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4 mb-8 sm:mb-10">
+            <StatCard
+              label={mine ? 'My leads' : 'Total leads'}
+              value={data.leads.total}
+              sub={`${data.leads.today} added today`}
+              trend={data.trend.deltaPercent === null ? undefined : {
+                value: `${Math.abs(data.trend.deltaPercent)}%`,
+                up: data.trend.deltaPercent >= 0,
+              }}
+            />
+            {!mine && (
+              <StatCard
+                label="Unassigned"
+                value={data.leads.unassigned}
+                sub={data.leads.unassigned > 0 ? 'Waiting to be given out' : 'All assigned'}
+              />
+            )}
+            <StatCard
+              label="Ready to join"
+              value={data.leads.readyToJoin}
+              sub="Registered, awaiting admission"
+              accent
+            />
+            <StatCard label="Admissions" value={data.admissions.total} sub="Registrations processed" />
+            <StatCard
+              label="Admitted"
+              value={data.admissions.admitted}
+              sub={`of ${data.admissions.total} processed`}
+            />
+            {!mine && <StatCard label="Active staff" value={data.staff.active} sub="Across all roles" />}
+          </div>
+
+          <section>
+            <h2 className="text-[15px] font-semibold text-[var(--ink)] mb-3.5">Jump to</h2>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5">
+              {[
+                { label: 'Leads', href: mine ? '/marketer/leads' : '/admin/leads',
+                  sub: mine ? `${data.leads.total} assigned to you` : `${data.leads.unassigned} unassigned` },
+                { label: 'Admissions', href: '/admin/admissions',
+                  sub: `${data.leads.readyToJoin} ready to join` },
+                { label: 'Finance', href: '/admin/finance', sub: 'Fees and payments' },
+                { label: 'Staff', href: '/admin/staff', sub: `${data.staff.active} active` },
+              ].map(l => (
+                <Link key={l.href} href={l.href}
+                  className="flex items-center justify-between gap-3 px-4 min-h-[60px] rounded-xl
+                    border border-[var(--line)] bg-[var(--paper)] hover:border-[var(--ink-faint)]
+                    hover:bg-[var(--canvas)] transition-colors group
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                  <span className="min-w-0">
+                    <span className="block text-[14px] font-medium text-[var(--ink)] truncate">{l.label}</span>
+                    <span className="block text-[12px] text-[var(--ink-faint)] mt-0.5 truncate">{l.sub}</span>
+                  </span>
+                  <span aria-hidden="true"
+                    className="text-[var(--ink-faint)] group-hover:text-[var(--accent)] transition-colors shrink-0">
+                    ›
+                  </span>
+                </Link>
+              ))}
+            </div>
+          </section>
+        </>
+      )}
     </div>
   )
 }
