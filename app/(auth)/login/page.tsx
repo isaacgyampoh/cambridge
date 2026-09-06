@@ -36,6 +36,15 @@ function LoginForm() {
    */
   const [stats, setStats] = useState<{ alumni: number; courses: number; graduates: number } | null>(null)
 
+  /* Only the figures that exist. A zero is not a fact worth showing. */
+  const shownStats = stats
+    ? [
+        { n: stats.graduates, label: 'Graduates' },
+        { n: stats.alumni, label: 'Alumni' },
+        { n: stats.courses, label: 'Programmes' },
+      ].filter(x => x.n > 0)
+    : []
+
   useEffect(() => {
     let alive = true
     fetch('/api/public/stats')
@@ -267,22 +276,21 @@ function LoginForm() {
           </p>
 
           {/*
-            Three standing figures.
+            What the panel says when it has something to say.
 
-            The panel held one line and a great deal of nothing. These are the
-            same three facts a prospective student would ask for, and every one
-            is already public — see app/api/public/stats. They render only once
-            they arrive, so the panel never shows a row of zeroes while the
-            request is in flight, and never shows an error: nobody signing in
-            can act on a failed count.
+            Standing figures if there are at least two real ones — a single
+            "3 programmes" on its own is thinner than saying nothing, and a row
+            of zeroes is worse again. This centre currently has courses but no
+            recorded graduates, so the fallback is not hypothetical: it is what
+            renders today.
+
+            The fallback is the three things the portal actually does. It is
+            always true, needs no request, and gives the panel weight without
+            claiming numbers that are not there yet.
           */}
-          {stats && (stats.alumni > 0 || stats.courses > 0 || stats.graduates > 0) && (
+          {shownStats.length >= 2 ? (
             <dl className="mt-10 flex gap-9 fade-in">
-              {[
-                { n: stats.graduates, label: 'Graduates' },
-                { n: stats.alumni, label: 'Alumni' },
-                { n: stats.courses, label: 'Programmes' },
-              ].filter(x => x.n > 0).map(x => (
+              {shownStats.map(x => (
                 <div key={x.label}>
                   <dt className="sr-only">{x.label}</dt>
                   <dd>
@@ -296,6 +304,20 @@ function LoginForm() {
                 </div>
               ))}
             </dl>
+          ) : (
+            <ul className="mt-10 space-y-3.5">
+              {[
+                'Every enquiry followed through to a decision',
+                'Registration, payment and admission in one record',
+                'One number, one conversation, one history',
+              ].map(line => (
+                <li key={line} className="flex gap-3 text-[var(--paper)]/70 text-[14px] leading-snug">
+                  <span aria-hidden="true"
+                    className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[var(--paper)]/35 flex-shrink-0" />
+                  {line}
+                </li>
+              ))}
+            </ul>
           )}
         </div>
 
