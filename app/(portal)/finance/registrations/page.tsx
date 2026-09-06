@@ -1,10 +1,22 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, EmptyState, inputClass } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { formatGHS, formatDateTime } from '@/lib/utils'
-import { Wallet, Users, GraduationCap, Search, Download, Check } from 'lucide-react'
 import { exportToExcel } from '@/lib/utils/export'
 import { toast } from 'sonner'
+
+type Registration = {
+  id: string
+  studentName: string
+  studentPhone?: string | null
+  program: string
+  delivery?: string | null
+  registrationFee: number
+  marketerName: string
+  commissionPaid: boolean
+  registeredAt: string
+}
 
 export default function FinanceRegistrations() {
   const [data, setData] = useState<any>(null)
@@ -49,6 +61,35 @@ export default function FinanceRegistrations() {
       Registered: formatDateTime(r.registeredAt),
     })), `registrations-${data.year}`, 'Registrations')
   }
+
+  // Seven columns of money and attribution, unreadable on a phone as a grid.
+  const registrationColumns: Column<Registration>[] = [
+    { key: 'student', header: 'Student', primary: true, render: r => r.studentName },
+    {
+      key: 'phone', header: 'Phone', secondary: true,
+      render: r => r.studentPhone?.replace(/^233/, '0') || '—',
+    },
+    { key: 'programme', header: 'Programme', render: r => r.program },
+    {
+      key: 'delivery', header: 'Class',
+      render: r => <Badge tone="neutral">{r.delivery?.replace('_', ' ') || '—'}</Badge>,
+    },
+    {
+      key: 'fee', header: 'Fee', numeric: true,
+      render: r => <span className="font-semibold text-[var(--ink)]">{formatGHS(r.registrationFee)}</span>,
+    },
+    { key: 'marketer', header: 'Assigned to', render: r => <Badge tone="accent">{r.marketerName}</Badge> },
+    {
+      key: 'commission', header: 'Commission',
+      render: r => r.commissionPaid
+        ? <Badge tone="success">Paid</Badge>
+        : <Badge tone="warning">Owing</Badge>,
+    },
+    {
+      key: 'registered', header: 'Registered',
+      render: r => <span className="text-[var(--ink-faint)] text-[12px]">{formatDateTime(r.registeredAt)}</span>,
+    },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -117,35 +158,14 @@ export default function FinanceRegistrations() {
       </div>
 
       <Card className="overflow-hidden">
-        {rows.length === 0 ? (
-          <div className="py-12"><EmptyState  title="No registrations" description="Nothing matches your filter." /></div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead><tr className="border-b border-[var(--line)]">
-                {['Student', 'Programme', 'Delivery', 'Fee', 'Assigned to', 'Commission', 'Registered'].map(h => (
-                  <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {rows.map((r: any) => (
-                  <tr key={r.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                    <td data-label="Student" className="px-4 py-3">
-                      <div className="text-sm font-medium text-[var(--ink)]">{r.studentName}</div>
-                      <div className="text-[12px] text-[var(--ink-faint)]">{r.studentPhone?.replace(/^233/, '0')}</div>
-                    </td>
-                    <td data-label="Programme" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.program}</td>
-                    <td data-label="Delivery" className="px-4 py-3"><Badge tone="neutral">{r.delivery?.replace('_', ' ')}</Badge></td>
-                    <td data-label="Fee" className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(r.registrationFee)}</td>
-                    <td data-label="Assigned to" className="px-4 py-3"><Badge tone="accent">{r.marketerName}</Badge></td>
-                    <td data-label="Commission" className="px-4 py-3">{r.commissionPaid ? <Badge tone="success">Paid</Badge> : <Badge tone="warning">Owing</Badge>}</td>
-                    <td data-label="Registered" className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{formatDateTime(r.registeredAt)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<Registration>
+          caption="Registrations and commission"
+          rows={rows}
+          rowKey={r => r.id}
+          columns={registrationColumns}
+          emptyTitle="No registrations"
+          emptyMessage="Nothing matches your filter."
+        />
       </Card>
     </div>
   )

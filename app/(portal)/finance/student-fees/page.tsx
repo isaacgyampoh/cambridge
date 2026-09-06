@@ -1,10 +1,21 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useData } from '@/hooks/useData'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, StatCard } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, EmptyState, inputClass, StatCard } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import Modal from '@/components/shared/Modal'
-import { Wallet, Search, Check, X, ExternalLink, Plus } from 'lucide-react'
 import { toast } from 'sonner'
+
+type Fee = {
+  id: string
+  student_name: string
+  course_name?: string | null
+  delivery?: string | null
+  total_fee: number
+  amount_paid: number
+  balance: number
+  status: string
+}
 
 export default function StudentFeesPage() {
   const { data: fees, loading, refetch } = useData<any>({ table: 'student_fees', select: '*', orderBy: 'created_at', orderAsc: false, limit: 1000 })
@@ -60,6 +71,56 @@ export default function StudentFeesPage() {
   const totalOwing = (fees || []).reduce((s: number, f: any) => s + (Number(f.balance) || 0), 0)
   const totalCollected = (fees || []).reduce((s: number, f: any) => s + (Number(f.amount_paid) || 0), 0)
 
+  /*
+   * Money on a phone was the worst case for the old horizontal scroll: seven
+   * columns meant dragging sideways to see whether a balance was outstanding.
+   * Described once here, rendered as a table on a desktop and a card per
+   * student below sm.
+   */
+  const ghs = (n: number) => `GHS ${Number(n || 0).toFixed(2)}`
+
+  const feeColumns: Column<Fee>[] = [
+    {
+      key: 'student', header: 'Student', primary: true,
+      render: f => f.student_name,
+    },
+    {
+      key: 'mode', header: 'Class', secondary: true,
+      render: f => f.delivery === 'online' ? 'Online' : 'In person',
+    },
+    { key: 'course', header: 'Course', render: f => f.course_name || '—' },
+    { key: 'total', header: 'Total', numeric: true, render: f => ghs(f.total_fee) },
+    {
+      key: 'paid', header: 'Paid', numeric: true,
+      render: f => <span className="text-[var(--ok)]">{ghs(f.amount_paid)}</span>,
+    },
+    {
+      key: 'balance', header: 'Balance', numeric: true,
+      render: f => (
+        <span className={Number(f.balance) > 0 ? 'font-medium text-[var(--warn)]' : 'text-[var(--ink-faint)]'}>
+          {ghs(f.balance)}
+        </span>
+      ),
+    },
+    {
+      key: 'status', header: 'Status',
+      render: f => (
+        <Badge tone={f.status === 'paid' ? 'success' : f.status === 'partial' ? 'warning' : 'neutral'}>
+          {f.status}
+        </Badge>
+      ),
+    },
+    {
+      key: 'action', header: 'Record',
+      render: f => f.status !== 'paid' ? (
+        <Button size="sm" variant="secondary"
+          onClick={() => { setRecordFor(f); setRecordAmt(String(f.balance)) }}>
+          Record payment
+        </Button>
+      ) : null,
+    },
+  ]
+
   return (
     <div className="fade-in w-full">
       <PageHeader eyebrow="Finance" title="Student fees" description="Every registered student and what they owe. Verify bank and cash payments here." />
@@ -85,35 +146,15 @@ export default function StudentFeesPage() {
               <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search students…" className={inputClass + ' pl-9'} />
             </div>
           </div>
-          {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-            <EmptyState  title="No registered students yet" description="Students appear here automatically once they register." />
-          ) : (
-            <div className="overflow-x-auto">
-              <table className="rtc w-full">
-                <thead><tr className="border-b border-[var(--line)]">
-                  {['Student', 'Course', 'Total', 'Paid', 'Balance', 'Status', ''].map(h => <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>)}
-                </tr></thead>
-                <tbody>
-                  {filtered.map((f: any) => (
-                    <tr key={f.id} className="border-b border-[var(--line-soft)] last:border-0">
-                      <td data-label="Student" className="px-4 py-3">
-                        <div className="font-medium text-[var(--ink)]">{f.student_name}</div>
-                        <div className="text-[12px] text-[var(--ink-faint)]">{f.delivery === 'online' ? 'Online' : 'In person'}</div>
-                      </td>
-                      <td data-label="Course" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{f.course_name || '—'}</td>
-                      <td data-label="Total" className="px-4 py-3 text-sm">GHS {Number(f.total_fee).toFixed(2)}</td>
-                      <td data-label="Paid" className="px-4 py-3 text-sm text-[var(--ok)]">GHS {Number(f.amount_paid).toFixed(2)}</td>
-                      <td data-label="Balance" className="px-4 py-3 text-sm font-medium text-[var(--warn)]">GHS {Number(f.balance).toFixed(2)}</td>
-                      <td data-label="Status" className="px-4 py-3"><Badge tone={f.status === 'paid' ? 'success' : f.status === 'partial' ? 'warning' : 'neutral'}>{f.status}</Badge></td>
-                      <td className="px-4 py-3">
-                        {f.status !== 'paid' && <Button size="sm" variant="secondary" onClick={() => { setRecordFor(f); setRecordAmt(String(f.balance)) }}>Record payment</Button>}
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          )}
+          <DataTable<Fee>
+            caption="Registered students and their fees"
+            state={loading ? 'loading' : 'ready'}
+            rows={filtered}
+            rowKey={f => f.id}
+            columns={feeColumns}
+            emptyTitle="No registered students yet"
+            emptyMessage="Students appear here automatically once they register."
+          />
         </Card>
       ) : (
         pending.length === 0 ? (

@@ -1,15 +1,25 @@
 'use client'
 import { useState } from 'react'
 import { useData } from '@/hooks/useData'
-import { PageHeader, Card, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import { PageHeader, Card, Badge, inputClass } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import Modal from '@/components/shared/Modal'
-import { Search, FileText, Mail, Phone, X, Download } from 'lucide-react'
 import { exportToExcel } from '@/lib/utils/export'
 
 /**
  * Student Records — every registration application with the full set of
  * details captured from the registration link. The admin's master record.
  */
+type Application = {
+  id: string
+  full_name: string
+  phone?: string | null
+  email?: string | null
+  course?: { name?: string } | null
+  marketer?: { full_name?: string } | null
+  payment_status: string
+}
+
 export default function AdminRegistrations() {
   const { data: apps, loading } = useData<any>({
     table: 'applications',
@@ -27,6 +37,29 @@ export default function AdminRegistrations() {
       || (a.phone || '').includes(q)
       || (a.course?.name || '').toLowerCase().includes(q)
   })
+
+  // Tapping a card opens the same detail panel the table row does.
+  const applicationColumns: Column<Application>[] = [
+    { key: 'name', header: 'Name', primary: true, render: a => a.full_name },
+    {
+      key: 'contact', header: 'Contact', secondary: true,
+      render: a => (
+        <>
+          {a.phone && <div>{String(a.phone).replace(/^233/, '0')}</div>}
+          {a.email && <div className="text-[var(--ink-faint)] text-[12px]">{a.email}</div>}
+        </>
+      ),
+    },
+    { key: 'programme', header: 'Programme', render: a => a.course?.name || '—' },
+    { key: 'by', header: 'Registered by', render: a => a.marketer?.full_name || '—' },
+    {
+      key: 'status', header: 'Status',
+      render: a => (
+        <Badge tone={a.payment_status === 'paid' ? 'success' : 'warning'}>{a.payment_status}</Badge>
+      ),
+    },
+  ]
+
 
   function exportAll() {
     exportToExcel(filtered.map((a: any) => ({
@@ -66,39 +99,17 @@ export default function AdminRegistrations() {
           </div>
         </div>
 
-        {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-          <EmptyState  title="No registrations yet"
-            description="When students register through a marketer link, their full records appear here." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead>
-                <tr className="border-b border-[var(--line)]">
-                  {['Name', 'Contact', 'Programme', 'Registered by', 'Status', ''].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((a: any) => (
-                  <tr key={a.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition cursor-pointer" onClick={() => setSelected(a)}>
-                    <td data-label="Name" className="px-4 py-3 font-medium text-[var(--ink)]">{a.full_name}</td>
-                    <td data-label="Contact" className="px-4 py-3">
-                      <div className="flex flex-col gap-0.5 text-xs text-[var(--ink-soft)]">
-                        {a.phone && <span className="flex items-center gap-1"> {String(a.phone).replace(/^233/, '0')}</span>}
-                        {a.email && <span className="flex items-center gap-1"> {a.email}</span>}
-                      </div>
-                    </td>
-                    <td data-label="Programme" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.course?.name || '—'}</td>
-                    <td data-label="Registered by" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.marketer?.full_name || '—'}</td>
-                    <td data-label="Status" className="px-4 py-3"><Badge tone={a.payment_status === 'paid' ? 'success' : 'warning'}>{a.payment_status}</Badge></td>
-                    <td className="px-4 py-3 text-xs text-[var(--accent)] font-medium">View</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<Application>
+          caption="Registrations"
+          state={loading ? 'loading' : 'ready'}
+          rows={filtered}
+          rowKey={a => a.id}
+          columns={applicationColumns}
+          onRowClick={a => setSelected(a)}
+          emptyTitle="No registrations yet"
+          emptyMessage="When students register through a marketer link, their full records appear here."
+        />
+
       </Card>
 
       {/* Detail modal — full record */}
