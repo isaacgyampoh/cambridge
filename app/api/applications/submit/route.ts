@@ -37,7 +37,13 @@ const Body = z.object({
   // Required. No default, deliberately.
   delivery: z.string().min(1, 'Please choose whether this is an online or in-person class'),
 
-  email: z.string().trim().email('That email address does not look right').max(200).optional().nullable(),
+  /*
+   * Required, because applications.email is NOT NULL in the database. Treating
+   * it as optional here turned a missing address into a 23502 constraint
+   * violation and a 500 — an unexplained failure instead of a field telling
+   * the applicant what is wrong.
+   */
+  email: z.string().trim().email('Please enter a valid email address').max(200),
   first_name: z.string().trim().max(100).optional().nullable(),
   middle_name: z.string().trim().max(100).optional().nullable(),
   last_name: z.string().trim().max(100).optional().nullable(),
@@ -52,7 +58,23 @@ const Body = z.object({
   course_of_study: z.string().trim().max(200).optional().nullable(),
   year_completed: z.string().trim().max(20).optional().nullable(),
   batch_preference: z.string().trim().max(200).optional().nullable(),
-  payment_method: z.enum(['online', 'cash']).optional().default('online'),
+  /*
+   * These are the values of the payment_method ENUM in Postgres, and nothing
+   * else can be stored. Getting this wrong broke registration twice over:
+   *
+   *   · The original default was 'online', which is not a member of the enum
+   *     at all, so every submission that did not explicitly choose cash failed
+   *     the INSERT with 22P02 and returned a 500.
+   *
+   *   · Hardening this schema to z.enum(['online','cash']) then rejected the
+   *     value the real form actually sends — 'paystack' — with a 400, so the
+   *     registration link stopped working entirely.
+   *
+   * tests/registrationContract.test.ts pins these to the database enum so the
+   * two cannot drift again.
+   */
+  payment_method: z.enum(['paystack', 'cash', 'bank_transfer', 'mobile_money'])
+    .optional().default('paystack'),
   marketer_id: z.string().uuid().optional().nullable(),
   marketer_code: z.string().trim().max(60).optional().nullable(),
   utm_source: z.string().trim().max(200).optional().nullable(),
@@ -150,7 +172,7 @@ export async function POST(req: NextRequest) {
     first_name: body.first_name || null,
     middle_name: body.middle_name || null,
     last_name: body.last_name || null,
-    email: body.email || null,
+    email: body.email,
     phone: body.phone,
     gender: body.gender || null,
     date_of_birth: body.date_of_birth || null,
