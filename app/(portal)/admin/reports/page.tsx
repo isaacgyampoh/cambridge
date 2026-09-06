@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
 import { formatGHS } from '@/lib/utils'
+import { LoadingState, PageHeader } from '@/components/ui'
 
 
 async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 2000) {
@@ -61,22 +62,23 @@ export default function AdminReports() {
 
   useEffect(() => { load() }, [load])
 
-  if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+  if (!data) return <LoadingState />
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">System Reports</h1>
-          <p className="text-[var(--ink-faint)] text-sm mt-0.5">Full ERP analytics overview</p>
-        </div>
+      <PageHeader
+        eyebrow="Insight"
+        title="System reports"
+        description="Leads, admissions, revenue and enrolment across the centre."
+        actions={
         <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
           <option value="365">All time</option>
         </select>
-      </div>
+        }
+      />
 
       {/* KPI grid */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

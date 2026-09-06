@@ -129,11 +129,25 @@ export default function SettingsPage() {
             <div className="text-sm font-semibold text-[var(--ink)]">Auto-assign new leads</div>
             <p className="text-sm text-[var(--ink-soft)] mt-0.5">When on, leads from Facebook, the website and other sources are automatically shared out to your marketers (round-robin, lightest workload first). When off, new leads stay unassigned for a manager to distribute.</p>
           </div>
+          {/*
+            The switch track is 28px tall, which is right for a switch and
+            wrong for a finger. The button is the HIT AREA — 44px, transparent
+            — and the coloured pill inside it is the visual. Padding on the
+            button itself would have stretched the pill instead.
+          */}
           <button
+            type="button"
             role="switch" aria-checked={autoAssign} disabled={savingToggle}
+            aria-label="Automatically assign new leads to marketers"
             onClick={() => toggleAutoAssign(!autoAssign)}
-            className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${autoAssign ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'} disabled:opacity-60`}>
+            className="grid place-items-center min-h-[44px] min-w-[44px] flex-shrink-0
+              disabled:opacity-60 rounded-xl
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+            <span aria-hidden="true"
+              className={`relative block w-12 h-7 rounded-full transition-colors
+                ${autoAssign ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
             <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${autoAssign ? 'translate-x-5' : ''}`} />
+            </span>
           </button>
         </div>
       </Card>

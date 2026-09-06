@@ -8,6 +8,7 @@ import { Users, TrendingUp, UserCheck, Clock, RefreshCw, Search } from 'lucide-r
 import Link from 'next/link'
 import { Card, Badge, SectionLabel } from '@/components/ui'
 import { DataTable, type Column } from '@/components/ui/DataTable'
+import type { LeadActivity } from '@/types'
 
 type Lead = {
   id: string
@@ -43,7 +44,7 @@ export default function PMAssign() {
   })
 
   // Recent marketer notes/status-comments — the "why" behind each move
-  const { data: activities } = useData<any>({
+  const { data: activities } = useData<LeadActivity>({
     table: 'lead_activities',
     select: '*, lead:lead_id(full_name), author:created_by(full_name)',
     filters: [{ col: 'activity_type', op: 'eq', val: 'note' }],
@@ -215,7 +216,7 @@ export default function PMAssign() {
           { key: 'all', label: `All (${stats.total})` },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key as any)}
-            className={`px-4 h-8 rounded-lg text-[13px] font-medium transition ${filter===f.key?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${filter===f.key?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {f.label}
           </button>
         ))}
@@ -249,7 +250,7 @@ export default function PMAssign() {
           <SectionLabel>Marketer notes &amp; reasons</SectionLabel>
           <Card className="p-2">
             <div className="divide-y divide-[var(--line-soft)]">
-              {activities.map((a: any) => (
+              {activities.map((a) => (
                 <div key={a.id} className="flex items-start gap-3 px-3 py-3">
                   <div className="w-9 h-9 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center flex-shrink-0 text-xs font-semibold">
                     {(a.author?.full_name || '?').charAt(0)}

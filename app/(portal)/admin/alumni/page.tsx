@@ -7,6 +7,8 @@ import { Star, Trash2, X } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
 import { useConfirm } from '@/hooks/useConfirm'
+import type { Alumnus } from '@/types'
+import { Card, EmptyState, LoadingState } from '@/components/ui'
 
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '', photo_url: '',
@@ -18,7 +20,7 @@ const EMPTY_FORM = {
 
 export default function AlumniPage() {
   const { confirm, dialog } = useConfirm()
-  const { data: alumni, loading, refetch: load } = useData<any>({
+  const { data: alumni, loading, refetch: load } = useData<Alumnus>({
     table: 'alumni', orderBy: 'graduation_date', orderAsc: false, limit: 500,
   })
   const [modal, setModal] = useState(false)
@@ -127,7 +129,7 @@ export default function AlumniPage() {
           <p className="text-[var(--ink-faint)] text-sm mt-0.5">{alumni.length} alumni · {alumni.filter(a => a.is_featured).length} featured</p>
         </div>
         <button onClick={openNew} className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
-           Add Alumni
+           Add alumni
         </button>
       </div>
 
@@ -217,7 +219,7 @@ export default function AlumniPage() {
             <div className="flex gap-2">
               <button onClick={save} disabled={saving}
                 className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:brightness-110 transition">
-                {saving ? 'Saving...': editId ? 'Update Alumni': 'Add Alumni'}
+                {saving ? 'Saving...': editId ? 'Update Alumni': 'Add alumni'}
               </button>
               <button onClick={() => setModal(false)} className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
             </div>
@@ -227,7 +229,7 @@ export default function AlumniPage() {
 
       {/* Alumni grid */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+        <LoadingState />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {alumni.map(a => (
@@ -267,25 +269,26 @@ export default function AlumniPage() {
 
                 <div className="flex gap-2 mt-4">
                   <button onClick={() => openEdit(a)}
-                    className="flex-1 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">Edit</button>
+                    className="flex-1 h-11 sm:h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">Edit</button>
                   <button type="button" onClick={() => toggleFeatured(a.id, a.is_featured)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-[var(--warn-soft)] text-[var(--warn)] hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`} aria-label="Feature this"><Star size={16} aria-hidden="true" /></button>
+                    className={`w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-[var(--warn-soft)] text-[var(--warn)] hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`} aria-label="Feature this"><Star size={16} aria-hidden="true" /></button>
                   <button onClick={() => togglePublish(a.id, a.is_published)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-[var(--ok-soft)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
+                    className={`w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-[var(--ok-soft)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                     {a.is_published ? null : null}
                   </button>
                   <button type="button" onClick={() => del(a.id)}
-                    className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition text-xs" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
+                    className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition text-xs" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
                 </div>
               </div>
             </div>
           ))}
           {alumni.length === 0 && (
-            <div className="col-span-3 bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              
-              <p className="font-medium">No alumni yet</p>
-              <p className="text-sm mt-1">Add your first success story to inspire prospective students</p>
-            </div>
+            <Card className="col-span-full">
+              <EmptyState
+                title="No alumni yet"
+                description="Add a first success story to show prospective students where this leads."
+              />
+            </Card>
           )}
         </div>
       )}

@@ -8,19 +8,16 @@ import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
 import Modal from '@/components/shared/Modal'
 import { RefreshCw, X } from 'lucide-react'
-import type { Batch } from '@/types'
+import type { Batch, ClassSession, ClassSignin } from '@/types'
+import { Card, EmptyState, PageHeader } from '@/components/ui'
 
-type SignIn = {
-  id: string
-  full_name: string
-  phone?: string | null
-  attendance_type?: string | null
-  code_verified?: boolean
-  payment_status?: string | null
-  payment_method?: string | null
-  marketer?: { full_name?: string } | null
-  created_at: string
-}
+/*
+ * The local SignIn type that used to sit here was a near-copy of ClassSignin
+ * with `full_name` marked non-null — which the table does not guarantee, and
+ * which is exactly the kind of quiet disagreement that makes a screen throw on
+ * one bad row. The shared row is used directly.
+ */
+type SignIn = ClassSignin
 
 export default function AttendanceDashboard() {
   const [selected, setSelected] = useState<any>(null)
@@ -29,7 +26,7 @@ export default function AttendanceDashboard() {
   const [userId, setUserId] = useState<string | null>(null)
   const [newSession, setNewSession] = useState({ batch_id: '', class_code: ''})
 
-  const { data: sessions, loading, refetch: refetchSessions } = useData<any>({
+  const { data: sessions, loading, refetch: refetchSessions } = useData<ClassSession>({
     table: 'class_sessions',
     select: '*, batches(name, courses(name))',
     orderBy: 'created_at',
@@ -45,7 +42,7 @@ export default function AttendanceDashboard() {
     limit: 100,
   })
 
-  const { data: signins, state: signinsState, refetch: refetchSignins } = useData<any>({
+  const { data: signins, state: signinsState, refetch: refetchSignins } = useData<ClassSignin>({
     table: 'class_signins',
     select: '*, marketer:marketer_id(full_name)',
     filters: selected ? [{ col: 'session_id', op: 'eq', val: selected.id }] : [],
@@ -121,7 +118,7 @@ export default function AttendanceDashboard() {
 
   function exportCSV() {
     if (!signins.length) return
-    const rows = signins.map((s: any) => [
+    const rows = signins.map((s) => [
       s.full_name, s.phone || '', s.attendance_type, s.code_verified ? 'Verified': 'Not verified',
       s.payment_status, s.payment_method || '', s.amount_paid || 0,
       s.marketer?.full_name || 'Direct',
@@ -143,9 +140,9 @@ export default function AttendanceDashboard() {
     toast.success('Sign-in link copied!')
   }
 
-  const verified = signins.filter((s: any) => s.code_verified)
-  const paid = signins.filter((s: any) => s.payment_status === 'paid')
-  const inPerson = signins.filter((s: any) => s.attendance_type === 'in_person')
+  const verified = signins.filter((s) => s.code_verified)
+  const paid = signins.filter((s) => s.payment_status === 'paid')
+  const inPerson = signins.filter((s) => s.attendance_type === 'in_person')
 
   const signinColumns: Column<SignIn>[] = [
     { key: 'name', header: 'Name', primary: true, render: x => x.full_name },
@@ -201,16 +198,17 @@ export default function AttendanceDashboard() {
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Attendance Dashboard</h1>
-          <p className="text-[var(--ink-faint)] text-sm mt-0.5">Live class sign-in monitoring</p>
-        </div>
+      <PageHeader
+        eyebrow="Academics"
+        title="Attendance"
+        description="Who has signed in to each class, as it happens."
+        actions={
         <button onClick={() => setCreating(true)}
           className="flex items-center gap-2 px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold hover:brightness-110 transition">
-           Create Session
+           Create session
         </button>
-      </div>
+        }
+      />
 
       {/* No batches warning */}
       {batches.length === 0 && (
@@ -262,7 +260,7 @@ export default function AttendanceDashboard() {
         <div>
           <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-3">Recent Sessions</h2>
           <div className="space-y-2">
-            {sessions.map((s: any) => (
+            {sessions.map((s) => (
               <button key={s.id} onClick={() => selectSession(s)}
                 className={`w-full text-left bg-[var(--paper)] rounded-2xl border-2 p-4 transition ${selected?.id === s.id ? 'border-[var(--accent)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between mb-1">
@@ -293,10 +291,12 @@ export default function AttendanceDashboard() {
         {/* Sign-in detail */}
         <div className="lg:col-span-2">
           {!selected ? (
-            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              
-              <p>Select a session to view attendance</p>
-            </div>
+            <Card>
+              <EmptyState
+                title="No session selected"
+                description="Choose a session on the left to see who signed in."
+              />
+            </Card>
           ) : (
             <div>
               {/* Session header */}

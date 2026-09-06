@@ -2,6 +2,7 @@
 import { useState, useEffect, useCallback } from 'react'
 
 import { DataTable, type Column } from '@/components/ui/DataTable'
+import { LoadingState } from '@/components/ui'
 
 
 async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 2000) {
@@ -56,7 +57,7 @@ export default function PMReports() {
 
   useEffect(() => { load() }, [load])
 
-  if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+  if (!data) return <LoadingState />
 
   const marketerRows: MarketerRow[] = Object.values(data.byMarketer as Record<string, MarketerRow>)
     .sort((a, b) => b.converted - a.converted)

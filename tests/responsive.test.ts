@@ -113,3 +113,95 @@ describe('nothing forces the page sideways', () => {
       'content does not reserve room for both bars')
   })
 })
+
+describe('the product speaks with one voice', () => {
+  /*
+   * Sentence case on every control and heading.
+   *
+   * The product had both: "Marketer performance" and "Attendance Dashboard",
+   * "Add lead" and "Add Another Staff", on screens one tap apart. Title Case
+   * is not wrong in itself — mixing the two is, because it reads as two
+   * applications stitched together.
+   */
+  const KEEP = new Set([
+    'PIN', 'SMS', 'AI', 'CSV', 'PDF', 'WhatsApp', 'Excel', 'Zoom', 'ID', 'URL',
+    'OTP', 'PM', 'Paystack', 'Cambridge', 'Arkesel', 'API', 'QR', 'PMP',
+    'Facebook', 'Google', 'LinkedIn', 'Instagram', 'Meta',
+  ])
+
+  test('no control label is Title Case', () => {
+    const offenders: string[] = []
+
+    for (const file of ALL) {
+      const lines = readFileSync(file, 'utf8').split('\n')
+
+      lines.forEach((l, i) => {
+        const m = l.match(/^\s+([A-Z][A-Za-z]*(?:\s+[A-Za-z][A-Za-z'’]*)+)\s*$/)
+        if (!m) return
+        const words = m[1].split(/\s+/)
+        if (words.length < 2 || words.length > 4) return
+
+        const capitalised = words.slice(1).filter(w => /^[A-Z]/.test(w) && !KEEP.has(w))
+        if (!capitalised.length) return
+
+        const ctx = lines.slice(Math.max(0, i - 6), i).join('\n')
+        if (!/<(button|a|Link|Button)\b/.test(ctx)) return
+
+        offenders.push(`${file}:${i + 1} — "${m[1]}"`)
+      })
+    }
+
+    assert.deepEqual(offenders, [],
+      'controls are labelled in sentence case:\n  ' + offenders.join('\n  '))
+  })
+})
+
+describe('controls are big enough to hit', () => {
+  /*
+   * 44px is the smallest target a finger reliably hits. The design system's
+   * Button is h-12 on a phone for that reason; screens that painted their own
+   * buttons had drifted to h-8 and h-9 — 32 and 36px — which is a miss and a
+   * retry every time, on the screens people use most.
+   *
+   * 40px square icon buttons are allowed: they sit in rows with generous
+   * spacing around them, and raising them would reflow those rows. Anything
+   * SMALLER than that is not.
+   */
+  const HEIGHTS: Record<string, number> = {
+    'h-6': 24, 'h-7': 28, 'h-8': 32, 'h-9': 36, 'h-10': 40, 'h-11': 44, 'h-12': 48,
+  }
+  const FLOOR = 40
+
+  test('no button or link is smaller than the floor on a phone', () => {
+    const offenders: string[] = []
+
+    for (const file of ALL) {
+      const src = readFileSync(file, 'utf8')
+
+      for (const m of src.matchAll(/<(button|a)\b((?:[^>{]|\{(?:[^{}]|\{[^{}]*\})*\})*)>/g)) {
+        const attrs = m[2]
+        // A switch carries its hit area on a wrapper; checked separately.
+        if (/role="switch"/.test(attrs)) continue
+
+        const cls = attrs.match(/className=(?:"([^"]*)"|\{`([^`]*)`\})/)
+        const className = (cls && (cls[1] || cls[2])) || ''
+        if (!className) continue
+        if (/min-h-\[4[4-9]px\]|min-h-\[[5-9]\dpx\]/.test(className)) continue
+
+        // The unprefixed height is the one that applies on a phone.
+        const bare = [...className.matchAll(/(?:^|\s)(h-\d+)(?=\s|$)/g)].map(x => x[1])
+        if (!bare.length) continue
+
+        const px = HEIGHTS[bare[0]]
+        if (px === undefined || px >= FLOOR) continue
+
+        const line = src.slice(0, m.index).split('\n').length
+        offenders.push(`${file}:${line} — ${bare[0]} (${px}px)`)
+      }
+    }
+
+    assert.deepEqual(offenders, [],
+      `a control must be at least ${FLOOR}px on a phone — use h-11 sm:h-9 to ` +
+      `keep the tighter desktop size:\n  ` + offenders.join('\n  '))
+  })
+})

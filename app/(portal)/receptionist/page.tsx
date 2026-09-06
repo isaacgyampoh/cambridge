@@ -5,6 +5,7 @@ import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { RefreshCw } from 'lucide-react'
 import { formatDate, daysUntil } from '@/lib/utils'
+import { Card, EmptyState } from '@/components/ui'
 
 export default function ReceptionistDashboard() {
   const [sending, setSending] = useState<string|null>(null)
@@ -57,10 +58,12 @@ export default function ReceptionistDashboard() {
       {loading ? (
         <div className="flex justify-center py-16"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" /></div>
       ) : batches.length === 0 ? (
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center text-[var(--ink-faint)]">
-          
-          <p>No upcoming or ongoing classes</p>
-        </div>
+        <Card>
+          <EmptyState
+            title="No classes scheduled"
+            description="Upcoming and ongoing classes appear here once a batch is running."
+          />
+        </Card>
       ) : (
         <div className="space-y-4">
           {batches.map(batch => {

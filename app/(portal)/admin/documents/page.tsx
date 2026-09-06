@@ -7,9 +7,10 @@ import { toast } from 'sonner'
 import { Trash2, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { CONFIG } from '@/lib/config'
-import { Badge } from '@/components/ui'
+import { Badge, LoadingState, PageHeader } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
 import { useConfirm } from '@/hooks/useConfirm'
+import type { DocumentRow } from '@/types'
 
 const DOC_TYPES = [
   { value: 'admission_letter', label: 'Admission Letter' },
@@ -27,7 +28,7 @@ const TEMPLATE_FIELDS = ['{{full_name}}', '{{email}}', '{{phone}}', '{{course}}'
 
 export default function DocumentsPage() {
   const { confirm, notify, dialog } = useConfirm()
-  const { data: docs, loading, refetch: load } = useData<any>({
+  const { data: docs, loading, refetch: load } = useData<DocumentRow>({
     table: 'documents', orderBy: 'created_at', orderAsc: false, limit: 200,
   })
   const [uploading, setUploading] = useState(false)
@@ -192,11 +193,12 @@ export default function DocumentsPage() {
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Document Library</h1>
-          <p className="text-[var(--ink-faint)] text-sm mt-0.5">Manage PDF templates and official documents</p>
-        </div>
+      <PageHeader
+        eyebrow="Content"
+        title="Documents"
+        description="Templates and official documents the system sends out."
+        actions={
+          <>
         <button onClick={async () => {
           const d = await fetch('/api/admin/chat-style-check').then(r => r.json()).catch(() => null)
           if (!d || d.error) { toast.error(d?.error || 'Could not run that check.'); return }
@@ -255,7 +257,9 @@ export default function DocumentsPage() {
           className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition ml-2">
           Check brochures
         </button>
-      </div>
+          </>
+        }
+      />
 
       {/* Upload section */}
       <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 mb-6">
@@ -390,7 +394,7 @@ export default function DocumentsPage() {
 
       {/* Course material coverage — what each programme has, and what it unlocks at */}
       {courses.length > 0 && (() => {
-        const mats = docs.filter((d: any) => d.type === 'course_material')
+        const mats = docs.filter((d) => d.type === 'course_material')
         return (
           <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 mb-6">
             <h3 className="text-[14px] font-semibold text-[var(--ink)] mb-1">Course materials</h3>
@@ -572,7 +576,7 @@ export default function DocumentsPage() {
 
       {/* Document grid */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+        <LoadingState />
       ) : docs.length === 0 ? (
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
           
@@ -594,7 +598,7 @@ export default function DocumentsPage() {
                   {doc.is_template && (
                     <span className="text-[11px] font-bold bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded-full">Template</span>
                   )}
-                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLORS[doc.type] || TYPE_COLORS.other}`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLORS[doc.type || ''] || TYPE_COLORS.other}`}>
                     {DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type}
                   </span>
                 </div>
@@ -606,15 +610,15 @@ export default function DocumentsPage() {
 
               <div className="flex gap-2">
                 <a href={doc.file_url} target="_blank" rel="noopener noreferrer"
-                  className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">
+                  className="flex-1 flex items-center justify-center gap-1.5 h-11 sm:h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">
                    View
                 </a>
                 <button onClick={() => openSendModal(doc)}
-                  className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
+                  className="flex-1 flex items-center justify-center gap-1.5 h-11 sm:h-9 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
                    Send
                 </button>
                 <button type="button" onClick={() => deleteDoc(doc.id, doc.file_url)}
-                  className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
+                  className="w-11 h-11 sm:w-9 sm:h-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
               </div>
             </div>
           ))}

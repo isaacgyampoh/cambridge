@@ -9,23 +9,17 @@ import { toast } from 'sonner'
 import { exportToExcel } from '@/lib/utils/export'
 import { CONFIG } from '@/lib/config'
 import { X } from 'lucide-react'
+import type { CertificateRow, ClassEnrollment } from '@/types'
 
-type Certificate = {
-  id: string
-  student_name: string
-  course_name?: string | null
-  month_completed?: string | null
-  certificate_no?: string | null
-  issued?: boolean
-  download_token?: string | null
-}
+/* The shared CertificateRow in @/types replaces the local shape that used to
+   sit here — it was a subset, and drifted from the columns this screen reads. */
 
 export default function CertificatesPage() {
-  const { data: certs, loading, refetch } = useData<any>({
+  const { data: certs, loading, refetch } = useData<CertificateRow>({
     table: 'certificates', select: '*', orderBy: 'created_at', orderAsc: false, limit: 1000,
   })
   // Eligible: completed AND fees paid, not yet issued
-  const { data: eligible, refetch: refetchElig } = useData<any>({
+  const { data: eligible, refetch: refetchElig } = useData<ClassEnrollment>({
     table: 'class_enrollments',
     select: '*, batch:batch_id(name, course:course_id(name))',
     filters: [{ col: 'status', op: 'eq', val: 'completed' }, { col: 'fees_paid', op: 'eq', val: true }],
@@ -38,14 +32,14 @@ export default function CertificatesPage() {
   const [month, setMonth] = useState('')
   const [issuing, setIssuing] = useState(false)
 
-  const issuedEnrollmentIds = new Set(certs.map((c: any) => c.enrollment_id))
-  const toIssue = eligible.filter((e: any) => !issuedEnrollmentIds.has(e.id))
+  const issuedEnrollmentIds = new Set(certs.map((c) => c.enrollment_id))
+  const toIssue = eligible.filter((e) => !issuedEnrollmentIds.has(e.id))
 
-  const filtered = certs.filter((c: any) => !search ||
+  const filtered = certs.filter((c) => !search ||
     (c.student_name || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.course_name || '').toLowerCase().includes(search.toLowerCase()))
 
-  const certificateColumns: Column<Certificate>[] = [
+  const certificateColumns: Column<CertificateRow>[] = [
     { key: 'student', header: 'Student', primary: true, render: c => c.student_name },
     { key: 'course', header: 'Course', secondary: true, render: c => c.course_name || '—' },
     { key: 'completed', header: 'Completed', render: c => c.month_completed || '—' },
@@ -137,7 +131,7 @@ export default function CertificatesPage() {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search certificates..." className={inputClass + ' pl-9'} />
           </div>
         </div>
-        <DataTable<Certificate>
+        <DataTable<CertificateRow>
           caption="Certificates"
           state={loading ? 'loading' : 'ready'}
           rows={filtered}

@@ -6,10 +6,11 @@ import { Pencil, Trash2, X } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import type { KnowledgeEntry } from '@/types'
 
 export default function KnowledgeBasePage() {
   const { confirm, dialog } = useConfirm()
-  const { data: entries, loading, refetch } = useData<any>({
+  const { data: entries, loading, refetch } = useData<KnowledgeEntry>({
     table: 'knowledge_base', orderBy: 'sort_order', orderAsc: true, limit: 500,
   })
   const [modal, setModal] = useState(false)
@@ -63,8 +64,8 @@ export default function KnowledgeBasePage() {
     catch (e: any) { toast.error(e.message) }
   }
 
-  const faqs = entries.filter((e: any) => e.kind === 'faq')
-  const infos = entries.filter((e: any) => e.kind === 'info')
+  const faqs = entries.filter((e) => e.kind === 'faq')
+  const infos = entries.filter((e) => e.kind === 'info')
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">

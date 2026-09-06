@@ -136,6 +136,9 @@ export interface LeadActivity {
   created_by: string | null
   created_at: string
   creator?: Profile
+  /* Embedded by the assignment screen: `lead:lead_id(...)`, `author:created_by(...)`. */
+  lead?: EmbeddedPerson | null
+  author?: EmbeddedPerson | null
 }
 
 export interface Admission {
@@ -252,4 +255,223 @@ export interface Notification {
   is_read: boolean
   read_at: string | null
   created_at: string
+}
+
+/* ─────────────────────────────────────────────
+   The rest of the tables these screens read
+   ─────────────────────────────────────────────
+
+   Added because ninety screens were reading their rows as `any`, which is how
+   a column that does not exist gets written without anything objecting —
+   `leads.next_follow_up` was read and written here for months and every write
+   failed silently.
+
+   Fields are derived from the select clauses these tables are actually queried
+   with, and from what the screens read off the rows. Nullable columns are
+   marked nullable rather than assumed present: the point of doing this is to
+   make the optional ones visible, not to trade one false certainty for
+   another. Embedded relations are optional because they exist only when a
+   query asked for them. */
+
+export interface Alumnus {
+  id: string
+  full_name: string
+  photo_url: string | null
+  course_completed: string | null
+  graduation_date: string | null
+  current_job_title: string | null
+  current_company: string | null
+  testimonial: string | null
+  is_featured: boolean
+  is_published: boolean
+  created_at: string
+}
+
+export interface CertificateRow {
+  id: string
+  enrollment_id: string | null
+  student_name: string | null
+  course_name: string | null
+  certificate_no: string | null
+  certificate_number?: string | null
+  download_token: string | null
+  final_url?: string | null
+  month_completed: string | null
+  issued: boolean
+  issued_at: string | null
+  issued_date?: string | null
+  created_at?: string
+}
+
+export interface ClassSession {
+  id: string
+  batch_id: string | null
+  session_date: string
+  class_code: string | null
+  signin_open: boolean
+  total_signed_in?: number | null
+  total_paid?: number | null
+  created_at: string
+  /** Present when the query embedded it. */
+  batches?: { name: string; courses?: { name: string } | null } | null
+}
+
+export interface ClassSignin {
+  id: string
+  session_id: string | null
+  full_name: string | null
+  phone: string | null
+  attendance_type: string | null
+  code_verified: boolean | null
+  payment_status: string | null
+  payment_method: string | null
+  amount_paid: number | null
+  created_at: string
+  marketer?: EmbeddedPerson | null
+}
+
+export interface ClassEnrollment {
+  id: string
+  batch_id: string | null
+  student_id: string | null
+  full_name?: string | null
+  status?: string | null
+  created_at?: string
+  batch?: { name: string; course?: { name: string } | null } | null
+}
+
+export interface AiConversation {
+  id: string
+  /* The number the message arrived from. Present even when no lead matched
+     it, which is exactly the case the conversations screen groups by. */
+  phone: string | null
+  lead_id: string | null
+  marketer_id: string | null
+  created_at: string
+  lead?: {
+    full_name: string
+    status?: string | null
+    phone?: string | null
+    assigned_to?: string | null
+  } | null
+  marketer?: EmbeddedPerson | null
+}
+
+export interface KnowledgeEntry {
+  id: string
+  kind: string | null
+  category: string | null
+  question: string
+  answer: string
+  is_active: boolean
+  created_at?: string
+}
+
+export interface Sequence {
+  id: string
+  name: string
+  trigger: string | null
+  is_active: boolean
+  created_at?: string
+}
+
+export interface SequenceStep {
+  id: string
+  sequence_id: string
+  message: string
+  /** Hours after the trigger, or after the previous step. */
+  delay_hours?: number | null
+  step_order?: number | null
+}
+
+export interface ProgramPoints {
+  id?: string
+  code: string
+  name: string
+  points: number
+  is_corporate: boolean | null
+}
+
+export interface RankBand {
+  id: string
+  name: string
+  min_points: number
+  max_points: number | null
+  gross_salary: number
+}
+
+export interface OfficeLocation {
+  id: string
+  name: string
+  latitude: number
+  longitude: number
+  radius_meters: number
+  is_active: boolean
+}
+
+export interface StaffAttendance {
+  id: string
+  staff_id?: string | null
+  clock_in_at: string | null
+  clock_out_at: string | null
+  distance_meters: number | null
+  status: string | null
+  staff?: EmbeddedPerson | null
+}
+
+export interface Testimonial {
+  id: string
+  student_name: string | null
+  program_name: string | null
+  role_title: string | null
+  quote: string | null
+  image_url: string | null
+  approved: boolean
+  shared: boolean
+  created_at?: string
+}
+
+export interface StudentFee {
+  id: string
+  lead_id: string | null
+  course_id: string | null
+  student_name: string | null
+  course_name: string | null
+  phone: string | null
+  total_fee: number
+  amount_paid: number
+  balance: number
+  status: string | null
+  delivery?: string | null
+  created_at?: string
+  updated_at?: string
+}
+
+/**
+ * One scheduled job, and how its last run went.
+ *
+ * A row per task rather than per run: the columns are `last_*`, so this is the
+ * job's current state, not a history.
+ */
+export interface CronRun {
+  id: string
+  task: string | null
+  last_status: string | null
+  last_run_at: string | null
+  last_detail: string | null
+  created_at?: string
+}
+
+export interface DocumentRow {
+  id: string
+  name: string
+  type: string | null
+  description: string | null
+  file_url: string
+  file_name: string | null
+  course_id: string | null
+  is_active: boolean
+  is_template: boolean | null
+  created_at: string
+  courses?: { name: string } | null
 }

@@ -6,20 +6,17 @@ import { PageHeader, Card, Button, Badge, EmptyState, inputClass, StatCard } fro
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
+import type { StudentFee } from '@/types'
 
-type Fee = {
-  id: string
-  student_name: string
-  course_name?: string | null
-  delivery?: string | null
-  total_fee: number
-  amount_paid: number
-  balance: number
-  status: string
-}
+/*
+ * The local shape here declared student_name and status as non-null, which
+ * student_fees does not guarantee. Using the shared row means this screen and
+ * the API that writes it cannot disagree about which columns can be empty.
+ */
+type Fee = StudentFee
 
 export default function StudentFeesPage() {
-  const { data: fees, loading, refetch } = useData<any>({ table: 'student_fees', select: '*', orderBy: 'created_at', orderAsc: false, limit: 1000 })
+  const { data: fees, loading, refetch } = useData<StudentFee>({ table: 'student_fees', select: '*', orderBy: 'created_at', orderAsc: false, limit: 1000 })
   const [pending, setPending] = useState<any[]>([])
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<'students' | 'pending'>('students')
@@ -133,8 +130,8 @@ export default function StudentFeesPage() {
       </div>
 
       <div className="flex gap-2 mb-4">
-        <button onClick={() => setTab('students')} className={`text-sm font-medium px-4 h-9 rounded-lg ${tab === 'students' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All students</button>
-        <button onClick={() => setTab('pending')} className={`text-sm font-medium px-4 h-9 rounded-lg ${tab === 'pending' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>
+        <button onClick={() => setTab('students')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'students' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All students</button>
+        <button onClick={() => setTab('pending')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'pending' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>
           To verify {pending.length > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-400 text-white text-[11px]">{pending.length}</span>}
         </button>
       </div>

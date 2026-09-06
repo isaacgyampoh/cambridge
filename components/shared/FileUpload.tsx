@@ -55,7 +55,7 @@ export default function FileUpload({
         <input ref={inputRef} type="file" accept={accept} className="hidden"
           onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
         <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
-          className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg border border-[var(--line)] text-sm text-[var(--ink-soft)] hover:border-[var(--accent)] transition disabled:opacity-50">
+          className="inline-flex items-center gap-1.5 h-11 sm:h-9 px-3 rounded-lg border border-[var(--line)] text-sm text-[var(--ink-soft)] hover:border-[var(--accent)] transition disabled:opacity-50">
           {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
           {uploading ? 'Uploading…' : label}
         </button>

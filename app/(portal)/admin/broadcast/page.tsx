@@ -487,9 +487,9 @@ export default function BroadcastPage() {
               {sendToLeads && (
                 <div className="flex gap-2 mt-3 pl-14">
                   <button type="button" onClick={() => setLeadAudience('active')}
-                    className={`h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'active' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Active leads</button>
+                    className={`h-11 sm:h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'active' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Active leads</button>
                   <button type="button" onClick={() => setLeadAudience('all')}
-                    className={`h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'all' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All leads</button>
+                    className={`h-11 sm:h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'all' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All leads</button>
                 </div>
               )}
             </div>

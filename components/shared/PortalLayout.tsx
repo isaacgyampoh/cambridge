@@ -458,10 +458,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-            className="hidden sm:inline-flex items-center gap-2 h-9 pl-3 pr-2 rounded-lg flex-shrink-0
-              border border-white/15 lg:border-[var(--line)]
-              text-white/70 lg:text-[var(--ink-faint)]
-              hover:bg-white/10 lg:hover:bg-[var(--line-soft)] transition-colors"
+            className="hidden sm:inline-flex items-center gap-2 h-11 sm:h-9 pl-3 pr-2 rounded-lg flex-shrink-0 border border-white/15 lg:border-[var(--line)] text-white/70 lg:text-[var(--ink-faint)] hover:bg-white/10 lg:hover:bg-[var(--line-soft)] transition-colors"
           >
             <SearchIcon size={15} aria-hidden="true" />
             <span className="text-[13px]">Search</span>

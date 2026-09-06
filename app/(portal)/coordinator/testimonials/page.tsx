@@ -5,10 +5,11 @@ import { Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CONFIG } from '@/lib/config'
 import { useConfirm } from '@/hooks/useConfirm'
+import type { Testimonial } from '@/types'
 
 export default function TestimonialsPage() {
   const { confirm, dialog } = useConfirm()
-  const { data: items, loading, refetch } = useData<any>({ table: 'testimonials', select: '*', orderBy: 'created_at', orderAsc: false, limit: 500 })
+  const { data: items, loading, refetch } = useData<Testimonial>({ table: 'testimonials', select: '*', orderBy: 'created_at', orderAsc: false, limit: 500 })
 
   const collectionLink = `${CONFIG.appUrl}/testimonial/submit`
 
@@ -63,11 +64,11 @@ export default function TestimonialsPage() {
           description="Share the collection link above. When students submit, their testimonials appear here." />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {items.map((t: any) => (
+          {items.map((t) => (
             <Card key={t.id} className="p-5 flex flex-col">
               <div className="flex items-start gap-3 mb-3">
                 {t.image_url ? (
-                  <img src={t.image_url} alt={t.student_name} className="w-12 h-12 rounded-full object-cover" />
+                  <img src={t.image_url} alt="" className="w-12 h-12 rounded-full object-cover" />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center font-semibold">{(t.student_name || '?')[0]}</div>
                 )}

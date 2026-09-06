@@ -7,6 +7,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { X } from 'lucide-react'
+import type { ProgramPoints, RankBand } from '@/types'
 
 const RANK_TONE = (rank: string): any =>
   rank.startsWith('Omega') ? 'accent' : rank.startsWith('Titan') || rank.startsWith('Delta') ? 'success' : rank === 'Unranked' ? 'muted' : 'warning'
@@ -31,8 +32,8 @@ export default function AdminRemuneration() {
   const [year] = useState(new Date().getFullYear())
   const [settingsOpen, setSettingsOpen] = useState(false)
 
-  const { data: programs, refetch: refetchPrograms } = useData<any>({ table: 'program_points', orderBy: 'sort_order', limit: 50 })
-  const { data: bands } = useData<any>({ table: 'rank_bands', orderBy: 'sort_order', limit: 50 })
+  const { data: programs, refetch: refetchPrograms } = useData<ProgramPoints>({ table: 'program_points', orderBy: 'sort_order', limit: 50 })
+  const { data: bands } = useData<RankBand>({ table: 'rank_bands', orderBy: 'sort_order', limit: 50 })
 
   async function load() {
     setLoading(true)
@@ -128,7 +129,7 @@ export default function AdminRemuneration() {
       {/* Rank ladder reference */}
       <SectionLabel>Rank ladder</SectionLabel>
       <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-5 gap-3">
-        {bands.map((b: any) => (
+        {bands.map((b) => (
           <Card key={b.id} className="p-4">
             <div className="font-display text-base font-semibold text-[var(--ink)]">{b.name}</div>
             <div className="text-xs text-[var(--ink-faint)] mt-0.5">{b.min_points}{b.max_points ? `–${b.max_points}` : '+'} pts</div>
@@ -146,13 +147,13 @@ export default function AdminRemuneration() {
           </div>
           <p className="text-sm text-[var(--ink-soft)] mb-5">Points each enrolled student earns the marketer. Corporate is a 40–200 valuation entered per deal.</p>
           <div className="space-y-3">
-            {programs.map((p: any) => (
+            {programs.map((p) => (
               <div key={p.code} className="flex items-center justify-between gap-3">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-[var(--ink)]">{p.name}</div>
                   <div className="text-[12px] text-[var(--ink-faint)] font-mono">{p.code}{p.is_corporate ? ' · 40–200' : ''}</div>
                 </div>
-                <input type="number" defaultValue={p.points} disabled={p.is_corporate}
+                <input type="number" defaultValue={p.points} disabled={Boolean(p.is_corporate)}
                   onBlur={e => { const v = parseFloat(e.target.value); if (v !== p.points) savePoints(p.code, v) }}
                   className="w-20 h-9 px-3 rounded-lg border border-[var(--line)] text-sm text-center focus:outline-none focus:border-[var(--accent)] disabled:bg-[var(--line-soft)] disabled:text-[var(--ink-faint)]" />
               </div>

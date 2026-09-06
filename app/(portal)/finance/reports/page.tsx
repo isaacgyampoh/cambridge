@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 
 import { formatGHS } from '@/lib/utils'
 import { DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
+import { LoadingState, PageHeader } from '@/components/ui'
 
 
 async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], orderBy?: string, orderAsc?: boolean, limit = 2000) {
@@ -65,23 +66,24 @@ export default function FinanceReports() {
 
   useEffect(() => { load() }, [load])
 
-  if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+  if (!data) return <LoadingState />
 
   const maxDaily = Math.max(...Object.values(data.daily as Record<string, number>), 1)
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
-      <div className="flex items-center justify-between mb-6">
-        <div>
-          <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Finance Reports</h1>
-          <p className="text-[var(--ink-faint)] text-sm mt-0.5">Revenue and payment analytics</p>
-        </div>
+      <PageHeader
+        eyebrow="Finance"
+        title="Finance reports"
+        description="Revenue, payment methods and what is still outstanding."
+        actions={
         <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
         </select>
-      </div>
+        }
+      />
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
         {[

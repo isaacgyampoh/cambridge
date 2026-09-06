@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
-import { StatusBadge } from '@/components/ui'
+import { LoadingState, StatusBadge } from '@/components/ui'
 import { readableStatus } from '@/lib/ui/status'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, STATUS_COLORS, SOURCE_COLORS } from '@/lib/utils'
@@ -207,7 +207,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     } catch {}
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+  if (loading) return <LoadingState />
   if (!lead) return <div className="text-center py-20 text-[var(--ink-faint)]">Lead not found</div>
 
   const WA_TEMPLATES = [
@@ -263,7 +263,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <div className="text-[13px] text-[var(--ink-soft)] mt-0.5">The AI stepped aside (a voice note, a question it couldn’t handle, or the lead asked for a person). Reply to them on WhatsApp, then resume the AI when you’re done.</div>
                 </div>
                 <button onClick={resumeAI}
-                  className="flex-shrink-0 h-9 px-3 rounded-lg bg-[var(--paper)] border border-[var(--line)] text-[13px] font-semibold text-[var(--ink)] hover:bg-white transition">
+                  className="flex-shrink-0 h-11 sm:h-9 px-3 rounded-lg bg-[var(--paper)] border border-[var(--line)] text-[13px] font-semibold text-[var(--ink)] hover:bg-white transition">
                   Resume AI
                 </button>
               </div>
@@ -450,7 +450,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             </div>
             <button onClick={updateStatus} disabled={newStatus === lead?.status}
               className="w-full h-10 bg-[var(--accent)] text-white rounded-xl text-sm font-semibold disabled:opacity-40 hover:brightness-110 transition">
-              Update Status
+              Update status
             </button>
           </div>
 

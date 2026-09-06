@@ -3,6 +3,7 @@ import { useState } from 'react'
 import { PageHeader, Card, Button, Spinner, Badge } from '@/components/ui'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
+import type { CronRun } from '@/types'
 
 const LABELS: Record<string, { name: string; desc: string; every: string }> = {
   lead_notify:        { name: 'Lead alerts to marketers', desc: 'One consolidated SMS per marketer for new leads', every: '5 min' },
@@ -19,10 +20,10 @@ const LABELS: Record<string, { name: string; desc: string; every: string }> = {
 }
 
 export default function AutomationPage() {
-  const { data: runs, loading, refetch } = useData<any>({ table: 'cron_runs', select: '*', limit: 50 })
+  const { data: runs, loading, refetch } = useData<CronRun>({ table: 'cron_runs', select: '*', limit: 50 })
   const [busy, setBusy] = useState<string | null>(null)
 
-  const ago = (t: string) => {
+  const ago = (t: string | null | undefined) => {
     if (!t) return 'never'
     const m = Math.floor((Date.now() - new Date(t).getTime()) / 60000)
     if (m < 1) return 'just now'
@@ -40,8 +41,16 @@ export default function AutomationPage() {
     else { toast.success(`Ran ${d.ran} task${d.ran === 1 ? '' : 's'}`); refetch() }
   }
 
-  const byTask: Record<string, any> = {}
-  for (const r of runs || []) byTask[r.task] = r
+  /*
+   * The latest run of each task.
+   *
+   * `task` is nullable, and indexing an object with null produced the literal
+   * key "null" — a row that belonged to no task quietly became one.
+   */
+  const byTask: Record<string, CronRun> = {}
+  for (const r of runs || []) {
+    if (r.task) byTask[r.task] = r
+  }
   const neverRun = Object.keys(LABELS).filter(k => !byTask[k])
 
   return (

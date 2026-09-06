@@ -93,8 +93,8 @@ export default function ContentStudio() {
         description="Draft posts, get AI feedback, plan your calendar. The AI knows our courses, fees and dates." />
 
       <div className="flex gap-2 mb-5">
-        <button onClick={() => setTab('studio')} className={`text-sm font-medium px-4 h-9 rounded-lg ${tab === 'studio' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Studio</button>
-        <button onClick={() => setTab('library')} className={`text-sm font-medium px-4 h-9 rounded-lg ${tab === 'library' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Library & Calendar</button>
+        <button onClick={() => setTab('studio')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'studio' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Studio</button>
+        <button onClick={() => setTab('library')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'library' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Library & Calendar</button>
       </div>
 
       {tab === 'studio' ? (
@@ -104,7 +104,7 @@ export default function ContentStudio() {
             {/* Platform picker */}
             <div className="flex flex-wrap gap-2">
               {PLATFORMS.map(p => (
-                <button key={p} onClick={() => setPlatform(p)} className={`text-xs font-medium px-3 h-8 rounded-lg transition ${platform === p ? 'bg-[var(--ink)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--ink-faint)]'}`}>{PLATFORM_LABEL[p]}</button>
+                <button key={p} onClick={() => setPlatform(p)} className={`text-xs font-medium px-3 h-11 sm:h-8 rounded-lg transition ${platform === p ? 'bg-[var(--ink)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--ink-faint)]'}`}>{PLATFORM_LABEL[p]}</button>
               ))}
             </div>
 

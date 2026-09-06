@@ -1,6 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
-import { StatusBadge } from '@/components/ui'
+import { LoadingState, StatusBadge } from '@/components/ui'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, SOURCE_COLORS } from '@/lib/utils'
 import type { Lead, LeadActivity, LeadStatusLog, Profile } from '@/types'
@@ -70,7 +70,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     }
   }
 
-  if (loading) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+  if (loading) return <LoadingState />
   if (!lead) return <div className="text-center py-20 text-[var(--ink-faint)]">Lead not found</div>
 
   const assignee = (lead as any).assignee
@@ -147,7 +147,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="Write a note..."
               className="w-full text-sm px-3 py-2 border border-[var(--line)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)] mb-2" />
             <button onClick={addNote} className="px-4 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
-              Save Note
+              Save note
             </button>
           </div>
 

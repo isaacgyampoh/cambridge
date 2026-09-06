@@ -92,7 +92,7 @@ export default async function PublicAlumniPage() {
                     {a.linkedin_url && (
                       <a href={a.linkedin_url} target="_blank"
                         className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
-                         View LinkedIn Profile
+                         View LinkedIn profile
                       </a>
                     )}
                   </div>

@@ -5,6 +5,7 @@ import { formatGHS } from '@/lib/utils'
 import { AlertTriangle, TrendingUp, Phone, MessageSquare, Users, Target } from 'lucide-react'
 import { toast } from 'sonner'
 import Modal from '@/components/shared/Modal'
+import { Card, EmptyState, LoadingState, PageHeader } from '@/components/ui'
 
 interface MarketerStats {
   id: string
@@ -193,12 +194,11 @@ export default function MarketerPerformancePage() {
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-        <div>
-          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Team</div>
-          <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Marketer performance</h1>
-          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Conversion, activity and revenue attributed to each marketer.</p>
-        </div>
+      <PageHeader
+        eyebrow="Team"
+        title="Marketer performance"
+        description="Conversion, activity and revenue attributed to each marketer."
+        actions={
         <div className="flex gap-1 bg-[var(--line-soft)] rounded-lg p-1">
           {[{v:'7',l:'7d'},{v:'30',l:'30d'},{v:'90',l:'90d'}].map(r => (
             <button key={r.v} onClick={() => setRange(r.v)}
@@ -207,7 +207,8 @@ export default function MarketerPerformancePage() {
             </button>
           ))}
         </div>
-      </div>
+        }
+      />
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
@@ -282,7 +283,7 @@ export default function MarketerPerformancePage() {
 
       {/* Marketer cards */}
       {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+        <LoadingState />
       ) : (
         <div className="space-y-4">
       {/* How leads are shared — so the tiers are not misread */}
@@ -434,10 +435,12 @@ export default function MarketerPerformancePage() {
             )
           })}
           {marketers.length === 0 && !loading && (
-            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              
-              <p>No marketing officers found</p>
-            </div>
+            <Card>
+              <EmptyState
+                title="No marketing officers"
+                description="Staff with the marketing officer role will be listed here."
+              />
+            </Card>
           )}
         </div>
       )}

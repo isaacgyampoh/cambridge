@@ -39,9 +39,9 @@ export default function PrepActivityPage() {
         description="Every comment and change the exam-prep coordinators make on student records — across all programmes." />
 
       <div className="flex gap-2 mb-5">
-        <button onClick={() => setProgram('')} className={`text-sm font-medium px-4 h-9 rounded-lg ${!program ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All programmes</button>
+        <button onClick={() => setProgram('')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${!program ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All programmes</button>
         {programs.map(p => (
-          <button key={p} onClick={() => setProgram(p)} className={`text-sm font-medium px-4 h-9 rounded-lg ${program === p ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>{p}</button>
+          <button key={p} onClick={() => setProgram(p)} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${program === p ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>{p}</button>
         ))}
       </div>
 

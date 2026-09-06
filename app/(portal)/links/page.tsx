@@ -33,7 +33,7 @@ export default function MyLinksPage() {
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs bg-[var(--canvas)] rounded-lg px-3 py-2 text-[var(--ink-soft)] truncate">{testimonialLink}</code>
               <button onClick={() => { navigator.clipboard.writeText(testimonialLink); toast.success('Testimonial link copied') }}
-                className="inline-flex items-center gap-1.5 h-9 px-3 rounded-lg bg-[var(--accent)] text-white text-xs font-medium flex-shrink-0">
+                className="inline-flex items-center gap-1.5 h-11 sm:h-9 px-3 rounded-lg bg-[var(--accent)] text-white text-xs font-medium flex-shrink-0">
                  Copy
               </button>
             </div>

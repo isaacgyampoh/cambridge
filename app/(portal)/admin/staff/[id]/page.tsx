@@ -200,7 +200,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         </button>
         <button onClick={resetToDefaults}
           className="h-12 px-5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
-          Reset to Defaults
+          Reset to defaults
         </button>
         <Link href="/admin/staff" className="h-12 px-5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition flex items-center">
           Cancel

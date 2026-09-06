@@ -254,7 +254,7 @@ export default function StaffPage() {
                 <p className="text-xs text-[var(--ink-faint)] mt-0.5">Create login credentials for a new team member</p>
               </div>
               <button type="button" onClick={() => setShowModal(false)}
-                className="w-8 h-8 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-xl transition-colors" aria-label="Close"><X size={18} aria-hidden="true" /></button>
+                className="w-11 h-11 sm:w-8 sm:h-8 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-xl transition-colors" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
 
             {/* Credentials shown after success */}
@@ -300,7 +300,7 @@ export default function StaffPage() {
                 <div className="flex gap-2">
                   <button onClick={() => { setCreds(null) }}
                     className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 transition">
-                    Add Another Staff
+                    Add another
                   </button>
                   <button onClick={() => { setShowModal(false); setCreds(null) }}
                     className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
@@ -768,7 +768,7 @@ export default function StaffPage() {
                     {/* Actions menu */}
                     <td className="px-4 py-3.5 text-right relative">
                       <button onClick={() => setOpenMenu(openMenu === s.id ? null : s.id)}
-                        className="w-8 h-8 rounded-lg hover:bg-[var(--line-soft)] text-[var(--ink-soft)] inline-flex items-center justify-center transition">
+                        className="w-11 h-11 sm:w-8 sm:h-8 rounded-lg hover:bg-[var(--line-soft)] text-[var(--ink-soft)] inline-flex items-center justify-center transition">
                         <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><circle cx="12" cy="5" r="1.6"/><circle cx="12" cy="12" r="1.6"/><circle cx="12" cy="19" r="1.6"/></svg>
                       </button>
                       {openMenu === s.id && (

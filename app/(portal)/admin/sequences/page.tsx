@@ -6,6 +6,7 @@ import { X } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import type { Sequence, SequenceStep } from '@/types'
 
 const TRIGGERS: Record<string, string> = {
   manual: 'Added manually',
@@ -16,8 +17,8 @@ const TRIGGERS: Record<string, string> = {
 
 export default function SequencesPage() {
   const { confirm, dialog } = useConfirm()
-  const { data: sequences, loading, refetch } = useData<any>({ table: 'sequences', orderBy: 'created_at', orderAsc: false, limit: 50 })
-  const { data: allSteps, refetch: refetchSteps } = useData<any>({ table: 'sequence_steps', orderBy: 'step_order', limit: 300 })
+  const { data: sequences, loading, refetch } = useData<Sequence>({ table: 'sequences', orderBy: 'created_at', orderAsc: false, limit: 50 })
+  const { data: allSteps, refetch: refetchSteps } = useData<SequenceStep>({ table: 'sequence_steps', orderBy: 'step_order', limit: 300 })
   const [editing, setEditing] = useState<any>(null)
   const [creating, setCreating] = useState(false)
   const [name, setName] = useState('')
@@ -33,7 +34,7 @@ export default function SequencesPage() {
 
   function openEdit(seq: any) {
     setEditing(seq); setName(seq.name); setTrigger(seq.trigger)
-    const mine = allSteps.filter((s: any) => s.sequence_id === seq.id).sort((a: any, b: any) => a.step_order - b.step_order)
+    const mine = allSteps.filter((s) => s.sequence_id === seq.id).sort((a: any, b: any) => a.step_order - b.step_order)
     setSteps(mine.length ? mine.map((s: any) => ({ ...s })) : [{ step_order: 0, delay_hours: 0, channel: 'whatsapp', message: '' }])
     setCreating(true)
   }
@@ -57,7 +58,7 @@ export default function SequencesPage() {
       if (editing) {
         await mutate('PATCH', 'sequences', { name, trigger }, [{ col: 'id', val: editing.id }])
         // wipe old steps, re-insert
-        const old = allSteps.filter((s: any) => s.sequence_id === editing.id)
+        const old = allSteps.filter((s) => s.sequence_id === editing.id)
         for (const o of old) await mutateDelete('sequence_steps', [{ col: 'id', val: o.id }])
       } else {
         const res = await mutate('POST', 'sequences', { name, trigger, is_active: true })
@@ -107,18 +108,35 @@ export default function SequencesPage() {
           action={<Button onClick={openNew}>Create your first sequence</Button>} />
       ) : (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-          {sequences.map((seq: any) => {
-            const seqSteps = allSteps.filter((s: any) => s.sequence_id === seq.id)
+          {sequences.map((seq) => {
+            const seqSteps = allSteps.filter((s) => s.sequence_id === seq.id)
             return (
               <Card key={seq.id} className="p-5">
                 <div className="flex items-start justify-between mb-3">
                   <div>
                     <div className="font-semibold text-[var(--ink)]">{seq.name}</div>
-                    <div className="text-xs text-[var(--ink-faint)] mt-0.5">{TRIGGERS[seq.trigger] || seq.trigger}</div>
+                    <div className="text-xs text-[var(--ink-faint)] mt-0.5">{TRIGGERS[seq.trigger || ''] || seq.trigger || 'No trigger set'}</div>
                   </div>
-                  <button onClick={() => toggleActive(seq)}
-                    className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${seq.is_active ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
-                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${seq.is_active ? 'translate-x-5' : ''}`} />
+                  {/*
+                    A switch, declared as one. It was a bare <button> holding a
+                    24px pill: too small to hit, and announced by a screen
+                    reader as an unnamed button with no on/off state at all.
+                    The button is now the 44px hit area and the pill inside it
+                    is the visual.
+                  */}
+                  <button
+                    type="button"
+                    role="switch"
+                    aria-checked={Boolean(seq.is_active)}
+                    aria-label={`Sequence "${seq.name}" is ${seq.is_active ? 'on' : 'off'}`}
+                    onClick={() => toggleActive(seq)}
+                    className="grid place-items-center min-h-[44px] min-w-[44px] flex-shrink-0 rounded-xl
+                      focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                    <span aria-hidden="true"
+                      className={`relative block w-11 h-6 rounded-full transition-colors
+                        ${seq.is_active ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
+                      <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${seq.is_active ? 'translate-x-5' : ''}`} />
+                    </span>
                   </button>
                 </div>
                 <div className="flex items-center gap-2 mb-4">

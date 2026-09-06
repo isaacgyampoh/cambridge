@@ -322,9 +322,7 @@ export default function ActivitiesPage() {
                         <button key={s.h} type="button"
                           onClick={() => snooze(row.id, s.h)}
                           disabled={busy[row.id]}
-                          className="h-8 px-2.5 rounded-lg text-[12px] font-medium
-                            text-[var(--ink-soft)] bg-[var(--line-soft)]
-                            active:bg-[var(--line)] disabled:opacity-50 transition">
+                          className="h-11 sm:h-8 px-2.5 rounded-lg text-[12px] font-medium text-[var(--ink-soft)] bg-[var(--line-soft)] active:bg-[var(--line)] disabled:opacity-50 transition">
                           {s.label}
                         </button>
                       ))}

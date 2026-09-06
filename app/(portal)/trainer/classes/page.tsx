@@ -146,7 +146,7 @@ export default function TrainerClasses() {
                             {ATT_OPTS.map(opt => (
                               <button key={opt.key}
                                 onClick={() => setAttendance(a => ({...a, [s.id]: opt.key}))}
-                                className={`w-8 h-8 rounded-lg text-xs font-bold text-white transition ${(attendance[s.id]||'present')===opt.key?opt.color:'bg-[var(--line)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
+                                className={`w-11 h-11 sm:w-8 sm:h-8 rounded-lg text-xs font-bold text-white transition ${(attendance[s.id]||'present')===opt.key?opt.color:'bg-[var(--line)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                                 {opt.label}
                               </button>
                             ))}

@@ -45,9 +45,9 @@ export default function InstallPrompt() {
           )}
           <div className="flex gap-2 mt-3">
             {!isIOS && (
-              <button onClick={onInstall} className="h-9 px-4 rounded-lg bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 transition">Install now</button>
+              <button onClick={onInstall} className="h-11 sm:h-9 px-4 rounded-lg bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 transition">Install now</button>
             )}
-            <button onClick={() => setDismissedThisSession(true)} className="h-9 px-4 rounded-lg text-[var(--ink-soft)] text-sm font-medium hover:bg-[var(--line-soft)] transition">
+            <button onClick={() => setDismissedThisSession(true)} className="h-11 sm:h-9 px-4 rounded-lg text-[var(--ink-soft)] text-sm font-medium hover:bg-[var(--line-soft)] transition">
               {isIOS ? 'Got it' : 'Not now'}
             </button>
           </div>

@@ -1,6 +1,6 @@
 'use client'
 import { useState } from 'react'
-import { StatusBadge } from '@/components/ui'
+import { Card, EmptyState, StatusBadge } from '@/components/ui'
 import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { MessageSquare, RefreshCw } from 'lucide-react'
@@ -11,7 +11,7 @@ import { BRAND } from '@/lib/brand'
 const S: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pending', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
   awaiting_forms: { label: 'Awaiting Forms', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
-  awaiting_payment: { label: 'Awaiting Payment', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
+  awaiting_payment: { label: 'Awaiting payment', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
   admitted: { label: 'Admitted ', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
   rejected: { label: 'Rejected', color: 'bg-[var(--danger-soft)] text-[var(--danger)]'},
 }
@@ -95,7 +95,7 @@ export default function AdmissionProcess() {
       <div className="flex gap-1 mb-4 bg-[var(--line-soft)] rounded-lg p-1 w-fit">
         {[{k:'admissions',l:`Admissions (${admissions.length})`},{k:'applications',l:`Applications (${applications.length})`}].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 h-8 rounded-lg text-[13px] font-medium transition ${tab===t.k?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${tab===t.k?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {t.l}
           </button>
         ))}
@@ -107,7 +107,7 @@ export default function AdmissionProcess() {
           <div className="flex flex-wrap gap-1.5 mb-4">
             {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`h-8 px-3 rounded-2xl text-xs font-semibold transition capitalize ${filter===f?'bg-[var(--ink)] text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
+                className={`h-11 sm:h-8 px-3 rounded-2xl text-xs font-semibold transition capitalize ${filter===f?'bg-[var(--ink)] text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
                 {f.replace(/_/g, ' ')}
               </button>
             ))}
@@ -118,11 +118,12 @@ export default function AdmissionProcess() {
               <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
             </div>
           ) : filtered.length === 0 ? (
-            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center">
-              
-              <p className="text-[var(--ink-faint)] text-sm font-medium">No admissions here</p>
-              <p className="text-[var(--ink-faint)] text-xs mt-1">Admissions are created when leads are marked ”Ready to Join”</p>
-            </div>
+            <Card>
+              <EmptyState
+                title="No admissions in this stage"
+                description="An admission is created when a lead is marked ready to join."
+              />
+            </Card>
           ) : (
             <div className="space-y-3">
               {filtered.map(a => {
@@ -158,17 +159,17 @@ export default function AdmissionProcess() {
                       {a.status === 'pending'&& <>
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'awaiting_forms')}
                           className="px-3 py-1.5 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 disabled:opacity-50 transition">
-                          Request Forms
+                          Request forms
                         </button>
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'awaiting_payment')}
                           className="px-3 py-1.5 bg-orange-500 text-white rounded-xl text-xs font-semibold hover:bg-orange-600 disabled:opacity-50 transition">
-                          Awaiting Payment
+                          Awaiting payment
                         </button>
                       </>}
                       {['awaiting_forms','awaiting_payment'].includes(a.status) && (
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'admitted')}
                           className="px-3 py-1.5 bg-[var(--ok)] text-white rounded-xl text-xs font-semibold hover:bg-[var(--ok)] disabled:opacity-50 transition">
-                           Admit Student
+                           Admit student
                         </button>
                       )}
                       {!['rejected','admitted'].includes(a.status) && (

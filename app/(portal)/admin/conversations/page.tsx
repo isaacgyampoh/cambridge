@@ -3,9 +3,10 @@ import { toast } from 'sonner'
 import { useState, useMemo, useEffect } from 'react'
 import { displayPhone, telHref } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
-import { Spinner } from '@/components/ui'
+import { PageHeader, Spinner } from '@/components/ui'
 import { ChevronLeft, Search } from 'lucide-react'
 import { useConfirm } from '@/hooks/useConfirm'
+import type { AiConversation } from '@/types'
 
 const fmtTime = (t: string) => {
   if (!t) return ''
@@ -20,7 +21,7 @@ const shortPhone = (p: string) => displayPhone(String(p).replace(/#.*/, ''))
 
 export default function ConversationsPage() {
   const { confirm, dialog } = useConfirm()
-  const { data: convos, loading } = useData<any>({
+  const { data: convos, loading } = useData<AiConversation>({
     table: 'ai_conversations',
     select: '*, lead:lead_id(full_name, status, phone, assigned_to), marketer:marketer_id(full_name)',
     orderBy: 'created_at', orderAsc: false, limit: 1000,
@@ -69,7 +70,12 @@ export default function ConversationsPage() {
         }
       }
       const s = out[sid]
-      const key = shortPhone(c.phone)
+      /*
+       * A conversation whose number is missing is still a conversation. It is
+       * grouped under a named bucket rather than being passed to shortPhone
+       * as null, which used to throw the whole screen away.
+       */
+      const key = c.phone ? shortPhone(c.phone) : 'unknown'
       if (!s.threads[key]) {
         s.threads[key] = {
           phone: key,
@@ -252,13 +258,12 @@ export default function ConversationsPage() {
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
-      <div className="mb-4 lg:mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
-        <div>
-          <h1 className="font-display text-[20px] sm:text-[24px] font-semibold text-[var(--ink)]">Conversations</h1>
-          <p className="text-[13px] sm:text-[14px] text-[var(--ink-soft)] mt-1">
-            Every WhatsApp chat, grouped by the staff line it goes through.
-          </p>
-        </div>
+      <PageHeader
+        eyebrow="Messaging"
+        title="Conversations"
+        description="Every WhatsApp chat, grouped by the staff line it goes through."
+        actions={
+          <>
         <button onClick={async () => {
           const dry = await fetch('/api/admin/reattribute-chats').then(r => r.json()).catch(() => null)
           if (!dry || dry.error) { toast.error(dry?.error || 'Could not check that.'); return }
@@ -293,7 +298,9 @@ export default function ConversationsPage() {
           className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Resume assistant
         </button>
-      </div>
+          </>
+        }
+      />
 
       {/* Desktop: master / detail / transcript */}
       <div className="hidden lg:grid grid-cols-[300px_340px_minmax(0,1fr)] bg-[var(--paper)] border border-[var(--line)] rounded-2xl overflow-hidden"

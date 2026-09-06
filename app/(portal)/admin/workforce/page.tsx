@@ -6,6 +6,7 @@ import Modal from '@/components/shared/Modal'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
 import { X } from 'lucide-react'
+import type { OfficeLocation, StaffAttendance } from '@/types'
 
 type Shift = {
   id: string
@@ -18,8 +19,8 @@ type Shift = {
 
 export default function WorkforcePage() {
   const today = new Date().toISOString().slice(0, 10)
-  const { data: offices, refetch: loadOffices } = useData<any>({ table: 'office_locations', limit: 20 })
-  const { data: attendance, loading, refetch: loadAtt } = useData<any>({
+  const { data: offices, refetch: loadOffices } = useData<OfficeLocation>({ table: 'office_locations', limit: 20 })
+  const { data: attendance, loading, refetch: loadAtt } = useData<StaffAttendance>({
     table: 'staff_attendance', select: '*, staff:staff_id(full_name, role)',
     filters: [{ col: 'date', op: 'eq', val: today }],
     orderBy: 'clock_in_at', orderAsc: false, limit: 200,
@@ -62,9 +63,9 @@ export default function WorkforcePage() {
     finally { setSaving(false) }
   }
 
-  const present = attendance.filter((a: any) => a.clock_in_at).length
-  const late = attendance.filter((a: any) => a.status === 'late').length
-  const out = attendance.filter((a: any) => a.clock_out_at).length
+  const present = attendance.filter((a) => a.clock_in_at).length
+  const late = attendance.filter((a) => a.status === 'late').length
+  const out = attendance.filter((a) => a.clock_out_at).length
   const fmt = (t?: string | null) => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'
 
   const shiftColumns: Column<Shift>[] = [
@@ -141,7 +142,7 @@ export default function WorkforcePage() {
 
           {offices.length > 0 && (
             <div className="mb-5 space-y-2">
-              {offices.map((o: any) => (
+              {offices.map((o) => (
                 <div key={o.id} className="flex items-center justify-between p-3 bg-[var(--line-soft)] rounded-lg text-sm">
                   <div>
                     <div className="font-medium text-[var(--ink)]">{o.name}</div>
