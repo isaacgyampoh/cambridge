@@ -189,7 +189,7 @@ describe('the policy is not duplicated anywhere', () => {
     const offenders: string[] = []
 
     for (const file of [
-      'app/(auth)/login/page.tsx',
+      'app/(auth)/login/LoginForm.tsx',
       'app/(portal)/admin/settings/change-pin/page.tsx',
     ]) {
       const src = stripped(file)
@@ -207,7 +207,7 @@ describe('the policy is not duplicated anywhere', () => {
   })
 
   test('the emailed code uses the same control at its own length', () => {
-    const login = stripped('app/(auth)/login/page.tsx')
+    const login = stripped('app/(auth)/login/LoginForm.tsx')
     assert.match(login, /length=\{OTP_LENGTH\}/,
       'the OTP boxes are not driven by OTP_LENGTH')
   })
@@ -219,7 +219,7 @@ describe('the policy is not duplicated anywhere', () => {
      * and one-time-code autofill that the fields get for free. Prose stripped
      * first, because the file explains exactly that.
      */
-    const login = stripped('app/(auth)/login/page.tsx') + stripped('components/ui/PinFields.tsx')
+    const login = stripped('app/(auth)/login/LoginForm.tsx') + stripped('components/ui/PinFields.tsx')
 
     assert.ok(!/keypad|KEYPAD|Keypad/.test(login),
       'the sign-in form has grown an on-screen keypad again')

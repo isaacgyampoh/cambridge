@@ -132,3 +132,36 @@ describe('the palette is declared once and agreed everywhere', () => {
       offenders.join('\n  '))
   })
 })
+
+describe('the sign-in photograph', () => {
+  /*
+   * The screen is designed around a photograph the institution supplies. It
+   * must not become a hard dependency: a login page that renders a broken
+   * image, or a grey box, is the worst possible first impression, and a file
+   * can always be missing from a deploy.
+   */
+  test('the page decides on the server whether there is a photograph', () => {
+    const page = readFileSync('app/(auth)/login/page.tsx', 'utf8')
+
+    assert.match(page, /existsSync/,
+      'the page does not check for the photograph on the server')
+    assert.match(page, /hasHero=\{hasHero\}/,
+      'the result is not passed to the form')
+
+    const form = code(readFileSync('app/(auth)/login/LoginForm.tsx', 'utf8'))
+    assert.match(form, /\{hasHero &&/,
+      'the picture panel renders even when there is no picture')
+  })
+
+  test('the photograph path is stated in one place', () => {
+    const page = readFileSync('app/(auth)/login/page.tsx', 'utf8')
+    const form = readFileSync('app/(auth)/login/LoginForm.tsx', 'utf8')
+
+    const inPage = page.match(/HERO_FILE\s*=\s*'([^']+)'/)
+    const inForm = form.match(/HERO\s*=\s*'([^']+)'/)
+
+    assert.ok(inPage && inForm, 'the photograph path is not declared in both halves')
+    assert.equal('/' + inPage![1], inForm![1],
+      'the server checks a different file from the one the form renders')
+  })
+})

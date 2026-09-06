@@ -179,7 +179,9 @@ describe('the staff reset obeys the same rules', () => {
 
 describe('the policy length reaches the user-facing copy', () => {
   test('the login screen speaks in PIN_LENGTH, not a hardcoded number', () => {
-    const login = readFileSync('app/(auth)/login/page.tsx', 'utf8')
+    // The form is LoginForm.tsx; page.tsx only reports whether the
+    // sign-in photograph exists.
+    const login = readFileSync('app/(auth)/login/LoginForm.tsx', 'utf8')
     assert.match(login, /\{PIN_LENGTH\}-digit/,
       'the copy hardcodes a PIN length instead of reading the policy')
     assert.equal(PIN_LENGTH, 4)

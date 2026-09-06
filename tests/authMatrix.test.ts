@@ -27,7 +27,8 @@ import { ROLE_DEFAULTS } from '../lib/access/portals.ts'
 const VERIFY_PIN = readFileSync('app/api/auth/verify-pin/route.ts', 'utf8')
 const RECOVERY = readFileSync('lib/auth/recovery.ts', 'utf8')
 const START = readFileSync('app/api/auth/recover/start/route.ts', 'utf8')
-const LOGIN = readFileSync('app/(auth)/login/page.tsx', 'utf8')
+/* The form. page.tsx is a server shell that only checks for the photograph. */
+const LOGIN = readFileSync('app/(auth)/login/LoginForm.tsx', 'utf8')
 
 /* ─────────────────────────────────────────────
    Who is exempt
