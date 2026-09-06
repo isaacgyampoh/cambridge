@@ -4,8 +4,10 @@ import { PageHeader, Card, Button, Spinner, EmptyState, Field, inputClass, texta
 import FileUpload from '@/components/shared/FileUpload'
 import { Palette, Save, Trash2, ImageIcon, Copy } from 'lucide-react'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 export default function BrandKit() {
+  const { confirm, dialog } = useConfirm()
   const [profile, setProfile] = useState<any>({ voice: '', tagline: '', do_say: '', dont_say: '', primary_color: 'var(--accent)' })
   const [assets, setAssets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -35,7 +37,11 @@ export default function BrandKit() {
     toast.success('Asset added'); load()
   }
   async function delAsset(id: string) {
-    if (!confirm('Remove this asset?')) return
+    if (!await confirm({
+      title: 'Remove this asset?',
+      message: 'It is removed from the brand kit. Anything already published using it is unaffected.',
+      confirmLabel: 'Remove asset',
+    })) return
     await fetch('/api/content/brand', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_asset', id }) })
     load()
   }
@@ -46,6 +52,7 @@ export default function BrandKit() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader eyebrow="Marketing" title="Brand kit"
         description="Set your voice and assets once. The AI uses these every time it writes, so all content stays on-brand." />
 

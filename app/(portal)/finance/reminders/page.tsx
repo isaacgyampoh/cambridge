@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Button, Field, textareaClass, Spinner } from '@/components/ui'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 export default function PaymentReminders() {
+  const { confirm, dialog } = useConfirm()
   const [preview, setPreview] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [sending, setSending] = useState(false)
@@ -25,7 +27,12 @@ export default function PaymentReminders() {
 
   async function send() {
     if (channels.length === 0) { toast.error('Pick at least one channel.'); return }
-    if (!confirm(`Send a payment reminder to all ${preview?.owingCount ?? ''} students who owe?`)) return
+    if (!await confirm({
+      title: 'Send payment reminders?',
+      message: `${preview?.owingCount ?? 'All'} students who owe fees receive a reminder immediately. It cannot be recalled.`,
+      confirmLabel: 'Send reminders',
+      tone: 'accent',
+    })) return
     setSending(true)
     toast.loading('Sending…', { id: 'pr' })
     const d = await fetch('/api/payment-reminders/send', {
@@ -39,6 +46,7 @@ export default function PaymentReminders() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader eyebrow="Automation" title="Payment reminders"
         description="Send every student who owes a friendly reminder with their outstanding balance and a pay link. Review who it reaches before sending." />
 

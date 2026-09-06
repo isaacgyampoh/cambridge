@@ -5,6 +5,7 @@ import { PageHeader, Card, Button, Badge, Spinner, inputClass } from '@/componen
 import Modal from '@/components/shared/Modal'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 type Enrollment = {
   id: string
@@ -16,6 +17,7 @@ type Enrollment = {
 }
 
 export default function ClassStudents({ params }: { params: Promise<{ id: string }> }) {
+  const { confirm, dialog } = useConfirm()
   const { id: batchId } = use(params)
   const [batch, setBatch] = useState<any>(null)
   const [enrolled, setEnrolled] = useState<any[]>([])
@@ -66,7 +68,12 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   }
 
   async function sendSigninLink() {
-    if (!confirm("Send today's sign-in link to all active students by WhatsApp?")) return
+    if (!await confirm({
+      title: "Send today's sign-in link?",
+      message: 'Every active student in this class receives it on WhatsApp straight away.',
+      confirmLabel: 'Send link',
+      tone: 'accent',
+    })) return
     setBlasting(true)
     try {
       const res = await fetch('/api/classes/signin-blast', {
@@ -118,7 +125,11 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   }
 
   async function remove(e: any) {
-    if (!confirm(`Remove ${e.full_name} from this class?`)) return
+    if (!await confirm({
+      title: `Remove ${e.full_name} from this class?`,
+      message: 'They lose access to the class link and its materials. Their registration and payments are not affected.',
+      confirmLabel: 'Remove from class',
+    })) return
     setActing(e.id)
     try {
       await fetch('/api/classes/enroll', {
@@ -231,6 +242,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader
         eyebrow={batch?.course?.name || 'Class'}
         title={batch ? `${batch.name} — students` : 'Class students'}
@@ -250,7 +262,12 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         <Badge tone="success">{enrolled.filter((e: any) => e.fees_paid).length} fees paid</Badge>
         <Badge tone="neutral">{enrolled.filter((e: any) => e.status === 'completed').length} completed</Badge>
         <button onClick={async () => {
-          if (!confirm('Issue certificates for everyone in this class who has finished paying?')) return
+          if (!await confirm({
+            title: 'Issue certificates?',
+            message: 'Everyone in this class who has finished paying receives a certificate. Issued certificates cannot be withdrawn.',
+            confirmLabel: 'Issue certificates',
+            tone: 'accent',
+          })) return
           const d = await fetch('/api/certificates/issue', {
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ batchId }),

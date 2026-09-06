@@ -4,11 +4,13 @@ import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { ArrowLeft, UserPlus, Phone, Mail, BookOpen, Globe, MessageSquare } from 'lucide-react'
 import Link from 'next/link'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const SOURCES = ['manual','facebook','google','linkedin','website','referral']
 const FALLBACK_COURSES = ['Projects Management Professional','Corporate Training','Professional in Human Resources','Senior Professional in Human Resources','Software Agile Projects Management','Results-Based Monitoring and Evaluation','Other']
 
 export default function NewLeadPage() {
+  const { confirm, dialog } = useConfirm()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [marketers, setMarketers] = useState<any[]>([])
@@ -46,7 +48,11 @@ export default function NewLeadPage() {
         }).then(r => r.json())
         if (dup.duplicate) {
           const owner = dup.lead?.assignee?.full_name ? ` (with ${dup.lead.assignee.full_name})` : ''
-          const proceed = confirm(`A lead named "${dup.lead.full_name}" already exists with this phone/email${owner}. Add anyway?`)
+          const proceed = await confirm({
+            title: 'This person is already a lead',
+            message: `"${dup.lead.full_name}" already exists with this phone or email${owner}. Adding again creates a second record for the same person.`,
+            confirmLabel: 'Add anyway',
+          })
           if (!proceed) { setSaving(false); return }
         }
       }
@@ -92,6 +98,7 @@ export default function NewLeadPage() {
 
   return (
     <div className="w-full fade-in">
+      {dialog}
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/leads"

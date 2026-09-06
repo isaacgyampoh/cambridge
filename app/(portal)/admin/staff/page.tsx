@@ -4,6 +4,7 @@ import { useData } from '@/hooks/useData'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { Plus, X, Check, Copy, Eye, EyeOff, Shield, Phone, Mail, User, Briefcase, Hash } from 'lucide-react'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const ROLES = [
   { value: 'administrator', label: 'Administrator', color: 'bg-[var(--ink)] text-white'},
@@ -36,6 +37,7 @@ const ROLE_LABEL: Record<string, string> = Object.fromEntries(ROLES.map(r => [r.
 const EMPTY = { full_name: '', email: '', phone: '', role: 'marketing_officer', initial_pin: '', department: '', coordinator_program: '', performance_tier: 'mid', also_markets: false, duties: [] as string[], reports_to: '', is_team_lead: false }
 
 export default function StaffPage() {
+  const { confirm, dialog } = useConfirm()
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ ...EMPTY })
   const [saving, setSaving] = useState(false)
@@ -114,7 +116,11 @@ export default function StaffPage() {
   }
 
   async function deleteStaff(id: string, name: string) {
-    if (!confirm(`Permanently delete ${name}? This cannot be undone. Their leads will be kept and unassigned so you can re-distribute them.`)) return
+    if (!await confirm({
+      title: `Permanently delete ${name}?`,
+      message: 'Their leads are kept and returned to the unassigned queue so you can redistribute them. The staff record itself cannot be recovered.',
+      confirmLabel: 'Delete staff member',
+    })) return
     const d = await fetch('/api/admin/delete-staff', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ id }),
@@ -149,6 +155,7 @@ export default function StaffPage() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
 
       {/* ── Modal ── */}
       <Modal open={showModal} onClose={() => setShowModal(false)} maxWidth="max-w-lg">
@@ -454,7 +461,21 @@ export default function StaffPage() {
               const st = await fetch('/api/admin/clean-logins').then(r => r.json()).catch(() => null)
               if (!st || st.error) return alert(st?.error || 'Could not check')
               if (!st.orphans) return alert('No leftover logins — every sign-in account belongs to a current staff member.')
-              if (!confirm(`${st.orphans} sign-in account${st.orphans === 1 ? '' : 's'} no longer belong to any staff member:\n\n${(st.emails || []).join('\n')}\n\nRemove them so these emails can be used again?`)) return
+              if (!await confirm({
+                title: 'Remove leftover sign-in accounts?',
+                confirmLabel: `Remove ${st.orphans}`,
+                message: (
+                  <>
+                    <p className="mb-2">
+                      {st.orphans} sign-in account{st.orphans === 1 ? '' : 's'} no longer belong to any staff member:
+                    </p>
+                    <ul className="list-disc pl-5 space-y-0.5 mb-2">
+                      {(st.emails || []).map((e: string) => <li key={e}>{e}</li>)}
+                    </ul>
+                    <p>Removing them frees those addresses to be used again.</p>
+                  </>
+                ),
+              })) return
               const d = await fetch('/api/admin/clean-logins', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
               if (d.error) alert(d.error)
               else alert(`Removed ${d.removed} leftover login${d.removed === 1 ? '' : 's'}. Those emails can be used again now.`)
@@ -468,8 +489,28 @@ export default function StaffPage() {
               const st = await fetch('/api/admin/repair-access').then(r => r.json()).catch(() => null)
               if (!st || st.error) return alert(st?.error || 'Could not check')
               if (!st.affected) return alert('Everyone has the access their role should give them.')
-              const list = st.people.map((p: any) => `${p.name} (${p.role}) — restoring: ${p.restoring.join(', ')}`).join('\n')
-              if (!confirm(`${st.affected} staff member${st.affected === 1 ? '' : 's'} are missing sections their role should give them:\n\n${list}\n\nRestore their access?`)) return
+              if (!await confirm({
+                title: 'Restore missing access?',
+                confirmLabel: 'Restore access',
+                tone: 'accent',
+                message: (
+                  <>
+                    <p className="mb-2">
+                      {st.affected} staff member{st.affected === 1 ? '' : 's'} are missing sections their role should give them:
+                    </p>
+                    <ul className="space-y-1 mb-2">
+                      {st.people.map((p: { name: string; role: string; restoring: string[] }) => (
+                        <li key={p.name}>
+                          <span className="font-medium text-[var(--ink)]">{p.name}</span>
+                          <span className="text-[var(--ink-faint)]"> ({p.role})</span>
+                          <br />
+                          <span className="text-[13px]">restoring: {p.restoring.join(', ')}</span>
+                        </li>
+                      ))}
+                    </ul>
+                  </>
+                ),
+              })) return
               const d = await fetch('/api/admin/repair-access', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
               if (d.error) alert(d.error)
               else alert(`Fixed ${d.fixed}. They will see the difference on their next page load.`)

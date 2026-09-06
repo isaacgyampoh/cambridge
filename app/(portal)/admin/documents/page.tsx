@@ -8,6 +8,7 @@ import { Upload, FileText, Download, Trash2, Send, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { CONFIG } from '@/lib/config'
 import Modal from '@/components/shared/Modal'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const DOC_TYPES = [
   { value: 'admission_letter', label: 'Admission Letter' },
@@ -24,6 +25,7 @@ const DOC_TYPES = [
 const TEMPLATE_FIELDS = ['{{full_name}}', '{{email}}', '{{phone}}', '{{course}}', '{{batch}}', '{{date}}', '{{admission_number}}', '{{amount}}']
 
 export default function DocumentsPage() {
+  const { confirm, dialog } = useConfirm()
   const { data: docs, loading, refetch: load } = useData<any>({
     table: 'documents', orderBy: 'created_at', orderAsc: false, limit: 200,
   })
@@ -135,7 +137,11 @@ export default function DocumentsPage() {
   }
 
   async function deleteDoc(id: string, fileUrl: string) {
-    if (!confirm('Delete this document?')) return
+    if (!await confirm({
+      title: 'Delete this document?',
+      message: 'Anyone holding a link to it will no longer be able to open it. This cannot be undone.',
+      confirmLabel: 'Delete document',
+    })) return
     try {
       await mutateDelete('documents', [{ col: 'id', val: id }])
       toast.success('Document deleted')
@@ -184,6 +190,7 @@ export default function DocumentsPage() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Document Library</h1>

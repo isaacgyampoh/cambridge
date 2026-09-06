@@ -154,7 +154,13 @@ export function ConfirmDialog({
 }: {
   open: boolean
   title: string
-  message: string
+  /**
+   * Rich content, not just a string: a bulk delete needs to show what will go
+   * and what is protected, and those counts are the whole basis for the
+   * decision. `window.confirm` could only fake this with \n, which renders as
+   * nothing in HTML.
+   */
+  message: React.ReactNode
   confirmLabel?: string
   cancelLabel?: string
   tone?: 'danger' | 'accent'
@@ -183,7 +189,7 @@ export function ConfirmDialog({
       className="backdrop:bg-black/40 bg-transparent p-0 m-auto max-w-[calc(100vw-32px)] w-[400px]">
       <div className="rounded-2xl bg-[var(--paper)] border border-[var(--line)] p-5 sm:p-6 shadow-2xl text-left">
         <h2 id="confirm-title" className="font-semibold text-[17px] text-[var(--ink)] mb-2">{title}</h2>
-        <p className="text-[14px] text-[var(--ink-soft)] leading-relaxed mb-6">{message}</p>
+        <div className="text-[14px] text-[var(--ink-soft)] leading-relaxed mb-6">{message}</div>
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
           <button onClick={onCancel} disabled={busy}
             className="min-h-[44px] px-5 rounded-xl border border-[var(--line)] bg-[var(--paper)]

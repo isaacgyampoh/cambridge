@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { Plus, Star, GraduationCap, Briefcase, X, Eye, EyeOff } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '', photo_url: '',
@@ -16,6 +17,7 @@ const EMPTY_FORM = {
 }
 
 export default function AlumniPage() {
+  const { confirm, dialog } = useConfirm()
   const { data: alumni, loading, refetch: load } = useData<any>({
     table: 'alumni', orderBy: 'graduation_date', orderAsc: false, limit: 500,
   })
@@ -78,7 +80,11 @@ export default function AlumniPage() {
   }
 
   async function del(id: string) {
-    if (!confirm('Delete this alumni record?')) return
+    if (!await confirm({
+      title: 'Delete this alumni record?',
+      message: 'It is removed from the public alumni page as well. This cannot be undone.',
+      confirmLabel: 'Delete record',
+    })) return
     try { await mutateDelete('alumni', [{ col: 'id', val: id }]); load() }
     catch (e: any) { toast.error(e.message || 'Failed to delete') }
   }
@@ -114,6 +120,7 @@ export default function AlumniPage() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Alumni & Success Stories</h1>

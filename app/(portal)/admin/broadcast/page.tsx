@@ -7,6 +7,7 @@ import { formatDateTime } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
 import { Card, Button, Badge, Field, inputClass, SectionLabel, EmptyState, Spinner } from '@/components/ui'
 import { Video, Calendar, Megaphone, Link2 } from 'lucide-react'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const LINK_TYPES: Record<string, { label: string; icon: any }> = {
   zoom: { label: 'Online class / Zoom', icon: Video },
@@ -29,6 +30,7 @@ const STATUS_OPTS = ['new', 'contacted', 'interested', 'follow_up', 'not_interes
 const SOURCE_OPTS = ['facebook', 'google', 'linkedin', 'website', 'referral', 'manual']
 
 export default function BroadcastPage() {
+  const { confirm, dialog } = useConfirm()
   const [tab, setTab] = useState<'message' | 'link'>('message')
 
   const { data: broadcasts, loading, refetch: load } = useData<any>({
@@ -87,7 +89,11 @@ export default function BroadcastPage() {
   }
 
   async function removeLink(id: string) {
-    if (!confirm('Remove this link from everyone\'s My Links?')) return
+    if (!await confirm({
+      title: 'Remove this link?',
+      message: 'It disappears from every staff member\u2019s My Links. The destination itself is not affected.',
+      confirmLabel: 'Remove link',
+    })) return
     await fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove', id }) })
     toast.success('Link removed'); loadLinks()
   }
@@ -173,6 +179,7 @@ export default function BroadcastPage() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <div className="mb-6">
         <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Outreach</div>
         <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Broadcast &amp; links</h1>

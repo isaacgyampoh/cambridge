@@ -4,10 +4,12 @@ import { useState, useEffect } from 'react'
 import { PageHeader, Card, Spinner, EmptyState, inputClass } from '@/components/ui'
 import { CONFIG } from '@/lib/config'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const COURSES = ['Projects Management Professional','Corporate Training','Professional in Human Resources','Senior Professional in Human Resources','Software Agile Projects Management','Results-Based Monitoring and Evaluation']
 
 export default function MyFlyers() {
+  const { confirm, dialog } = useConfirm()
   const [flyers, setFlyers] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
@@ -47,7 +49,11 @@ export default function MyFlyers() {
   }
 
   async function remove(id: string) {
-    if (!confirm('Delete this flyer? Its link will stop working.')) return
+    if (!await confirm({
+      title: 'Delete this flyer?',
+      message: 'Its link stops working immediately, and anyone who already has it will see nothing.',
+      confirmLabel: 'Delete flyer',
+    })) return
     await fetch('/api/flyers', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
     load()
   }
@@ -57,6 +63,7 @@ export default function MyFlyers() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader eyebrow="My work" title="My flyers"
         description="Upload your flyer, get your own link, and share it. Anyone who opens it can register or ask questions — and they become your lead." />
 

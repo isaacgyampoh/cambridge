@@ -3,10 +3,12 @@ import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import { PageHeader, Card, Button, Field, inputClass } from '@/components/ui'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const FALLBACK_COURSES = ['Projects Management Professional','Corporate Training','Professional in Human Resources','Senior Professional in Human Resources','Software Agile Projects Management','Results-Based Monitoring and Evaluation','Other']
 
 export default function MarketerNewLead() {
+  const { confirm, dialog } = useConfirm()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
   const [myId, setMyId] = useState<string | null>(null)
@@ -40,7 +42,11 @@ export default function MarketerNewLead() {
         }).then(r => r.json()).catch(() => ({}))
         if (dup.duplicate) {
           const owner = dup.lead?.assignee?.full_name ? ` (currently with ${dup.lead.assignee.full_name})` : ''
-          const proceed = confirm(`A lead "${dup.lead.full_name}" already exists with this phone/email${owner}. Add anyway?`)
+          const proceed = await confirm({
+            title: 'This person is already a lead',
+            message: `"${dup.lead.full_name}" already exists with this phone or email${owner}. Adding again creates a second record for the same person.`,
+            confirmLabel: 'Add anyway',
+          })
           if (!proceed) { setSaving(false); return }
         }
       }
@@ -76,6 +82,7 @@ export default function MarketerNewLead() {
 
   return (
     <div className="fade-in w-full max-w-3xl mx-auto">
+      {dialog}
       <PageHeader
         eyebrow="My work"
         title="Add a lead"

@@ -8,13 +8,65 @@ import Link from 'next/link'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
 import { exportToExcel } from '@/lib/utils/export'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const STATUS_TONE: Record<string, any> = {
   new: 'neutral', contacted: 'accent', interested: 'accent', follow_up: 'warning',
   ready_to_join: 'success', registered: 'success', not_interested: 'muted', lost: 'danger',
 }
 
+
+/**
+ * What a bulk purge is about to do.
+ *
+ * These three actions delete leads irreversibly, and the counts — how many go,
+ * how many are protected — are the entire basis for the decision. window.confirm
+ * could only approximate this with \n, which renders as nothing in HTML, so the
+ * operator was reading a wall of text with the important number buried in it.
+ */
+function PurgeSummary({
+  intro, total, toDelete, protectedCount, byStatus,
+}: {
+  intro: string
+  total?: number
+  toDelete: number
+  protectedCount: number
+  byStatus?: Record<string, number>
+}) {
+  return (
+    <>
+      <p className="mb-3">{intro}</p>
+      {byStatus && Object.keys(byStatus).length > 0 && (
+        <dl className="grid grid-cols-2 gap-x-4 gap-y-1 mb-3 text-[13px]">
+          {Object.entries(byStatus).map(([status, n]) => (
+            <div key={status} className="flex justify-between gap-2">
+              <dt className="capitalize text-[var(--ink-faint)]">{status.replace(/_/g, ' ')}</dt>
+              <dd className="tabular-nums">{n}</dd>
+            </div>
+          ))}
+        </dl>
+      )}
+      <ul className="space-y-1 text-[13px]">
+        {total !== undefined && (
+          <li className="flex justify-between gap-2">
+            <span className="text-[var(--ink-faint)]">Total leads</span>
+            <span className="tabular-nums">{total}</span>
+          </li>
+        )}
+        <li className="flex justify-between gap-2 font-semibold text-[var(--danger)]">
+          <span>Will be deleted</span><span className="tabular-nums">{toDelete}</span>
+        </li>
+        <li className="flex justify-between gap-2 text-[var(--ok)]">
+          <span>Protected (registered or paid)</span><span className="tabular-nums">{protectedCount}</span>
+        </li>
+      </ul>
+      <p className="mt-3 font-medium text-[var(--ink)]">This cannot be undone.</p>
+    </>
+  )
+}
+
 export default function AdminLeads() {
+  const { confirm, dialog } = useConfirm()
   const { data: leads, loading, refetch } = useData<Lead>({
     table: 'leads',
     select: '*, assignee:assigned_to(full_name), assigner:assigned_by(full_name)',
@@ -37,7 +89,12 @@ export default function AdminLeads() {
     if (!diag) { toast.error('Could not check leads.'); return }
     if (diag.unassigned === 0) { toast.info('No unassigned leads to distribute.'); return }
     if (diag.poolSize === 0) { toast.error(diag.reason || 'No one is in the lead pool. Add an active marketer first.'); return }
-    if (!confirm(`Distribute ${diag.unassigned} unassigned lead(s) across ${diag.poolSize} marketer(s)?`)) return
+    if (!await confirm({
+      title: 'Distribute unassigned leads?',
+      message: `${diag.unassigned} lead${diag.unassigned === 1 ? '' : 's'} will be shared across ${diag.poolSize} marketer${diag.poolSize === 1 ? '' : 's'}, and each will be notified.`,
+      confirmLabel: 'Distribute',
+      tone: 'accent',
+    })) return
     toast.loading('Assigning…', { id: 'assign' })
     const d = await fetch('/api/leads/assign-unassigned', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
     if (d.success) { toast.success(`Assigned ${d.assigned} lead(s).`, { id: 'assign' }); refetch() }
@@ -85,6 +142,7 @@ export default function AdminLeads() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader
         eyebrow="CRM"
         title="Leads"
@@ -95,8 +153,13 @@ export default function AdminLeads() {
             <Button variant="secondary" onClick={async () => {
               const dry = await fetch('/api/admin/purge-leads').then(r => r.json()).catch(() => null)
               if (!dry || dry.error) { toast.error(dry?.error || 'Could not check'); return }
-              const lines = Object.entries(dry.byStatus || {}).map(([k, v]) => `  ${k}: ${v}`).join('\n')
-              if (!confirm(`Keep only REGISTERED leads?\n\nCurrent leads by status:\n${lines}\n\nWill delete: ${dry.toDelete}\nProtected (has admission/paid application): ${dry.protected}\n\nThis cannot be undone.`)) return
+              if (!await confirm({
+                title: 'Keep only registered leads?',
+                confirmLabel: `Delete ${dry.toDelete} leads`,
+                message: <PurgeSummary
+                  intro="Every lead that has not registered will be removed."
+                  toDelete={dry.toDelete} protectedCount={dry.protected} byStatus={dry.byStatus} />,
+              })) return
               toast.loading('Cleaning up…', { id: 'purge' })
               const d = await fetch('/api/admin/purge-leads', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
               if (d.error) toast.error(d.error, { id: 'purge' })
@@ -105,7 +168,13 @@ export default function AdminLeads() {
             <Button variant="secondary" onClick={async () => {
               const dry = await fetch('/api/admin/purge-leads?mode=keep_assigned').then(r => r.json()).catch(() => null)
               if (!dry || dry.error) { toast.error(dry?.error || 'Could not check'); return }
-              if (!confirm(`Remove every lead that is NOT assigned to a marketer?\n\nTotal leads: ${dry.total}\nWill delete: ${dry.toDelete}\nProtected (registered / has paid): ${dry.protected}\n\nThis cannot be undone.`)) return
+              if (!await confirm({
+                title: 'Remove every unassigned lead?',
+                confirmLabel: `Delete ${dry.toDelete} leads`,
+                message: <PurgeSummary
+                  intro="Leads that do not belong to a marketer will be removed."
+                  total={dry.total} toDelete={dry.toDelete} protectedCount={dry.protected} />,
+              })) return
               toast.loading('Cleaning up…', { id: 'purge2' })
               const d = await fetch('/api/admin/purge-leads?mode=keep_assigned', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
               if (d.error) toast.error(d.error, { id: 'purge2' })
@@ -119,7 +188,13 @@ export default function AdminLeads() {
               const dry = await fetch('/api/admin/purge-leads?mode=keep_clean').then(r => r.json()).catch(() => null)
               if (!dry || dry.error) { toast.error(dry?.error || 'Could not check', { id: 'clean' }); return }
               toast.dismiss('clean')
-              if (!confirm(`Tidy up leads?\n\nKeeps everyone who registered OR belongs to a marketer.\n\nTotal leads: ${dry.total}\nWill delete: ${dry.toDelete}\nProtected (registered / has paid): ${dry.protected}\n\nThis cannot be undone.`)) return
+              if (!await confirm({
+                title: 'Tidy up leads?',
+                confirmLabel: `Delete ${dry.toDelete} leads`,
+                message: <PurgeSummary
+                  intro="Keeps everyone who registered or belongs to a marketer. The rest are removed."
+                  total={dry.total} toDelete={dry.toDelete} protectedCount={dry.protected} />,
+              })) return
               toast.loading('Cleaning up…', { id: 'clean' })
               const d = await fetch('/api/admin/purge-leads?mode=keep_clean', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
               if (d.error) toast.error(d.error, { id: 'clean' })

@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Button, Spinner, EmptyState, inputClass, Field } from '@/components/ui'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const KINDS = [
   { value: 'tip', label: 'Exam tip', emoji: '💡' },
@@ -11,6 +12,7 @@ const KINDS = [
 ]
 
 export default function PrepContentPage() {
+  const { confirm, dialog } = useConfirm()
   const [program, setProgram] = useState('PMP')
   const [programs, setPrograms] = useState<{ code: string; name: string }[]>([{ code: 'PMP', name: 'PMP' }])
   const [content, setContent] = useState<any[]>([])
@@ -66,13 +68,18 @@ export default function PrepContentPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm('Remove this from the content bank?')) return
+    if (!await confirm({
+      title: 'Remove this from the content bank?',
+      message: 'Coordinators will no longer be able to send it to students.',
+      confirmLabel: 'Remove',
+    })) return
     await fetch('/api/prep/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) })
     toast.success('Removed'); load()
   }
 
   return (
     <div className="fade-in w-full max-w-4xl">
+      {dialog}
       <PageHeader eyebrow="Exam prep" title="Content bank"
         description="Build tips, practice questions, and exam info. Send them to your students now, or schedule them to auto-send before their exam." />
 

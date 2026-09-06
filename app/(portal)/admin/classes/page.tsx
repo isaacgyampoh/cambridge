@@ -8,8 +8,10 @@ import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
 import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass } from '@/components/ui'
+import { useConfirm } from '@/hooks/useConfirm'
 
 export default function ClassesPage() {
+  const { confirm, dialog } = useConfirm()
   const { data: batches, loading, refetch: load } = useData<Batch>({
     table: 'batches', select: '*, courses(*), trainer:profiles!trainer_id(full_name)',
     orderBy: 'start_date', orderAsc: false, limit: 200,
@@ -137,7 +139,11 @@ export default function ClassesPage() {
   }
 
   async function removeClass(b: any) {
-    if (!confirm(`Delete "${b.name}"? This cannot be undone.`)) return
+    if (!await confirm({
+      title: `Delete ${b.name}?`,
+      message: 'The class and its schedule are removed. Enrolled students are not deleted, but they will no longer belong to a class. This cannot be undone.',
+      confirmLabel: 'Delete class',
+    })) return
     const d = await fetch(`/api/classes/manage?batchId=${b.id}`, { method: 'DELETE' })
       .then(r => r.json()).catch(() => ({ error: 'Could not delete' }))
     if (d.error) { toast.error(d.error); return }
@@ -151,6 +157,7 @@ export default function ClassesPage() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader
         eyebrow="Academics"
         title="Classes"

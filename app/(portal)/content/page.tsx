@@ -4,11 +4,13 @@ import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, texta
 import FileUpload from '@/components/shared/FileUpload'
 import { Sparkles, Wand2, MessageSquare, Hash, Lightbulb, Copy, Save, Send, Trash2, Calendar, FileText } from 'lucide-react'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const PLATFORMS = ['facebook', 'instagram', 'linkedin', 'tiktok', 'whatsapp', 'x']
 const PLATFORM_LABEL: Record<string, string> = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', tiktok: 'TikTok', whatsapp: 'WhatsApp', x: 'X (Twitter)' }
 
 export default function ContentStudio() {
+  const { confirm, dialog } = useConfirm()
   const [tab, setTab] = useState<'studio' | 'library'>('studio')
   const [platform, setPlatform] = useState('facebook')
   const [brief, setBrief] = useState('')
@@ -74,13 +76,18 @@ export default function ContentStudio() {
   }
 
   async function del(id: string) {
-    if (!confirm('Delete this post?')) return
+    if (!await confirm({
+      title: 'Delete this post?',
+      message: 'It is removed from the content calendar. This cannot be undone.',
+      confirmLabel: 'Delete post',
+    })) return
     await fetch('/api/content/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) })
     toast.success('Deleted'); loadPosts()
   }
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader eyebrow="Marketing" title="Content Studio"
         description="Draft posts, get AI feedback, plan your calendar. The AI knows our courses, fees and dates." />
 

@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Button, Field, inputClass, textareaClass, Spinner, EmptyState, Badge } from '@/components/ui'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 export default function InfoSessions() {
+  const { confirm, dialog } = useConfirm()
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
@@ -59,7 +61,12 @@ export default function InfoSessions() {
   }
 
   async function sendNow(id: string, title: string) {
-    if (!confirm(`Send "${title}" to all targeted leads right now? This cannot be undone.`)) return
+    if (!await confirm({
+      title: 'Send this session invitation now?',
+      message: `"${title}" goes to every targeted lead immediately. It cannot be recalled.`,
+      confirmLabel: 'Send now',
+      tone: 'accent',
+    })) return
     toast.loading('Sending…', { id: 'sn' })
     const res = await fetch('/api/info-sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'send_now' }) })
     const d = await res.json()
@@ -74,6 +81,7 @@ export default function InfoSessions() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader eyebrow="Automation" title="Info sessions"
         description="Schedule an info session once. At the send time, the system automatically texts and WhatsApps every lead, and pushes the link to all marketers to share. No manual sending." />
 

@@ -5,6 +5,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable'
 import { formatGHS, formatDateTime } from '@/lib/utils'
 import { exportToExcel } from '@/lib/utils/export'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 type Registration = {
   id: string
@@ -19,6 +20,7 @@ type Registration = {
 }
 
 export default function FinanceRegistrations() {
+  const { confirm, dialog } = useConfirm()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
   const [search, setSearch] = useState('')
@@ -32,7 +34,12 @@ export default function FinanceRegistrations() {
   useEffect(() => { load() }, [])
 
   async function markPaid(marketerId: string, name: string, amount: number) {
-    if (!confirm(`Confirm you have paid ${name} their registration commission of ${formatGHS(amount)}? This marks all their outstanding registrations as paid.`)) return
+    if (!await confirm({
+      title: `Mark ${name}\u2019s commission as paid?`,
+      message: `Confirms you have paid ${formatGHS(amount)}. Every outstanding registration of theirs is marked paid, and this cannot be undone from here.`,
+      confirmLabel: 'Confirm payment',
+      tone: 'accent',
+    })) return
     setPayingId(marketerId)
     try {
       const res = await fetch('/api/registrations/payout', {
@@ -93,6 +100,7 @@ export default function FinanceRegistrations() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader
         eyebrow="Finance"
         title="Registered students"

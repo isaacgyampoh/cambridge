@@ -2,8 +2,10 @@
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Button, Field, inputClass, textareaClass, Spinner, EmptyState, Badge } from '@/components/ui'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 export default function ClassReminders() {
+  const { confirm, dialog } = useConfirm()
   const [batches, setBatches] = useState<any[]>([])
   const [reminders, setReminders] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -52,8 +54,18 @@ export default function ClassReminders() {
   }
 
   async function act(id: string, action: string, title: string) {
-    if (action === 'send_now' && !confirm(`Send the ${title} reminder to all enrolled students now?`)) return
-    if (action === 'cancel' && !confirm('Cancel this reminder?')) return
+    if (action === 'send_now' && !await confirm({
+      title: 'Send this reminder now?',
+      message: `The ${title} reminder goes to every enrolled student immediately. It cannot be recalled.`,
+      confirmLabel: 'Send now',
+      tone: 'accent',
+    })) return
+
+    if (action === 'cancel' && !await confirm({
+      title: 'Cancel this reminder?',
+      message: 'It will not be sent. You can schedule it again afterwards.',
+      confirmLabel: 'Cancel reminder',
+    })) return
     if (action === 'send_now') toast.loading('Sending…', { id: 'cr' })
     const d = await fetch('/api/class-reminders', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action }) }).then(r => r.json())
     if (action === 'send_now') {
@@ -65,6 +77,7 @@ export default function ClassReminders() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader eyebrow="Automation" title="Class reminders"
         description="Schedule a reminder for a class. At the send time, the system automatically texts and WhatsApps the Zoom link to every enrolled student." />
 

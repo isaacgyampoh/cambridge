@@ -5,8 +5,10 @@ import { PageHeader, Card, Button, Badge, Spinner, EmptyState } from '@/componen
 import { Quote, Copy, Trash2, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CONFIG } from '@/lib/config'
+import { useConfirm } from '@/hooks/useConfirm'
 
 export default function TestimonialsPage() {
+  const { confirm, dialog } = useConfirm()
   const { data: items, loading, refetch } = useData<any>({ table: 'testimonials', select: '*', orderBy: 'created_at', orderAsc: false, limit: 500 })
 
   const collectionLink = `${CONFIG.appUrl}/testimonial/submit`
@@ -17,7 +19,11 @@ export default function TestimonialsPage() {
   }
 
   async function remove(id: string) {
-    if (!confirm('Delete this testimonial?')) return
+    if (!await confirm({
+      title: 'Delete this testimonial?',
+      message: 'It will be removed from the site immediately. This cannot be undone.',
+      confirmLabel: 'Delete testimonial',
+    })) return
     try { await mutateDelete('testimonials', [{ col: 'id', val: id }]); toast.success('Deleted'); refetch() }
     catch { toast.error('Failed') }
   }
@@ -29,6 +35,7 @@ export default function TestimonialsPage() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader
         eyebrow="Visibility"
         title="Testimonials"

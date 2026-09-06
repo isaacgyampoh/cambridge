@@ -5,6 +5,7 @@ import { PageHeader, Card, Button, Badge, Spinner, EmptyState, SectionLabel, Fie
 import { Plus, Trash2, MessageSquare, Clock, Zap, X, GripVertical } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const TRIGGERS: Record<string, string> = {
   manual: 'Added manually',
@@ -14,6 +15,7 @@ const TRIGGERS: Record<string, string> = {
 }
 
 export default function SequencesPage() {
+  const { confirm, dialog } = useConfirm()
   const { data: sequences, loading, refetch } = useData<any>({ table: 'sequences', orderBy: 'created_at', orderAsc: false, limit: 50 })
   const { data: allSteps, refetch: refetchSteps } = useData<any>({ table: 'sequence_steps', orderBy: 'step_order', limit: 300 })
   const [editing, setEditing] = useState<any>(null)
@@ -80,13 +82,18 @@ export default function SequencesPage() {
     refetch()
   }
   async function remove(seq: any) {
-    if (!confirm(`Delete "${seq.name}"? Enrolled leads will stop receiving it.`)) return
+    if (!await confirm({
+      title: `Delete ${seq.name}?`,
+      message: 'Leads currently enrolled stop receiving it immediately. Messages already sent are unaffected.',
+      confirmLabel: 'Delete sequence',
+    })) return
     await mutateDelete('sequences', [{ col: 'id', val: seq.id }])
     toast.success('Deleted'); refetch()
   }
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader
         eyebrow="Automation"
         title="Follow-up sequences"

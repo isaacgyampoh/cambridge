@@ -5,8 +5,10 @@ import { PageHeader, Card, Button, Badge, Spinner, EmptyState, Field, inputClass
 import { Plus, X, MessageCircleQuestion, Info, Pencil, Trash2, Sparkles } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 
 export default function KnowledgeBasePage() {
+  const { confirm, dialog } = useConfirm()
   const { data: entries, loading, refetch } = useData<any>({
     table: 'knowledge_base', orderBy: 'sort_order', orderAsc: true, limit: 500,
   })
@@ -52,7 +54,11 @@ export default function KnowledgeBasePage() {
     catch (err: any) { toast.error(err.message) }
   }
   async function del(id: string) {
-    if (!confirm('Delete this entry?')) return
+    if (!await confirm({
+      title: 'Delete this entry?',
+      message: 'The assistant will stop using it when answering questions.',
+      confirmLabel: 'Delete entry',
+    })) return
     try { await mutateDelete('knowledge_base', [{ col: 'id', val: id }]); refetch() }
     catch (e: any) { toast.error(e.message) }
   }
@@ -62,6 +68,7 @@ export default function KnowledgeBasePage() {
 
   return (
     <div className="fade-in w-full">
+      {dialog}
       <PageHeader
         eyebrow="AI Assistant"
         title="Knowledge base"
@@ -69,7 +76,11 @@ export default function KnowledgeBasePage() {
         actions={
           <>
             <Button variant="secondary" onClick={async () => {
-              if (!confirm('Remove duplicated entries? The original of each is kept.')) return
+              if (!await confirm({
+                title: 'Remove duplicated entries?',
+                message: 'The original of each duplicate is kept. This cannot be undone.',
+                confirmLabel: 'Remove duplicates',
+              })) return
               const d = await fetch('/api/admin/dedupe-knowledge', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
               if (d.error) toast.error(d.error)
               else { toast.success(`Removed ${d.removed} duplicate${d.removed === 1 ? '' : 's'} — ${d.kept} entries left`); refetch() }

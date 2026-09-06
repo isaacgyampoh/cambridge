@@ -3,6 +3,7 @@ import { useState, useMemo, useEffect } from 'react'
 import { useData } from '@/hooks/useData'
 import { Spinner, EmptyState } from '@/components/ui'
 import { ChevronLeft, Search } from 'lucide-react'
+import { useConfirm } from '@/hooks/useConfirm'
 
 const fmtTime = (t: string) => {
   if (!t) return ''
@@ -16,6 +17,7 @@ const fmtTime = (t: string) => {
 const shortPhone = (p: string) => String(p || '').replace(/^233/, '0').replace(/#.*/, '')
 
 export default function ConversationsPage() {
+  const { confirm, dialog } = useConfirm()
   const { data: convos, loading } = useData<any>({
     table: 'ai_conversations',
     select: '*, lead:lead_id(full_name, status, phone, assigned_to), marketer:marketer_id(full_name)',
@@ -238,6 +240,7 @@ export default function ConversationsPage() {
   /* ── Layout: three panes side by side on desktop, drill-down on mobile ── */
   return (
     <div className="fade-in w-full">
+      {dialog}
       <div className="mb-4 lg:mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
           <h1 className="font-display text-[22px] sm:text-[26px] font-semibold text-[var(--ink)]">Conversations</h1>
@@ -249,7 +252,12 @@ export default function ConversationsPage() {
           const dry = await fetch('/api/admin/reattribute-chats').then(r => r.json()).catch(() => null)
           if (!dry || dry.error) return alert(dry?.error || 'Could not check')
           if (!dry.fixable) return alert('Nothing to move — every chat is already against the right person.')
-          if (!confirm(`Move ${dry.fixable} chat${dry.fixable === 1 ? '' : 's'} from the central line to the marketer who owns that lead?`)) return
+          if (!await confirm({
+            title: 'Move chats to their owners?',
+            message: `${dry.fixable} chat${dry.fixable === 1 ? '' : 's'} will move from the central line to the marketer who owns that lead.`,
+            confirmLabel: 'Move chats',
+            tone: 'accent',
+          })) return
           const d = await fetch('/api/admin/reattribute-chats', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
           if (d.error) alert(d.error)
           else { alert(`Moved ${d.fixed} chat${d.fixed === 1 ? '' : 's'}.`); location.reload() }
@@ -261,7 +269,12 @@ export default function ConversationsPage() {
           const st = await fetch('/api/admin/resume-ai').then(r => r.json()).catch(() => null)
           if (!st || st.error) return alert(st?.error || 'Could not check')
           if (!st.paused) return alert('The assistant is active on every lead.')
-          if (!confirm(`The assistant is paused on ${st.paused} lead${st.paused === 1 ? '' : 's'}. Resume it on all of them?`)) return
+          if (!await confirm({
+            title: 'Resume the assistant?',
+            message: `It is currently paused on ${st.paused} lead${st.paused === 1 ? '' : 's'} and will start replying to all of them again.`,
+            confirmLabel: 'Resume assistant',
+            tone: 'accent',
+          })) return
           const d = await fetch('/api/admin/resume-ai', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
           if (d.error) alert(d.error)
           else { alert(`Resumed on ${d.resumed} lead${d.resumed === 1 ? '' : 's'}.`); location.reload() }
