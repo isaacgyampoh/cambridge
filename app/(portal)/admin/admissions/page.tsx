@@ -1,6 +1,7 @@
 'use client'
 import { useData, mutate } from '@/hooks/useData'
 import { displayPhone, telHref, whatsappHref } from '@/lib/ui/contact'
+import { displayName } from '@/lib/ui/name'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
@@ -192,8 +193,8 @@ export default function AdminAdmissions() {
 
           return (
             <ListRow
-              leading={<Avatar name={lead?.full_name || '?'} size="md" />}
-              title={lead?.full_name || 'Unknown applicant'}
+              leading={<Avatar name={displayName(lead?.full_name) || '?'} size="md" />}
+              title={displayName(lead?.full_name) || 'Unknown applicant'}
               subtitle={a.course?.name || lead?.course_interest || 'No course set'}
               status={<Badge tone={sc.tone}>{sc.label}</Badge>}
               meta={
@@ -222,7 +223,7 @@ export default function AdminAdmissions() {
                     </Button>
                   )}
                   {tel && (
-                    <a href={tel} aria-label={`Call ${lead?.full_name}`}
+                    <a href={tel} aria-label={`Call ${displayName(lead?.full_name)}`}
                       className="w-10 h-10 grid place-items-center rounded-full flex-shrink-0
                         bg-[var(--brand-soft)] text-[var(--brand)]
                         active:bg-[var(--brand-line)] transition-colors">
@@ -231,7 +232,7 @@ export default function AdminAdmissions() {
                   )}
                   {wa && (
                     <a href={wa} target="_blank" rel="noopener noreferrer"
-                      aria-label={`Message ${lead?.full_name} on WhatsApp`}
+                      aria-label={`Message ${displayName(lead?.full_name)} on WhatsApp`}
                       className="w-10 h-10 grid place-items-center rounded-full flex-shrink-0
                         bg-[var(--brand-soft)] text-[var(--brand)]
                         active:bg-[var(--brand-line)] transition-colors">
@@ -239,7 +240,7 @@ export default function AdminAdmissions() {
                     </a>
                   )}
                   {lead?.email && (
-                    <a href={`mailto:${lead.email}`} aria-label={`Email ${lead.full_name}`}
+                    <a href={`mailto:${lead.email}`} aria-label={`Email ${displayName(lead.full_name)}`}
                       className="w-10 h-10 grid place-items-center rounded-full flex-shrink-0
                         border border-[var(--line)] text-[var(--ink-soft)]
                         active:bg-[var(--canvas)] transition-colors">

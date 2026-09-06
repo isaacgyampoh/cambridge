@@ -7,6 +7,7 @@ import {
   MobileList, ListRow, Dialog, SectionHeader, ProgressSteps,
 } from '@/components/ui'
 import { telHref, whatsappHref, mailtoHref } from '@/lib/ui/contact'
+import { displayName } from '@/lib/ui/name'
 import { Phone, MessageSquare, Mail } from 'lucide-react'
 import { exportToExcel } from '@/lib/utils/export'
 import { displayPhone } from '@/lib/ui/contact'
@@ -187,8 +188,8 @@ export default function AdminRegistrations() {
         renderRow={a => (
           <ListRow
             onClick={() => setSelected(a)}
-            leading={<Avatar name={a.full_name} />}
-            title={a.full_name}
+            leading={<Avatar name={displayName(a.full_name)} />}
+            title={displayName(a.full_name)}
             subtitle={a.course?.name || 'No programme recorded'}
             status={<StatusBadge domain="payment" value={a.payment_status} />}
             meta={
@@ -209,7 +210,7 @@ export default function AdminRegistrations() {
         open={Boolean(selected)}
         onClose={() => setSelected(null)}
         size="lg"
-        title={selected?.full_name || ''}
+        title={displayName(selected?.full_name)}
         description={selected
           ? `${selected.course?.name || 'No programme'} · registered ${new Date(selected.created_at)
               .toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}`

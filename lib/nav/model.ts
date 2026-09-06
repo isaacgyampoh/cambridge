@@ -31,7 +31,7 @@ export type IconName =
   | 'home' | 'leads' | 'admissions' | 'finance' | 'academics' | 'attendance'
   | 'documents' | 'staff' | 'messages' | 'broadcast' | 'insights' | 'reports'
   | 'settings' | 'clock' | 'links' | 'flyers' | 'prep' | 'alumni' | 'social'
-  | 'ai' | 'trophy' | 'workforce' | 'import' | 'sms' | 'bell'
+  | 'ai' | 'trophy' | 'workforce' | 'import' | 'sms' | 'bell' | 'inbox'
 
 export type NavLink = {
   label: string
@@ -97,7 +97,7 @@ const CATALOGUE: CatalogueEntry[] = [
     { label: 'My conversions', href: '/admin/conversions' },
     { label: 'Add a lead', href: '/marketer/leads/new' },
   ]},
-  { id: 'pm_leads', label: 'Lead inbox', icon: 'leads', href: '/pm/assign', section: 'growth', children: [
+  { id: 'pm_leads', label: 'Lead inbox', icon: 'inbox', href: '/pm/assign', section: 'growth', children: [
     { label: 'Lead inbox', href: '/pm/assign' },
     { label: 'Reports', href: '/pm/reports' },
     { label: 'Coordinator activity', href: '/pm/prep-activity' },

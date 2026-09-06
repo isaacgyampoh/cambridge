@@ -1,6 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
+import { displayName } from '@/lib/ui/name'
 import { useData } from '@/hooks/useData'
 import type { Lead } from '@/types'
 
@@ -405,8 +406,8 @@ export default function AdminLeads() {
                 return (
                   <ListRow
                     href={`/admin/leads/${l.id}`}
-                    leading={<Avatar name={l.full_name || ''} size="md" />}
-                    title={l.full_name}
+                    leading={<Avatar name={displayName(l.full_name)} size="md" />}
+                    title={displayName(l.full_name)}
                     subtitle={displayPhone(l.phone) || 'No phone number'}
                     status={
                       <Badge tone={STATUS_TONE[l.status] || 'neutral'}>
@@ -424,7 +425,7 @@ export default function AdminLeads() {
                     }
                     actions={tel && wa ? (
                       <>
-                        <a href={tel} aria-label={`Call ${l.full_name}`}
+                        <a href={tel} aria-label={`Call ${displayName(l.full_name)}`}
                           onClick={e => e.stopPropagation()}
                           className="w-10 h-10 grid place-items-center rounded-full
                             bg-[var(--brand-soft)] text-[var(--brand)]
@@ -432,7 +433,7 @@ export default function AdminLeads() {
                           <Phone size={16} aria-hidden="true" />
                         </a>
                         <a href={wa} target="_blank" rel="noopener noreferrer"
-                          aria-label={`Message ${l.full_name} on WhatsApp`}
+                          aria-label={`Message ${displayName(l.full_name)} on WhatsApp`}
                           onClick={e => e.stopPropagation()}
                           className="w-10 h-10 grid place-items-center rounded-full
                             bg-[var(--brand-soft)] text-[var(--brand)]

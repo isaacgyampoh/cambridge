@@ -2,8 +2,8 @@
 
 import {
   LayoutDashboard, Users, UserCheck, DollarSign, BookOpen, GraduationCap, Bell,
-  TrendingUp, ClipboardList, Settings, Radio, CalendarCheck, FolderOpen,
-  BarChart3, Sparkles, MessageSquare, Trophy, Link2, Upload, Send,
+  ClipboardList, Settings, Radio, CalendarCheck, FolderOpen,
+  BarChart3, Sparkles, MessageSquare, Trophy, Link2, Upload, Send, Inbox, UserPlus,
 } from 'lucide-react'
 import type { IconName } from '@/lib/nav/model'
 
@@ -16,7 +16,14 @@ import type { IconName } from '@/lib/nav/model'
  * cannot show different icons for the same destination.
  */
 export const NAV_ICONS: Record<IconName, React.ComponentType<{ size?: number; className?: string }>> = {
-  home: LayoutDashboard, leads: TrendingUp, admissions: UserCheck,
+  /*
+   * Leads are PEOPLE, so the mark is a person — it was a rising trend line,
+   * which belongs to a chart. The lead inbox is a queue of unassigned people
+   * waiting to be given an owner, and it shared that same trend line with the
+   * leads list: two different destinations wearing one icon, side by side in
+   * the sidebar.
+   */
+  home: LayoutDashboard, leads: UserPlus, inbox: Inbox, admissions: UserCheck,
   finance: DollarSign, academics: BookOpen, attendance: CalendarCheck,
   documents: FolderOpen, staff: Users, messages: MessageSquare,
   broadcast: Radio, insights: BarChart3, reports: ClipboardList,

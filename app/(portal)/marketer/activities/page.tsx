@@ -8,6 +8,7 @@ import {
   PageHeader, Tabs, MobileList, ListRow, Avatar, Badge,
 } from '@/components/ui'
 import { telHref, whatsappHref, displayPhone } from '@/lib/ui/contact'
+import { displayName } from '@/lib/ui/name'
 
 /**
  * The follow-up queue: who this marketer promised to call, and when.
@@ -259,8 +260,8 @@ export default function ActivitiesPage() {
 
           return (
             <ListRow
-              leading={<Avatar name={lead?.full_name || '?'} size="md" />}
-              title={lead?.full_name || 'Lead removed'}
+              leading={<Avatar name={displayName(lead?.full_name) || '?'} size="md" />}
+              title={displayName(lead?.full_name) || 'Lead removed'}
               subtitle={displayPhone(lead?.phone) || 'No phone number'}
               status={
                 done
@@ -276,7 +277,7 @@ export default function ActivitiesPage() {
               actions={
                 <>
                   {tel && (
-                    <a href={tel} aria-label={`Call ${lead?.full_name}`}
+                    <a href={tel} aria-label={`Call ${displayName(lead?.full_name)}`}
                       className="w-10 h-10 grid place-items-center rounded-full
                         bg-[var(--brand-soft)] text-[var(--brand)]
                         active:bg-[var(--brand-line)] transition-colors">
@@ -285,7 +286,7 @@ export default function ActivitiesPage() {
                   )}
                   {wa && (
                     <a href={wa} target="_blank" rel="noopener noreferrer"
-                      aria-label={`Message ${lead?.full_name} on WhatsApp`}
+                      aria-label={`Message ${displayName(lead?.full_name)} on WhatsApp`}
                       className="w-10 h-10 grid place-items-center rounded-full
                         bg-[var(--brand-soft)] text-[var(--brand)]
                         active:bg-[var(--brand-line)] transition-colors">
@@ -295,7 +296,7 @@ export default function ActivitiesPage() {
                   {!done && (
                     <button type="button" onClick={() => markDone(row.id)}
                       disabled={busy[row.id]}
-                      aria-label={`Mark the follow-up for ${lead?.full_name} as done`}
+                      aria-label={`Mark the follow-up for ${displayName(lead?.full_name)} as done`}
                       className="w-10 h-10 grid place-items-center rounded-full
                         bg-[var(--ok-soft)] text-[var(--ok)]
                         active:brightness-95 disabled:opacity-50 transition">

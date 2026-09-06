@@ -7,6 +7,7 @@ import {
 } from 'lucide-react'
 import { Skeleton, ErrorState, EmptyState, Avatar } from '@/components/ui'
 import { telHref, whatsappHref, displayPhone } from '@/lib/ui/contact'
+import { displayName } from '@/lib/ui/name'
 
 /**
  * The dashboard body, shared by every role that has one.
@@ -73,25 +74,6 @@ type Summary = {
   activityFailed: boolean
 }
 
-/**
- * Severity is carried by a 2px rule and the figure's colour — not by tinting
- * the whole row.
- *
- * A stack of filled colour blocks is the most recognisable tell of a generated
- * dashboard: everything shouts, so nothing is emphasised. A rule marks the row
- * without competing with the words in it.
- */
-const TONE_RULE: Record<Attention['tone'], string> = {
-  danger: 'bg-[var(--danger)]',
-  warning: 'bg-[var(--warn)]',
-  accent: 'bg-[var(--accent)]',
-}
-const TONE_TEXT: Record<Attention['tone'], string> = {
-  danger: 'text-[var(--danger)]',
-  warning: 'text-[var(--warn)]',
-  accent: 'text-[var(--accent)]',
-}
-
 function ago(iso: string): string {
   const seconds = Math.max(0, (Date.now() - new Date(iso).getTime()) / 1000)
   if (seconds < 90) return 'just now'
@@ -150,6 +132,35 @@ export default function Overview() {
   const greeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening'
   const mine = data?.scope === 'mine'
 
+  /*
+   * The one sentence worth putting under the greeting.
+   *
+   * It used to read "Here is what is waiting on you", which says nothing the
+   * section heading two inches below does not already say. The most urgent
+   * TRUE fact is how long the longest-waiting person has been waiting — that
+   * is the thing somebody opening this at 8am needs to know before anything
+   * else, and it is the reason to keep reading.
+   */
+  const worst = data?.priority.find(p => p.overdue) || null
+  const overdueCount = data?.priority.filter(p => p.overdue).length || 0
+
+  const summary = (() => {
+    if (!data) return ''
+    if (overdueCount > 0 && worst) {
+      const late = dueLabel(worst.dueAt, true).toLowerCase()
+      return overdueCount === 1
+        ? `${displayName(worst.name)} has been waiting ${late.replace(' late', '')}.`
+        : `${overdueCount} people are overdue — the longest by ${late.replace(' late', '')}.`
+    }
+    if (data.priority.length > 0) {
+      return data.priority.length === 1
+        ? 'One person is due a call today.'
+        : `${data.priority.length} people are due a call today.`
+    }
+    if (data.attention.length > 0) return 'Nobody is waiting on a call. A few queues need a look.'
+    return 'Nothing is waiting on you right now.'
+  })()
+
   const quickActions = mine
     ? [
         { label: 'Add a lead', href: '/marketer/leads/new', icon: Plus },
@@ -166,15 +177,15 @@ export default function Overview() {
 
   return (
     <div className="fade-in w-full max-w-5xl">
-      <header className="mb-5 sm:mb-6">
+      <header className="mb-6 sm:mb-7">
         <h1 className="t-display">{greeting}</h1>
-        <p className="t-lead mt-1">
-          {state === 'ready'
-            ? (data?.priority.length || data?.attention.length
-                ? 'Here is what is waiting on you.'
-                : 'Nothing is waiting on you right now.')
-            : 'Loading your day…'}
-        </p>
+        {/*
+          The subtitle carries the single most urgent true fact, not a
+          pleasantry. "Here is what is waiting on you" said nothing that the
+          section headings below did not already say; "one has been waiting
+          10 days" is the reason to keep reading.
+        */}
+        <p className="t-lead mt-1">{state === 'ready' ? summary : 'Loading your day…'}</p>
       </header>
 
       {state === 'error' && (
@@ -200,43 +211,7 @@ export default function Overview() {
       {state === 'ready' && data && (
         <>
           {/*
-            ── 1. Today ────────────────────────────────────────────────────
-
-            The one navy surface on the page. It carries the day's shape and
-            nothing else: no actions, no links, no chrome competing with the
-            rows below it. Being the only filled block on the screen is what
-            makes it read as the header of the day rather than as another card
-            in a stack of cards.
-          */}
-          <section aria-labelledby="today-heading"
-            className="mb-6 rounded-2xl bg-[var(--brand)] text-white px-5 py-4 sm:px-6 sm:py-5">
-            <h2 id="today-heading"
-              className="t-overline text-white/55 mb-3.5">Today</h2>
-
-            <div className="grid grid-cols-3 gap-3">
-              {[
-                { label: 'New leads', value: data.today.newLeads },
-                { label: mine ? 'Registered' : 'Registrations', value: data.today.registered },
-                { label: 'Follow-ups', value: data.today.followUps },
-              ].map(stat => (
-                <div key={stat.label}>
-                  <div className="numeric text-[26px] sm:text-[28px] font-semibold leading-none">
-                    {stat.value}
-                  </div>
-                  <div className="text-[12px] text-white/55 mt-1.5 leading-tight">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-4 pt-3.5 border-t border-white/10 text-[12px] text-white/55">
-              {data.pipeline.total} {mine ? 'assigned to you' : 'leads in total'}
-              {' · '}{data.pipeline.readyToJoin} ready to join
-              {data.pipeline.unassigned > 0 && ` · ${data.pipeline.unassigned} unassigned`}
-            </div>
-          </section>
-
-          {/*
-            ── 2. Who is waiting ───────────────────────────────────────────
+            ── 1. Who is waiting ───────────────────────────────────────────
 
             Named people, with the two buttons that actually get used. Both
             are plain anchors to tel: and wa.me — no handler, no state, so
@@ -248,8 +223,8 @@ export default function Overview() {
             call button that does nothing is worse than no button.
           */}
           {data.priority.length > 0 && (
-            <section className="mb-6" aria-labelledby="priority-heading">
-              <div className="flex items-baseline justify-between mb-2.5">
+            <section className="mb-8" aria-labelledby="priority-heading">
+              <div className="flex items-baseline justify-between mb-3">
                 <h2 id="priority-heading" className="t-overline">Waiting on you</h2>
                 <Link href={mine ? '/marketer/activities' : '/admin/leads'}
                   className="text-[12px] font-medium text-[var(--accent)] hover:underline">
@@ -263,18 +238,18 @@ export default function Overview() {
                   const tel = telHref(lead.phone)
                   const wa = whatsappHref(lead.phone)
                   return (
-                    <li key={lead.id} className="flex items-center gap-3 px-3.5 py-3">
+                    <li key={lead.id} className="flex items-center gap-3.5 px-4 py-3.5">
                       <Link href={lead.href}
                         className="flex items-center gap-3 min-w-0 flex-1 group
                           focus-visible:outline-none focus-visible:ring-2
                           focus-visible:ring-[var(--accent)] rounded-lg -m-1 p-1">
-                        <Avatar name={lead.name} size="md" />
+                        <Avatar name={displayName(lead.name)} size="lg" />
                         <span className="min-w-0 flex-1">
-                          <span className="block text-[14px] font-medium text-[var(--ink)] truncate
+                          <span className="block text-[15px] font-semibold text-[var(--ink)] truncate
                             group-hover:text-[var(--accent)] transition-colors">
-                            {lead.name}
+                            {displayName(lead.name)}
                           </span>
-                          <span className="block t-meta truncate mt-0.5">
+                          <span className="block text-[13px] truncate mt-0.5 text-[var(--ink-soft)]">
                             <span className={lead.overdue ? 'text-[var(--danger)] font-medium' : ''}>
                               {dueLabel(lead.dueAt, lead.overdue)}
                             </span>
@@ -285,18 +260,18 @@ export default function Overview() {
 
                       {tel && wa && (
                         <span className="flex items-center gap-1.5 flex-shrink-0">
-                          <a href={tel} aria-label={`Call ${lead.name} on ${displayPhone(lead.phone)}`}
+                          <a href={tel} aria-label={`Call ${displayName(lead.name)} on ${displayPhone(lead.phone)}`}
                             className="w-10 h-10 grid place-items-center rounded-full
-                              bg-[var(--brand-soft)] text-[var(--brand)]
+                              bg-[var(--brand-soft)] text-[var(--accent)]
                               hover:bg-[var(--brand-line)] transition-colors
                               focus-visible:outline-none focus-visible:ring-2
                               focus-visible:ring-[var(--accent)]">
                             <Phone size={16} aria-hidden="true" />
                           </a>
                           <a href={wa} target="_blank" rel="noopener noreferrer"
-                            aria-label={`Message ${lead.name} on WhatsApp`}
+                            aria-label={`Message ${displayName(lead.name)} on WhatsApp`}
                             className="w-10 h-10 grid place-items-center rounded-full
-                              bg-[var(--brand-soft)] text-[var(--brand)]
+                              bg-[var(--brand-soft)] text-[var(--accent)]
                               hover:bg-[var(--brand-line)] transition-colors
                               focus-visible:outline-none focus-visible:ring-2
                               focus-visible:ring-[var(--accent)]">
@@ -311,30 +286,35 @@ export default function Overview() {
             </section>
           )}
 
-          {/* ── 3. The remaining queues ─────────────────────────────────── */}
+          {/* ── 2. The remaining queues ─────────────────────────────────── */}
           {data.attention.length > 0 ? (
-            <section className="mb-6" aria-labelledby="attention-heading">
-              <h2 id="attention-heading" className="t-overline mb-2.5">Needs attention</h2>
+            <section className="mb-8" aria-labelledby="attention-heading">
+              <h2 id="attention-heading" className="t-overline mb-3">Needs attention</h2>
 
               <ul className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] overflow-hidden
                 divide-y divide-[var(--line-soft)]">
                 {data.attention.map(item => (
                   <li key={item.key}>
                     <Link href={item.href}
-                      className="flex items-center gap-4 pl-0 pr-4 py-3.5 group relative
+                      className="flex items-center gap-3.5 px-4 py-3.5 group
                         hover:bg-[var(--canvas)] transition-colors
                         focus-visible:outline-none focus-visible:bg-[var(--canvas)]">
-                      <span aria-hidden="true"
-                        className={`w-[3px] self-stretch flex-shrink-0 ${TONE_RULE[item.tone]}`} />
-
-                      <span className={`w-11 text-right numeric text-[20px] font-semibold leading-none
-                        flex-shrink-0 ${TONE_TEXT[item.tone]}`}>
-                        {item.count}
-                      </span>
-
+                      {/*
+                        The count sits INSIDE the sentence rather than beside
+                        it as a 20px figure against a coloured rule.
+                        Four rules in four colours down the left of a list is a
+                        stack of traffic lights, and it made every queue look
+                        like an incident. Only a genuinely overdue count takes
+                        a colour, and it takes it on the number alone.
+                      */}
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[14px] font-medium text-[var(--ink)] leading-snug">
-                          {item.label}
+                        <span className="block text-[14px] text-[var(--ink)] leading-snug">
+                          <span className={`numeric font-semibold ${
+                            item.tone === 'danger' ? 'text-[var(--danger)]' : 'text-[var(--ink)]'
+                          }`}>
+                            {item.count}
+                          </span>
+                          {' '}{item.label.toLowerCase()}
                         </span>
                         <span className="block t-meta mt-0.5">{item.hint}</span>
                       </span>
@@ -359,13 +339,51 @@ export default function Overview() {
           )}
 
           {/*
+            ── 3. The day so far ───────────────────────────────────────────
+
+            Orientation, not instruction — so it is quiet and it is low.
+
+            This was the first thing on the page: a filled dark panel holding
+            three 28px numbers. That is the most recognisable shape in generated
+            dashboards, and it gave "5 new leads" more weight than a person who
+            had been waiting ten days for a call. Numbers that nobody acts on
+            do not belong at the top of a screen, and they do not need a
+            surface of their own.
+          */}
+          <section aria-labelledby="today-heading" className="mb-8">
+            <h2 id="today-heading" className="t-overline mb-3">The day so far</h2>
+
+            <dl className="flex items-start divide-x divide-[var(--line)]
+              border-y border-[var(--line)] py-4">
+              {[
+                { label: 'New leads', value: data.today.newLeads },
+                { label: mine ? 'Registered' : 'Registrations', value: data.today.registered },
+                { label: 'Follow-ups', value: data.today.followUps },
+              ].map(stat => (
+                <div key={stat.label} className="flex-1 px-4 first:pl-0 last:pr-0">
+                  <dt className="t-meta">{stat.label}</dt>
+                  <dd className="numeric text-[19px] font-semibold text-[var(--ink)] mt-1 leading-none">
+                    {stat.value}
+                  </dd>
+                </div>
+              ))}
+            </dl>
+
+            <p className="t-meta mt-3">
+              {data.pipeline.total} {mine ? 'assigned to you' : 'leads in total'}
+              {' · '}{data.pipeline.readyToJoin} ready to join
+              {data.pipeline.unassigned > 0 && ` · ${data.pipeline.unassigned} unassigned`}
+            </p>
+          </section>
+
+          {/*
             ── 4. Starting something ───────────────────────────────────────
 
             A 2×2 grid on a phone: four targets a thumb can hit without aiming,
             rather than a row of pills that wrap unpredictably at 320px.
           */}
-          <section className="mb-6">
-            <h2 className="t-overline mb-2.5">Quick actions</h2>
+          <section className="mb-8">
+            <h2 className="t-overline mb-3">Quick actions</h2>
             <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {quickActions.map(action => {
                 const Icon = action.icon
@@ -389,7 +407,7 @@ export default function Overview() {
 
           {/* ── 5. What has been happening ──────────────────────────────── */}
           <section aria-labelledby="activity-heading">
-            <h2 id="activity-heading" className="t-overline mb-2.5">Recent activity</h2>
+            <h2 id="activity-heading" className="t-overline mb-3">Recent activity</h2>
 
             {data.activityFailed ? (
               <ErrorState
