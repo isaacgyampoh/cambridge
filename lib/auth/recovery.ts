@@ -2,37 +2,79 @@ import 'server-only'
 import { randomBytes, randomInt } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, verifyPIN, hashToken, generateOTP } from '@/lib/auth/pin'
-import { generatePin, isValidPin, pinRejectionReason, OTP_LENGTH } from '@/lib/auth/pinPolicy'
+import {
+  generatePin, isValidPin, pinRejectionReason, OTP_LENGTH, NO_MAILBOX_ROLES,
+} from '@/lib/auth/pinPolicy'
 
 /**
  * Account recovery.
  *
- * ── THE SHAPE, AND WHY ─────────────────────────────────────────────────────
+ * ── TWO PATHS, BECAUSE THERE ARE TWO KINDS OF ACCOUNT ──────────────────────
  *
- *     recovery PIN  →  OTP to the registered corporate email  →  new PIN
+ *   STAFF        recovery PIN  →  OTP to the corporate email  →  new PIN
+ *   SUPER ADMIN  recovery PIN  →  new PIN
  *
- * The recovery PIN proves nothing by itself. It selects an account and opens
- * the flow; the one-time code sent to that account's mailbox is what actually
- * authorises anything. So a four-digit recovery PIN is not a four-digit
- * password to the whole system — whoever holds it still cannot get in without
- * the mailbox, which is the same second factor normal sign-in uses.
+ * The super admin has no corporate mailbox and does not use OTP — that is the
+ * product rule, and it is also why they were the one account that could become
+ * permanently locked out. A recovery flow that depends on email cannot recover
+ * an account that has no email.
  *
- * What is issued at the end of the OTP step is a RESET TOKEN, not a session.
- * It permits exactly one action, is single use, expires in fifteen minutes,
- * and the proxy has never heard of it.
+ * So recovery branches on the same rule sign-in branches on. Staff keep their
+ * second factor; the super admin does not acquire one they cannot use.
  *
- * The recovery PIN is stored separately from the account PIN and is not
- * touched when the account PIN changes, so recovery works again next time.
- * Making it single-shot is how the super admin came to be locked out twice.
+ * ── WHAT PROTECTS THE SUPER ADMIN PATH ─────────────────────────────────────
+ *
+ * Honestly: less than protects staff, because there is no second factor to
+ * lean on. A four-digit recovery PIN is ten thousand possibilities, so the
+ * protection has to come from making guesses expensive rather than from a
+ * second credential:
+ *
+ *   · a strict per-address budget
+ *   · a global ceiling that rotating addresses does not defeat
+ *   · a dedicated super-admin recovery ceiling that seals the path for an
+ *     hour after a handful of failures
+ *   · every attempt audited, so a guessing run is visible afterwards
+ *
+ * An attacker gets a few guesses per hour out of ten thousand. The legitimate
+ * owner, who knows the PIN, is unaffected. This is a deliberate trade against
+ * the alternative — an owner permanently locked out of their own system, which
+ * is what the previous design produced twice.
+ *
+ * ── WHAT IS NEVER TRUE ON EITHER PATH ──────────────────────────────────────
+ *
+ * The recovery PIN never authenticates anybody. It authorises exactly one
+ * action: setting a new PIN. What it yields is a RESET TOKEN — single use,
+ * fifteen minutes, and the proxy has never heard of it — not a session. After
+ * recovery the person returns to the sign-in screen and comes in through the
+ * front door.
+ *
+ * And the recovery PIN is never consumed by a successful recovery, so it works
+ * again next time. Making it single-shot is how the super admin came to be
+ * locked out a second time.
  */
 
 const RESET_TOKEN_MINUTES = 15
+
+/**
+ * Re-exported so callers of this module read the same list sign-in does.
+ * Declared in lib/auth/pinPolicy.ts — see NO_MAILBOX_ROLES there.
+ */
+export const SELF_RECOVERING_ROLES = NO_MAILBOX_ROLES
 export const OTP_MINUTES = 10
 
 export type RecoveryStart =
   | {
       ok: true
       userId: string
+      /**
+       * Whether this account must confirm with an emailed code.
+       *
+       * False for the super admin, who has no mailbox. The caller branches on
+       * this rather than assuming every account takes the same path.
+       */
+      needsCode: boolean
+      /** Present only when needsCode is false: recovery is already authorised. */
+      resetToken?: string
       emailHint: string
       expiresInSeconds: number
       /**
@@ -43,9 +85,10 @@ export type RecoveryStart =
        * without touching the security logic, and so this module stays
        * testable.
        */
-      code: string
+      /** Present only when needsCode is true. Never returned over HTTP. */
+      code: string | null
       /** Where to send it, and who to address. Never returned over HTTP. */
-      email: string
+      email: string | null
       fullName: string
     }
   | { ok: false; reason: string; status: number }
@@ -65,7 +108,7 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
 
   const sb = createServiceClient()
   const { data: rows, error } = await sb.from('profiles')
-    .select('id, full_name, email, recovery_pin_hash, is_active')
+    .select('id, full_name, email, role, recovery_pin_hash, is_active')
     .eq('is_active', true)
     .not('recovery_pin_hash', 'is', null)
 
@@ -74,10 +117,10 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
     return { ok: false, reason: 'Recovery is unavailable right now. Please try again.', status: 500 }
   }
 
-  const matches: Array<{ id: string; email: string | null; fullName: string }> = []
+  const matches: Array<{ id: string; email: string | null; fullName: string; role: string }> = []
   for (const row of rows || []) {
     const { ok } = await verifyPIN(pin, row.recovery_pin_hash as string)
-    if (ok) matches.push({ id: row.id, email: row.email, fullName: row.full_name })
+    if (ok) matches.push({ id: row.id, email: row.email, fullName: row.full_name, role: row.role })
   }
 
   // Deliberately the same wording as a non-match: telling an attacker that a
@@ -90,6 +133,30 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
   }
 
   const account = matches[0]
+
+  /*
+   * The super admin has no mailbox, so there is no code to send. Verifying the
+   * recovery PIN is the whole authorisation, and what comes back is a reset
+   * token — permission to set a new PIN, not a session.
+   */
+  if (SELF_RECOVERING_ROLES.includes(account.role)) {
+    const token = await issueResetToken(account.id)
+    if (!token) {
+      return { ok: false, reason: 'Recovery is unavailable right now. Please try again.', status: 500 }
+    }
+    return {
+      ok: true,
+      userId: account.id,
+      needsCode: false,
+      resetToken: token,
+      emailHint: '',
+      expiresInSeconds: RESET_TOKEN_MINUTES * 60,
+      code: null,
+      email: null,
+      fullName: account.fullName,
+    }
+  }
+
   if (!account.email) {
     return {
       ok: false,
@@ -115,12 +182,37 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
   return {
     ok: true,
     userId: account.id,
+    needsCode: true,
     emailHint: maskEmail(account.email),
     expiresInSeconds: OTP_MINUTES * 60,
     code,
     email: account.email,
     fullName: account.fullName,
   }
+}
+
+/**
+ * Mint the single-use permission to set a new PIN.
+ *
+ * Shared by both paths, so the token has identical properties however it was
+ * earned: stored hashed, expires, and cleared the moment it is spent.
+ */
+async function issueResetToken(userId: string): Promise<string | null> {
+  const sb = createServiceClient()
+  const token = randomBytes(32).toString('hex')
+  const { error } = await sb.from('profiles').update({
+    otp_code: null,
+    otp_expires_at: null,
+    otp_attempts: 0,
+    reset_token_hash: hashToken(token),
+    reset_token_expires_at: new Date(Date.now() + RESET_TOKEN_MINUTES * 60_000).toISOString(),
+  }).eq('id', userId)
+
+  if (error) {
+    console.error('[recover] could not issue the reset token:', error.message)
+    return null
+  }
+  return token
 }
 
 export type RecoveryVerify =
@@ -167,17 +259,8 @@ export async function verifyRecoveryCode(
     return { ok: false, reason: 'That code is not correct.', status: 401 }
   }
 
-  const token = randomBytes(32).toString('hex')
-  const { error: writeErr } = await sb.from('profiles').update({
-    otp_code: null,
-    otp_expires_at: null,
-    otp_attempts: 0,
-    reset_token_hash: hashToken(token),
-    reset_token_expires_at: new Date(Date.now() + RESET_TOKEN_MINUTES * 60_000).toISOString(),
-  }).eq('id', userId)
-
-  if (writeErr) {
-    console.error('[recover] could not issue the reset token:', writeErr.message)
+  const token = await issueResetToken(userId)
+  if (!token) {
     return { ok: false, reason: 'Recovery is unavailable right now. Please try again.', status: 500 }
   }
 

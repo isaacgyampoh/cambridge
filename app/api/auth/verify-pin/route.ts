@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { PIN_PATTERN, PIN_LENGTH } from '@/lib/auth/pinPolicy'
+import { PIN_PATTERN, PIN_LENGTH, NO_MAILBOX_ROLES } from '@/lib/auth/pinPolicy'
 import { maskEmail } from '@/lib/ui/contact'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
@@ -21,7 +21,14 @@ export const runtime = 'nodejs'
  * a role here is a visible decision about who may hold full access behind a
  * single factor — not a condition buried in a branch.
  */
-const OTP_EXEMPT_ROLES: string[] = ['super_admin']
+/**
+ * Who signs in without an emailed code.
+ *
+ * Read from lib/auth/pinPolicy.ts so this and the recovery path cannot
+ * disagree about which accounts have no mailbox — a disagreement there means
+ * an account that can be signed in but not recovered.
+ */
+const OTP_EXEMPT_ROLES: readonly string[] = NO_MAILBOX_ROLES
 
 const LOCK_MINUTES = 15
 const OTP_MINUTES = 10
@@ -232,22 +239,36 @@ export async function POST(req: NextRequest) {
    * standing in front of full access to every student record, payment and
    * staff account. A four-digit PIN is ten thousand guesses; the per-IP
    * throttle above is what makes that slow rather than instant, so it matters
-   * more for this account than any other. An eight-digit PIN raises the same
-   * work to a hundred million.
+   * more for this account than any other.
    *
    * Every such sign-in is written to the audit log as auth.login_without_otp,
    * so an administrator can see when full access was granted on one factor.
    */
   const otpExempt = OTP_EXEMPT_ROLES.includes(profile.role)
 
-  if (!SECRETS.otpEnabled || !profile.email || otpExempt) {
-    const reason = otpExempt ? 'role_exempt'
-      : !profile.email ? 'no_email_on_file'
-      : 'otp_disabled_for_deployment'
+  /*
+   * An account that is NOT exempt and has no email cannot be signed in.
+   *
+   * This previously fell through to a session on the PIN alone, which turned a
+   * missing email address into an OTP bypass — the one thing standing between
+   * a guessed PIN and full access, removed by an incomplete staff record. The
+   * exemption is a deliberate property of a role, not an accident of data.
+   */
+  if (!otpExempt && SECRETS.otpEnabled && !profile.email) {
+    console.error('[verify-pin] refusing sign-in: no email on file for', userId)
+    await recordAudit({
+      actorId: userId, action: 'auth.login_blocked_no_email',
+      resource: 'profiles', resourceId: userId, success: false, request: req,
+      metadata: { role: profile.role },
+    })
+    return NextResponse.json({
+      error: 'This account has no email address on file, so a sign-in code cannot be sent. '
+        + 'Ask an administrator to add one.',
+    }, { status: 403 })
+  }
 
-    if (!profile.email && !otpExempt) {
-      console.warn('[verify-pin] no email on file for', userId, '— signed in on PIN alone')
-    }
+  if (!SECRETS.otpEnabled || otpExempt) {
+    const reason = otpExempt ? 'role_exempt' : 'otp_disabled_for_deployment'
 
     await recordAudit({
       actorId: userId,
@@ -274,6 +295,21 @@ export async function POST(req: NextRequest) {
   if (otpErr) {
     console.error('[verify-pin] could not store the code:', otpErr.message)
     return NextResponse.json({ error: 'Could not start the sign-in code step. Please try again.' }, { status: 500 })
+  }
+
+  /*
+   * Reaching here means the account is not exempt and OTP is enabled, so the
+   * guard above has already refused a missing address. Restated for the type
+   * checker, and as a belt-and-braces refusal rather than an assertion — if
+   * this were ever reachable, sending nowhere would silently strand somebody
+   * on a code screen.
+   */
+  if (!profile.email) {
+    console.error('[verify-pin] unreachable: OTP path with no email for', userId)
+    return NextResponse.json(
+      { error: 'This account has no email address on file. Ask an administrator to add one.' },
+      { status: 403 }
+    )
   }
 
   const sent = await sendOTPEmail(profile.email, profile.full_name || '', code)

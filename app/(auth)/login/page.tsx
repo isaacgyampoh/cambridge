@@ -299,6 +299,19 @@ function LoginForm() {
       }).then(r => r.json())
       if (!d.success) { setError(d.error || 'That recovery PIN is not recognised.'); return }
       setOtpUserId(d.userId)
+
+      /*
+       * An account with no mailbox — the super admin — is already authorised.
+       * Showing it a "check your email" screen would strand the one account
+       * that has no email to check.
+       */
+      if (d.needsCode === false && d.resetToken) {
+        setResetToken(d.resetToken)
+        setStep('recover-new')
+        setTimeout(() => n.current[0]?.focus(), 120)
+        return
+      }
+
       setEmailHint(d.emailHint || '')
       setCodeLeft(d.expiresInSeconds || 600)
       setResendIn(30)
@@ -490,8 +503,7 @@ function LoginForm() {
               <div className="mb-8">
                 <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
                 <p className="text-[var(--ink-soft)] text-sm">
-                  Enter your {PIN_LENGTH}-digit PIN. We will email a sign-in code to your
-                  {' '}{BRAND.shortName} address.
+                  Enter your {PIN_LENGTH}-digit PIN to continue.
                 </p>
               </div>
 
@@ -509,7 +521,7 @@ function LoginForm() {
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
                   focus-visible:ring-offset-2">
                 {loading
-                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Verifying…</>
+                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Opening your secure workspace…</>
                   : 'Continue'}
               </button>
 
@@ -637,8 +649,8 @@ function LoginForm() {
                   Reset your PIN
                 </h2>
                 <p className="text-[var(--ink-soft)] text-sm">
-                  Enter your {PIN_LENGTH}-digit recovery PIN. We will email a code to your
-                  {' '}{BRAND.shortName} address to confirm it is you.
+                  Enter your {PIN_LENGTH}-digit recovery PIN. If your account uses email
+                  verification, we will send a code to confirm it is you.
                 </p>
               </div>
 

@@ -92,3 +92,21 @@ export function generatePin(randomInt: (min: number, max: number) => number): st
   // Unreachable in practice: the refused set is a few dozen of ten thousand.
   throw new Error('Could not generate an acceptable PIN')
 }
+
+/**
+ * Roles that authenticate and recover WITHOUT an emailed code.
+ *
+ * The super admin has no corporate mailbox. That single fact drives two
+ * branches — sign-in skips the OTP, and recovery skips it too — and they must
+ * agree, or the account can be signed in but not recovered, which is how it
+ * became permanently locked out.
+ *
+ * It lives here, in the pure policy module, so both the sign-in path and the
+ * recovery path read the same list and a test can check it without pulling in
+ * the server runtime.
+ */
+export const NO_MAILBOX_ROLES: readonly string[] = ['super_admin']
+
+export function usesEmailVerification(role: string): boolean {
+  return !NO_MAILBOX_ROLES.includes(role)
+}
