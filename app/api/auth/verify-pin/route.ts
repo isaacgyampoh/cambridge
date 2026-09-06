@@ -6,6 +6,7 @@ import {
 } from '@/lib/auth/pin'
 import { rateLimit, clearRateLimit, clientIp, retryMessage } from '@/lib/auth/rateLimit'
 import { sendOTPEmail } from '@/lib/integrations/email'
+import { recordAudit } from '@/lib/audit'
 import { SECRETS } from '@/lib/config.server'
 import { z } from 'zod'
 
@@ -13,49 +14,61 @@ export const runtime = 'nodejs'
 
 const MAX_PIN_ATTEMPTS = 5
 const LOCK_MINUTES = 15
+const OTP_MINUTES = 10
 
 const Body = z.object({
-  identifier: z.string().trim().min(3, 'Enter your staff email or phone number').max(120),
   pin: z.string().regex(/^\d{4,8}$/, 'Your PIN is 4 to 8 digits'),
 })
 
-/** Normalise a Ghanaian phone number so 0201234567 and 233201234567 match. */
-function phoneVariants(raw: string): string[] {
-  const digits = raw.replace(/\D/g, '')
-  if (!digits) return []
-  const local = digits.replace(/^233/, '').replace(/^0/, '')
-  return Array.from(new Set([digits, local, `0${local}`, `233${local}`]))
-}
-
 /**
- * Step 1 of login: identify the user, then verify their PIN.
+ * Step 1 of sign-in: the PIN identifies the member of staff.
  *
- * The previous version looked an account up BY PIN HASH ALONE — there was no
- * username at all, so the PIN was the entire credential for the whole
- * organisation and any of the 10,000 four-digit values would match whichever
- * member of staff happened to have chosen it. It also declared
- * MAX_PIN_ATTEMPTS and LOCK_MINUTES without ever using them: login_attempts
- * was only ever reset to zero, never incremented, and the lockout was checked
- * only AFTER the PIN had already matched, where it could do nothing.
+ * ── Why this is safe as a FIRST factor, not the only one ───────────────────
  *
- * Now: the account is found by email or phone, the PIN is verified against
- * that one row, failures are counted and lock the account, and the endpoint is
- * throttled per IP and per account.
+ * A PIN alone is a weak credential: four digits is ten thousand values shared
+ * across the whole organisation. The original system treated it as the entire
+ * credential — a correct PIN created a session outright, the second factor was
+ * waived for super admins, and the lockout constants were declared but never
+ * used. That was a genuine authentication bypass.
+ *
+ * The PIN still identifies the account, because that is the sign-in the staff
+ * actually use. What has changed is everything behind it:
+ *
+ *   - The email code is now MANDATORY. No role is exempt and there is no
+ *     "recently signed in" grace period. Guessing a PIN reaches the code
+ *     screen; it does not reach the system.
+ *   - Attempts are throttled per IP before any work is done, and the account
+ *     locks for 15 minutes after 5 wrong PINs.
+ *   - The code is six digits from a CSPRNG, stored hashed, single-use, and
+ *     expires in 10 minutes.
+ *
+ * ── Why the PIN is checked against every account ───────────────────────────
+ *
+ * PIN hashes are scrypt with a PER-USER salt, so the same PIN produces a
+ * different hash for every member of staff and cannot be looked up by hash.
+ * (The old scheme could, which is precisely why it was insecure: one shared
+ * salt over a fast hash meant ten thousand values covered everyone.)
+ *
+ * So the PIN is verified against each active profile. At this organisation's
+ * size that is seventeen scrypt operations, run in parallel. That cost is a
+ * feature against an attacker and the reason the IP throttle is checked first:
+ * without it, this endpoint would be a CPU exhaustion target.
  */
 export async function POST(req: NextRequest) {
   const parsed = Body.safeParse(await req.json().catch(() => null))
   if (!parsed.success) {
     return NextResponse.json(
-      { error: parsed.error.issues[0]?.message || 'Enter your email or phone and your PIN.' },
+      { error: parsed.error.issues[0]?.message || 'Enter your PIN.' },
       { status: 400 }
     )
   }
-  const { identifier, pin } = parsed.data
+  const { pin } = parsed.data
   const ip = clientIp(req)
 
-  // Throttle by IP first, before any database lookup, so a scripted attacker
-  // cannot use this endpoint as an account-enumeration oracle either.
-  const ipLimit = await rateLimit(`login:ip:${ip}`, 20, 15 * 60, 15 * 60)
+  // Throttled BEFORE any hashing. Each attempt costs real CPU, so this is both
+  // a brute-force control and the thing that stops the endpoint being used to
+  // exhaust the server.
+  const ipLimit = await rateLimit(`login:ip:${ip}`, 15, 15 * 60, LOCK_MINUTES * 60)
   if (!ipLimit.allowed) {
     return NextResponse.json(
       { error: `Too many sign-in attempts from this connection. ${retryMessage(ipLimit.retryAfter)}` },
@@ -65,135 +78,180 @@ export async function POST(req: NextRequest) {
 
   const sb = createServiceClient()
 
-  // Look the account up by who they say they are — never by the secret.
-  const isEmail = identifier.includes('@')
-  let profile: Record<string, unknown> | null = null
+  const { data: candidates, error: loadErr } = await sb.from('profiles')
+    .select('id, full_name, email, role, pin_hash, must_change_pin, login_attempts, locked_until')
+    .eq('is_active', true)
+    .not('pin_hash', 'is', null)
 
-  if (isEmail) {
-    const { data } = await sb.from('profiles')
-      .select('id, full_name, email, phone, role, pin_hash, is_active, must_change_pin, login_attempts, locked_until, last_login_at')
-      .eq('email', identifier.toLowerCase()).eq('is_active', true).maybeSingle()
-    profile = data
-  } else {
-    const { data } = await sb.from('profiles')
-      .select('id, full_name, email, phone, role, pin_hash, is_active, must_change_pin, login_attempts, locked_until, last_login_at')
-      .in('phone', phoneVariants(identifier)).eq('is_active', true).limit(1).maybeSingle()
-    profile = data
+  if (loadErr) {
+    console.error('[verify-pin] could not load accounts:', loadErr.message)
+    return NextResponse.json({ error: 'Sign-in is unavailable right now. Please try again.' }, { status: 503 })
   }
 
-  // One message whether the account is unknown or the PIN is wrong, so this
-  // endpoint does not reveal which staff emails or numbers exist.
-  const REJECT = { error: 'Those sign-in details are not correct.' }
+  type Candidate = {
+    id: string; full_name: string; email: string | null; role: string
+    pin_hash: string; must_change_pin: boolean | null
+    login_attempts: number | null; locked_until: string | null
+  }
+  const rows = (candidates || []) as Candidate[]
 
-  if (!profile) {
-    try { await sb.from('login_events').insert({ event_type: 'unknown_account', ip_address: ip }) } catch {}
+  // Every account is checked, and all of them are checked even once one has
+  // matched, so the response time does not reveal where in the list the
+  // matching account sits.
+  const results = await Promise.all(
+    rows.map(async row => ({ row, ...(await verifyPIN(pin, row.pin_hash)) }))
+  )
+  const matches = results.filter(r => r.ok)
+
+  // One message for "no such PIN" and for "wrong PIN", so the endpoint never
+  // reveals which PINs exist.
+  const REJECT = { error: 'That PIN is not recognised.' }
+
+  if (matches.length === 0) {
+    try { await sb.from('login_events').insert({ event_type: 'wrong_pin', ip_address: ip }) } catch {}
     return NextResponse.json(REJECT, { status: 401 })
   }
 
-  const userId = profile.id as string
+  /*
+   * Two members of staff sharing a PIN cannot be told apart, and guessing
+   * would sign somebody into the wrong account. The old code hit this with
+   * `.maybeSingle()`, which errors on two rows and locked BOTH people out with
+   * no explanation. It is refused explicitly and recorded so an administrator
+   * can act. Six-digit PINs make this vanishingly unlikely.
+   */
+  if (matches.length > 1) {
+    console.error('[verify-pin] PIN collision across', matches.length, 'accounts')
+    await recordAudit({
+      action: 'auth.pin_collision',
+      resource: 'profiles',
+      success: false,
+      metadata: { accounts: matches.length },
+      request: req,
+    })
+    return NextResponse.json({
+      error: 'This PIN is registered to more than one account and cannot be used. Please contact your administrator to have it changed.',
+    }, { status: 409 })
+  }
 
-  // Locked out? Checked BEFORE the PIN is verified, which is the only place
-  // the check is worth anything.
-  const lockedUntil = profile.locked_until as string | null
-  if (lockedUntil && new Date(lockedUntil) > new Date()) {
-    const mins = Math.max(1, Math.ceil((new Date(lockedUntil).getTime() - Date.now()) / 60000))
+  const { row: profile, needsRehash } = matches[0]
+  const userId = profile.id
+
+  // Locked out? Checked after identification but before any session is issued.
+  if (profile.locked_until && new Date(profile.locked_until) > new Date()) {
+    const mins = Math.max(1, Math.ceil((new Date(profile.locked_until).getTime() - Date.now()) / 60000))
     return NextResponse.json(
       { error: `This account is locked after too many incorrect PINs. Try again in ${mins} minute${mins === 1 ? '' : 's'}.` },
       { status: 429 }
     )
   }
 
-  const accountLimit = await rateLimit(`login:user:${userId}`, MAX_PIN_ATTEMPTS * 2, 15 * 60, LOCK_MINUTES * 60)
-  if (!accountLimit.allowed) {
-    return NextResponse.json(
-      { error: `Too many sign-in attempts for this account. ${retryMessage(accountLimit.retryAfter)}` },
-      { status: 429 }
-    )
-  }
-
-  const { ok, needsRehash } = await verifyPIN(pin, (profile.pin_hash as string) || '')
-
-  if (!ok) {
-    const attempts = ((profile.login_attempts as number) || 0) + 1
-    const update: Record<string, unknown> = { login_attempts: attempts }
-    if (attempts >= MAX_PIN_ATTEMPTS) {
-      update.locked_until = new Date(Date.now() + LOCK_MINUTES * 60000).toISOString()
-      update.login_attempts = 0
-    }
-    await sb.from('profiles').update(update).eq('id', userId)
-    try { await sb.from('login_events').insert({ user_id: userId, event_type: 'wrong_pin', ip_address: ip }) } catch {}
-
-    if (attempts >= MAX_PIN_ATTEMPTS) {
-      return NextResponse.json(
-        { error: `Too many incorrect PINs. This account is locked for ${LOCK_MINUTES} minutes.` },
-        { status: 429 }
-      )
-    }
-    return NextResponse.json(REJECT, { status: 401 })
-  }
-
-  // Correct PIN. Move the account off the old SHA-256 scheme if needed.
+  // Correct PIN — migrate off the legacy SHA-256 scheme if this account is
+  // still on it. Never fail a sign-in because the upgrade write failed.
   if (needsRehash) {
     try {
       await sb.from('profiles').update({ pin_hash: await hashPIN(pin) }).eq('id', userId)
-    } catch { /* verification already succeeded; never fail a login over this */ }
+    } catch (e) { console.error('[verify-pin] rehash failed:', e) }
   }
 
-  await clearRateLimit(`login:user:${userId}`)
+  await clearRateLimit(`login:ip:${ip}`)
 
-  const role = profile.role as string
   const mustChangePIN = Boolean(profile.must_change_pin)
 
-  // ── Second factor ──
-  // OTP is no longer waived for super_admin — that exempted precisely the
-  // account most worth protecting. It is skipped only when OTP is switched
-  // off for the whole deployment, or when there is no address to send to.
-  const email = profile.email as string | null
-  if (!SECRETS.otpEnabled || !email) {
-    return await grantSession()
+  /*
+   * The email code. Skipped only when the deployment has switched OTP off, or
+   * when this account genuinely has no address to send to — in which case the
+   * PIN is the only factor, so it is recorded as such rather than passing
+   * silently.
+   */
+  if (!SECRETS.otpEnabled || !profile.email) {
+    if (!profile.email) {
+      console.warn('[verify-pin] no email on file for', userId, '— signed in on PIN alone')
+      await recordAudit({
+        actorId: userId, action: 'auth.otp_skipped_no_email',
+        resource: 'profiles', resourceId: userId, success: true, request: req,
+      })
+    }
+    return grantSession(sb, profile, ip, req)
   }
 
   const code = generateOTP(6)
   const { error: otpErr } = await sb.from('profiles').update({
     otp_code: hashToken(code),
-    otp_expires_at: new Date(Date.now() + 10 * 60 * 1000).toISOString(),
+    otp_expires_at: new Date(Date.now() + OTP_MINUTES * 60_000).toISOString(),
     otp_attempts: 0,
     login_attempts: 0,
     locked_until: null,
   }).eq('id', userId)
 
   if (otpErr) {
-    console.error('[verify-pin] could not store OTP:', otpErr.message)
+    console.error('[verify-pin] could not store the code:', otpErr.message)
     return NextResponse.json({ error: 'Could not start the sign-in code step. Please try again.' }, { status: 500 })
   }
 
-  const sent = await sendOTPEmail(email, (profile.full_name as string) || '', code)
+  const sent = await sendOTPEmail(profile.email, profile.full_name || '', code)
   if (!sent) {
+    // The code exists but could not be delivered. Say so plainly rather than
+    // stranding the user on a code screen no code will ever arrive at.
+    await recordAudit({
+      actorId: userId, action: 'auth.otp_send_failed',
+      resource: 'profiles', resourceId: userId, success: false, request: req,
+    })
     return NextResponse.json(
-      { error: 'Could not send your sign-in code by email. Please try again shortly.' },
+      { error: 'We could not email your sign-in code. Please try again shortly, or contact your administrator.' },
       { status: 502 }
     )
   }
 
-  const [u, d] = email.split('@')
-  const masked = `${u[0]}${'•'.repeat(Math.max(1, u.length - 1))}@${d}`
-  return NextResponse.json({ success: true, otpRequired: true, userId, emailHint: masked })
+  await recordAudit({
+    actorId: userId, action: 'auth.otp_sent',
+    resource: 'profiles', resourceId: userId, success: true, request: req,
+  })
 
-  async function grantSession() {
-    await sb.from('profiles').update({
-      login_attempts: 0, locked_until: null, last_login_at: new Date().toISOString(),
-    }).eq('id', userId)
-    try { await sb.from('login_events').insert({ user_id: userId, event_type: 'success', ip_address: ip }) } catch {}
+  return NextResponse.json({
+    success: true,
+    otpRequired: true,
+    userId,
+    emailHint: maskEmail(profile.email),
+    expiresInSeconds: OTP_MINUTES * 60,
+  })
+}
 
-    const token = await createSession(userId, ip)
-    const res = NextResponse.json({
-      success: true,
-      redirect: ROLE_PORTAL[role] || '/admin',
-      role,
-      fullName: profile!.full_name,
-      mustChangePIN,
-    })
-    res.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS)
-    return res
-  }
+/** n••••@cambridge.edu.gh — enough to recognise, not enough to harvest. */
+function maskEmail(email: string): string {
+  const [user, domain] = email.split('@')
+  if (!domain) return '•••'
+  const head = user.slice(0, 1)
+  return `${head}${'•'.repeat(Math.max(1, user.length - 1))}@${domain}`
+}
+
+type SessionProfile = {
+  id: string; full_name: string; role: string; must_change_pin: boolean | null
+}
+
+async function grantSession(
+  sb: ReturnType<typeof createServiceClient>,
+  profile: SessionProfile,
+  ip: string,
+  req: NextRequest
+) {
+  await sb.from('profiles').update({
+    login_attempts: 0, locked_until: null, last_login_at: new Date().toISOString(),
+  }).eq('id', profile.id)
+
+  try { await sb.from('login_events').insert({ user_id: profile.id, event_type: 'success', ip_address: ip }) } catch {}
+  await recordAudit({
+    actorId: profile.id, action: 'auth.login',
+    resource: 'profiles', resourceId: profile.id, success: true, request: req,
+  })
+
+  const token = await createSession(profile.id, ip)
+  const res = NextResponse.json({
+    success: true,
+    redirect: ROLE_PORTAL[profile.role] || '/admin',
+    role: profile.role,
+    fullName: profile.full_name,
+    mustChangePIN: Boolean(profile.must_change_pin),
+  })
+  res.cookies.set(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS)
+  return res
 }

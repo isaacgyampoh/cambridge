@@ -7,11 +7,12 @@ import { Eye, EyeOff } from 'lucide-react'
 function LoginForm() {
   const router = useRouter()
   const [step,    setStep]    = useState<'pin' | 'otp' | 'set-pin'>('pin')
-  const [identifier, setIdentifier] = useState('')
   const [pin,     setPin]     = useState(['', '', '', ''])
   const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
   const [otpUserId, setOtpUserId] = useState('')
   const [emailHint, setEmailHint] = useState('')
+  const [resendIn,  setResendIn]  = useState(0)   // seconds until resend is offered
+  const [codeLeft,  setCodeLeft]  = useState(0)   // seconds until the code expires
   const [pendingChangePin, setPendingChangePin] = useState(false)
   const [newPin,  setNewPin]  = useState(['', '', '', ''])
   const [confPin, setConfPin] = useState(['', '', '', ''])
@@ -24,9 +25,8 @@ function LoginForm() {
   const n = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const c = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
   const o = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
-  const idRef = useRef<HTMLInputElement>(null)
 
-  useEffect(() => { setTimeout(() => idRef.current?.focus(), 120) }, [])
+  useEffect(() => { setTimeout(() => p[0].current?.focus(), 120) }, [])
 
   function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) {
     if (!/^\d*$/.test(val)) return
@@ -56,18 +56,10 @@ function LoginForm() {
   }
 
   async function submitPin(pinStr: string) {
-    // The PIN alone no longer identifies anyone — the server looks the account
-    // up by email or phone and checks the PIN against that one row.
-    if (!identifier.trim()) {
-      setError('Enter your staff email or phone number first')
-      setPin(['', '', '', ''])
-      setTimeout(() => idRef.current?.focus(), 80)
-      return
-    }
     busy.current = true; setLoading(true); setError('')
     const res = await fetch('/api/auth/verify-pin', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ identifier: identifier.trim(), pin: pinStr }),
+      body: JSON.stringify({ pin: pinStr }),
     })
     const d = await res.json()
     busy.current = false; setLoading(false)
@@ -82,6 +74,8 @@ function LoginForm() {
       setOtpUserId(d.userId)
       setEmailHint(d.emailHint || '')
       setPendingChangePin(!!d.mustChangePIN)
+      setCodeLeft(d.expiresInSeconds || 600)
+      setResendIn(30)
       setStep('otp')
       setTimeout(() => o[0].current?.focus(), 120)
       return
@@ -109,10 +103,32 @@ function LoginForm() {
   }
 
   async function resendOtp() {
-    // Re-run the PIN step silently using the stored PIN isn't possible (we don't keep it),
-    // so ask the user to re-enter the PIN.
-    setError(''); setOtp(['', '', '', '', '', '']); setStep('pin'); setPin(['', '', '', ''])
-    setTimeout(() => p[0].current?.focus(), 100)
+    if (resendIn > 0 || loading) return
+    setLoading(true); setError('')
+    try {
+      const d = await fetch('/api/auth/resend-otp', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: otpUserId }),
+      }).then(r => r.json())
+
+      if (d.success) {
+        setOtp(['', '', '', '', '', ''])
+        setCodeLeft(d.expiresInSeconds || 600)
+        setResendIn(30)
+        setTimeout(() => o[0].current?.focus(), 80)
+        return
+      }
+      // A stale sign-in cannot be resumed — send them back to the PIN step.
+      setError(d.error || 'Could not send a new code.')
+      if (/expired/i.test(d.error || '')) {
+        setStep('pin'); setPin(['', '', '', ''])
+        setTimeout(() => p[0].current?.focus(), 100)
+      }
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.')
+    } finally {
+      setLoading(false)
+    }
   }
 
   async function submitNewPin(confirmOverride?: string) {
@@ -158,6 +174,17 @@ function LoginForm() {
     </div>
   )
 
+
+  // Counts the resend cooldown and the code's own expiry down together. State
+  // is set from the interval callback, never synchronously in the effect body.
+  useEffect(() => {
+    if (step !== 'otp') return
+    const id = setInterval(() => {
+      setResendIn(v => (v > 0 ? v - 1 : 0))
+      setCodeLeft(v => (v > 0 ? v - 1 : 0))
+    }, 1000)
+    return () => clearInterval(id)
+  }, [step])
 
   // A sign-in screen should never scroll — lock the document while it is open.
   useEffect(() => {
@@ -260,25 +287,9 @@ function LoginForm() {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
-                <p className="text-[var(--ink-soft)] text-sm">Sign in with your staff email or phone number and your PIN.</p>
+                <p className="text-[var(--ink-soft)] text-sm">Enter your PIN. We will email a sign-in code to your Cambridge address.</p>
               </div>
 
-              <div className="mb-6 text-left">
-                <label htmlFor="identifier"
-                  className="block text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-2">
-                  Email or phone
-                </label>
-                <input id="identifier" ref={idRef}
-                  type="text" inputMode="email" autoComplete="username"
-                  value={identifier}
-                  onChange={e => { setIdentifier(e.target.value); if (error) setError('') }}
-                  onKeyDown={e => { if (e.key === 'Enter') p[0].current?.focus() }}
-                  placeholder="you@cambridge.edu.gh"
-                  className="w-full h-12 px-4 rounded-xl border-2 text-[15px] bg-[var(--paper)] text-[var(--ink)] border-[var(--line)] focus:outline-none focus:border-[var(--accent)] transition-colors"
-                />
-              </div>
-
-              <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">PIN</p>
               {renderBoxes(pin, setPin, p, submitPin)}
 
               <div className="mt-4 flex justify-center lg:justify-start">
@@ -345,12 +356,26 @@ function LoginForm() {
                 </div>
               )}
 
-              <div className="mt-8 flex items-center gap-4">
-                <button onClick={resendOtp} className="text-xs text-[var(--accent)] font-medium hover:underline">
-                  Didn't get it? Sign in again
+              <div className="mt-8 flex flex-wrap items-center gap-x-4 gap-y-2">
+                <button onClick={resendOtp} disabled={resendIn > 0 || loading}
+                  className="text-[13px] font-semibold text-[var(--accent)] disabled:text-[var(--ink-faint)]
+                    disabled:cursor-not-allowed hover:underline disabled:no-underline
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
+                  {resendIn > 0 ? `Send a new code in ${resendIn}s` : 'Send a new code'}
+                </button>
+                <button onClick={() => { setStep('pin'); setPin(['', '', '', '']); setError(''); setTimeout(() => p[0].current?.focus(), 80) }}
+                  className="text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
+                  Start again
                 </button>
               </div>
-              <p className="text-xs text-[var(--ink-faint)] mt-3">The code expires in 10 minutes. Check your spam folder if you don't see it.</p>
+
+              <p className="text-xs text-[var(--ink-faint)] mt-3" aria-live="polite">
+                {codeLeft > 0
+                  ? `This code expires in ${Math.floor(codeLeft / 60)}:${String(codeLeft % 60).padStart(2, '0')}.`
+                  : 'This code has expired — send a new one.'}
+                {' '}Check your spam folder if it has not arrived.
+              </p>
             </>
           )}
 
@@ -358,7 +383,7 @@ function LoginForm() {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Set your PIN</h2>
-                <p className="text-[var(--ink-soft)] text-sm">First time here — choose a 4-digit PIN only you know.</p>
+                <p className="text-[var(--ink-soft)] text-sm">Choose a PIN only you know. Six digits is safer than four.</p>
               </div>
 
               <div className="space-y-6">

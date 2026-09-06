@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { linkApplicationToLead } from '@/lib/registration/linkLead'
 import { rateLimit, clientIp, retryMessage } from '@/lib/auth/rateLimit'
 import { parseClassMode } from '@/lib/classMode'
 import { recordAudit } from '@/lib/audit'
@@ -156,10 +157,32 @@ export async function POST(req: NextRequest) {
     }).eq('id', app.id)
   }
 
-  await recordAudit({
-    action: 'application.submitted', resource: 'applications', resourceId: app.id,
-    success: true, metadata: { classMode, courseId: body.course_id, marketerId }, request: req,
+  /*
+   * Put the registration into the pipeline NOW, rather than after payment.
+   *
+   * Linking a lead only happened in /api/applications/complete, which runs
+   * once Paystack confirms. So anyone who filled in the form but had not yet
+   * paid existed as an applications row with lead_id = NULL — and every portal
+   * view reads from leads, so staff never saw them. In the live database that
+   * was 9 of 15 applications: 13 submitted, 6 paid.
+   */
+  const link = await linkApplicationToLead({
+    id: app.id,
+    full_name: body.full_name,
+    email: body.email ?? null,
+    phone: body.phone,
+    course_id: body.course_id,
+    marketer_id: marketerId,
+    landing_source: body.landing_source ?? null,
+    utm_source: body.utm_source ?? null,
   })
 
-  return NextResponse.json({ success: true, id: app.id })
+  await recordAudit({
+    action: 'application.submitted', resource: 'applications', resourceId: app.id,
+    success: true,
+    metadata: { classMode, courseId: body.course_id, marketerId, leadId: link.leadId },
+    request: req,
+  })
+
+  return NextResponse.json({ success: true, id: app.id, leadId: link.leadId })
 }
