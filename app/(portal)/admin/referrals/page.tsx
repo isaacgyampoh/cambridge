@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { PageHeader, Card, StatCard, Spinner, Button } from '@/components/ui'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
@@ -40,7 +41,7 @@ export default function ReferralsAdmin() {
     },
     {
       key: 'contact', header: 'Contact',
-      render: c => c.referrer_phone?.replace(/^233/, '0') || c.referrer_email || '—',
+      render: c => displayPhone(c.referrer_phone) || c.referrer_email || '—',
     },
   ]
 

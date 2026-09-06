@@ -1,5 +1,6 @@
 'use client'
 import { CONFIG } from '@/lib/config'
+import { displayPhone } from '@/lib/ui/contact'
 import { useState, useEffect } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import { formatDateTime } from '@/lib/utils'
@@ -148,7 +149,7 @@ export default function AttendanceDashboard() {
     { key: 'name', header: 'Name', primary: true, render: x => x.full_name },
     {
       key: 'phone', header: 'Phone', secondary: true,
-      render: x => x.phone?.replace(/^233/, '0') || '—',
+      render: x => displayPhone(x.phone) || '—',
     },
     {
       key: 'type', header: 'Type',

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
@@ -598,7 +599,7 @@ export default function StaffPage() {
                     </div>
                     <div className="min-w-0 flex-1">
                       <div className="text-[15px] font-medium text-[var(--ink)] truncate">{s.full_name}</div>
-                      <div className="text-[12px] text-[var(--ink-faint)] truncate">{s.phone?.replace(/^233/, '0') || s.email || '—'}</div>
+                      <div className="text-[12px] text-[var(--ink-faint)] truncate">{displayPhone(s.phone) || s.email || '—'}</div>
                       <div className="flex items-center gap-2 mt-2 flex-wrap">
                         <span className={`inline-block text-[11px] font-medium px-2 py-0.5 rounded-lg ${roleColor}`}>{ROLE_LABEL[s.role] || s.role}</span>
                         <span className={`inline-flex items-center gap-1 text-[11px] font-medium ${s.is_active ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'}`}>
@@ -661,7 +662,7 @@ export default function StaffPage() {
                         </div>
                         <div className="min-w-0">
                           <div className="text-[14px] font-medium text-[var(--ink)] truncate">{s.full_name}</div>
-                          <div className="text-[12px] text-[var(--ink-faint)] truncate">{s.phone?.replace(/^233/, '0') || s.email || '—'}</div>
+                          <div className="text-[12px] text-[var(--ink-faint)] truncate">{displayPhone(s.phone) || s.email || '—'}</div>
                         </div>
                       </div>
                     </td>

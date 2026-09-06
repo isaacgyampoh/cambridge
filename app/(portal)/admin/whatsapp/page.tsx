@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, Field, inputClass } from '@/components/ui'
 import { MessageSquare, X, Plug, CheckCircle2 } from 'lucide-react'
@@ -20,7 +21,7 @@ export default function WhatsAppLinesPage() {
 
   function open(s: any) {
     setEditing(s)
-    setForm({ apiKey: '', number: s.wasender_phone || s.phone?.replace(/^233/, '0') || '', intro: s.wa_intro || '' })
+    setForm({ apiKey: '', number: s.wasender_phone || displayPhone(s.phone) || '', intro: s.wa_intro || '' })
   }
 
   async function save() {

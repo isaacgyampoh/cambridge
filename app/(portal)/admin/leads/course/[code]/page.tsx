@@ -1,5 +1,6 @@
 'use client'
 import { useState, use } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Badge, inputClass } from '@/components/ui'
 import { DataTable, type Column } from '@/components/ui/DataTable'
@@ -72,7 +73,7 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
       key: 'contact', header: 'Contact', secondary: true,
       render: l => (
         <>
-          {l.phone && <div>{String(l.phone).replace(/^233/, '0')}</div>}
+          {l.phone && <div>{displayPhone(l.phone)}</div>}
           {l.email && <div className="text-[var(--ink-faint)] text-[12px]">{l.email}</div>}
         </>
       ),

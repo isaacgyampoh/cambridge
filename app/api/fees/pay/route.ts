@@ -5,6 +5,7 @@ import { SECRETS } from '@/lib/config.server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { queueSMS } from '@/lib/notifications/sms'
 import { recordAudit } from '@/lib/audit'
+import { decidePayment, isKnownMethod, requiresProviderVerification } from '@/lib/payments/decide'
 
 export const runtime = 'nodejs'
 
@@ -109,7 +110,7 @@ export async function POST(req: NextRequest) {
   if (!studentFeeId || !method) {
     return NextResponse.json({ error: 'Missing details' }, { status: 400 })
   }
-  if (!['momo', 'bank', 'cash'].includes(method)) {
+  if (!isKnownMethod(method)) {
     return NextResponse.json({ error: 'Unknown payment method' }, { status: 400 })
   }
 
@@ -125,37 +126,36 @@ export async function POST(req: NextRequest) {
 
   /* ── how much, and is it real? ────────────────────────────────────────── */
 
-  let amt: number
-  let verified = false
-  let reference: string | null = null
+  /*
+   * Mobile money is confirmed with Paystack using our secret key BEFORE any
+   * decision is taken. The decision itself lives in lib/payments/decide.ts so
+   * that the rules — provider amount wins, no verification means rejection,
+   * a nonsensical provider amount moves nothing — are under test rather than
+   * spread through this handler.
+   */
+  const verification = requiresProviderVerification(method) && paystackRef
+    ? await verifyWithPaystack(String(paystackRef))
+    : null
 
-  if (method === 'momo') {
-    if (!paystackRef) {
-      return NextResponse.json({ error: 'Missing payment reference' }, { status: 400 })
-    }
+  const decision = decidePayment(
+    { method, amount, reference: paystackRef ? String(paystackRef) : null },
+    verification
+  )
 
-    const check = await verifyWithPaystack(String(paystackRef))
-    if (!check.ok) {
-      await recordAudit({
-        action: 'fees.payment_rejected',
-        resource: 'student_fees',
-        resourceId: fee.id,
-        success: false,
-        metadata: { method, reference: String(paystackRef), reason: check.reason },
-      })
-      return NextResponse.json({ error: check.reason }, { status: 400 })
-    }
-
-    // Paystack's figure, not the caller's.
-    amt = check.amount
-    reference = check.reference
-    verified = true
-  } else {
-    // Bank and cash are a claim, not a payment. Finance verifies them on the
-    // finance page, and until then nothing moves.
-    amt = Number(amount)
-    if (!(amt > 0)) return NextResponse.json({ error: 'Enter a valid amount' }, { status: 400 })
+  if (decision.outcome === 'rejected') {
+    await recordAudit({
+      action: 'fees.payment_rejected',
+      resource: 'student_fees',
+      resourceId: fee.id,
+      success: false,
+      metadata: { method, reference: paystackRef ? String(paystackRef) : null, reason: decision.reason },
+    })
+    return NextResponse.json({ error: decision.reason }, { status: 400 })
   }
+
+  const verified = decision.outcome === 'verified'
+  const amt = decision.amount
+  const reference = decision.reference
 
   /* ── record it, exactly once ──────────────────────────────────────────── */
 

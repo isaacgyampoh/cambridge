@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { useRouter } from 'next/navigation'
 import { portalOption } from '@/lib/nav/model'
 import { NAV_ICONS } from '@/components/shared/navIcons'
@@ -132,7 +133,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         </div>
         <div className="flex-1 min-w-0">
           <div className="font-semibold text-[var(--ink)]">{staff.full_name}</div>
-          <div className="text-sm text-[var(--ink-faint)]">{staff.phone?.replace(/^233/,'0')}</div>
+          <div className="text-sm text-[var(--ink-faint)]">{displayPhone(staff.phone)}</div>
           <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full mt-1 inline-block ${ROLE_COLOR[staff.role]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
             {staff.role?.replace(/_/g,' ')}
           </span>
@@ -215,7 +216,7 @@ function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void })
   const [form, setForm] = useState({ full_name: '', phone: '', email: '', new_pin: '' })
 
   useEffect(() => {
-    if (staff) setForm({ full_name: staff.full_name || '', phone: (staff.phone || '').replace(/^233/, '0'), email: staff.email || '', new_pin: '' })
+    if (staff) setForm({ full_name: staff.full_name || '', phone: displayPhone(staff.phone), email: staff.email || '', new_pin: '' })
   }, [staff])
 
   async function save() {

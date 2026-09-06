@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { SOURCE_COLORS, STATUS_COLORS } from '@/lib/utils'
@@ -106,7 +107,7 @@ export default function PMAssign() {
       key: 'contact', header: 'Contact', secondary: true,
       render: l => (
         <>
-          <div>{l.phone?.replace(/^233/, '0') || '—'}</div>
+          <div>{displayPhone(l.phone) || '—'}</div>
           {l.email && <div className="text-[var(--ink-faint)] text-[12px]">{l.email}</div>}
         </>
       ),

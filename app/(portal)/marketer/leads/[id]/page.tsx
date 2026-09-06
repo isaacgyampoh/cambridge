@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import { StatusBadge } from '@/components/ui'
 import { readableStatus } from '@/lib/ui/status'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, STATUS_COLORS, SOURCE_COLORS } from '@/lib/utils'
@@ -230,7 +231,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <div className="min-w-0 flex-1">
                 <h1 className="font-display text-[22px] font-semibold text-[var(--ink)] truncate">{lead.full_name}</h1>
                 <div className="flex gap-2 mt-1.5 flex-wrap">
-                  <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g, ' ')}</span>
+                  <StatusBadge domain="lead" value={lead.status} />
                   <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
                   {lead.course_interest && (
                     <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">{lead.course_interest}</span>

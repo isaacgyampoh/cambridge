@@ -195,20 +195,30 @@ export default function MarketerLeads() {
       }
 
       /*
-       * Set the reminder on the column that exists.
+       * Schedule the reminder in the follow-up queue.
        *
-       * This wrote `next_follow_up`, which is a column on lead_activities and
-       * not on leads, so it failed every time — and the failure was swallowed.
-       * `follow_up_at` is the column the dashboard counts, so a reminder set
-       * here now actually appears there.
+       * This originally wrote `next_follow_up` on `leads` — a column that does
+       * not exist there — and swallowed the failure, so no reminder was ever
+       * saved. It then wrote `leads.follow_up_at`, which saved but was invisible
+       * to the Follow-ups screen, because that screen reads follow_up_queue.
+       *
+       * Migration 0014 makes the queue the single source: a trigger mirrors the
+       * earliest pending row onto leads.follow_up_at, which is what the leads
+       * list and the dashboard filter on. Writing here therefore shows up in
+       * all three places at once.
        */
       if (status === 'follow_up' || status === 'next_session') {
         const due = new Date()
         due.setDate(due.getDate() + (status === 'next_session' ? 7 : 2))
         try {
-          await mutate('PATCH', 'leads',
-            { follow_up_at: due.toISOString() },
-            [{ col: 'id', val: lead.id }])
+          await mutate('POST', 'follow_up_queue', {
+            lead_id: lead.id,
+            marketer_id: myId,
+            follow_up_at: due.toISOString(),
+            reason: note.trim() || describeStatus('lead', status).label,
+            priority: 'normal',
+            status: 'pending',
+          })
         } catch {
           toast.error('Status updated, but the follow-up reminder was not saved.')
         }

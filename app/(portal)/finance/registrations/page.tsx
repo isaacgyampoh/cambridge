@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, EmptyState, inputClass } from '@/components/ui'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { formatGHS, formatDateTime } from '@/lib/utils'
@@ -62,7 +63,7 @@ export default function FinanceRegistrations() {
 
   function exportRows() {
     exportToExcel(rows.map(r => ({
-      Student: r.studentName, Phone: r.studentPhone?.replace(/^233/, '0') || '',
+      Student: r.studentName, Phone: displayPhone(r.studentPhone) || '',
       Programme: r.program, Delivery: r.delivery?.replace('_', ' '),
       'Registration fee': r.registrationFee, 'Assigned to': r.marketerName,
       Registered: formatDateTime(r.registeredAt),
@@ -74,7 +75,7 @@ export default function FinanceRegistrations() {
     { key: 'student', header: 'Student', primary: true, render: r => r.studentName },
     {
       key: 'phone', header: 'Phone', secondary: true,
-      render: r => r.studentPhone?.replace(/^233/, '0') || '—',
+      render: r => displayPhone(r.studentPhone) || '—',
     },
     { key: 'programme', header: 'Programme', render: r => r.program },
     {

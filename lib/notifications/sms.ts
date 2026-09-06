@@ -129,7 +129,16 @@ async function attemptDelivery(
     // Keep whatever the provider said, for the delivery record. Never carries
     // our API key: it is the response body, not the request.
     provider_response: result.response ?? null,
-  }).eq('id', id).then(() => {}, () => {})
+  }).eq('id', id).then(
+    ({ error }) => {
+      // The message itself may well have gone out; what failed is recording
+      // that. Left silent, the row stays in 'sending' until its lease expires
+      // and it is retried — so the student could be texted twice with no
+      // explanation on file. Logging it makes that traceable.
+      if (error) console.error('[sms] could not record outcome for', id, error.message)
+    },
+    (e: unknown) => console.error('[sms] could not record outcome for', id, e)
+  )
 
   if (reason === 'permanent' || reason === 'exhausted') {
     console.error(

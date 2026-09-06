@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import { StatusBadge } from '@/components/ui'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, SOURCE_COLORS, STATUS_COLORS } from '@/lib/utils'
 import type { Lead, LeadActivity, LeadStatusLog, Profile } from '@/types'
@@ -93,7 +94,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <h1 className="font-display text-xl font-semibold text-[var(--ink)]">{lead.full_name}</h1>
                   <div className="flex items-center gap-2 mt-0.5">
                     <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
-                    <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]}`}>{lead.status.replace(/_/g,' ')}</span>
+                    <StatusBadge domain="lead" value={lead.status} size="sm" />
                   </div>
                 </div>
               </div>
@@ -202,7 +203,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                     <div className="flex items-center gap-1.5">
                       <span className="text-[var(--ink-faint)] line-through">{l.old_status?.replace(/_/g,' ')}</span>
                       <span className="text-[var(--ink-faint)]">to</span>
-                      <span className={`font-semibold px-1.5 py-0.5 rounded-full ${STATUS_COLORS[l.new_status]}`}>{l.new_status.replace(/_/g,' ')}</span>
+                      <StatusBadge domain="lead" value={l.new_status} size="sm" />
                     </div>
                     <div className="text-[var(--ink-faint)] mt-0.5">{formatDateTime(l.created_at)}</div>
                   </div>

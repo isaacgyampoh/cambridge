@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { PageHeader, Card, Badge, Spinner, EmptyState } from '@/components/ui'
 
 const TONE: Record<string, any> = {
@@ -67,7 +68,7 @@ export default function WebhookLogPage() {
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
                   <div className="font-medium text-[var(--ink)] text-[14.5px]">
-                    {String(r.phone || 'unknown').replace(/^233/, '0')}
+                    {r.phone ? displayPhone(String(r.phone)) : 'unknown'}
                   </div>
                   {r.text && <div className="text-[13.5px] text-[var(--ink-soft)] mt-1 line-clamp-2">{r.text}</div>}
                   {r.detail && <div className="text-[12px] text-[var(--ink-faint)] mt-1.5 break-all">{r.detail}</div>}

@@ -36,7 +36,6 @@ export const API_PORTALS: Record<string, string[]> = {
   '/api/leads/imports':      ['leads', 'pm_leads'],
   '/api/leads':              ['leads', 'my_leads', 'pm_leads'],
   '/api/referrals':          ['leads', 'my_leads'],
-  '/api/conversions':        ['leads', 'my_leads'],
   '/api/pm':                 ['pm_leads'],
   '/api/marketer':           ['my_leads', 'my_earnings', 'my_link', 'marketers'],
   '/api/marketers':          ['marketers'],
@@ -46,6 +45,18 @@ export const API_PORTALS: Record<string, string[]> = {
   '/api/applications':       ['admissions', 'my_leads'],
 
   '/api/finance':            ['finance'],
+  /*
+   * Verifying or rejecting a payment moves a student's balance. It is finance
+   * work, and must not be reachable by the people whose balances it moves.
+   *
+   * `/api/fees` is granted to `my_payments` so a student can see their own
+   * fees — and because the longest matching prefix decides, that also granted
+   * them `/api/fees/verify`. The handler refuses them on its own
+   * (withGuard({ roles: FINANCE_ROLES })), so this was defence in depth rather
+   * than an open door, but the proxy should not be forwarding the request at
+   * all.
+   */
+  '/api/fees/verify':        ['finance'],
   '/api/fees':               ['finance', 'my_payments'],
   '/api/paystack':           ['finance', 'my_payments'],
   '/api/payment-reminders':  ['finance', 'grp_automation'],

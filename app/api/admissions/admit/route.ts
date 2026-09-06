@@ -2,7 +2,8 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendAdmissionLetter } from '@/lib/integrations/email'
-import { sendSMS } from '@/lib/integrations/sms'
+import { queueSMS } from '@/lib/notifications/sms'
+import { recordAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 
@@ -48,13 +49,80 @@ export async function POST(req: NextRequest) {
     if (app) { name = name || app.full_name; email = email || app.email; phone = phone || app.phone }
   }
 
+  /*
+   * Telling the student they have been admitted.
+   *
+   * Both of these were `try { … } catch {}`. If the admission letter failed to
+   * send, nobody was told — not the officer who pressed the button, not the
+   * logs, not the audit trail. The student simply never heard, and the record
+   * said "admitted". That is the worst shape a failure can take in this
+   * system: the outcome looks complete and a person is missing from it.
+   */
   let emailed = false
+  let emailError: string | null = null
   if (email) {
-    try { await sendAdmissionLetter(email, name || 'Student', courseName, admissionNo); emailed = true } catch {}
-  }
-  if (phone) {
-    try { await sendSMS(phone, `Congratulations ${(name || '').split(' ')[0]}! You have been admitted to ${courseName} at Cambridge Center of Excellence. Admission No: ${admissionNo}. Check your email for your admission letter.`) } catch {}
+    try {
+      await sendAdmissionLetter(email, name || 'Student', courseName, admissionNo)
+      emailed = true
+    } catch (e) {
+      emailError = e instanceof Error ? e.message : 'Unknown error'
+      console.error('[admit] admission letter not sent to', email, emailError)
+    }
   }
 
-  return NextResponse.json({ success: true, admissionNo, emailed })
+  /*
+   * The SMS goes through the queue, not a bare send.
+   *
+   * sendSMS makes one attempt and discards the result, which is how twenty-two
+   * staff notifications were lost to provider timeouts. queueSMS persists the
+   * job, retries with backoff, and shows up on /admin/sms-delivery — so "they
+   * say they never got it" is answerable. The dedupe key means re-admitting
+   * the same person cannot text them twice.
+   */
+  let smsQueued = false
+  if (phone) {
+    const result = await queueSMS({
+      to: phone,
+      message: `Congratulations ${(name || '').split(' ')[0]}! You have been admitted to ` +
+        `${courseName} at Cambridge Center of Excellence. Admission No: ${admissionNo}. ` +
+        `Check your email for your admission letter.`,
+      kind: 'admission_letter',
+      entityId: admissionId,
+      dedupeKey: `admission:${admissionId}`,
+    })
+    smsQueued = result.queued || result.duplicate
+  }
+
+  await recordAudit({
+    actorId: session.userId,
+    action: 'admissions.admitted',
+    resource: 'admissions',
+    resourceId: admissionId,
+    // Admitting succeeded; whether the student was REACHED is recorded
+    // separately, because those are different facts.
+    success: true,
+    metadata: {
+      admissionNo, courseName,
+      emailed, emailError,
+      smsQueued,
+      hadEmail: Boolean(email), hadPhone: Boolean(phone),
+    },
+  })
+
+  if (!emailed && !smsQueued) {
+    console.error('[admit] student admitted but could not be contacted:', admissionId)
+  }
+
+  return NextResponse.json({
+    success: true,
+    admissionNo,
+    emailed,
+    smsQueued,
+    // The caller is told plainly, so the screen can say so rather than
+    // implying the student has been informed.
+    contacted: emailed || smsQueued,
+    warning: emailed || smsQueued
+      ? undefined
+      : 'The student was admitted, but no admission letter could be sent. Contact them directly.',
+  })
 }

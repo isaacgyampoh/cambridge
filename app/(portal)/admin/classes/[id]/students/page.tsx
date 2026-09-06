@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, inputClass } from '@/components/ui'
@@ -196,7 +197,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     {
       key: 'contact', header: 'Contact', secondary: true,
       render: e => [
-        e.phone && String(e.phone).replace(/^233/, '0'),
+        e.phone && displayPhone(e.phone),
         e.email,
       ].filter(Boolean).join(' · ') || '—',
     },

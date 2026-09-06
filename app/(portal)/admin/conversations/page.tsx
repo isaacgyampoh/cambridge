@@ -1,5 +1,6 @@
 'use client'
 import { useState, useMemo, useEffect } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import { Spinner, EmptyState } from '@/components/ui'
 import { ChevronLeft, Search } from 'lucide-react'
@@ -14,7 +15,7 @@ const fmtTime = (t: string) => {
     ? d.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' })
     : d.toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
 }
-const shortPhone = (p: string) => String(p || '').replace(/^233/, '0').replace(/#.*/, '')
+const shortPhone = (p: string) => displayPhone(String(p).replace(/#.*/, ''))
 
 export default function ConversationsPage() {
   const { confirm, dialog } = useConfirm()

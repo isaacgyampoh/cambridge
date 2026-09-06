@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState } from '@/components/ui'
 import { ArrowLeftRight, Check, X, Phone } from 'lucide-react'
@@ -56,7 +57,7 @@ export default function TransfersPage() {
                     <div>
                       <div className="font-semibold text-[var(--ink)]">{r.lead?.full_name || 'Lead'}</div>
                       <div className="text-xs text-[var(--ink-soft)] flex items-center gap-2 mt-0.5">
-                        {r.lead?.phone && <span className="flex items-center gap-1"> {String(r.lead.phone).replace(/^233/, '0')}</span>}
+                        {r.lead?.phone && <span className="flex items-center gap-1"> {displayPhone(r.lead.phone)}</span>}
                         {r.lead?.course_interest && <span>· {r.lead.course_interest}</span>}
                       </div>
                     </div>

@@ -645,9 +645,32 @@ async function handleInbound(req: NextRequest) {
         const update: Record<string, any> = {}
         if (read.profession && !(lead as any).profession) update.profession = read.profession
         if (read.summary) update.ai_summary = read.summary
-        if (read.followUpAt) update.follow_up_at = new Date(read.followUpAt + 'T09:00:00').toISOString()
+        // The follow-up date goes to the queue, not to leads.follow_up_at —
+        // that column is now derived by a trigger (migration 0014) and no
+        // application code writes it. Writing it here would be overwritten by
+        // the next queue change and would never reach the Follow-ups screen.
+        const detectedFollowUp = read.followUpAt
+          ? new Date(read.followUpAt + 'T09:00:00').toISOString()
+          : null
         // Never downgrade a lead that already registered
         if (read.status && (lead as any).status !== 'registered') update.status = read.status
+        if (detectedFollowUp) {
+          const { error: queueErr } = await sb.from('follow_up_queue').insert({
+            lead_id: lead.id,
+            marketer_id: lead.assigned_to || null,
+            follow_up_at: detectedFollowUp,
+            reason: 'Detected from the lead\'s WhatsApp reply',
+            priority: 'normal',
+            status: 'pending',
+          })
+          // Not fatal to handling the message, but it must leave a trace: a
+          // follow-up the assistant heard and nobody was told about is the
+          // failure this queue exists to prevent.
+          if (queueErr) {
+            console.error('[whatsapp] follow-up not queued for lead', lead.id, queueErr.message)
+          }
+        }
+
         if (Object.keys(update).length) {
           update.updated_at = new Date().toISOString()
           await sb.from('leads').update(update).eq('id', lead.id).then(() => {}, () => {})

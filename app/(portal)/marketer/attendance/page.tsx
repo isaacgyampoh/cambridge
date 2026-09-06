@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
 import { Users, Phone, PhoneCall } from 'lucide-react'
@@ -63,7 +64,7 @@ export default function MarketerAttendance() {
                 <div key={s.enrollmentId} className="flex items-center justify-between px-4 py-3">
                   <div>
                     <div className="text-sm font-medium text-[var(--ink)]">{s.name}</div>
-                    {s.phone && <div className="text-[12px] text-[var(--ink-faint)]">{String(s.phone).replace(/^233/, '0')}</div>}
+                    {s.phone && <div className="text-[12px] text-[var(--ink-faint)]">{displayPhone(s.phone)}</div>}
                   </div>
                   <div className="flex items-center gap-2">
                     {!s.present && s.phone && (
