@@ -93,8 +93,8 @@ export default function CertificatesPage() {
     finally { setIssuing(false) }
   }
 
-  function exportRegistry() {
-    exportToExcel(filtered.map((c: any) => ({
+  async function exportRegistry() {
+    await exportToExcel(filtered.map((c: any) => ({
       Name: c.student_name, Course: c.course_name, 'Month completed': c.month_completed || '',
       'Certificate No.': c.certificate_no || '', Issued: c.issued ? 'Yes' : 'No',
       'Issued on': c.issued_at ? new Date(c.issued_at).toLocaleDateString() : '',

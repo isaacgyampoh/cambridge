@@ -1,6 +1,6 @@
 'use client'
 
-import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useState, useEffect, useMemo, useCallback, useRef } from 'react'
 import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
@@ -58,6 +58,9 @@ function isActive(pathname: string, href: string): boolean {
   return pathname === href || (href.length > 1 && pathname.startsWith(href + '/'))
 }
 
+/** How long a cached session is trusted before it is checked again. */
+const SESSION_REVALIDATE_MS = 5 * 60 * 1000
+
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter()
   const pathname = usePathname()
@@ -79,11 +82,29 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     return () => document.documentElement.classList.remove('app-shell')
   }, [])
 
+  /*
+   * The session, fetched once — not on every navigation.
+   *
+   * This ran on every pathname change, so each click cost a blocking round
+   * trip to /api/auth/me before the navigation could render, ON TOP of the
+   * session lookup the proxy already performs for the same request. Two
+   * session checks per click, one of them holding up the paint.
+   *
+   * The reason it re-read was real: access changed while somebody is signed in
+   * should take effect without making them sign out. That is preserved, but at
+   * a sensible cadence — when the tab regains focus, and at most once every
+   * five minutes — rather than on every click.
+   */
+  const lastChecked = useRef(0)
+
   useEffect(() => {
     let alive = true
-    fetch('/api/auth/me')
-      .then(r => (r.ok ? r.json() : null))
-      .then(s => {
+
+    const read = async () => {
+      lastChecked.current = Date.now()
+      try {
+        const res = await fetch('/api/auth/me')
+        const s = res.ok ? await res.json() : null
         if (!alive) return
         if (!s?.valid) { router.replace('/login'); return }
         setProfile({
@@ -91,12 +112,24 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           email: s.email, phone: s.phone, portals: s.portals,
         })
         setLoading(false)
-      })
-      .catch(() => { if (alive) router.replace('/login') })
-    return () => { alive = false }
-    // Re-read on navigation: access changed while someone is signed in should
-    // take effect without making them log out and back in.
-  }, [pathname, router])
+      } catch {
+        if (alive) router.replace('/login')
+      }
+    }
+
+    // First paint, or a stale session.
+    if (!lastChecked.current || Date.now() - lastChecked.current > SESSION_REVALIDATE_MS) {
+      void read()
+    }
+
+    // Coming back to the tab is the moment a change is most likely to matter.
+    const onFocus = () => {
+      if (Date.now() - lastChecked.current > SESSION_REVALIDATE_MS) void read()
+    }
+    window.addEventListener('focus', onFocus)
+
+    return () => { alive = false; window.removeEventListener('focus', onFocus) }
+  }, [router])
 
   /* The sidebar width is a stored preference; see hooks/useRailPreference. */
   const [railed, toggleRail] = useRailPreference()

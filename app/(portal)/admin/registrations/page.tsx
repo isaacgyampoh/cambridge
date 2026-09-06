@@ -113,8 +113,8 @@ export default function AdminRegistrations() {
     ...(counts.unset ? [{ key: 'unset', label: 'Mode not set', count: counts.unset }] : []),
   ]
 
-  function exportAll() {
-    exportToExcel(shown.map(a => ({
+  async function exportAll() {
+    await exportToExcel(shown.map(a => ({
       'First name': a.first_name || '', 'Middle name': a.middle_name || '', 'Last name': a.last_name || '',
       'Full name': a.full_name, Email: a.email, Phone: a.phone, Gender: a.gender || '',
       'Date of birth': a.date_of_birth || '', 'Country of birth': a.country_of_birth || '',

@@ -61,8 +61,8 @@ export default function FinanceRegistrations() {
   if (marketerFilter !== 'all') rows = rows.filter(r => r.marketerId === marketerFilter)
   if (search) rows = rows.filter(r => [r.studentName, r.studentPhone, r.program, r.marketerName].some(v => v?.toLowerCase().includes(search.toLowerCase())))
 
-  function exportRows() {
-    exportToExcel(rows.map(r => ({
+  async function exportRows() {
+    await exportToExcel(rows.map(r => ({
       Student: r.studentName, Phone: displayPhone(r.studentPhone) || '',
       Programme: r.program, Delivery: r.delivery?.replace('_', ' '),
       'Registration fee': r.registrationFee, 'Assigned to': r.marketerName,

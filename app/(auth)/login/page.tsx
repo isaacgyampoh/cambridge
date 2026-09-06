@@ -28,18 +28,71 @@ import { Eye, EyeOff } from 'lucide-react'
  */
 function PinBoxes({
   value, onChange, onSubmit, label, masked,
+  autoSubmit = false, disabled = false, autoFocus = false,
 }: {
   value: string
   onChange: (next: string) => void
-  onSubmit?: () => void
+  /** Receives the completed value, so it never reads a stale closure. */
+  onSubmit?: (completed: string) => void
   label: string
   masked: boolean
+  /** Submit the moment the last digit lands. */
+  autoSubmit?: boolean
+  disabled?: boolean
+  /** Take focus on mount, and again whenever the value is cleared. */
+  autoFocus?: boolean
 }) {
   const boxes = useRef<(HTMLInputElement | null)[]>([])
-  const focus = (i: number) => boxes.current[Math.max(0, Math.min(i, PIN_LENGTH - 1))]?.focus()
+
+  /*
+   * The value already handed to onSubmit.
+   *
+   * Auto-submitting on the last digit creates three ways to fire twice: typing
+   * the fourth digit and pasting into the same box, a paste that lands while a
+   * request is in flight, and React re-running the handler. Remembering what
+   * was submitted makes the call idempotent for a given PIN, and it resets as
+   * soon as the person edits — so a wrong PIN can be corrected and retried.
+   */
+  const submitted = useRef<string | null>(null)
+
+  const focus = (i: number) =>
+    boxes.current[Math.max(0, Math.min(i, PIN_LENGTH - 1))]?.focus()
+
+  /*
+   * Focus follows the caller.
+   *
+   * The parent used to hold these refs and call .focus() itself — on mount and
+   * after a rejected PIN. Moving the refs in here to satisfy the rules of
+   * hooks silently broke both, because the parent's refs then pointed at
+   * nothing. The component now takes the responsibility along with the refs.
+   *
+   * Focusing on an empty value covers both cases: first render, and the reset
+   * that follows a wrong PIN. It cannot steal focus mid-entry, because a
+   * partially typed value is not empty.
+   */
+  useEffect(() => {
+    if (!autoFocus || disabled) return
+    if (value === '') focus(0)
+    // A cleared value is the signal; re-running on every keystroke would fight
+    // the natural progression between boxes.
+  }, [autoFocus, disabled, value === ''])   // eslint-disable-line react-hooks/exhaustive-deps
+
+  /** Apply a new value, and fire once when it completes. */
+  const commit = (next: string) => {
+    onChange(next)
+    if (next.length < PIN_LENGTH) {
+      // Editing invalidates any earlier submission, so a correction can retry.
+      submitted.current = null
+      return
+    }
+    if (!autoSubmit || !onSubmit) return
+    if (submitted.current === next) return
+    submitted.current = next
+    onSubmit(next)
+  }
 
   return (
-    <div className="flex gap-2 sm:gap-2.5 justify-center lg:justify-start"
+    <div className="flex gap-2.5 justify-center lg:justify-start"
       role="group" aria-label={`${label}, ${PIN_LENGTH} digits`}>
       {Array.from({ length: PIN_LENGTH }).map((_, i) => (
         <input
@@ -48,32 +101,37 @@ function PinBoxes({
           type={masked ? 'password' : 'text'}
           aria-label={`${label}, digit ${i + 1} of ${PIN_LENGTH}`}
           inputMode="numeric"
+          pattern="[0-9]*"
           maxLength={1}
-          autoComplete="off"
+          disabled={disabled}
+          autoComplete={i === 0 ? 'one-time-code' : 'off'}
           value={value[i] || ''}
           onChange={e => {
             const digit = e.target.value.replace(/\D/g, '').slice(-1)
             // Typing into a box replaces everything from it onwards, so a
             // correction never leaves a stale digit behind the cursor.
             const next = (value.slice(0, i) + digit).slice(0, PIN_LENGTH)
-            onChange(next)
+            commit(next)
             if (digit) focus(i + 1)
           }}
           onKeyDown={e => {
-            if (e.key === 'Enter' && value.length === PIN_LENGTH && onSubmit) { onSubmit(); return }
+            if (e.key === 'Enter' && value.length === PIN_LENGTH && onSubmit) {
+              if (submitted.current !== value) { submitted.current = value; onSubmit(value) }
+              return
+            }
             if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); focus(i - 1); return }
             if (e.key === 'ArrowRight' && i + 1 < PIN_LENGTH) { e.preventDefault(); focus(i + 1); return }
             if (e.key !== 'Backspace') return
             e.preventDefault()
-            if (value[i]) onChange(value.slice(0, i))
-            else if (i > 0) { onChange(value.slice(0, i - 1)); focus(i - 1) }
+            if (value[i]) commit(value.slice(0, i))
+            else if (i > 0) { commit(value.slice(0, i - 1)); focus(i - 1) }
           }}
           onPaste={e => {
             const digits = e.clipboardData.getData('text').replace(/\D/g, '')
             if (!digits) return
             e.preventDefault()
             const next = (value.slice(0, i) + digits).slice(0, PIN_LENGTH)
-            onChange(next)
+            commit(next)
             focus(next.length)
           }}
           onFocus={e => e.target.select()}
@@ -81,9 +139,9 @@ function PinBoxes({
             backgroundColor: value[i] ? 'var(--accent)' : 'var(--paper)',
             borderColor: value[i] ? 'var(--accent)' : 'var(--line)',
             color: value[i] ? '#fff' : 'var(--ink)',
-            transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+            transition: 'background-color 0.12s ease, border-color 0.12s ease',
           }}
-          className="w-[clamp(52px,16vw,64px)] h-[clamp(58px,18vw,70px)] text-center text-[24px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-[var(--shadow-raised)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+          className="w-[52px] h-[58px] sm:w-[56px] sm:h-[62px] text-center text-[22px] font-semibold rounded-lg border-2 focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] disabled:opacity-60 caret-transparent"
         />
       ))}
     </div>
@@ -139,13 +197,9 @@ function LoginForm() {
    * is the supported shape and behaves identically.
    */
   type Boxes = React.RefObject<(HTMLInputElement | null)[]>
-  const p = useRef<(HTMLInputElement | null)[]>([])
-  const n = useRef<(HTMLInputElement | null)[]>([])
-  const c = useRef<(HTMLInputElement | null)[]>([])
 
   const o = useRef<(HTMLInputElement | null)[]>([])
 
-  useEffect(() => { setTimeout(() => p.current[0]?.focus(), 120) }, [])
 
   function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: Boxes, onFull?: (s: string) => void) {
     if (!/^\d*$/.test(val)) return
@@ -167,7 +221,7 @@ function LoginForm() {
     }
   }
 
-  function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p) {
+  function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: Boxes) {
     // Arrow keys move between boxes, so a mistyped digit can be corrected
     // without deleting everything after it.
     if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); refs.current[i - 1]?.focus(); return }
@@ -218,7 +272,6 @@ function LoginForm() {
     if (!d.success) {
       setError(d.error || 'Incorrect PIN')
       setPin('')
-      setTimeout(() => p.current[0]?.focus(), 80)
       return
     }
     // PIN correct → an OTP was emailed. Move to the OTP step.
@@ -232,7 +285,7 @@ function LoginForm() {
       setTimeout(() => o.current[0]?.focus(), 120)
       return
     }
-    if (d.mustChangePIN) { setStep('set-pin'); setTimeout(() => n.current[0]?.focus(), 100); return }
+    if (d.mustChangePIN) { setStep('set-pin'); return }
     router.replace(d.redirect || '/admin')
   }
 
@@ -250,7 +303,7 @@ function LoginForm() {
       setTimeout(() => o.current[0]?.focus(), 80)
       return
     }
-    if (d.mustChangePIN || pendingChangePin) { setStep('set-pin'); setTimeout(() => n.current[0]?.focus(), 100); return }
+    if (d.mustChangePIN || pendingChangePin) { setStep('set-pin'); return }
     router.replace(d.redirect || '/admin')
   }
 
@@ -274,7 +327,6 @@ function LoginForm() {
       setError(d.error || 'Could not send a new code.')
       if (/expired/i.test(d.error || '')) {
         setStep('pin'); setPin('')
-        setTimeout(() => p.current[0]?.focus(), 100)
       }
     } catch {
       setError('Could not reach the server. Check your connection and try again.')
@@ -308,7 +360,6 @@ function LoginForm() {
       if (d.needsCode === false && d.resetToken) {
         setResetToken(d.resetToken)
         setStep('recover-new')
-        setTimeout(() => n.current[0]?.focus(), 120)
         return
       }
 
@@ -338,7 +389,6 @@ function LoginForm() {
       }
       setResetToken(d.resetToken)
       setStep('recover-new')
-      setTimeout(() => n.current[0]?.focus(), 120)
     } catch {
       setError('Could not reach the server. Check your connection and try again.')
     } finally { setLoading(false) }
@@ -349,7 +399,6 @@ function LoginForm() {
     if (recoverNew !== recoverConfirm) {
       setError("Those PINs don't match — try again")
       setRecoverConfirm('')
-      setTimeout(() => c.current[0]?.focus(), 80)
       return
     }
     setLoading(true); setError('')
@@ -365,7 +414,6 @@ function LoginForm() {
       setPin(''); setRecoverPin(''); setRecoverNew(''); setRecoverConfirm(''); setResetToken('')
       setError('')
       setNotice('Your PIN has been changed. Sign in with your new PIN.')
-      setTimeout(() => p.current[0]?.focus(), 120)
     } catch {
       setError('Could not reach the server. Check your connection and try again.')
     } finally { setLoading(false) }
@@ -379,7 +427,6 @@ function LoginForm() {
     if (np !== cp) {
       setError("PINs don't match — try again")
       setConfPin('')
-      setTimeout(() => c.current[0]?.focus(), 80)
       return
     }
     setLoading(true); setError('')
@@ -465,25 +512,28 @@ function LoginForm() {
                 </p>
               </div>
 
-              <PinBoxes value={pin} onChange={setPin} onSubmit={() => submitPin(pin)} label='PIN' masked={!showPin} />
+              <PinBoxes value={pin} onChange={setPin} onSubmit={submitPin} label='PIN' autoFocus
+                masked={!showPin} autoSubmit disabled={loading} />
 
-              {/* An explicit action, because the form no longer submits itself
-                  the moment a fourth digit lands — that behaviour is what made
-                  a PIN longer than four impossible to enter. */}
-              <button
-                onClick={() => submitPin(pin)}
-                disabled={loading || pin.length !== PIN_LENGTH}
-                className="w-full h-12 mt-6 bg-[var(--accent)] text-white rounded-xl font-semibold
-                  text-[15px] hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none
-                  transition-all flex items-center justify-center gap-2
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
-                  focus-visible:ring-offset-2">
-                {loading
-                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Opening your secure workspace…</>
-                  : 'Continue'}
-              </button>
+              {/*
+                No button. The fourth digit IS the action.
+                
+                A confirm step after a four-digit PIN is a second gesture for
+                something the person has already unambiguously finished — and
+                on a phone it means reaching for a button after the keypad has
+                covered half the screen. Submission is guarded inside PinBoxes
+                so a paste or a fast typist cannot fire it twice.
+              */}
+              <div className="h-6 mt-5 flex items-center justify-center lg:justify-start" aria-live="polite">
+                {loading && (
+                  <span className="inline-flex items-center gap-2 t-sub">
+                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--accent)] rounded-full animate-spin" />
+                    Signing in…
+                  </span>
+                )}
+              </div>
 
-              <div className="mt-3 flex justify-center lg:justify-start">
+              <div className="flex justify-center lg:justify-start">
                 <button onClick={() => setShowPin(s => !s)}
                   className="inline-flex items-center gap-1.5 min-h-[40px] px-2 text-[13px]
                     text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
@@ -511,7 +561,6 @@ function LoginForm() {
                 <button
                   onClick={() => {
                     setStep('recover-pin'); setRecoverPin(''); setError(''); setNotice('')
-                    setTimeout(() => p.current[0]?.focus(), 100)
                   }}
                   className="font-semibold text-[var(--accent)] hover:underline
                     focus-visible:outline-none focus-visible:ring-2
@@ -584,7 +633,7 @@ function LoginForm() {
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
                   {resendIn > 0 ? `Send a new code in ${resendIn}s` : 'Send a new code'}
                 </button>
-                <button onClick={() => { setStep('pin'); setPin(''); setError(''); setTimeout(() => p.current[0]?.focus(), 80) }}
+                <button onClick={() => { setStep('pin'); setPin(''); setError('') }}
                   className="text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
                   Start again
@@ -612,20 +661,17 @@ function LoginForm() {
                 </p>
               </div>
 
-              <PinBoxes value={recoverPin} onChange={setRecoverPin} onSubmit={startRecovery} label='Recovery PIN' masked={!showPin} />
+              <PinBoxes value={recoverPin} onChange={setRecoverPin} onSubmit={startRecovery} label='Recovery PIN' autoFocus
+                masked={!showPin} autoSubmit disabled={loading} />
 
-              <button
-                onClick={startRecovery}
-                disabled={loading || recoverPin.length !== PIN_LENGTH}
-                className="w-full h-12 mt-6 bg-[var(--accent)] text-white rounded-xl font-semibold
-                  text-[15px] hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none
-                  transition-all flex items-center justify-center gap-2
-                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
-                  focus-visible:ring-offset-2">
-                {loading
-                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Checking…</>
-                  : 'Continue'}
-              </button>
+              <div className="h-6 mt-5 flex items-center justify-center lg:justify-start" aria-live="polite">
+                {loading && (
+                  <span className="inline-flex items-center gap-2 t-sub">
+                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--accent)] rounded-full animate-spin" />
+                    Checking…
+                  </span>
+                )}
+              </div>
 
               {error && !loading && (
                 <div role="alert"
@@ -635,7 +681,7 @@ function LoginForm() {
               )}
 
               <button
-                onClick={() => { setStep('pin'); setPin(''); setError(''); setTimeout(() => p.current[0]?.focus(), 80) }}
+                onClick={() => { setStep('pin'); setPin(''); setError('') }}
                 className="mt-6 text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
                 Back to sign in
@@ -694,7 +740,7 @@ function LoginForm() {
               )}
 
               <button
-                onClick={() => { setStep('recover-pin'); setRecoverPin(''); setError(''); setTimeout(() => p.current[0]?.focus(), 80) }}
+                onClick={() => { setStep('recover-pin'); setRecoverPin(''); setError('') }}
                 className="mt-8 text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
                   focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
                 Start again
@@ -718,13 +764,13 @@ function LoginForm() {
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">
                     New PIN
                   </p>
-                  <PinBoxes value={recoverNew} onChange={setRecoverNew} onSubmit={undefined} label='New PIN' masked={!showPin} />
+                  <PinBoxes value={recoverNew} onChange={setRecoverNew} label='New PIN' masked={!showPin} autoFocus />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">
                     Confirm PIN
                   </p>
-                  <PinBoxes value={recoverConfirm} onChange={setRecoverConfirm} onSubmit={finishRecovery} label='Confirm PIN' masked={!showPin} />
+                  <PinBoxes value={recoverConfirm} onChange={setRecoverConfirm} label='Confirm PIN' masked={!showPin} />
                 </div>
               </div>
 
@@ -760,11 +806,11 @@ function LoginForm() {
               <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">New PIN</p>
-                  <PinBoxes value={newPin} onChange={setNewPin} onSubmit={undefined} label='New PIN' masked={!showPin} />
+                  <PinBoxes value={newPin} onChange={setNewPin} label='New PIN' masked={!showPin} autoFocus />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">Confirm PIN</p>
-                  <PinBoxes value={confPin} onChange={setConfPin} onSubmit={() => submitNewPin()} label='Confirm PIN' masked={!showPin} />
+                  <PinBoxes value={confPin} onChange={setConfPin} label='Confirm PIN' masked={!showPin} />
                 </div>
               </div>
 

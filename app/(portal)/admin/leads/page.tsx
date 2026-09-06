@@ -182,7 +182,7 @@ export default function AdminLeads() {
     else toast.error(d.error || 'Could not delete leads', { id: 'clr' })
   }
 
-  function exportExcel() {
+  async function exportExcel() {
     const rows = filtered.map((l: any) => ({
       Name: l.full_name,
       Phone: displayPhone(l.phone) || '',
@@ -194,10 +194,10 @@ export default function AdminLeads() {
       Added: formatDateTime(l.created_at),
     }))
     if (!rows.length) return
-    exportToExcel(rows, `cce-leads-${new Date().toISOString().slice(0, 10)}`, 'Leads')
+    await exportToExcel(rows, `cce-leads-${new Date().toISOString().slice(0, 10)}`, 'Leads')
   }
 
-  function exportCSV() {
+  async function exportCSV() {
     const rows = filtered.map((l: any) => [
       l.full_name, l.email || '', l.phone || '', l.source, l.status,
       l.course_interest || '', l.assignee?.full_name || '', formatDateTime(l.created_at)
