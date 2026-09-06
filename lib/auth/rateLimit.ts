@@ -100,3 +100,58 @@ export function retryMessage(seconds: number): string {
   const mins = Math.ceil(seconds / 60)
   return `Please try again in ${mins} minute${mins === 1 ? '' : 's'}.`
 }
+
+/**
+ * Is this key currently blocked, without spending an attempt?
+ *
+ * `rateLimit` increments on every call, which is right for "how many times has
+ * this address tried". It is wrong for a counter that should only track
+ * FAILURES: checking it at the top of a request would count every successful
+ * sign-in too, and seventeen members of staff arriving on a Monday morning
+ * would trip a ceiling meant to catch an attacker.
+ *
+ * So: peek here at the start, and call `recordFailure` only when the attempt
+ * actually fails.
+ */
+export async function isBlocked(key: string): Promise<{ blocked: boolean; retryAfter: number }> {
+  try {
+    const sb = createServiceClient()
+    const { data, error } = await sb.from('auth_throttle')
+      .select('blocked_until').eq('key', key).maybeSingle()
+
+    if (error) {
+      // Missing table means migration 0001 has not run. Fail open, loudly —
+      // consistent with rateLimit, so deploying code before the SQL does not
+      // lock everyone out.
+      if (/does not exist|could not find|schema cache/i.test(error.message)) {
+        return { blocked: false, retryAfter: 0 }
+      }
+      console.error('[isBlocked] check failed:', error.message)
+      return { blocked: false, retryAfter: 0 }
+    }
+
+    const until = data?.blocked_until ? new Date(data.blocked_until).getTime() : 0
+    if (until > Date.now()) {
+      return { blocked: true, retryAfter: Math.ceil((until - Date.now()) / 1000) }
+    }
+    return { blocked: false, retryAfter: 0 }
+  } catch (e) {
+    console.error('[isBlocked] threw:', e)
+    return { blocked: false, retryAfter: 0 }
+  }
+}
+
+/**
+ * Count one failure against a key, blocking it once the ceiling is crossed.
+ *
+ * Thin wrapper over `rateLimit` that names the intent: this is called after
+ * something failed, never to gate a request.
+ */
+export async function recordFailure(
+  key: string,
+  ceiling: number,
+  windowSeconds: number,
+  blockSeconds: number
+): Promise<void> {
+  await rateLimit(key, ceiling, windowSeconds, blockSeconds)
+}
