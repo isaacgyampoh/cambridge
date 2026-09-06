@@ -1,9 +1,9 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, use } from 'react'
 import { useData } from '@/hooks/useData'
-import { PageHeader, Card, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import { PageHeader, Card, Badge, inputClass } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/utils'
-import { GraduationCap, Search, Phone, Mail } from 'lucide-react'
 import Link from 'next/link'
 
 /**
@@ -11,6 +11,16 @@ import Link from 'next/link'
  * this course (by code or name, flexibly). Reached from the auto-generated
  * nav entry created for each active course.
  */
+type CourseLead = {
+  id: string
+  full_name: string
+  phone?: string | null
+  email?: string | null
+  status: string
+  assignee?: { full_name?: string } | null
+  created_at: string
+}
+
 export default function CourseLeadsPage({ params }: { params: Promise<{ code: string }> }) {
   const { code } = use(params)
   const decoded = decodeURIComponent(code)
@@ -47,6 +57,50 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
   const byStatus: Record<string, number> = {}
   courseLeads.forEach((l: any) => { byStatus[l.status] = (byStatus[l.status] || 0) + 1 })
 
+  const courseLeadColumns: Column<CourseLead>[] = [
+    {
+      key: 'name', header: 'Name', primary: true,
+      render: l => (
+        <Link href="/admin/leads"
+          className="font-medium text-[var(--ink)] hover:text-[var(--accent)]
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded">
+          {l.full_name}
+        </Link>
+      ),
+    },
+    {
+      key: 'contact', header: 'Contact', secondary: true,
+      render: l => (
+        <>
+          {l.phone && <div>{String(l.phone).replace(/^233/, '0')}</div>}
+          {l.email && <div className="text-[var(--ink-faint)] text-[12px]">{l.email}</div>}
+        </>
+      ),
+    },
+    {
+      key: 'status', header: 'Status',
+      render: l => (
+        <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full
+          ${STATUS_COLORS[l.status] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+          {STATUS_LABELS[l.status] || l.status?.replace(/_/g, ' ')}
+        </span>
+      ),
+    },
+    {
+      key: 'owner', header: 'Assigned to',
+      render: l => l.assignee?.full_name
+        || <span className="text-[var(--ink-faint)]">Unassigned</span>,
+    },
+    {
+      key: 'date', header: 'Added',
+      render: l => (
+        <span className="text-[var(--ink-faint)] text-[12px]">
+          {new Date(l.created_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div className="fade-in w-full">
       <PageHeader
@@ -72,46 +126,15 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
           </div>
         </div>
 
-        {loading ? <div className="p-8"><Spinner /></div> : courseLeads.length === 0 ? (
-          <EmptyState  title="No leads for this course yet"
-            description={`When leads come in interested in ${courseName}, they'll appear here.`} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead>
-                <tr className="border-b border-[var(--line)]">
-                  {['Name', 'Contact', 'Status', 'Assigned to', 'Date'].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {courseLeads.map((l: any) => (
-                  <tr key={l.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
-                    <td data-label="Name" className="px-4 py-3">
-                      <Link href={`/admin/leads`} className="font-medium text-[var(--ink)] hover:text-[var(--accent)]">{l.full_name}</Link>
-                    </td>
-                    <td data-label="Contact" className="px-4 py-3">
-                      <div className="flex flex-col gap-0.5 text-xs text-[var(--ink-soft)]">
-                        {l.phone && <span className="flex items-center gap-1"> {String(l.phone).replace(/^233/, '0')}</span>}
-                        {l.email && <span className="flex items-center gap-1"> {l.email}</span>}
-                      </div>
-                    </td>
-                    <td data-label="Status" className="px-4 py-3">
-                      <span className={`inline-flex text-[12px] font-semibold px-2.5 py-1 rounded-full ${STATUS_COLORS[l.status] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
-                        {STATUS_LABELS[l.status] || l.status}
-                      </span>
-                    </td>
-                    <td data-label="Assigned to" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{l.assignee?.full_name || <span className="text-[var(--ink-faint)]">Unassigned</span>}</td>
-                    <td data-label="Date" className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
-                      {new Date(l.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<CourseLead>
+          caption={`Leads interested in ${courseName}`}
+          state={loading ? 'loading' : 'ready'}
+          rows={courseLeads}
+          rowKey={l => l.id}
+          columns={courseLeadColumns}
+          emptyTitle="No leads for this course yet"
+          emptyMessage={`When leads come in interested in ${courseName}, they will appear here.`}
+        />
       </Card>
     </div>
   )

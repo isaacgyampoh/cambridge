@@ -1,7 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 
-import { formatGHS } from '@/lib/utils'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 
 
 async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 2000) {
@@ -11,6 +11,8 @@ async function apiQuery(table: string, select: string, filters?: { col: string; 
   const json = await res.json()
   return json.data || []
 }
+
+type MarketerRow = { name: string; total: number; converted: number }
 
 export default function PMReports() {
   const [data, setData] = useState<any>(null)
@@ -45,6 +47,22 @@ export default function PMReports() {
   }
 
   if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
+
+  const marketerRows: MarketerRow[] = Object.values(data.byMarketer as Record<string, MarketerRow>)
+    .sort((a, b) => b.converted - a.converted)
+
+  const marketerColumns: Column<MarketerRow>[] = [
+    { key: 'name', header: 'Marketer', primary: true, render: m => m.name },
+    { key: 'assigned', header: 'Assigned', numeric: true, render: m => m.total },
+    {
+      key: 'converted', header: 'Converted', numeric: true,
+      render: m => <span className="font-bold text-[var(--ok)]">{m.converted}</span>,
+    },
+    {
+      key: 'rate', header: 'Conversion', numeric: true,
+      render: m => <span className="font-bold">{m.total ? Math.round(m.converted / m.total * 100) : 0}%</span>,
+    },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -117,30 +135,14 @@ export default function PMReports() {
       {/* Marketer performance */}
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Marketer Performance</h3>
-        <div className="overflow-x-auto">
-          <table className="rtc w-full">
-            <thead className="bg-[var(--line-soft)]">
-              <tr>
-                {['Marketer','Assigned','Converted','Conversion Rate'].map(h => (
-                  <th key={h} className="text-left text-xs font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-2">{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {Object.values(data.byMarketer).sort((a: any, b: any) => b.converted - a.converted).map((m: any) => (
-                <tr key={m.name} className="border-t border-[var(--line-soft)]">
-                  <td data-label="Marketer" className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{m.name}</td>
-                  <td data-label="Assigned" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{m.total}</td>
-                  <td data-label="Converted" className="px-4 py-3 text-sm font-bold text-[var(--ok)]">{m.converted}</td>
-                  <td data-label="Conversion Rate" className="px-4 py-3 text-sm font-bold">{m.total ? Math.round(m.converted / m.total * 100) : 0}%</td>
-                </tr>
-              ))}
-              {Object.keys(data.byMarketer).length === 0 && (
-                <tr><td data-label="Marketer" colSpan={4} className="px-4 py-8 text-center text-[var(--ink-faint)] text-sm">No marketer data yet</td></tr>
-              )}
-            </tbody>
-          </table>
-        </div>
+        <DataTable<MarketerRow>
+          caption="Marketer performance"
+          rows={marketerRows}
+          rowKey={m => m.name}
+          columns={marketerColumns}
+          emptyTitle="No marketer data yet"
+          emptyMessage="Figures appear once leads have been assigned and worked."
+        />
       </div>
     </div>
   )
