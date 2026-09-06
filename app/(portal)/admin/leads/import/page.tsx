@@ -22,13 +22,25 @@ Kwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend
 Abena Owusu,0551234567,abena@email.com,Corporate Training,google,Kumasi,
 John Doe,0201234567,,PHRI,manual,Takoradi,Called office`
 
+type ImportResult = {
+  reference: string
+  totalReceived: number
+  valid: number
+  invalid: number
+  duplicates: number
+  assigned: number
+  unassigned: number
+  failed: number
+  status: 'complete' | 'partial'
+}
+
 export default function ImportLeadsPage() {
   const router  = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [raw,       setRaw]       = useState('')
   const [parsed,    setParsed]    = useState<ParsedLead[]>([])
   const [importing, setImporting] = useState(false)
-  const [done,      setDone]      = useState<{ success: number; failed: number } | null>(null)
+  const [result, setResult] = useState<(ImportResult & { requestsFailed: number }) | null>(null)
 
   const VALID_SOURCES = ['facebook','google','linkedin','website','referral','manual']
 
@@ -74,7 +86,7 @@ export default function ImportLeadsPage() {
 
   function handleText(text: string) {
     setRaw(text)
-    setDone(null)
+    setResult(null)
     if (text.trim()) setParsed(parseCSV(text))
     else setParsed([])
   }
@@ -89,18 +101,33 @@ export default function ImportLeadsPage() {
     const valid = parsed.filter(p => p.status === 'valid')
     if (!valid.length) { toast.error('No valid leads to import'); return }
     setImporting(true)
+    setResult(null)
 
-    let success = 0, failed = 0
-    const BATCH = 20
+    /*
+     * Batches accumulate into ONE import record, identified by a reference the
+     * server allocates on the first call and we carry through the rest.
+     *
+     * The previous version summed its own counters in the browser and reported
+     * a whole batch as failed whenever a request died — which it did, because
+     * the endpoint greeted every lead inline and outlived its own timeout. The
+     * server is now the only thing that counts, so a number shown here is one
+     * the database can be asked about afterwards.
+     */
+    const BATCH = 50
+    let reference: string | null = null
+    let latest: ImportResult | null = null
+    let requestsFailed = 0
 
-    let assignedTotal = 0, dupTotal = 0
     for (let i = 0; i < valid.length; i += BATCH) {
       const batch = valid.slice(i, i + BATCH)
       try {
-        const res = await fetch('/api/leads/import', {
+        const res: Response = await fetch('/api/leads/import', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
+            reference,
+            filename: fileRef.current?.files?.[0]?.name || undefined,
+            rowOffset: i,
             leads: batch.map(l => ({
               full_name: l.full_name,
               phone: l.phone || null,
@@ -112,15 +139,32 @@ export default function ImportLeadsPage() {
             })),
           }),
         })
-        const d = await res.json().catch(() => ({ error: 'bad response' }))
-        if (d.error) { failed += batch.length }
-        else { success += (d.imported || 0); assignedTotal += (d.assigned || 0); dupTotal += (d.duplicates || 0); failed += (d.failed || 0) }
-      } catch { failed += batch.length }
+        const d: (ImportResult & { success?: boolean; error?: string }) | null =
+          await res.json().catch(() => null)
+
+        if (!res.ok || !d?.success) {
+          requestsFailed += batch.length
+          toast.error(d?.error || `Rows ${i + 1}–${i + batch.length} could not be sent.`)
+          continue
+        }
+
+        reference = d.reference
+        latest = d as ImportResult
+      } catch {
+        requestsFailed += batch.length
+        toast.error(`Rows ${i + 1}–${i + batch.length} could not be sent. Check your connection.`)
+      }
     }
 
     setImporting(false)
-    setDone({ success, failed })
-    toast.success(`Import complete — ${success} imported${assignedTotal ? `, ${assignedTotal} auto-assigned` : ''}${dupTotal ? `, ${dupTotal} duplicates skipped` : ''}.`)
+
+    if (!latest) {
+      toast.error('Nothing was imported.')
+      return
+    }
+
+    setResult({ ...latest, requestsFailed })
+    toast.success(`${latest.reference} — ${latest.assigned} assigned of ${latest.totalReceived} received.`)
   }
 
   function downloadTemplate() {
@@ -147,33 +191,71 @@ export default function ImportLeadsPage() {
         </div>
       </div>
 
-      {done ? (
-        /* ── Success state ── */
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-10 text-center max-w-md mx-auto shadow-sm">
-          <div className="w-16 h-16 bg-[var(--ok-soft)] rounded-full flex items-center justify-center mx-auto mb-4">
-            
-          </div>
-          <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-2">Import Complete!</h2>
-          <div className="flex justify-center gap-6 mb-6 text-sm">
-            <div className="text-center">
-              <div className="text-2xl font-bold text-[var(--ok)]">{done.success}</div>
-              <div className="text-[var(--ink-faint)]">Imported</div>
-            </div>
-            {done.failed > 0 && (
-              <div className="text-center">
-                <div className="text-2xl font-bold text-[var(--danger)]">{done.failed}</div>
-                <div className="text-[var(--ink-faint)]">Failed</div>
-              </div>
-            )}
-          </div>
-          <div className="flex gap-3">
+      {result ? (
+        /*
+         * Every row accounted for.
+         *
+         * The old summary showed "imported" and "failed" counted in the
+         * browser, which reported a whole batch as failed whenever a request
+         * died — and requests died routinely, because the endpoint greeted
+         * each lead inline and outlived its own timeout. These figures come
+         * from the server, and the reference beneath them can be used to ask
+         * the database exactly which rows did what.
+         */
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 sm:p-8 max-w-lg mx-auto">
+          <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-1">
+            {result.status === 'complete' ? 'Import complete' : 'Import finished with problems'}
+          </h2>
+          <p className="text-[13px] font-mono text-[var(--ink-faint)] mb-5">{result.reference}</p>
+
+          <dl className="space-y-2 mb-6 text-[14px]">
+            {[
+              { label: 'Rows received', value: result.totalReceived, tone: 'ink' },
+              { label: 'Assigned to a marketer', value: result.assigned, tone: 'ok' },
+              { label: 'Already in the system', value: result.duplicates, tone: 'faint' },
+              { label: 'Could not be read', value: result.invalid, tone: 'warn' },
+              { label: 'Imported but unassigned', value: result.unassigned, tone: 'warn' },
+              { label: 'Failed', value: result.failed, tone: 'danger' },
+              { label: 'Never reached the server', value: result.requestsFailed, tone: 'danger' },
+            ].filter(r => r.value > 0 || r.label === 'Rows received' || r.label === 'Assigned to a marketer')
+              .map(r => (
+                <div key={r.label} className="flex items-baseline justify-between gap-4 border-b border-[var(--line-soft)] pb-2 last:border-0">
+                  <dt className="text-[var(--ink-soft)]">{r.label}</dt>
+                  <dd className={`font-semibold tabular-nums ${
+                    r.tone === 'ok' ? 'text-[var(--ok)]'
+                      : r.tone === 'danger' ? 'text-[var(--danger)]'
+                      : r.tone === 'warn' ? 'text-[var(--warn)]'
+                      : r.tone === 'faint' ? 'text-[var(--ink-faint)]'
+                      : 'text-[var(--ink)]'
+                  }`}>{r.value}</dd>
+                </div>
+              ))}
+          </dl>
+
+          {(result.unassigned > 0 || result.failed > 0) && (
+            <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mb-5">
+              Rows that did not land are recorded against {result.reference} with the reason,
+              so they can be corrected and re-imported without hunting for the original file.
+            </p>
+          )}
+
+          <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mb-6">
+            Welcome messages are queued and go out over the next few minutes, rather than
+            during the import — that is what keeps a large list from timing out.
+          </p>
+
+          <div className="flex flex-col sm:flex-row gap-2.5">
             <Link href="/admin/leads"
-              className="flex-1 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 transition flex items-center justify-center">
-              View Leads
+              className="flex-1 min-h-[44px] bg-[var(--accent)] text-white rounded-xl text-sm font-bold
+                hover:brightness-110 transition flex items-center justify-center
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
+              View leads
             </Link>
-            <button onClick={() => { setDone(null); setParsed([]); setRaw('') }}
-              className="flex-1 h-11 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold hover:bg-[var(--line)] transition">
-              Import More
+            <button onClick={() => { setResult(null); setParsed([]); setRaw('') }}
+              className="flex-1 min-h-[44px] bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold
+                hover:bg-[var(--line)] transition
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+              Import another list
             </button>
           </div>
         </div>

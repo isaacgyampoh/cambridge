@@ -17,6 +17,9 @@ const TASKS: { name: string; path: string; everyMins: number }[] = [
   // what actually gets a failed one delivered.
   { name: 'sms_queue',          path: '/api/sms/queue',               everyMins: 5 },
   { name: 'lead_notify',        path: '/api/leads/notify-pending',    everyMins: 5 },
+  // Greets imported leads. Ten at a time, since each is two WhatsApp round
+  // trips and an AI call — the work that used to sit inside the import request.
+  { name: 'lead_onboarding',    path: '/api/leads/onboarding',        everyMins: 5 },
   { name: 'lead_followup',      path: '/api/leads/followup',          everyMins: 10 },
   { name: 'sequences',          path: '/api/sequences/run',           everyMins: 15 },
   { name: 'class_start',        path: '/api/classes/start-reminders', everyMins: 10 },
