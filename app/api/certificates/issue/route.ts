@@ -45,6 +45,8 @@ export async function POST(req: NextRequest) {
   const courseName = (batch as any)?.courses?.name || batch.name
   const issued: string[] = []
   const skipped: string[] = []
+  /** Generated but not recorded — a partial success that must not read as one. */
+  const failed: Array<{ name: string; reason: string }> = []
 
   for (const st of roster || []) {
     // Only for students who have finished paying
@@ -71,13 +73,36 @@ export async function POST(req: NextRequest) {
     })
     if (!url) { skipped.push(st.full_name); continue }
 
-    await sb.from('certificates').insert({
+    /*
+     * The PDF exists at this point; the record of it is what makes it
+     * findable. This insert was fire-and-forget, so a failure left a
+     * certificate uploaded to storage with nothing pointing at it — while the
+     * student was counted as issued. Nobody could reissue it, because as far
+     * as the system was concerned it had already been done.
+     */
+    const { error } = await sb.from('certificates').insert({
       lead_id: st.lead_id, student_name: st.full_name,
       course_name: courseName, certificate_number: certNo,
       final_url: url, issued_date: new Date().toISOString(),
-    }).then(() => {}, () => {})
+    })
+
+    if (error) {
+      console.error('[certificates] generated but not recorded for',
+        st.full_name, error.message)
+      failed.push({ name: st.full_name, reason: 'The certificate was generated but could not be recorded.' })
+      continue
+    }
     issued.push(st.full_name)
   }
 
-  return NextResponse.json({ success: true, issued: issued.length, skipped: skipped.length, skippedNames: skipped.slice(0, 10) })
+  return NextResponse.json({
+    success: failed.length === 0,
+    issued: issued.length,
+    skipped: skipped.length,
+    skippedNames: skipped.slice(0, 10),
+    // Named, not just counted: a batch that half worked has to say who was
+    // left out, or nobody can finish the job.
+    failed: failed.length,
+    failedNames: failed.slice(0, 10),
+  })
 }

@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { createServiceClient } from '@/lib/supabase/server'
+import { toDeliveryColumn } from '@/lib/classMode'
+import { recordAudit } from '@/lib/audit'
 
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371000
@@ -95,16 +97,69 @@ export async function POST(req: NextRequest) {
     }
   }
 
+  let attendanceRecorded = Boolean(existing)
+
   if (!existing) {
-    await sb.from('class_signins').insert({
+    const { error } = await sb.from('class_signins').insert({
       batch_id: batchId, enrollment_id: match.id,
       student_name: match.full_name, phone: match.phone, session_date: today,
     })
+    if (error) {
+      // Telling a student "you're signed in" when nothing was written is how
+      // a register ends up short and nobody knows why. It is reported, not
+      // assumed: the class still opens for them, but the gap is visible.
+      console.error('[signin] attendance not recorded for', match.id, error.message)
+      await recordAudit({
+        action: 'attendance.signin_failed',
+        resource: 'class_signins',
+        resourceId: match.id,
+        success: false,
+        metadata: { batchId, studentName: match.full_name, error: error.message },
+      })
+    } else {
+      attendanceRecorded = true
+    }
   }
 
-  // If an in-person student switched to online, flip their delivery
+  /*
+   * A student who registered for in-person but is joining online.
+   *
+   * This write was fire-and-forget — `.then(() => {}, () => {})` — and it is
+   * the field the admission letter is chosen from. When it failed silently the
+   * student attended online while their application still read in_person, and
+   * they were posted a physical-class admission letter. That is one of the
+   * reported symptoms, and it needed no database fault to happen: nothing
+   * anywhere checked whether this write landed.
+   *
+   * The mode goes through toDeliveryColumn so the canonical vocabulary in
+   * lib/classMode.ts is the only thing that can be written here, rather than
+   * a string literal that has to stay in step with it by hand.
+   */
+  let deliveryUpdated = registeredOnline
   if (mode === 'online' && !registeredOnline && match.application_id) {
-    await sb.from('applications').update({ delivery: 'online' }).eq('id', match.application_id).then(() => {}, () => {})
+    const { data: flipped, error } = await sb.from('applications')
+      .update({ delivery: toDeliveryColumn('online') })
+      .eq('id', match.application_id)
+      .select('id').maybeSingle()
+
+    if (error || !flipped) {
+      console.error('[signin] could not switch application to online:',
+        match.application_id, error?.message ?? 'no row updated')
+      await recordAudit({
+        action: 'class_mode.switch_failed',
+        resource: 'applications',
+        resourceId: match.application_id,
+        success: false,
+        metadata: {
+          batchId, studentName: match.full_name,
+          intended: 'online',
+          error: error?.message ?? 'no row updated',
+          consequence: 'their admission letter will still be the in-person one',
+        },
+      })
+    } else {
+      deliveryUpdated = true
+    }
   }
 
   const balance = Number(match.balance ?? ((match.total_fee || 0) - (match.amount_paid || 0))) || 0
@@ -122,6 +177,10 @@ export async function POST(req: NextRequest) {
   return NextResponse.json({
     success: true,
     mode,
+    // Honest about what actually landed, so the desk is not told a register
+    // entry exists when it does not.
+    attendanceRecorded,
+    deliveryUpdated,
     materials,
     switched: mode === 'online' && !registeredOnline,
     zoomLink: mode === 'online' ? (batch?.zoom_link || null) : null,

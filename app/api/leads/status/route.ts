@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { recordAudit } from '@/lib/audit'
 import { verifySession } from '@/lib/auth/pin'
 
 /**
@@ -113,14 +114,43 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  // ── Apply the status change (all paths) ──
-  await sb.from('leads').update({ status }).eq('id', leadId)
+  /*
+   * Apply the status change.
+   *
+   * This was written and never checked, so a refused or failed update still
+   * returned `success: true`. The marketer's screen moved the lead to its new
+   * column, and the next load quietly moved it back — with points and a GHS
+   * 200 credit already awarded above for a registration the lead record does
+   * not reflect.
+   */
+  const { data: updated, error: statusErr } = await sb.from('leads')
+    .update({ status }).eq('id', leadId).select('id').maybeSingle()
+
+  if (statusErr || !updated) {
+    console.error('[leads/status] status not applied:', leadId,
+      statusErr?.message ?? 'no row updated')
+    await recordAudit({
+      actorId: session.userId, action: 'leads.status_not_applied',
+      resource: 'leads', resourceId: leadId, success: false,
+      metadata: {
+        from: lead.status, to: status, credited: becomingRegistered,
+        error: statusErr?.message ?? 'no row updated',
+      },
+    })
+    return NextResponse.json({
+      error: 'The lead status could not be updated. Please try again.',
+      credited: becomingRegistered,
+    }, { status: 500 })
+  }
 
   // Log status transitions other than registration (already logged above)
   if (!becomingRegistered && status !== lead.status) {
-    await sb.from('lead_status_logs').insert({
+    const { error } = await sb.from('lead_status_logs').insert({
       lead_id: leadId, from_status: lead.status, to_status: status, changed_by: session.userId,
-    }).then(() => {}, () => {})
+    })
+    // The status has moved; a missing history row is not worth failing the
+    // request over, but it must leave a trace rather than vanishing.
+    if (error) console.error('[leads/status] history not written:', error.message)
   }
 
   return NextResponse.json({ success: true, status, credited: becomingRegistered })

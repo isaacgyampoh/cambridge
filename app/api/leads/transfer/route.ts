@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { recordAudit } from '@/lib/audit'
 import { verifySession } from '@/lib/auth/pin'
 
 /**
@@ -99,28 +100,98 @@ export async function POST(req: NextRequest) {
     const { data: tr } = await sb.from('lead_transfer_requests').select('*').eq('id', requestId).maybeSingle()
     if (!tr || tr.status !== 'pending') return NextResponse.json({ error: 'Request not found or already decided' }, { status: 400 })
 
-    await sb.from('lead_transfer_requests').update({
-      status: body.action === 'approve' ? 'approved' : 'declined',
-      decided_by: session.userId, decided_at: new Date().toISOString(), decision_note: note || null,
-    }).eq('id', requestId)
+    const approving = body.action === 'approve'
 
-    if (body.action === 'approve') {
-      // Reassign the lead to the requester + log it
-      await sb.from('leads').update({ assigned_to: tr.requested_by }).eq('id', tr.lead_id)
-      await sb.from('lead_activities').insert({
+    /*
+     * Decide the request first, and only once.
+     *
+     * The update carried no condition and its result was never read, so two
+     * managers on the same screen — or one double-click — both moved past this
+     * point and both went on to reassign the lead. Matching on 'pending' and
+     * asking which row came back means exactly one caller proceeds.
+     */
+    const { data: decided, error: decideErr } = await sb.from('lead_transfer_requests')
+      .update({
+        status: approving ? 'approved' : 'declined',
+        decided_by: session.userId, decided_at: new Date().toISOString(),
+        decision_note: note || null,
+      })
+      .eq('id', requestId).eq('status', 'pending')
+      .select('id').maybeSingle()
+
+    if (decideErr) {
+      console.error('[transfer] could not decide request:', decideErr.message)
+      return NextResponse.json({ error: 'Could not record that decision.' }, { status: 500 })
+    }
+    if (!decided) {
+      return NextResponse.json(
+        { error: 'Someone else has already decided this request.' }, { status: 409 }
+      )
+    }
+
+    if (approving) {
+      /*
+       * Move the lead through assign_lead_to, not a bare UPDATE.
+       *
+       * The old code wrote leads.assigned_to directly and never checked the
+       * result. When it failed, the request still read "approved" and the
+       * requester was still told "the lead is now assigned to you" — while the
+       * lead sat with its previous owner. That is precisely the reported
+       * symptom that some staff receive leads and some do not.
+       *
+       * The RPC takes the row lock, writes the lead_assignments history the
+       * bare UPDATE skipped entirely, and reports whether it actually moved.
+       * p_force is true because an approved transfer is a deliberate override
+       * of an existing owner — that is what a transfer IS.
+       */
+      const { data: moved, error: assignErr } = await sb.rpc('assign_lead_to', {
+        p_lead_id: tr.lead_id, p_marketer: tr.requested_by, p_actor: session.userId,
+        p_reason: 'transfer', p_source: requestId, p_force: true,
+      })
+
+      if (assignErr || !moved) {
+        // The decision stands but the lead did not move. Say so, rather than
+        // congratulating the requester on a lead they do not have.
+        console.error('[transfer] approved but lead did not move:',
+          tr.lead_id, assignErr?.message ?? 'assign_lead_to returned false')
+        await recordAudit({
+          actorId: session.userId, action: 'leads.transfer_not_applied',
+          resource: 'leads', resourceId: tr.lead_id, success: false,
+          metadata: {
+            requestId, to: tr.requested_by,
+            error: assignErr?.message ?? 'assign_lead_to returned false',
+          },
+        })
+        return NextResponse.json({
+          error: 'The request was approved but the lead could not be reassigned. ' +
+                 'It still belongs to its current owner — please try again or raise this with support.',
+        }, { status: 500 })
+      }
+
+      const { error: actErr } = await sb.from('lead_activities').insert({
         lead_id: tr.lead_id, type: 'transfer',
         note: `Lead ownership transferred${note ? `: ${note}` : '.'}`,
         created_by: session.userId,
-      }).then(() => {}, () => {})
+      })
+      // The lead has moved; a missing activity note is not worth failing the
+      // request over, but it must not disappear without trace either.
+      if (actErr) console.error('[transfer] activity note not written:', actErr.message)
+
+      await recordAudit({
+        actorId: session.userId, action: 'leads.transfer_approved',
+        resource: 'leads', resourceId: tr.lead_id, success: true,
+        metadata: { requestId, to: tr.requested_by },
+      })
     }
 
-    // Notify the requester of the outcome
-    await sb.from('notifications').insert({
+    // Tell the requester the outcome — now that it is actually the outcome.
+    const { error: noteErr } = await sb.from('notifications').insert({
       user_id: tr.requested_by, type: 'transfer',
-      title: `Transfer ${body.action === 'approve' ? 'approved' : 'declined'}`,
-      body: body.action === 'approve' ? 'The lead is now assigned to you.' : 'Your transfer request was declined.',
+      title: `Transfer ${approving ? 'approved' : 'declined'}`,
+      body: approving ? 'The lead is now assigned to you.' : 'Your transfer request was declined.',
       link: '/marketer',
-    }).then(() => {}, () => {})
+    })
+    if (noteErr) console.error('[transfer] requester not notified:', noteErr.message)
 
     return NextResponse.json({ success: true })
   }

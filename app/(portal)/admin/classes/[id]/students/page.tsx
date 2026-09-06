@@ -272,8 +272,20 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
             method: 'POST', headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ batchId }),
           }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-          if (d.error) toast.error(d.error)
-          else toast.success(`${d.issued} certificate${d.issued === 1 ? '' : 's'} issued${d.skipped ? `. ${d.skipped} skipped (fees outstanding)` : ''}.`)
+          if (d.error) { toast.error(d.error); return }
+          const parts = [`${d.issued} certificate${d.issued === 1 ? '' : 's'} issued`]
+          if (d.skipped) parts.push(`${d.skipped} skipped (fees outstanding)`)
+          // A batch that half worked says so. Reporting only the successes is
+          // how a student ends up with a certificate nobody can find.
+          if (d.failed) {
+            toast.error(
+              `${parts.join('. ')}. ${d.failed} could not be recorded: ` +
+              `${(d.failedNames || []).map((f: { name: string }) => f.name).join(', ')}. ` +
+              `Please try those again.`
+            )
+          } else {
+            toast.success(`${parts.join('. ')}.`)
+          }
         }}
           className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition mr-2">
           Issue certificates
