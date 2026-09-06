@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, useCallback } from 'react'
+import { toast } from 'sonner'
 
 interface UseDataOptions {
   table: string
@@ -15,6 +16,11 @@ interface UseDataResult<T> {
   data: T[]
   loading: boolean
   error: string | null
+  /**
+   * The three outcomes as one value, so it can be handed straight to DataTable
+   * or ErrorState without each page re-deriving it from `loading` and `error`.
+   */
+  state: 'loading' | 'ready' | 'error'
   refetch: () => void
 }
 
@@ -37,12 +43,37 @@ export function useData<T = any>(opts: UseDataOptions): UseDataResult<T> {
         ...(opts.filters?.length ? { filters: JSON.stringify(opts.filters) } : {}),
       })
       const res = await window.fetch(`/api/data?${params}`)
-      const json = await res.json()
-      if (!res.ok) { setError(json.error || 'Failed'); setData([]) }
-      else setData(json.data || [])
-    } catch (e: any) {
-      setError(e.message)
+      const json = await res.json().catch(() => ({}))
+
+      if (!res.ok) {
+        /*
+         * Say something, always.
+         *
+         * Thirty-seven screens call this hook and not one of them read the
+         * `error` it returns, so a failed load left a blank panel and no
+         * explanation — indistinguishable from "there is nothing here". A
+         * permissions refusal in particular looked exactly like an empty list.
+         *
+         * The toast is the floor, not the ceiling: a screen that renders
+         * `state` gets a proper error panel with a retry as well.
+         */
+        const message = res.status === 403
+          ? 'You do not have access to this information.'
+          : res.status === 401
+            ? 'Your session has expired. Please sign in again.'
+            : json.error || 'That did not load. Please try again.'
+
+        setError(message)
+        setData([])
+        toast.error(message, { id: `useData:${opts.table}` })
+      } else {
+        setData(json.data || [])
+      }
+    } catch (e) {
+      const message = 'Could not reach the server. Check your connection.'
+      setError(message)
       setData([])
+      toast.error(message, { id: `useData:${opts.table}` })
     } finally {
       setLoading(false)
     }
@@ -50,7 +81,10 @@ export function useData<T = any>(opts: UseDataOptions): UseDataResult<T> {
 
   useEffect(() => { fetch_() }, [fetch_])
 
-  return { data, loading, error, refetch: fetch_ }
+  const state: 'loading' | 'ready' | 'error' =
+    loading ? 'loading' : error ? 'error' : 'ready'
+
+  return { data, loading, error, state, refetch: fetch_ }
 }
 
 // Mutation helper

@@ -42,7 +42,7 @@ export default function AttendanceDashboard() {
     limit: 100,
   })
 
-  const { data: signins, refetch: refetchSignins } = useData<any>({
+  const { data: signins, state: signinsState, refetch: refetchSignins } = useData<any>({
     table: 'class_signins',
     select: '*, marketer:marketer_id(full_name)',
     filters: selected ? [{ col: 'session_id', op: 'eq', val: selected.id }] : [],
@@ -353,6 +353,8 @@ export default function AttendanceDashboard() {
 
                 <DataTable<SignIn>
                   caption="Class sign-ins"
+                  state={signinsState}
+                  onRetry={refetchSignins}
                   rows={signins}
                   rowKey={x => x.id}
                   columns={signinColumns}

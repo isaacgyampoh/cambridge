@@ -25,7 +25,7 @@ export default function PMAssign() {
   const [assigning, setAssigning] = useState<string|null>(null)
   const [search, setSearch] = useState('')
 
-  const { data: leads, loading, refetch } = useData({
+  const { data: leads, loading, state, refetch } = useData({
     table: 'leads',
     select: '*, assignee:assigned_to(full_name, email)',
     orderBy: 'created_at', limit: 300,
@@ -227,6 +227,8 @@ export default function PMAssign() {
           <div className="overflow-x-auto">
             <DataTable<Lead>
               caption="Leads awaiting assignment"
+              state={state}
+              onRetry={refetch}
               rows={filtered}
               rowKey={l => l.id}
               columns={leadColumns}
