@@ -6,8 +6,7 @@ import { setRecoveryPin } from '@/lib/auth/recovery'
 import { randomInt } from 'crypto'
 import { recordAudit } from '@/lib/audit'
 import { CONFIG } from '@/lib/config'
-import { SECRETS } from '@/lib/config.server'
-import { timingSafeEqual } from 'crypto'
+import { describeSetupAuth } from '@/lib/auth/guard'
 
 export const runtime = 'nodejs'
 
@@ -26,17 +25,61 @@ export const runtime = 'nodejs'
  * the response to the caller who already proved they hold the setup secret.
  */
 export async function GET(req: NextRequest) {
-  const supplied = new URL(req.url).searchParams.get('secret') || ''
-  const expected = SECRETS.setupSecret
+  /*
+   * Authorisation, via the shared setup guard.
+   *
+   * This route previously compared the secret itself, reading ONLY
+   * `?secret=` from the query string. That is the narrowest of the three
+   * places lib/auth/guard.ts already accepts, and the one that mangles the
+   * value: a query string is URL-decoded before the server sees it, so a
+   * secret containing '+' arrives with a space in its place, '&' truncates
+   * the parameter, and '%' begins an escape sequence. A base64 secret with a
+   * '+' in it could therefore never authenticate, and the response — a bare
+   * "Not authorised." — gave no way to tell that from a wrong secret.
+   */
+  const attempt = describeSetupAuth(req)
 
-  const a = Buffer.from(supplied)
-  const b = Buffer.from(expected)
-  if (a.length !== b.length || !timingSafeEqual(a, b)) {
+  if (!attempt.ok) {
+    /*
+     * Enough to diagnose, nothing to disclose.
+     *
+     * `lengthMatch` is one bit and it is the decisive one: a value mangled in
+     * transit or carrying a stray newline changes length, a genuinely wrong
+     * secret usually does not. The secret, and anything derived from it, is
+     * never logged.
+     */
+    console.error('[first-run] denied.',
+      'SETUP_SECRET configured:', attempt.configured,
+      '| secret read from:', attempt.where,
+      '| same length as expected:', attempt.lengthMatch,
+      attempt.where === 'query:secret'
+        ? '| NOTE: a query string is URL-decoded — "+" becomes a space. Send it as an Authorization: Bearer header instead.'
+        : '')
+
     await recordAudit({
       action: 'setup.first_run_denied', resource: 'profiles', success: false, request: req,
+      metadata: {
+        secretConfigured: attempt.configured,
+        suppliedVia: attempt.where,
+        lengthMatch: attempt.lengthMatch,
+      },
     })
-    return NextResponse.json({ error: 'Not authorised.' }, { status: 401 })
+
+    return NextResponse.json({
+      error: 'Not authorised.',
+      // Safe to return: says whether the SERVER is configured, and where it
+      // looked. Neither depends on the secret's value.
+      setupSecretConfigured: attempt.configured,
+      suppliedVia: attempt.where,
+      hint: !attempt.configured
+        ? 'SETUP_SECRET is not set in this deployment. Add it in Vercel and redeploy.'
+        : attempt.where === 'none'
+          ? 'No secret was supplied. Send it as an Authorization: Bearer header, or as ?secret=.'
+          : 'The secret did not match. If it contains + & or %, send it as an Authorization: Bearer header — a query string decodes those characters before the server sees them.',
+    }, { status: 401 })
   }
+
+  console.info('[first-run] authorised. Secret read from:', attempt.where)
 
   const sb = createServiceClient()
   /*
