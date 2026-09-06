@@ -68,18 +68,21 @@ export function mailtoHref(email: string | null | undefined, subject?: string): 
 }
 
 /**
- * Mask an address for display: i****c@cambridge.edu.gh
+ * Mask an address for display: i•••••@cambridge.edu.gh
  *
- * Shown on the OTP screen to confirm WHERE the code went without publishing
- * the address to whoever is looking at the screen — which matters when the
- * only thing standing between an attacker and an account is that code.
+ * Shown on the OTP screen to confirm WHICH mailbox the code went to, without
+ * publishing the address to whoever is looking at the screen — which matters
+ * when that code is the only thing standing between an attacker and an
+ * account.
+ *
+ * The mask is a FIXED width rather than one character per hidden letter. A
+ * variable-length mask tells an observer exactly how long the username is,
+ * which is a free hint towards guessing it, and confirming the mailbox does
+ * not require giving that away.
  */
 export function maskEmail(email: string | null | undefined): string {
   const value = String(email || '').trim()
   const at = value.lastIndexOf('@')
   if (at < 1) return 'your corporate email'
-  const name = value.slice(0, at)
-  const domain = value.slice(at)
-  if (name.length <= 2) return `${name[0]}${'*'.repeat(3)}${domain}`
-  return `${name[0]}${'*'.repeat(Math.min(name.length - 2, 6))}${name[name.length - 1]}${domain}`
+  return `${value[0]}${'•'.repeat(5)}${value.slice(at)}`
 }

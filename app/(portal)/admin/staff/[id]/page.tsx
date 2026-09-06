@@ -1,7 +1,8 @@
 'use client'
 import { useState, useEffect, use } from 'react'
 import { useRouter } from 'next/navigation'
-import { ALL_PORTALS } from '@/components/shared/PortalLayout'
+import { portalOption } from '@/lib/nav/model'
+import { NAV_ICONS } from '@/components/shared/navIcons'
 import { toast } from 'sonner'
 import { ArrowLeft, Save, Shield } from 'lucide-react'
 import Link from 'next/link'
@@ -158,7 +159,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
       {/* Portal groups */}
       <div className="space-y-4 mb-5">
         {groups.map(group => {
-          const portalsInGroup = group.ids.map(id => ALL_PORTALS.find(p => p.id === id)).filter(Boolean)
+          const portalsInGroup = group.ids.map(portalOption).filter(Boolean)
           return (
             <div key={group.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
               <div className="px-4 py-3 border-b border-[var(--line-soft)] bg-[var(--line-soft)]">
@@ -166,7 +167,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
               </div>
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
                 {portalsInGroup.map((portal: any) => {
-                  const Icon    = portal.icon
+                  const Icon    = NAV_ICONS[portal.icon as keyof typeof NAV_ICONS]
                   const on      = selected.has(portal.id)
                   const locked  = portal.id === 'dashboard'
                   return (

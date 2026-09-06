@@ -49,10 +49,43 @@ function LoginForm() {
   }
 
   function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p) {
+    // Arrow keys move between boxes, so a mistyped digit can be corrected
+    // without deleting everything after it.
+    if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); refs[i - 1].current?.focus(); return }
+    if (e.key === 'ArrowRight' && i < arr.length - 1) { e.preventDefault(); refs[i + 1].current?.focus(); return }
     if (e.key !== 'Backspace') return
     const next = [...arr]
     if (next[i]) { next[i] = ''; set(next) }
     else if (i > 0) { next[i - 1] = ''; set(next); refs[i - 1].current?.focus() }
+  }
+
+  /**
+   * Paste a whole code across the boxes.
+   *
+   * Almost nobody retypes a six-digit code they can copy out of an email, and
+   * without this the paste landed a single digit in one box — the last
+   * character, because each box takes only one. Digits are extracted rather
+   * than the string used as-is, so a code pasted as "123 456" or with a
+   * trailing newline still works.
+   */
+  function handlePaste(
+    e: React.ClipboardEvent, i: number, arr: string[],
+    set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p,
+    onFull?: (s: string) => void
+  ) {
+    const digits = e.clipboardData.getData('text').replace(/\D/g, '')
+    if (!digits) return
+    e.preventDefault()
+
+    const next = [...arr]
+    for (let k = 0; k < digits.length && i + k < arr.length; k++) next[i + k] = digits[k]
+    set(next)
+
+    const landed = Math.min(i + digits.length, arr.length - 1)
+    refs[landed].current?.focus()
+
+    const full = next.join('')
+    if (full.length === arr.length && !next.includes('') && onFull && !busy.current) onFull(full)
   }
 
   async function submitPin(pinStr: string) {
@@ -154,21 +187,31 @@ function LoginForm() {
   // it as <Boxes/> would make React remount the inputs on every keystroke
   // (losing focus and dropping fast input). Calling renderBoxes(...) inlines
   // the elements so the inputs stay mounted and auto-advance works.
-  const renderBoxes = (vals: string[], setVals: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) => (
-    <div className="flex gap-2.5 sm:gap-3 justify-center lg:justify-start">
+  const renderBoxes = (
+    vals: string[], setVals: React.Dispatch<React.SetStateAction<string[]>>,
+    refs: typeof p, onFull?: (s: string) => void, groupLabel = 'PIN'
+  ) => (
+    <div className="flex gap-2.5 sm:gap-3 justify-center lg:justify-start"
+      role="group" aria-label={groupLabel}>
       {vals.map((v, i) => (
         <input key={i} ref={refs[i]}
           type={showPin ? 'text' : 'password'}
+          // Each box is announced as what it is. Without this a screen reader
+          // reads four unlabelled password fields and gives no way to tell
+          // which one has focus.
+          aria-label={`${groupLabel}, digit ${i + 1} of ${vals.length}`}
           inputMode="numeric" maxLength={1} value={v} autoComplete="off"
           onChange={e => handleDigit(e.target.value, i, vals, setVals, refs, onFull)}
           onKeyDown={e => handleBksp(e, i, vals, setVals, refs)}
+          onPaste={e => handlePaste(e, i, vals, setVals, refs, onFull)}
+          onFocus={e => e.target.select()}
           style={{
             backgroundColor: v ? 'var(--accent)' : 'var(--paper)',
             borderColor: v ? 'var(--accent)' : 'var(--line)',
             color: v ? '#fff' : 'var(--ink)',
             transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
           }}
-          className="w-[clamp(56px,17vw,64px)] h-[clamp(62px,19vw,70px)] text-center text-[26px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm"
+          className="w-[clamp(56px,17vw,64px)] h-[clamp(62px,19vw,70px)] text-center text-[26px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
         />
       ))}
     </div>
@@ -308,7 +351,8 @@ function LoginForm() {
               )}
 
               {error && !loading && (
-                <div className="mt-6 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                <div role="alert"
+                  className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
                   {error}
                 </div>
               )}
@@ -329,16 +373,23 @@ function LoginForm() {
               <div className="flex gap-1.5 sm:gap-2 justify-center lg:justify-start">
                 {otp.map((v, i) => (
                   <input key={i} ref={o[i]}
-                    type="text" inputMode="numeric" maxLength={1} value={v} autoComplete="off"
+                    type="text" inputMode="numeric" maxLength={1} value={v}
+                    // The OS offers the code straight from the email or SMS on
+                    // the first box, so it never has to be read and retyped.
+                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                    aria-label={`Sign-in code, digit ${i + 1} of 6`}
+                    disabled={codeLeft <= 0}
                     onChange={e => handleDigit(e.target.value, i, otp, setOtp, o, submitOtp)}
                     onKeyDown={e => handleBksp(e, i, otp, setOtp, o)}
+                    onPaste={e => handlePaste(e, i, otp, setOtp, o, submitOtp)}
+                    onFocus={e => e.target.select()}
                     style={{
                       backgroundColor: v ? 'var(--accent)' : 'var(--paper)',
                       borderColor: v ? 'var(--accent)' : 'var(--line)',
                       color: v ? '#fff' : 'var(--ink)',
                       transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
                     }}
-                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[20px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm"
+                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[20px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
                   />
                 ))}
               </div>
@@ -350,8 +401,19 @@ function LoginForm() {
                 </div>
               )}
 
-              {error && !loading && (
-                <div className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
+              {/* An expired code is a different situation from a wrong one, and
+                  needs a different instruction. The boxes are disabled above,
+                  so this says why rather than leaving them mysteriously inert. */}
+              {codeLeft <= 0 && !loading && (
+                <div role="status"
+                  className="mt-6 px-4 py-3 bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-xl text-sm text-[var(--warn)]">
+                  That code has expired. Send a new one to carry on.
+                </div>
+              )}
+
+              {error && !loading && codeLeft > 0 && (
+                <div role="alert"
+                  className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
                   {error}
                 </div>
               )}
@@ -389,11 +451,11 @@ function LoginForm() {
               <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">New PIN</p>
-                  {renderBoxes(newPin, setNewPin, n)}
+                  {renderBoxes(newPin, setNewPin, n, undefined, 'New PIN')}
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">Confirm PIN</p>
-                  {renderBoxes(confPin, setConfPin, c, (full) => submitNewPin(full))}
+                  {renderBoxes(confPin, setConfPin, c, (full) => submitNewPin(full), 'Confirm PIN')}
                 </div>
               </div>
 

@@ -1,450 +1,331 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
-import { ROLE_HOME } from '@/lib/access/portals'
-import { groupNavItems } from '@/lib/access/navSections'
-import MobileTabBar from '@/components/shared/MobileTabBar'
-import { resolvePortals } from '@/lib/access/portals'
+import { useState, useEffect, useMemo, useCallback } from 'react'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
+import {
+  LogOut, Menu, X, ChevronDown, Search as SearchIcon, Shield, ArrowLeft,
+} from 'lucide-react'
+
+import { resolvePortals } from '@/lib/access/portals'
+import { navFor, tabsFor, type NavSection } from '@/lib/nav/model'
+import { ROLE_LABELS } from '@/lib/utils'
 import CommandPalette from '@/components/shared/CommandPalette'
 import NotificationBell from '@/components/shared/NotificationBell'
 import InstallButton from '@/components/shared/InstallButton'
-import {
-  LayoutDashboard, Users, UserCheck, DollarSign, BookOpen,
-  Bell, LogOut, Menu, X, GraduationCap, TrendingUp,
-  ClipboardList, Settings, Building2, ChevronRight,
-  Radio, CalendarCheck, FolderOpen, BarChart3, Search, Sparkles, MessageSquare, Trophy,
-  Shield, ArrowLeft, ChevronDown, UserPlus, Link2
-} from 'lucide-react'
+import { Avatar } from '@/components/ui'
+import { useRailPreference } from '@/hooks/useRailPreference'
+import { NAV_ICONS as ICONS } from '@/components/shared/navIcons'
 
-/* ── All portal modules ─────────────────────────────────────── */
-export const ALL_PORTALS = [
-  { id: 'dashboard',   label: 'Dashboard',    icon: LayoutDashboard, href: '/__home__' },
-  { id: 'insights',    label: 'Insights',     icon: BarChart3,       href: '/admin/insights' },
-  { id: 'leads',       label: 'CRM / Leads',  icon: TrendingUp,      href: '/admin/leads',
-    children: [
-      { label: 'All Leads',       href: '/admin/leads' },
-      { label: 'Leads by Course', href: '/admin/leads/courses' },
-      { label: 'Conversions',     href: '/admin/conversions' },
-      { label: 'Transfer Requests', href: '/admin/transfers' },
-      { label: 'Add Lead',        href: '/admin/leads/new' },
-      { label: 'Import Leads',    href: '/admin/leads/import' },
-    ]},
-  { id: 'my_leads',    label: 'My Leads',     icon: TrendingUp,      href: '/marketer/leads',
-    children: [
-      { label: 'My Leads',        href: '/marketer/leads' },
-      { label: 'Leads by Course', href: '/admin/leads/courses' },
-      { label: 'My Conversions',  href: '/admin/conversions' },
-      { label: 'Add a Lead',      href: '/marketer/leads/new' },
-      { label: 'Follow-ups',      href: '/marketer/activities' },
-    ]},
-  { id: 'my_link',     label: 'My Link',      icon: Radio,           href: '/marketer/link' },
-  { id: 'my_flyers',   label: 'My Flyers',    icon: Sparkles,        href: '/marketer/flyers' },
-  { id: 'reports',     label: 'Reports',      icon: ClipboardList,   href: '/reports' },
-  { id: 'my_attendance', label: 'Class Attendance', icon: Users,      href: '/marketer/attendance' },
-  { id: 'grp_automation', label: 'Automation', icon: Radio, href: '/pm/info-sessions', children: [
-    { label: 'Info Sessions',     href: '/pm/info-sessions',   roles: ['super_admin', 'project_manager'] },
-    { label: 'Class Reminders',   href: '/classes/reminders',  roles: ['super_admin', 'project_manager', 'accountant'] },
-    { label: 'Payment Reminders', href: '/finance/reminders',  roles: ['super_admin', 'accountant'] },
-  ]},
-  { id: 'pm_leads',    label: 'Lead Inbox',   icon: TrendingUp,      href: '/pm/assign',
-    children: [
-      { label: 'Lead Inbox', href: '/pm/assign' },
-      { label: 'Reports',    href: '/pm/reports' },
-      { label: 'Coordinator Activity', href: '/pm/prep-activity' },
-    ]},
-  { id: 'admissions',  label: 'Admissions',   icon: UserCheck,       href: '/admin/admissions',
-    children: [
-      { label: 'All Admissions', href: '/admin/admissions' },
-      { label: 'Applications',   href: '/admission/process' },
-    ]},
-  { id: 'finance',     label: 'Finance',      icon: DollarSign,      href: '/admin/finance',
-    children: [
-      { label: 'Payments', href: '/admin/finance' },
-      { label: 'Voucher requests', href: '/finance/vouchers' },
-      { label: 'Invoices', href: '/finance/invoices/new' },
-      { label: 'Reports',  href: '/finance/reports' },
-    ]},
-  { id: 'broadcast',   label: 'Broadcast & links', icon: Radio,      href: '/admin/broadcast' },
-  { id: 'attendance',  label: 'Attendance',   icon: CalendarCheck,   href: '/admin/attendance' },
-  { id: 'academics',   label: 'Academics',    icon: BookOpen,        href: '/admin/academics',
-    children: [
-      { label: 'Overview', href: '/admin/academics' },
-      { label: 'Courses', href: '/admin/courses' },
-      { label: 'Classes', href: '/admin/classes' },
-    ]},
-  { id: 'documents',   label: 'Documents',    icon: FolderOpen,      href: '/admin/documents' },
-  { id: 'marketers',   label: 'Marketers',    icon: BarChart3,       href: '/admin/marketers' },
-  { id: 'alumni',      label: 'Alumni',       icon: GraduationCap,   href: '/admin/alumni' },
-  { id: 'staff',       label: 'Staff',        icon: Users,           href: '/admin/staff',
-    children: [
-      { label: 'All Staff', href: '/admin/staff' },
-      { label: 'Reports',   href: '/admin/reports' },
-    ]},
-  { id: 'my_classes',  label: 'My Classes',   icon: BookOpen,        href: '/trainer/classes' },
-  { id: 'my_payments', label: 'My Payments',  icon: DollarSign,      href: '/student' },
-  { id: 'workforce',   label: 'Workforce',    icon: CalendarCheck,   href: '/admin/workforce' },
-  { id: 'wa_lines',    label: 'WhatsApp Lines', icon: Radio,         href: '/admin/whatsapp' },
-  { id: 'knowledge',   label: 'AI Knowledge', icon: Sparkles,         href: '/admin/knowledge' },
-  { id: 'conversations', label: 'AI Conversations', icon: MessageSquare, href: '/admin/conversations' },
-  { id: 'remuneration', label: 'Remuneration', icon: Trophy,          href: '/admin/remuneration' },
-  { id: 'grp_socials', label: 'Social Media', icon: Sparkles, href: '/content',
-    children: [
-      { label: 'Content Studio',      href: '/content' },
-      { label: 'Competitor Research', href: '/content/research' },
-      { label: 'Brand Kit',           href: '/content/brand' },
-    ]},
-  { id: 'clock_in',    label: 'Clock In',     icon: CalendarCheck,   href: '/clock-in' },
-  { id: 'messages',    label: 'Messages',     icon: MessageSquare,   href: '/messages' },
-  { id: 'my_links',    label: 'My Links',     icon: Link2,           href: '/links' },
-  { id: 'prep',        label: 'Exam Prep',    icon: ClipboardList,   href: '/coordinator',
-    children: [
-      { label: 'Prep Tracker',  href: '/coordinator' },
-      { label: 'Content bank',  href: '/coordinator/content' },
-      { label: 'Testimonials',  href: '/coordinator/testimonials' },
-    ]},
-  { id: 'settings',    label: 'Settings',     icon: Settings,        href: '/admin/settings',
-    children: [
-      { label: 'Settings',   href: '/admin/settings' },
-      { label: 'Automation', href: '/admin/automation' },
-      { label: 'Incoming WhatsApp', href: '/admin/webhook-log' },
-      { label: 'SMS Delivery', href: '/admin/sms-delivery' },
-    ]},
+/**
+ * The application shell.
+ *
+ * ── WHAT CHANGED, AND WHY ──────────────────────────────────────────────────
+ *
+ * Three things were wrong with the shell rather than with its styling.
+ *
+ * First, it carried its own navigation catalogue — ALL_PORTALS and
+ * NAV_BY_ROLE, several hundred lines of it — which had to agree with
+ * PORTAL_PATHS and did not. That catalogue now lives in lib/nav/model.ts and
+ * is filtered through the same predicate the proxy enforces, so this file
+ * renders navigation rather than deciding it.
+ *
+ * Second, the desktop sidebar was hidden by default and opened as an overlay
+ * that closed again on every navigation. The effect was a desktop application
+ * with no standing navigation at all: every move between screens cost a click
+ * to open the menu, a scan, and a click to choose. A sidebar that is always
+ * there — and can be narrowed to an icon rail when the workspace matters more
+ * — is what makes a product feel like a place you are working rather than a
+ * series of pages you are visiting.
+ *
+ * Third, the breadcrumb was assembled from URL segments, so a lead detail page
+ * announced itself as "Admin / Leads / 4f3c8a91-…". The title now comes from
+ * the navigation model, which knows what each destination is called.
+ */
 
-  // ── Category groups (used by super_admin for a tidy, organised sidebar) ──
-  { id: 'grp_growth', label: 'Growth', icon: TrendingUp, href: '/admin/leads', children: [
-    { label: 'All Leads',       href: '/admin/leads' },
-    { label: 'Leads by Course', href: '/admin/leads/courses' },
-    { label: 'Conversions',     href: '/admin/conversions' },
-    { label: 'Referrals',       href: '/admin/referrals' },
-    { label: 'Transfer Requests', href: '/admin/transfers' },
-    { label: 'Add Lead',        href: '/admin/leads/new' },
-    { label: 'Import',          href: '/admin/leads/import' },
-    { label: 'Marketers',       href: '/admin/marketers' },
-    { label: 'Remuneration',    href: '/admin/remuneration' },
-  ]},
-  { id: 'grp_enrolment', label: 'Enrolment', icon: UserCheck, href: '/admin/admissions', children: [
-    { label: 'Admissions',       href: '/admin/admissions' },
-    { label: 'Student Records',  href: '/admin/registrations' },
-  ]},
-  { id: 'grp_finance', label: 'Finance', icon: DollarSign, href: '/finance', children: [
-    { label: 'Payments & Invoices', href: '/finance' },
-    { label: 'Student Fees',        href: '/finance/student-fees' },
-    { label: 'Voucher Requests',    href: '/finance/vouchers' },
-    { label: 'Class Payments',      href: '/finance/class-payments' },
-    { label: 'Registrations',       href: '/finance/registrations' },
-    { label: 'Reports',             href: '/finance/reports' },
-  ]},
-  { id: 'grp_academics', label: 'Academics', icon: BookOpen, href: '/admin/academics', children: [
-    { label: 'Overview',     href: '/admin/academics' },
-    { label: 'Courses',      href: '/admin/courses' },
-    { label: 'Classes',      href: '/admin/classes' },
-    { label: 'Attendance',   href: '/admin/attendance' },
-    { label: 'Certificates', href: '/admin/certificates' },
-    { label: 'Exam Prep',    href: '/coordinator' },
-    { label: 'Content bank', href: '/coordinator/content' },
-    { label: 'Testimonials', href: '/coordinator/testimonials' },
-    { label: 'Alumni',       href: '/admin/alumni' },
-  ]},
-  { id: 'grp_messaging', label: 'Messaging & AI', icon: MessageSquare, href: '/admin/broadcast', children: [
-    { label: 'Broadcast & links', href: '/admin/broadcast' },
-    { label: 'Follow-up Sequences', href: '/admin/sequences' },
-    { label: 'WhatsApp Lines',   href: '/admin/whatsapp' },
-    { label: 'AI Knowledge',     href: '/admin/knowledge' },
-    { label: 'AI Conversations', href: '/admin/conversations' },
-  ]},
-  { id: 'grp_team', label: 'Team', icon: Users, href: '/admin/staff', children: [
-    { label: 'Staff',     href: '/admin/staff' },
-    { label: 'Workforce', href: '/admin/workforce' },
-    { label: 'Clock In',  href: '/clock-in' },
-  ]},
-  { id: 'grp_content', label: 'Content & System', icon: FolderOpen, href: '/admin/documents', children: [
-    { label: 'Documents', href: '/admin/documents' },
-    { label: 'Settings',  href: '/admin/settings' },
-  ]},
-]
-
-// Sidebar nav uses its own role->nav map because super_admin's sidebar is
-// organised into visual GROUPS (grp_*), while access control uses flat
-// portal ids. ROLE_HOME and the access rules come from the shared module.
-const NAV_BY_ROLE: Record<string, string[]> = {
-  super_admin:       ['dashboard','insights','reports','messages','grp_automation','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content','grp_socials'],
-  // An administrator was missing here entirely, so they fell through to a
-  // default menu and saw the wrong sections.
-  administrator:     ['dashboard','insights','reports','messages','grp_automation','grp_growth','grp_enrolment','grp_finance','grp_academics','grp_messaging','grp_team','grp_content','grp_socials'],
-  project_manager:   ['dashboard','reports','documents','grp_automation','pm_leads','leads','my_leads','my_earnings','admissions','academics','my_links','clock_in','messages'],
-  marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','reports','my_attendance','clock_in','messages'],
-  admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
-  accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
-  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','documents','my_links','clock_in','messages'],
-  exam_coordinator:  ['documents','prep','my_leads','my_earnings','my_links','clock_in','messages'],
-  content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
-  student:           ['dashboard','my_payments'],
+type Profile = {
+  id: string
+  full_name: string
+  role: string
+  email?: string
+  phone?: string
+  portals?: string[] | null
 }
 
-const ROLE_LABEL: Record<string, string> = {
-  super_admin:'Super Admin', project_manager:'Project Manager',
-  marketing_officer:'Marketing Officer', content_manager:'Content Manager', admissions_officer:'Admissions Officer',
-  accountant:'Accountant', receptionist:'Receptionist',
-  trainer:'Trainer', student:'Student',
+/** `/admin/leads` is active on `/admin/leads/123`, but not on `/admin/leadsx`. */
+function isActive(pathname: string, href: string): boolean {
+  return pathname === href || (href.length > 1 && pathname.startsWith(href + '/'))
 }
-
-
-function getNavItems(profile: any) {
-  // If access was chosen explicitly for this person, show exactly that — it is
-  // not merged with role defaults, or access could never be taken away. Role
-  // defaults apply only when nothing has been chosen.
-  const saved: string[] = profile?.portals?.length ? profile.portals : []
-  const ids: string[] = saved.length
-    ? Array.from(new Set(['dashboard', ...saved]))
-    : (NAV_BY_ROLE[profile?.role] || ['dashboard'])
-
-  return ids.map(id => {
-    const p = ALL_PORTALS.find(x => x.id === id)
-    if (!p) return null
-    const href = p.href === '/__home__' ? (ROLE_HOME[profile?.role] || '/admin') : p.href
-    // Filter any role-restricted children (e.g. Automation sub-items differ by
-    // department: Finance sees Payment Reminders, PM sees Info Sessions, etc.)
-    if ((p as any).children) {
-      const kids = (p as any).children.filter((c: any) => !c.roles || c.roles.includes(profile?.role))
-      if (kids.length === 0) return null           // no visible children -> hide the whole group
-      // Point the group's own href at the first child this role can actually open
-      return { ...p, href: kids[0].href, children: kids }
-    }
-    return { ...p, href }
-  }).filter(Boolean) as typeof ALL_PORTALS
-}
-
-const W_FULL = 256
 
 export default function PortalLayout({ children }: { children: React.ReactNode }) {
-  const router   = useRouter()
+  const router = useRouter()
   const pathname = usePathname()
 
-  const [profile,    setProfile]    = useState<any>(null)
-  const [loading,    setLoading]    = useState(true)
-  const [mobileOpen, setMobileOpen] = useState(false)
-  const [collapsed,  setCollapsed]  = useState(true)   // desktop: hidden by default for a full-width workspace
+  const [profile, setProfile] = useState<Profile | null>(null)
+  const [loading, setLoading] = useState(true)
+  /* Held as the path they were opened on, so navigating closes them without
+     an effect that re-renders the shell on every route change. */
+  const [drawerPath, setDrawerPath] = useState<string | null>(null)
+  /** A group the user expanded, remembered with the page it was expanded on
+      so it does not stay open after they navigate somewhere else. */
+  const [picked, setPicked] = useState<{ path: string; id: string } | null>(null)
+  const [menuPath, setMenuPath] = useState<string | null>(null)
 
-  // Auto-close the desktop sidebar whenever the route changes, so it pops up,
-  // you pick a page, and it gets out of your way — full-width workspace.
-  useEffect(() => { setCollapsed(true); setMobileOpen(false) }, [pathname])
-  const [openGroup,  setOpenGroup]  = useState<string | null>(null)
-  const [courses,    setCourses]    = useState<any[]>([])
+  /* ── session ─────────────────────────────────────────────────────────── */
 
-  // The portal manages its own scroll inside <main>; lock the document
-  // height only while the portal is mounted. Public pages scroll normally.
   useEffect(() => {
     document.documentElement.classList.add('app-shell')
     return () => document.documentElement.classList.remove('app-shell')
   }, [])
 
   useEffect(() => {
-    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => {
-      if (!s?.valid) { router.replace('/login'); return }
-      setProfile({ id: s.userId, full_name: s.fullName, role: s.role, email: s.email, phone: s.phone, portals: s.portals })
-      setLoading(false)
-    }).catch(() => router.replace('/login'))
-    // Re-read on navigation too: if someone's access is changed while they are
-    // signed in, they should see it without being told to log out and back in.
-  }, [pathname])
+    let alive = true
+    fetch('/api/auth/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then(s => {
+        if (!alive) return
+        if (!s?.valid) { router.replace('/login'); return }
+        setProfile({
+          id: s.userId, full_name: s.fullName, role: s.role,
+          email: s.email, phone: s.phone, portals: s.portals,
+        })
+        setLoading(false)
+      })
+      .catch(() => { if (alive) router.replace('/login') })
+    return () => { alive = false }
+    // Re-read on navigation: access changed while someone is signed in should
+    // take effect without making them log out and back in.
+  }, [pathname, router])
 
-  useEffect(() => { setMobileOpen(false) }, [pathname])
+  /* The sidebar width is a stored preference; see hooks/useRailPreference. */
+  const [railed, toggleRail] = useRailPreference()
 
-  // Load active courses to build per-course lead nav entries (admin/PM/marketer)
-  useEffect(() => {
-    if (!profile) return
-    if (!['super_admin', 'project_manager', 'marketing_officer'].includes(profile.role)) return
-    const params = new URLSearchParams({
-      table: 'courses', select: 'id, name, code, is_active',
-      filters: JSON.stringify([{ col: 'is_active', op: 'eq', val: true }]),
-      orderBy: 'name', orderAsc: 'true', limit: '100',
-    })
-    fetch(`/api/data?${params}`).then(r => r.ok ? r.json() : { data: [] })
-      .then(d => setCourses(d.data || [])).catch(() => {})
-  }, [profile])
+  /* ── navigation ──────────────────────────────────────────────────────── */
 
-  // Auto-open the group containing the current page
-  useEffect(() => {
-    if (!profile) return
-    const items = getNavItems(profile)
-    for (const item of items) {
-      if (item.children?.some((c: any) => pathname === c.href || pathname.startsWith(c.href + '/'))) {
-        setOpenGroup(item.id); return
+  const portals = useMemo(
+    () => resolvePortals(profile?.role, profile?.portals ?? null),
+    [profile?.role, profile?.portals]
+  )
+  const sections: NavSection[] = useMemo(
+    () => (profile ? navFor(profile.role, portals) : []),
+    [profile, portals]
+  )
+  const tabs = useMemo(
+    () => (profile ? tabsFor(profile.role, portals) : []),
+    [profile, portals]
+  )
+
+  /*
+   * Which group is expanded.
+   *
+   * Derived from the current page rather than stored and re-synchronised by an
+   * effect: the sidebar should show where you are, and an effect that writes
+   * that back into state renders the whole shell twice on every navigation.
+   * A group the user opens themselves takes precedence until they navigate.
+   */
+  const openGroup = useMemo(() => {
+    if (picked && picked.path === pathname) return picked.id || null
+    for (const section of sections) {
+      for (const item of section.items) {
+        if (item.children?.some(c => isActive(pathname, c.href))) return item.id
       }
     }
-  }, [pathname, profile?.id])
+    return null
+  }, [picked, pathname, sections])
 
-  async function logout() {
+  const drawerOpen = drawerPath === pathname
+  const profileMenu = menuPath === pathname
+
+  /**
+   * What this page is called.
+   *
+   * Taken from the navigation model rather than from URL segments, so a lead
+   * detail page is "Leads" and not "Admin / Leads / 4f3c8a91-…".
+   */
+  const pageTitle = useMemo(() => {
+    let best = ''
+    let bestLength = -1
+    for (const section of sections) {
+      for (const item of section.items) {
+        for (const dest of item.children?.length ? item.children : [{ label: item.label, href: item.href }]) {
+          if (isActive(pathname, dest.href) && dest.href.length > bestLength) {
+            best = dest.label
+            bestLength = dest.href.length
+          }
+        }
+      }
+    }
+    return best
+  }, [pathname, sections])
+
+  const canGoBack = pathname.split('/').filter(Boolean).length > 2
+
+  const logout = useCallback(async () => {
     await fetch('/api/auth/logout', { method: 'POST' })
     router.replace('/login')
+  }, [router])
+
+  if (loading) {
+    return (
+      <div className="fixed inset-0 grid place-items-center" style={{ background: 'var(--canvas)' }}>
+        <div className="text-center">
+          <div className="w-7 h-7 border-2 border-[var(--accent)] border-t-transparent rounded-full spin mx-auto mb-3" />
+          <p className="text-[var(--ink-faint)] text-sm">Loading…</p>
+        </div>
+      </div>
+    )
   }
 
-  if (loading) return (
-    <div className="fixed inset-0 flex items-center justify-center" style={{ background: 'var(--canvas)' }}>
-      <div className="text-center">
-        <div className="w-7 h-7 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin mx-auto mb-3" />
-        <p className="text-[var(--ink-faint)] text-sm">Loading…</p>
-      </div>
-    </div>
-  )
+  const roleLabel = ROLE_LABELS[profile?.role || ''] || profile?.role || ''
 
-  const baseNavItems = profile ? getNavItems(profile) : []
+  /* ── sidebar contents ────────────────────────────────────────────────── */
 
-  // Inject a "Leads by Course" group — one child per active course
-  const navItems = (() => {
-    if (!profile || !['super_admin', 'project_manager', 'marketing_officer'].includes(profile.role) || courses.length === 0) return baseNavItems
-    const courseGroup: any = {
-      id: 'leads_by_course', label: 'Leads by Course', icon: GraduationCap, href: '#',
-      children: courses.map((c: any) => ({
-        label: c.name,
-        href: `/admin/leads/course/${encodeURIComponent(c.code || c.name)}`,
-      })),
-    }
-    // place it right after the leads/my_leads group if present, else at the front
-    const idx = baseNavItems.findIndex((n: any) => n.id === 'leads' || n.id === 'my_leads')
-    if (idx === -1) return [...baseNavItems, courseGroup]
-    const copy = [...baseNavItems]
-    copy.splice(idx + 1, 0, courseGroup)
-    return copy
-  })()
-  const roleColor = 'var(--accent)'  // unified teal accent
-  const segments  = pathname.split('/').filter(Boolean)
-  const canGoBack = segments.length > 1
+  const navList = (wide: boolean) => (
+    <nav className="flex-1 overflow-y-auto py-3 px-2.5" aria-label="Sections">
+      {sections.map((section, i) => (
+        <div key={section.id} className={i > 0 ? 'mt-5' : ''}>
+          {section.title && wide && (
+            <h2 className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em]
+              text-[var(--ink-faint)] select-none">
+              {section.title}
+            </h2>
+          )}
+          {section.title && !wide && i > 0 && (
+            <div className="mx-3 mb-2.5 border-t border-[var(--line)]" aria-hidden="true" />
+          )}
 
-  /* ── Sidebar nav rows ───────────────────────────────────────── */
-  /* NOTE: these are plain render functions, NOT nested components. Declaring
-     a component inside render gives it a fresh identity every pass, so React
-     unmounts and remounts the whole sidebar — losing scroll position and
-     snapping open groups shut. Calling them inlines the elements instead. */
-  const navRows = (wide: boolean) => (
-    <>
-      {groupNavItems(navItems).map(({ section, items }, sectionIndex) => (
-        <div key={section.id} className={sectionIndex > 0 ? 'mt-4' : ''}>
-          {/* The heading only appears in the wide sidebar. In the icon rail
-              there is no room for it, so a hairline separates the groups
-              instead — the grouping is still legible, just quieter. */}
-          {wide ? (
-            <div className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase
-              tracking-[0.1em] text-[var(--ink-faint)] select-none">
-              {section.label}
-            </div>
-          ) : sectionIndex > 0 ? (
-            <div className="mx-3 mb-2 border-t border-[var(--line)]" aria-hidden="true" />
-          ) : null}
-      {items.map(item => {
-        const Icon = item.icon
-        const hasKids = !!item.children?.length
-        const isOpen  = openGroup === item.id
+          {section.items.map(item => {
+            const Icon = ICONS[item.icon]
+            const open = openGroup === item.id
+            const selfActive = isActive(pathname, item.href)
+            const childActive = item.children?.some(c => isActive(pathname, c.href))
+            const active = selfActive || childActive
 
-        const selfActive  = pathname === item.href || (item.href.length > 1 && pathname.startsWith(item.href + '/'))
-        const childActive = item.children?.some((c: any) => pathname === c.href || pathname.startsWith(c.href + '/'))
-        const active = selfActive || childActive
-
-        if (hasKids) {
-          return (
-            <div key={item.id}>
-              <button
-                onClick={() => setOpenGroup(isOpen ? null : item.id)}
-                title={!wide ? item.label : undefined}
-                className={`w-full flex items-center rounded-xl transition-colors mb-0.5
-                  ${wide ? 'gap-3 px-3 py-2.5' : 'justify-center py-3'}
-                  ${active ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`}>
-                <Icon size={19} className="flex-shrink-0" />
-                {wide && <>
-                  <span className="flex-1 text-left text-[14px] font-medium truncate">{item.label}</span>
-                  <ChevronDown size={14} className={`opacity-50 transition-transform ${isOpen ? 'rotate-180' : ''}`} />
-                </>}
-              </button>
-              {wide && isOpen && (
-                <div className="ml-5 pl-3 border-l border-[var(--line)] mb-1 space-y-0.5">
-                  {item.children!.map((child: any) => {
-                    const ca = pathname === child.href || pathname.startsWith(child.href + '/')
-                    return (
-                      <Link key={child.href} href={child.href} onClick={() => setMobileOpen(false)}
-                        className={`flex items-center justify-between px-3 py-2 rounded-lg text-[13px] transition-colors
-                          ${ca ? 'text-[var(--accent)] font-semibold' : 'text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] font-medium'}`}>
-                        {child.label}
-                      </Link>
-                    )
-                  })}
-                </div>
-              )}
-            </div>
-          )
-        }
-
-        return (
-          <Link key={item.id} href={item.href} title={!wide ? item.label : undefined}
-            className={`flex items-center rounded-xl transition-colors mb-0.5
+            const rowClass = `w-full flex items-center rounded-xl transition-colors mb-0.5
               ${wide ? 'gap-3 px-3 py-2.5' : 'justify-center py-3'}
-              ${selfActive ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`}>
-            <Icon size={19} className="flex-shrink-0" />
-            {wide && <span className="text-[14px] font-medium truncate">{item.label}</span>}
-          </Link>
-        )
-      })}
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+              ${active
+                ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
+                : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`
+
+            if (item.children?.length) {
+              return (
+                <div key={item.id}>
+                  <button
+                    type="button"
+                    onClick={() => (wide ? setPicked({ path: pathname, id: open ? '' : item.id }) : router.push(item.href))}
+                    aria-expanded={wide ? open : undefined}
+                    title={wide ? undefined : item.label}
+                    className={rowClass}
+                  >
+                    <Icon size={19} className="flex-shrink-0" aria-hidden="true" />
+                    {wide && (
+                      <>
+                        <span className="flex-1 text-left text-[14px] truncate">{item.label}</span>
+                        <ChevronDown size={14} aria-hidden="true"
+                          className={`opacity-50 transition-transform ${open ? 'rotate-180' : ''}`} />
+                      </>
+                    )}
+                  </button>
+
+                  {wide && open && (
+                    <div className="ml-5 pl-3 border-l border-[var(--line)] mb-1.5 space-y-0.5">
+                      {item.children.map(child => (
+                        <Link
+                          key={child.href}
+                          href={child.href}
+                          aria-current={isActive(pathname, child.href) ? 'page' : undefined}
+                          className={`block px-3 py-2 rounded-lg text-[13px] transition-colors
+                            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+                            ${isActive(pathname, child.href)
+                              ? 'text-[var(--accent)] font-semibold bg-[var(--accent-soft)]'
+                              : 'text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] font-medium'}`}
+                        >
+                          {child.label}
+                        </Link>
+                      ))}
+                    </div>
+                  )}
+                </div>
+              )
+            }
+
+            return (
+              <Link key={item.id} href={item.href} title={wide ? undefined : item.label}
+                aria-current={selfActive ? 'page' : undefined} className={rowClass}>
+                <Icon size={19} className="flex-shrink-0" aria-hidden="true" />
+                {wide && <span className="text-[14px] truncate">{item.label}</span>}
+              </Link>
+            )
+          })}
         </div>
       ))}
-    </>
+    </nav>
   )
 
-  const sidebarPanel = ({ wide, mobile = false }: { wide: boolean; mobile?: boolean }) => (
+  const sidebar = ({ wide, inDrawer = false }: { wide: boolean; inDrawer?: boolean }) => (
     <div className="flex flex-col h-full bg-[var(--paper)]">
-      {/* Brand */}
-      <div className={`flex items-center border-b border-[var(--line)] flex-shrink-0 ${wide ? 'px-4 gap-3' : 'justify-center'}`} style={{ height: 60 }}>
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center flex-shrink-0 bg-white border border-[var(--line)] overflow-hidden p-0.5">
-          <img src="/brand/logo.png" alt="CCE" className="w-full h-full object-contain" />
-        </div>
+      <div className={`flex items-center border-b border-[var(--line)] flex-shrink-0 h-[60px]
+        ${wide ? 'px-4 gap-3' : 'justify-center'}`}>
+        <span className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 bg-white
+          border border-[var(--line)] overflow-hidden p-0.5">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/logo.png" alt="" aria-hidden="true" className="w-full h-full object-contain" />
+        </span>
         {wide && (
-          <div className="min-w-0 flex-1">
-            <div className="font-display text-[14px] font-semibold text-[var(--ink)] truncate leading-tight">Cambridge</div>
-            <div className="text-[10px] text-[var(--ink-faint)] truncate">{ROLE_LABEL[profile?.role || '']}</div>
-          </div>
+          <span className="min-w-0 flex-1">
+            <span className="block font-display text-[14px] font-semibold text-[var(--ink)] truncate leading-tight">
+              Cambridge
+            </span>
+            <span className="block text-[10.5px] text-[var(--ink-faint)] truncate">{roleLabel}</span>
+          </span>
         )}
-        {mobile && (
-          <button onClick={() => setMobileOpen(false)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-lg transition-colors">
-            <X size={16} />
+        {inDrawer && (
+          <button type="button" onClick={() => setDrawerPath(null)} aria-label="Close menu"
+            className="ml-auto w-10 h-10 -mr-2 grid place-items-center text-[var(--ink-faint)]
+              hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
+            <X size={18} aria-hidden="true" />
           </button>
         )}
       </div>
 
-      {/* Nav */}
-      <nav className="flex-1 overflow-y-auto py-3 px-2.5">
-        {navRows(wide)}
-      </nav>
+      {navList(wide)}
 
-      {/* Footer */}
-      <div className="border-t border-[var(--line)] p-2.5 flex-shrink-0">
+      <div className="border-t border-[var(--line)] p-2.5 flex-shrink-0 safe-b">
         {wide ? (
           <>
             <div className="flex items-center gap-2.5 px-2 py-1.5 mb-1.5">
-              <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold flex-shrink-0" style={{ backgroundColor: roleColor }}>
-                {profile?.full_name?.charAt(0) || '?'}
-              </div>
-              <div className="min-w-0 flex-1">
-                <div className="text-[12px] font-semibold text-[var(--ink)] truncate">{profile?.full_name}</div>
-                <div className="text-[10px] text-[var(--ink-faint)]">{ROLE_LABEL[profile?.role || '']}</div>
-              </div>
+              <Avatar name={profile?.full_name || ''} size="sm" />
+              <span className="min-w-0 flex-1">
+                <span className="block text-[12.5px] font-semibold text-[var(--ink)] truncate">
+                  {profile?.full_name}
+                </span>
+                <span className="block text-[10.5px] text-[var(--ink-faint)] truncate">{roleLabel}</span>
+              </span>
             </div>
             <InstallButton />
-            <div className="flex gap-1.5">
-              <Link href="/admin/settings/change-pin" className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] transition-colors">
-                <Shield size={11} /> PIN
+            <div className="flex gap-1.5 mt-1">
+              <Link href="/admin/settings/change-pin"
+                className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[40px] rounded-xl
+                  text-[12px] font-medium text-[var(--ink-faint)] hover:text-[var(--ink)]
+                  hover:bg-[var(--line-soft)] transition-colors">
+                <Shield size={13} aria-hidden="true" /> PIN
               </Link>
-              <button onClick={logout} className="flex-1 flex items-center justify-center gap-1 py-1.5 rounded-xl text-[11px] text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors">
-                <LogOut size={11} /> Logout
+              <button type="button" onClick={logout}
+                className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[40px] rounded-xl
+                  text-[12px] font-medium text-[var(--ink-faint)] hover:text-[var(--danger)]
+                  hover:bg-[var(--danger-soft)] transition-colors">
+                <LogOut size={13} aria-hidden="true" /> Sign out
               </button>
             </div>
           </>
         ) : (
           <div className="flex flex-col items-center gap-2">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: roleColor }}>
-              {profile?.full_name?.charAt(0) || '?'}
-            </div>
-            <button onClick={logout} title="Logout" className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-lg transition-colors">
-              <LogOut size={14} />
+            <Avatar name={profile?.full_name || ''} size="sm" />
+            <button type="button" onClick={logout} aria-label="Sign out" title="Sign out"
+              className="w-10 h-10 grid place-items-center text-[var(--ink-faint)]
+                hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-xl transition-colors">
+              <LogOut size={15} aria-hidden="true" />
             </button>
           </div>
         )}
@@ -452,107 +333,166 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     </div>
   )
 
+  /* ── shell ───────────────────────────────────────────────────────────── */
+
+  const railWidth = railed ? 68 : 260
+
   return (
     <div className="flex h-screen w-screen overflow-hidden" style={{ background: 'var(--canvas)' }}>
       <CommandPalette />
 
-      {/* ── Desktop sidebar — collapsible. Hidden by default so the workspace
-           is full-width; slides in as an overlay when opened, and auto-closes
-           after you pick something. ── */}
-      <div className="hidden lg:block">
-        {!collapsed && (
-          <div className="fixed inset-0 z-40" onClick={() => setCollapsed(true)}>
-            <div className="absolute inset-0 bg-black/20" />
-          </div>
-        )}
-        <div
-          className="fixed inset-y-0 left-0 border-r border-[var(--line)] z-40 transition-transform duration-200 ease-out"
-          style={{ width: W_FULL, transform: collapsed ? `translateX(-${W_FULL}px)` : 'translateX(0)' }}
-          onClick={() => setCollapsed(true)}>
-          <div onClick={e => e.stopPropagation()} className="h-full">
-            {sidebarPanel({ wide: true })}
-          </div>
-        </div>
-      </div>
+      {/* Desktop: standing navigation, narrowable to a rail. Not an overlay —
+          it is part of the workspace, and the page sits beside it. */}
+      <aside
+        className="hidden lg:flex flex-col flex-shrink-0 border-r border-[var(--line)]
+          transition-[width] duration-200 ease-out"
+        style={{ width: railWidth }}
+      >
+        {sidebar({ wide: !railed })}
+      </aside>
 
-      {/* ── Mobile drawer ──────────────────────────────────────── */}
-      {mobileOpen && (
+      {/* Phone and tablet: the same navigation as a drawer, opened from More. */}
+      {drawerOpen && (
         <div className="lg:hidden fixed inset-0 z-50">
-          <div className="absolute inset-0 bg-black/40" onClick={() => setMobileOpen(false)} />
-          <div className="absolute inset-y-0 left-0 shadow-2xl" style={{ width: W_FULL }}>
-            {sidebarPanel({ wide: true, mobile: true })}
+          <button type="button" aria-label="Close menu" onClick={() => setDrawerPath(null)}
+            className="absolute inset-0 bg-black/40" />
+          <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] shadow-2xl">
+            {sidebar({ wide: true, inDrawer: true })}
           </div>
         </div>
       )}
 
-      {/* ── Main content ───────────────────────────────────────── */}
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
+        <header className="flex-shrink-0 bg-[var(--paper)] border-b border-[var(--line)]
+          flex items-center gap-2 px-3 sm:px-5 h-[60px] safe-t">
 
-        {/* Topbar */}
-        <header className="flex-shrink-0 bg-[var(--paper)] border-b border-[var(--line)] flex items-center gap-3 px-5" style={{ height: 60 }}>
-          <button onClick={() => setMobileOpen(true)} className="lg:hidden p-2 text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
-            <Menu size={19} />
+          <button type="button" onClick={() => setDrawerPath(pathname)} aria-label="Open menu"
+            className="lg:hidden w-10 h-10 grid place-items-center text-[var(--ink-soft)]
+              hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
+            <Menu size={19} aria-hidden="true" />
           </button>
-          <button onClick={() => setCollapsed(c => !c)} className="hidden lg:inline-flex p-2 text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors" title="Menu">
-            <Menu size={19} />
+
+          <button type="button" onClick={toggleRail}
+            aria-label={railed ? 'Widen the sidebar' : 'Narrow the sidebar'}
+            className="hidden lg:grid w-10 h-10 place-items-center text-[var(--ink-soft)]
+              hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
+            <Menu size={19} aria-hidden="true" />
           </button>
 
           {canGoBack && (
-            <button onClick={() => router.back()}
-              className="flex items-center gap-1.5 text-sm text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] px-3 py-1.5 rounded-xl transition-colors">
-              <ArrowLeft size={15} />
-              <span className="hidden sm:inline font-medium">Back</span>
+            <button type="button" onClick={() => router.back()}
+              className="inline-flex items-center gap-1.5 min-h-[40px] px-2.5 rounded-xl text-[13.5px]
+                font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]
+                hover:bg-[var(--line-soft)] transition-colors flex-shrink-0">
+              <ArrowLeft size={16} aria-hidden="true" />
+              <span className="hidden sm:inline">Back</span>
             </button>
           )}
 
-          {/* Breadcrumb */}
-          <div className="flex items-center gap-1 text-[13px] min-w-0 flex-1">
-            {segments.map((seg, i) => {
-              const href   = '/' + segments.slice(0, i + 1).join('/')
-              const isLast = i === segments.length - 1
-              const label  = seg.replace(/-/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-              return (
-                <span key={href} className="flex items-center gap-1 min-w-0">
-                  {i > 0 && <ChevronRight size={12} className="text-[var(--ink-faint)] flex-shrink-0" />}
-                  {isLast
-                    ? <span className="font-semibold text-[var(--ink)] truncate">{label}</span>
-                    : <Link href={href} className="text-[var(--ink-faint)] hover:text-[var(--ink)] hidden sm:block truncate transition-colors">{label}</Link>}
-                </span>
-              )
-            })}
-          </div>
+          {/* The page's name, from the navigation model — not from URL
+              segments, which produced "Admin / Leads / 4f3c8a91-…". */}
+          <span className="min-w-0 flex-1 font-display text-[15px] font-semibold text-[var(--ink)] truncate">
+            {pageTitle}
+          </span>
 
-          {/* Right */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            <button onClick={() => { const e = new KeyboardEvent('keydown', { key: 'k', metaKey: true }); window.dispatchEvent(e) }}
-              className="hidden sm:flex items-center gap-2 h-9 pl-3 pr-2 rounded-lg border border-[var(--line)] text-[var(--ink-faint)] hover:border-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
-              <Search size={15} />
-              <span className="text-[13px]">Search</span>
-              <kbd className="text-[10px] font-semibold bg-[var(--line-soft)] px-1.5 py-0.5 rounded">⌘K</kbd>
+          <button
+            type="button"
+            onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
+            className="hidden sm:inline-flex items-center gap-2 h-10 pl-3 pr-2 rounded-xl
+              border border-[var(--line)] text-[var(--ink-faint)] hover:border-[var(--ink-faint)]
+              hover:text-[var(--ink-soft)] transition-colors flex-shrink-0"
+          >
+            <SearchIcon size={15} aria-hidden="true" />
+            <span className="text-[13px]">Search</span>
+            <kbd className="text-[10px] font-semibold bg-[var(--line-soft)] px-1.5 py-0.5 rounded">⌘K</kbd>
+          </button>
+
+          <NotificationBell userId={profile?.id || null} />
+
+          {/* A real menu rather than a decorative circle: signing out was
+              previously only reachable from the sidebar footer, which on a
+              phone meant opening the drawer and scrolling past every section. */}
+          <div className="relative flex-shrink-0">
+            <button type="button" onClick={() => setMenuPath(p => (p ? null : pathname))}
+              aria-haspopup="menu" aria-expanded={profileMenu}
+              aria-label={`Account: ${profile?.full_name || ''}`}
+              className="flex items-center gap-2 h-10 pl-1 pr-1 sm:pr-2 rounded-xl
+                hover:bg-[var(--line-soft)] transition-colors">
+              <Avatar name={profile?.full_name || ''} size="sm" />
+              <span className="hidden md:block text-[13px] font-semibold text-[var(--ink)] max-w-[120px] truncate">
+                {profile?.full_name?.split(' ')[0]}
+              </span>
             </button>
-            <NotificationBell userId={profile?.id || null} />
-            <div className="flex items-center gap-2 pl-2.5 border-l border-[var(--line)]">
-              <div className="w-7 h-7 rounded-full flex items-center justify-center text-white text-xs font-bold" style={{ backgroundColor: roleColor }}>
-                {profile?.full_name?.charAt(0) || '?'}
-              </div>
-              <span className="hidden md:block text-[13px] font-semibold text-[var(--ink)]">{profile?.full_name?.split(' ')[0]}</span>
-            </div>
+
+            {profileMenu && (
+              <>
+                <button type="button" aria-hidden="true" tabIndex={-1}
+                  onClick={() => setMenuPath(null)} className="fixed inset-0 z-30 cursor-default" />
+                <div role="menu" aria-label="Account"
+                  className="absolute right-0 mt-1 z-40 w-[230px] rounded-xl bg-[var(--paper)]
+                    border border-[var(--line)] shadow-lg py-1">
+                  <div className="px-3.5 py-2.5 border-b border-[var(--line)]">
+                    <div className="text-[13.5px] font-semibold text-[var(--ink)] truncate">
+                      {profile?.full_name}
+                    </div>
+                    <div className="text-[12px] text-[var(--ink-faint)] truncate">{roleLabel}</div>
+                  </div>
+                  <Link role="menuitem" href="/admin/settings/change-pin"
+                    className="flex items-center gap-2.5 px-3.5 py-3 text-[13.5px] text-[var(--ink)]
+                      hover:bg-[var(--line-soft)] transition-colors">
+                    <Shield size={15} aria-hidden="true" /> Change PIN
+                  </Link>
+                  <button role="menuitem" type="button" onClick={logout}
+                    className="w-full flex items-center gap-2.5 px-3.5 py-3 text-[13.5px]
+                      text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors">
+                    <LogOut size={15} aria-hidden="true" /> Sign out
+                  </button>
+                </div>
+              </>
+            )}
           </div>
         </header>
 
-        {/* Page */}
         <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: 'var(--canvas)' }}>
-          <div className="w-full px-4 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-9 pb-[calc(74px+env(safe-area-inset-bottom))] lg:pb-9 mx-auto max-w-[1500px]">{children}</div>
+          <div className="w-full px-4 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-9
+            pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-9 mx-auto max-w-[1500px]">
+            {children}
+          </div>
         </main>
 
-      {/* Thumb-reachable navigation on a phone. The drawer stays as "More",
-          so every section remains reachable. Hidden from lg up, where the
-          sidebar is the right shape for a pointer. */}
-      <MobileTabBar
-        portals={resolvePortals(profile?.role, profile?.portals)}
-        role={profile?.role || ''}
-        onOpenMore={() => setMobileOpen(true)}
-      />
+        {/* Bottom navigation. Four destinations chosen from what this person
+            actually holds, plus More for everything else. Hidden from lg up,
+            where the sidebar is standing. */}
+        <nav aria-label="Main"
+          className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-[var(--line)]
+            bg-[var(--paper)]/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
+          <div className="grid mx-auto max-w-lg"
+            style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, minmax(0, 1fr))` }}>
+            {tabs.map(tab => {
+              const Icon = ICONS[tab.icon]
+              const active = isActive(pathname, tab.href)
+              return (
+                <Link key={tab.key} href={tab.href} aria-current={active ? 'page' : undefined}
+                  className={`flex flex-col items-center justify-center gap-1 min-h-[58px] py-2
+                    transition-colors focus-visible:outline-none focus-visible:ring-2
+                    focus-visible:ring-inset focus-visible:ring-[var(--accent)]
+                    ${active ? 'text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>
+                  <Icon size={21} className="flex-shrink-0" aria-hidden="true" />
+                  <span className="text-[10.5px] font-semibold leading-none truncate max-w-full px-0.5">
+                    {tab.label}
+                  </span>
+                </Link>
+              )
+            })}
+            <button type="button" onClick={() => setDrawerPath(pathname)} aria-label="More sections"
+              className="flex flex-col items-center justify-center gap-1 min-h-[58px] py-2
+                text-[var(--ink-faint)] transition-colors focus-visible:outline-none
+                focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]">
+              <Menu size={21} className="flex-shrink-0" aria-hidden="true" />
+              <span className="text-[10.5px] font-semibold leading-none">More</span>
+            </button>
+          </div>
+        </nav>
       </div>
     </div>
   )

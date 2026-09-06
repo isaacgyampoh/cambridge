@@ -318,3 +318,31 @@ export function tabsFor(role: string, portals: string[]): Tab[] {
 
   return tabs
 }
+
+/* ─────────────────────────────────────────────
+   Assignable access, for the staff permission screen
+   ───────────────────────────────────────────── */
+
+export type PortalOption = { id: string; label: string; icon: IconName }
+
+/**
+ * Every portal that can be granted to a member of staff.
+ *
+ * The staff screen previously imported ALL_PORTALS out of PortalLayout, so
+ * choosing someone's access meant reading a list that a layout component
+ * happened to define. It reads the same catalogue as the navigation now, which
+ * is what makes the toggles on that screen and the menu that results from them
+ * describe the same thing.
+ *
+ * Home is excluded: it is not access, it is where you land.
+ */
+export function portalOptions(): PortalOption[] {
+  return CATALOGUE
+    .filter(e => e.id !== 'home')
+    .map(({ id, label, icon }) => ({ id, label, icon }))
+}
+
+/** Look one up by id, for rendering a portal the catalogue may not list. */
+export function portalOption(id: string): PortalOption | undefined {
+  return portalOptions().find(p => p.id === id)
+}

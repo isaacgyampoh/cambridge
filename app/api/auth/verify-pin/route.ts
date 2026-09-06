@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { maskEmail } from '@/lib/ui/contact'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   hashPIN, verifyPIN, hashToken, generateOTP, createSession,
@@ -302,13 +303,6 @@ export async function POST(req: NextRequest) {
 }
 
 /** n••••@cambridge.edu.gh — enough to recognise, not enough to harvest. */
-function maskEmail(email: string): string {
-  const [user, domain] = email.split('@')
-  if (!domain) return '•••'
-  const head = user.slice(0, 1)
-  return `${head}${'•'.repeat(Math.max(1, user.length - 1))}@${domain}`
-}
-
 type SessionProfile = {
   id: string; full_name: string; role: string; must_change_pin: boolean | null
 }
