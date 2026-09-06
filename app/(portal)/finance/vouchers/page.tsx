@@ -37,7 +37,7 @@ export default function VoucherRequestsPage() {
   const done = requests.filter(r => r.status !== 'pending')
 
   return (
-    <div className="fade-in w-full max-w-4xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="Finance" title="Voucher requests"
         description="Exam-prep coordinators request vouchers for students who are ready to write. Buy the voucher, then input the code here — it's sent to the student automatically." />
 

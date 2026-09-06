@@ -243,7 +243,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader
         eyebrow={batch?.course?.name || 'Class'}

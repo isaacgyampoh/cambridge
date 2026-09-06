@@ -119,7 +119,7 @@ export default function Messages() {
   const filtered = staff.filter(s => s.full_name?.toLowerCase().includes(search.toLowerCase()))
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="hidden sm:block">
         <PageHeader eyebrow="Team" title="Messages" description="Private in-house chat with your colleagues. Nothing leaves the system." />
       </div>

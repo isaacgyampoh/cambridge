@@ -60,7 +60,7 @@ export default function ChangePINPage() {
   )
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="flex items-center gap-3 mb-6">
         <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
           

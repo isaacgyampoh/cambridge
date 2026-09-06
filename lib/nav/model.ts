@@ -1,4 +1,5 @@
 import { canReachPage } from '../access/pageAccess.ts'
+import { PORTAL_PATHS } from '../access/portals.ts'
 import { ROLE_HOME } from '../access/portals.ts'
 
 /**
@@ -216,6 +217,28 @@ function stripSection(entry: CatalogueEntry): NavItem {
   return children ? { id, label, icon, href, children } : { id, label, icon, href }
 }
 
+/**
+ * Personal views that duplicate an organisation-wide one.
+ *
+ * A super admin passes every portal check, so they were shown "My leads",
+ * "My earnings", "My link" and "My flyers" alongside "Leads", "Marketers" and
+ * "Remuneration" — nine entries under Workspace, four of them a marketer's
+ * personal view of data the admin already sees in full. Somebody with the
+ * organisation-wide screen has no use for the personal one.
+ *
+ * Keyed personal → the org-wide portal that supersedes it.
+ */
+const SUPERSEDED_BY: Record<string, string> = {
+  my_leads: 'leads',
+  my_earnings: 'remuneration',
+  my_link: 'broadcast',
+  my_flyers: 'broadcast',
+  my_links: 'broadcast',
+  my_classes: 'academics',
+  my_attendance: 'attendance',
+  my_payments: 'finance',
+}
+
 /** Home resolves per role — a marketer's home is not an administrator's. */
 function resolveHref(href: string, role: string): string {
   return href === '/__home__' ? (ROLE_HOME[role] || '/admin') : href
@@ -232,7 +255,29 @@ function resolveHref(href: string, role: string): string {
 export function navFor(role: string, portals: string[]): NavSection[] {
   const reachable = (href: string) => canReachPage(resolveHref(href, role), role, portals)
 
+  const holds = (portal: string) => role === 'super_admin' || portals.includes(portal)
+
   const items = CATALOGUE.flatMap<CatalogueEntry>(entry => {
+    // Drop a personal view when the person already has the full one.
+    const supersededBy = SUPERSEDED_BY[entry.id]
+    if (supersededBy && holds(supersededBy)) return []
+
+    /*
+     * A section appears only if its own portal is held.
+     *
+     * Child reachability alone is not enough. Every role holds `dashboard`,
+     * which grants the landing pages — including /finance — so the Finance
+     * section surfaced for a marketing officer whose first child happened to
+     * be that landing page. They could open it and the tables would refuse,
+     * because /api/data does not grant them `payments`: a menu entry that
+     * leads to an error message.
+     *
+     * The same rule removes the org-wide "Leads" section for someone who only
+     * holds `my_leads`, where it was appearing beside their own and offering
+     * the two children they could already reach from it.
+     */
+    if (entry.id !== 'home' && PORTAL_PATHS[entry.id] && !holds(entry.id)) return []
+
     // Home is always present: it is where an unreachable page redirects TO,
     // so a menu without it would be a dead end.
     if (entry.id === 'home') return [{ ...entry, href: resolveHref(entry.href, role) }]

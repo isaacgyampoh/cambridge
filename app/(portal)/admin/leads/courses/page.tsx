@@ -31,7 +31,7 @@ export default function CourseLeadsHub() {
   const activeCourses = courses.filter((c: any) => c.is_active !== false)
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Leads"
         title="Leads by course"

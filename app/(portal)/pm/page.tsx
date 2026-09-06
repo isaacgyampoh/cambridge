@@ -39,7 +39,7 @@ export default function PMDashboard() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="mb-8">
         <h1 className="font-display text-[24px] sm:text-[24px] font-semibold text-[var(--ink)]">{name ? `Welcome, ${name}` : 'Team overview'}</h1>
         <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">How the team and pipeline are doing across the centre.</p>

@@ -77,7 +77,7 @@ export default function ClassReminders() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader eyebrow="Automation" title="Class reminders"
         description="Schedule a reminder for a class. At the send time, the system automatically texts and WhatsApps the Zoom link to every enrolled student." />

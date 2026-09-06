@@ -31,7 +31,7 @@ export default function InsightsPage() {
   const maxFunnel = Math.max(1, ...funnelStages.map(s => s.value))
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Analytics"
         title="Insights"

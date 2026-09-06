@@ -167,7 +167,7 @@ export default function PMAssign() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Pipeline</div>

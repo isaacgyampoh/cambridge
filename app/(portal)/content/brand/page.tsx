@@ -51,7 +51,7 @@ export default function BrandKit() {
   if (loading) return <div className="p-8"><Spinner /></div>
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader eyebrow="Marketing" title="Brand kit"
         description="Set your voice and assets once. The AI uses these every time it writes, so all content stays on-brand." />

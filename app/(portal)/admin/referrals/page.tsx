@@ -46,7 +46,7 @@ export default function ReferralsAdmin() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="Growth" title="Referrals"
         description="Your students and leads refer friends. When a referred friend enrolls, the referrer earns a reward."
         actions={<Button onClick={copyShare}>{copied ? 'Copied!' : 'Copy referral page link'}</Button>}

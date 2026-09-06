@@ -28,7 +28,7 @@ export default function WebhookLogPage() {
   const rows = data?.events || []
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="Diagnostics" title="Incoming WhatsApp"
         description="Every message WhatsApp delivers to the system, and what happened to it. If a lead says they got no reply, look here first."
         actions={<>

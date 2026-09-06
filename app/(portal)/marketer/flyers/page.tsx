@@ -62,7 +62,7 @@ export default function MyFlyers() {
   function copy(id: string) { navigator.clipboard.writeText(linkFor(id)); toast.success('Flyer link copied!') }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader eyebrow="My work" title="My flyers"
         description="Upload your flyer, get your own link, and share it. Anyone who opens it can register or ask questions — and they become your lead." />

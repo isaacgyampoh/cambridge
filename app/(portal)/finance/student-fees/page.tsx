@@ -123,7 +123,7 @@ export default function StudentFeesPage() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="Finance" title="Student fees" description="Every registered student and what they owe. Verify bank and cash payments here." />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">

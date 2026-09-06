@@ -240,7 +240,7 @@ export default function ConversationsPage() {
 
   /* ── Layout: three panes side by side on desktop, drill-down on mobile ── */
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <div className="mb-4 lg:mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>

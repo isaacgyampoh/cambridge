@@ -220,7 +220,7 @@ export default function StaffPage() {
   const byRole = ROLES.map(r => ({ ...r, count: staff.filter(s => s.role === r.value).length }))
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
 
       {/* ── Modal ── */}

@@ -127,7 +127,7 @@ export default function SmsDeliveryPage() {
   ]
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Diagnostics"
         title="SMS delivery"

@@ -142,7 +142,7 @@ export default function ImportDetail({ params }: { params: Promise<{ reference: 
   const needsAttention = record.failed + record.unassigned + record.invalid
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Import"
         title={record.reference}

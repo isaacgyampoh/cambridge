@@ -53,7 +53,7 @@ export default function Reports() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="Performance" title="Activity reports"
         description="Auto-generated from your activity — leads handled, contacted, converted, and calls made. You can also write your own report."
         actions={

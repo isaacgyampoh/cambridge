@@ -66,7 +66,7 @@ export default function ConversionsPage() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Analysis"
         title="Leads & conversions by course"

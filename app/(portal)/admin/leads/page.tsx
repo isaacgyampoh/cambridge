@@ -4,9 +4,11 @@ import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import type { Lead } from '@/types'
 import { formatDateTime } from '@/lib/utils'
-import { Search, Download, Plus, Upload, FileSpreadsheet } from 'lucide-react'
 import Link from 'next/link'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import {
+  PageHeader, Card, Button, Badge, Spinner, EmptyState, Search, ActionMenu,
+} from '@/components/ui'
+import { describeStatus } from '@/lib/ui/status'
 import { exportToExcel } from '@/lib/utils/export'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -102,6 +104,72 @@ export default function AdminLeads() {
     else toast.error(d.error || 'Could not assign', { id: 'assign' })
   }
 
+
+  /*
+   * The bulk clean-up operations.
+   *
+   * These were written inline inside the header's actions prop — four
+   * multi-line async bodies embedded in JSX, which is why the header had grown
+   * to sixty lines and why the destructive ones were indistinguishable from
+   * "Export to Excel". Named here so the menu can describe what each one does.
+   */
+
+  async function keepOnlyRegistered() {
+    const dry = await fetch('/api/admin/purge-leads').then(r => r.json()).catch(() => null)
+    if (!dry || dry.error) { toast.error(dry?.error || 'Could not check'); return }
+    if (!await confirm({
+      title: 'Keep only registered leads?',
+      confirmLabel: `Delete ${dry.toDelete} leads`,
+      message: <PurgeSummary
+        intro="Every lead that has not registered will be removed."
+        toDelete={dry.toDelete} protectedCount={dry.protected} byStatus={dry.byStatus} />,
+    })) return
+    toast.loading('Cleaning up…', { id: 'purge' })
+    const d = await fetch('/api/admin/purge-leads', { method: 'POST' })
+      .then(r => r.json()).catch(() => ({ error: 'failed' }))
+    if (d.error) toast.error(d.error, { id: 'purge' })
+    else { toast.success(`Deleted ${d.deleted}. ${d.remaining} registered leads remain.`, { id: 'purge' }); refetch?.() }
+  }
+
+  async function keepOnlyAssigned() {
+    const dry = await fetch('/api/admin/purge-leads?mode=keep_assigned').then(r => r.json()).catch(() => null)
+    if (!dry || dry.error) { toast.error(dry?.error || 'Could not check'); return }
+    if (!await confirm({
+      title: 'Remove every unassigned lead?',
+      confirmLabel: `Delete ${dry.toDelete} leads`,
+      message: <PurgeSummary
+        intro="Leads that do not belong to a marketer will be removed."
+        total={dry.total} toDelete={dry.toDelete} protectedCount={dry.protected} />,
+    })) return
+    toast.loading('Cleaning up…', { id: 'purge2' })
+    const d = await fetch('/api/admin/purge-leads?mode=keep_assigned', { method: 'POST' })
+      .then(r => r.json()).catch(() => ({ error: 'failed' }))
+    if (d.error) toast.error(d.error, { id: 'purge2' })
+    else { toast.success(`Deleted ${d.deleted}. ${d.remaining} leads remain.`, { id: 'purge2' }); refetch?.() }
+  }
+
+  async function tidyUpLeads() {
+    // Give any unassigned lead an owner first (registered ones are NOT sent the
+    // sales greeting), then clear the rest.
+    toast.loading('Assigning unassigned leads…', { id: 'clean' })
+    await fetch('/api/leads/assign-unassigned', { method: 'POST' }).catch(() => {})
+    const dry = await fetch('/api/admin/purge-leads?mode=keep_clean').then(r => r.json()).catch(() => null)
+    if (!dry || dry.error) { toast.error(dry?.error || 'Could not check', { id: 'clean' }); return }
+    toast.dismiss('clean')
+    if (!await confirm({
+      title: 'Tidy up leads?',
+      confirmLabel: `Delete ${dry.toDelete} leads`,
+      message: <PurgeSummary
+        intro="Keeps everyone who registered or belongs to a marketer. The rest are removed."
+        total={dry.total} toDelete={dry.toDelete} protectedCount={dry.protected} />,
+    })) return
+    toast.loading('Cleaning up…', { id: 'clean' })
+    const d = await fetch('/api/admin/purge-leads?mode=keep_clean', { method: 'POST' })
+      .then(r => r.json()).catch(() => ({ error: 'failed' }))
+    if (d.error) toast.error(d.error, { id: 'clean' })
+    else { toast.success(`Deleted ${d.deleted}. ${d.remaining} leads remain — all registered or assigned.`, { id: 'clean' }); refetch?.() }
+  }
+
   async function clearAllLeads() {
     const typed = prompt('This permanently deletes EVERY lead (and their activity/chat history) so you can import fresh. Students, staff and courses are NOT affected.\n\nType exactly:  DELETE ALL LEADS')
     if (typed !== 'DELETE ALL LEADS') { if (typed !== null) toast.error('Confirmation did not match. Nothing deleted.'); return }
@@ -142,89 +210,80 @@ export default function AdminLeads() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader
         eyebrow="CRM"
         title="Leads"
         description="Every prospective student, with their source, stage and owner."
         actions={
+          /*
+           * Two actions and a menu, not nine buttons.
+           *
+           * Nine equal-weight buttons in a header is not a toolbar, it is a
+           * wall — and four of these delete leads in bulk, sitting alongside
+           * "Excel" with the same visual weight. The everyday actions stay
+           * visible; everything rarer, and everything destructive, moves into
+           * the menu where it can be labelled as what it is.
+           */
           <>
-            <Button variant="secondary" onClick={assignUnassigned} >Assign unassigned</Button>
-            <Button variant="secondary" onClick={async () => {
-              const dry = await fetch('/api/admin/purge-leads').then(r => r.json()).catch(() => null)
-              if (!dry || dry.error) { toast.error(dry?.error || 'Could not check'); return }
-              if (!await confirm({
-                title: 'Keep only registered leads?',
-                confirmLabel: `Delete ${dry.toDelete} leads`,
-                message: <PurgeSummary
-                  intro="Every lead that has not registered will be removed."
-                  toDelete={dry.toDelete} protectedCount={dry.protected} byStatus={dry.byStatus} />,
-              })) return
-              toast.loading('Cleaning up…', { id: 'purge' })
-              const d = await fetch('/api/admin/purge-leads', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-              if (d.error) toast.error(d.error, { id: 'purge' })
-              else { toast.success(`Deleted ${d.deleted}. ${d.remaining} registered leads remain.`, { id: 'purge' }); refetch?.() }
-            }}>Keep only registered</Button>
-            <Button variant="secondary" onClick={async () => {
-              const dry = await fetch('/api/admin/purge-leads?mode=keep_assigned').then(r => r.json()).catch(() => null)
-              if (!dry || dry.error) { toast.error(dry?.error || 'Could not check'); return }
-              if (!await confirm({
-                title: 'Remove every unassigned lead?',
-                confirmLabel: `Delete ${dry.toDelete} leads`,
-                message: <PurgeSummary
-                  intro="Leads that do not belong to a marketer will be removed."
-                  total={dry.total} toDelete={dry.toDelete} protectedCount={dry.protected} />,
-              })) return
-              toast.loading('Cleaning up…', { id: 'purge2' })
-              const d = await fetch('/api/admin/purge-leads?mode=keep_assigned', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-              if (d.error) toast.error(d.error, { id: 'purge2' })
-              else { toast.success(`Deleted ${d.deleted}. ${d.remaining} leads remain.`, { id: 'purge2' }); refetch?.() }
-            }}>Keep only assigned</Button>
-            <Button variant="secondary" onClick={async () => {
-              // First give any unassigned lead an owner (registered ones will
-              // NOT be sent the sales greeting), then clear the rest.
-              toast.loading('Assigning unassigned leads…', { id: 'clean' })
-              await fetch('/api/leads/assign-unassigned', { method: 'POST' }).catch(() => {})
-              const dry = await fetch('/api/admin/purge-leads?mode=keep_clean').then(r => r.json()).catch(() => null)
-              if (!dry || dry.error) { toast.error(dry?.error || 'Could not check', { id: 'clean' }); return }
-              toast.dismiss('clean')
-              if (!await confirm({
-                title: 'Tidy up leads?',
-                confirmLabel: `Delete ${dry.toDelete} leads`,
-                message: <PurgeSummary
-                  intro="Keeps everyone who registered or belongs to a marketer. The rest are removed."
-                  total={dry.total} toDelete={dry.toDelete} protectedCount={dry.protected} />,
-              })) return
-              toast.loading('Cleaning up…', { id: 'clean' })
-              const d = await fetch('/api/admin/purge-leads?mode=keep_clean', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-              if (d.error) toast.error(d.error, { id: 'clean' })
-              else { toast.success(`Deleted ${d.deleted}. ${d.remaining} leads remain — all registered or assigned.`, { id: 'clean' }); refetch?.() }
-            }}>Tidy up leads</Button>
-            <Button variant="secondary" onClick={clearAllLeads} >Delete all</Button>
-            <Button variant="secondary" href="/admin/leads/import" >Import</Button>
-            <Button variant="secondary" onClick={exportExcel} >Excel</Button>
-            <Button variant="secondary" onClick={exportCSV} >CSV</Button>
-            <Button href="/admin/leads/new" >Add lead</Button>
+            <Button variant="secondary" href="/admin/leads/import">Import</Button>
+            <Button href="/admin/leads/new">Add lead</Button>
+            <ActionMenu
+              label="More lead actions"
+              title="Lead actions"
+              actions={[
+                { label: 'Export to Excel', onClick: exportExcel },
+                { label: 'Export to CSV', onClick: exportCSV },
+                { label: 'Assign unassigned leads', onClick: assignUnassigned },
+                { label: 'Keep only registered', onClick: keepOnlyRegistered,
+                  tone: 'danger', hint: 'Deletes everyone who has not registered' },
+                { label: 'Keep only assigned', onClick: keepOnlyAssigned,
+                  tone: 'danger', hint: 'Deletes leads with no marketer' },
+                { label: 'Tidy up leads', onClick: tidyUpLeads,
+                  tone: 'danger', hint: 'Keeps registered and assigned only' },
+                { label: 'Delete all leads', onClick: clearAllLeads,
+                  tone: 'danger', hint: 'Removes every lead' },
+              ]}
+            />
           </>
         }
       />
 
-      {/* Filters */}
-      <div className="flex flex-wrap gap-3 mb-5">
-        <div className="flex-1 min-w-56 relative">
-          
-          <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search by name, email or phone"
-            className={inputClass.replace('h-11', 'h-10') + ' pl-9'} />
-        </div>
-        <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)} className={inputClass.replace('h-11', 'h-10') + ' w-auto'}>
+      {/*
+        Filters on one line.
+
+        These were built from inputClass with a .replace('h-11') that no longer
+        matches anything, so the substitution silently did nothing and the
+        controls kept w-full — which is why they stacked full width down the
+        page instead of sitting in a row.
+      */}
+      <div className="flex flex-col sm:flex-row gap-2.5 mb-5">
+        <Search
+          value={search}
+          onChange={setSearch}
+          placeholder="Search by name, email or phone"
+          label="Search leads"
+          className="flex-1 min-w-0"
+        />
+        <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
+          aria-label="Filter by source"
+          className="h-12 sm:h-11 px-3 rounded-lg border border-[var(--line)] bg-white
+            text-[15px] sm:text-[13px] text-[var(--ink)] sm:w-[150px]
+            focus:outline-none focus:border-[var(--accent)]">
           <option value="all">All sources</option>
-          {['facebook', 'google', 'linkedin', 'website', 'referral', 'manual'].map(s => <option key={s} value={s}>{s[0].toUpperCase() + s.slice(1)}</option>)}
+          {['facebook', 'google', 'linkedin', 'website', 'referral', 'manual'].map(x => (
+            <option key={x} value={x}>{x[0].toUpperCase() + x.slice(1)}</option>
+          ))}
         </select>
-        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)} className={inputClass.replace('h-11', 'h-10') + ' w-auto'}>
+        <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
+          aria-label="Filter by stage"
+          className="h-12 sm:h-11 px-3 rounded-lg border border-[var(--line)] bg-white
+            text-[15px] sm:text-[13px] text-[var(--ink)] sm:w-[150px]
+            focus:outline-none focus:border-[var(--accent)]">
           <option value="all">All stages</option>
-          {['new', 'contacted', 'interested', 'follow_up', 'ready_to_join', 'registered', 'not_interested', 'lost'].map(s => (
-            <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>
+          {['new', 'contacted', 'interested', 'follow_up', 'ready_to_join', 'registered', 'not_interested', 'lost'].map(x => (
+            <option key={x} value={x}>{describeStatus('lead', x).label}</option>
           ))}
         </select>
       </div>

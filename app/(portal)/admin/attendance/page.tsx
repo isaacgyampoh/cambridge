@@ -198,7 +198,7 @@ export default function AttendanceDashboard() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-6">
         <div>
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Attendance Dashboard</h1>

@@ -71,7 +71,7 @@ export default function TrainerClasses() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="mb-8">
         <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Teaching</div>
         <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Trainer portal</h1>

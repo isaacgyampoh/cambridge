@@ -81,7 +81,7 @@ export default function InfoSessions() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader eyebrow="Automation" title="Info sessions"
         description="Schedule an info session once. At the send time, the system automatically texts and WhatsApps every lead, and pushes the link to all marketers to share. No manual sending." />

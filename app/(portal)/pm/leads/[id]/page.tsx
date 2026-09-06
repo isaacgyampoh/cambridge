@@ -75,7 +75,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const assignee = (lead as any).assignee
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <Link href="/pm" className="inline-flex items-center gap-2 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
          Back to inbox
       </Link>

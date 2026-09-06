@@ -35,7 +35,7 @@ export default function ReceptionistDashboard() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="flex items-center justify-between mb-5">
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Front desk</div>

@@ -166,7 +166,7 @@ export default function NotificationCentre() {
   }
 
   return (
-    <div className="fade-in w-full max-w-2xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="You"
         title="Notifications"

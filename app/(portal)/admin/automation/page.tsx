@@ -45,7 +45,7 @@ export default function AutomationPage() {
   const neverRun = Object.keys(LABELS).filter(k => !byTask[k])
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="System" title="Automation"
         description="Every scheduled job the system runs. One cron drives them all."
         actions={<Button onClick={() => runNow()} disabled={busy === 'all'}>{busy === 'all' ? 'Running…' : 'Run due now'}</Button>} />

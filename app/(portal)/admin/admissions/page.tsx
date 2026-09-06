@@ -64,7 +64,7 @@ export default function AdminAdmissions() {
   const tabs = [{ k: 'all', l: `All (${data.length})` }, ...Object.keys(S).map(k => ({ k, l: `${S[k].label} (${counts[k] || 0})` }))]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Admissions"
         title="Admissions queue"

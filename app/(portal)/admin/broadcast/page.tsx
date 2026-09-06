@@ -179,7 +179,7 @@ export default function BroadcastPage() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <div className="mb-6">
         <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Outreach</div>

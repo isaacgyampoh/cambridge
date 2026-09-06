@@ -87,7 +87,7 @@ export default function ContentStudio() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader eyebrow="Marketing" title="Content Studio"
         description="Draft posts, get AI feedback, plan your calendar. The AI knows our courses, fees and dates." />

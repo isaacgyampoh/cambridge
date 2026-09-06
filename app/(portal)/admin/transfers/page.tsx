@@ -37,7 +37,7 @@ export default function TransfersPage() {
   const decided = requests.filter(r => r.status !== 'pending')
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Leads"
         title="Transfer requests"

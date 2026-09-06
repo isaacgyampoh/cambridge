@@ -131,7 +131,7 @@ export default function AdminRegistrations() {
   }
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Records"
         title="Student records"

@@ -55,7 +55,7 @@ export default function FinancePage() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Finance"
         title="Payments & invoices"

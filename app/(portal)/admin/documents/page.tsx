@@ -189,7 +189,7 @@ export default function DocumentsPage() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <div className="flex items-center justify-between mb-6">
         <div>

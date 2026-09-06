@@ -33,7 +33,7 @@ export default function PrepActivityPage() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="Oversight" title="Exam-prep coordinator activity"
         description="Every comment and change the exam-prep coordinators make on student records — across all programmes." />
 

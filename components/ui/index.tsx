@@ -16,20 +16,26 @@ export function PageHeader({
   actions?: React.ReactNode
 }) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-5 sm:mb-7">
-      <div>
-        {eyebrow && (
-          <div className="t-overline mb-1.5">{eyebrow}</div>
-        )}
-        <h1 className="font-display text-[20px] sm:text-[24px] font-semibold text-[var(--ink)] leading-tight">
-          {title}
-        </h1>
-        {description && (
-          <p className="t-lead mt-1 max-w-2xl">{description}</p>
-        )}
+    /*
+     * The title column must win the space fight.
+     *
+     * It previously had no min-w-0 and no flex-1 while the actions container
+     * was flex-shrink-0, so a screen with several buttons starved the heading
+     * down to its narrowest possible column — the leads page rendered its
+     * description one word per line. The title now takes the room and the
+     * actions wrap beneath it when they cannot fit.
+     */
+    <div className="flex flex-col lg:flex-row lg:items-start lg:justify-between gap-3 lg:gap-6 mb-5 sm:mb-6">
+      <div className="min-w-0 flex-1">
+        {eyebrow && <div className="t-overline mb-1.5">{eyebrow}</div>}
+        <h1 className="t-display">{title}</h1>
+        {description && <p className="t-lead mt-1 max-w-prose">{description}</p>}
       </div>
+
       {actions && (
-        <div className="flex items-center gap-2 flex-shrink-0 overflow-x-auto -mx-5 px-5 pb-1 sm:mx-0 sm:px-0 sm:pb-0 sm:flex-wrap [&>*]:flex-shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+        <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap lg:justify-end
+          -mx-5 px-5 lg:mx-0 lg:px-0 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0
+          [&>*]:flex-shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
           {actions}
         </div>
       )}

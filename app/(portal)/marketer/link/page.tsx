@@ -117,7 +117,7 @@ export default function MarketerLink() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="mb-8">
         <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">My work</div>
         <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">My links</h1>

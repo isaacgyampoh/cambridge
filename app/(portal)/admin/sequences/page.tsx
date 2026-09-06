@@ -92,7 +92,7 @@ export default function SequencesPage() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader
         eyebrow="Automation"

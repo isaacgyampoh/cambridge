@@ -122,7 +122,7 @@ export default function CoordinatorPage() {
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow={data?.myProgram ? `${data.myProgram} exam prep` : 'Exam prep'}
         title="Prep tracker"

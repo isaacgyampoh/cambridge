@@ -103,7 +103,7 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
   ]
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="Course leads"
         title={courseName}

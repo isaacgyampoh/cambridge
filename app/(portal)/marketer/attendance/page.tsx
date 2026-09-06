@@ -22,7 +22,7 @@ export default function MarketerAttendance() {
   }, [batchId])
 
   return (
-    <div className="fade-in w-full max-w-2xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader
         eyebrow="My students"
         title="Class attendance"

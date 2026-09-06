@@ -45,7 +45,7 @@ export default function PaymentReminders() {
   }
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader eyebrow="Automation" title="Payment reminders"
         description="Send every student who owes a friendly reminder with their outstanding balance and a pay link. Review who it reaches before sending." />

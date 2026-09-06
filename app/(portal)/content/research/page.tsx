@@ -9,7 +9,7 @@ export default function SocialStrategy() {
   const [tab, setTab] = useState<Tab>('strategy')
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="Social Media" title="Strategy hub"
         description="Plan what to post and when, watch competitors legally, and turn their best ideas into stronger posts for Cambridge." />
 

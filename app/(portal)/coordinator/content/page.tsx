@@ -78,7 +78,7 @@ export default function PrepContentPage() {
   }
 
   return (
-    <div className="fade-in w-full max-w-4xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
       <PageHeader eyebrow="Exam prep" title="Content bank"
         description="Build tips, practice questions, and exam info. Send them to your students now, or schedule them to auto-send before their exam." />

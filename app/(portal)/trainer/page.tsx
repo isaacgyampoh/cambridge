@@ -16,7 +16,7 @@ export default function TrainerDashboard() {
   if (!s) return <div className="py-20"><Spinner /></div>
 
   return (
-    <div className="fade-in w-full">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <div className="mb-8">
         <h1 className="font-display text-[24px] sm:text-[24px] font-semibold text-[var(--ink)]">{name ? `Welcome, ${name}` : 'Your classes'}</h1>
         <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">Your classes and enrolled students.</p>
