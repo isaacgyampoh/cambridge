@@ -262,7 +262,7 @@ export default function AlumniPage() {
                 </div>
 
                 {a.testimonial && (
-                  <blockquote className="text-xs text-[var(--ink-faint)] italic mt-3 line-clamp-2 border-l-2 border-blue-200 pl-2">
+                  <blockquote className="text-xs text-[var(--ink-faint)] italic mt-3 line-clamp-2 border-l-2 border-[var(--accent-line)] pl-2">
                     ”{a.testimonial}”
                   </blockquote>
                 )}

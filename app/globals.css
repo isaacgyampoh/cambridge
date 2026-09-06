@@ -15,45 +15,56 @@
 
 :root {
   /* ── Neutrals ────────────────────────────────────────────────────────────
-     A cool grey ramp. Text has three weights of emphasis and no more. */
-  --ink:        #0f1b2d;   /* primary text */
-  --ink-soft:   #5b6675;   /* secondary text, descriptions */
-  --ink-faint:  #8b96a5;   /* metadata, captions, disabled */
+     A WARM ramp, not a cool one.
 
-  --line:       #e6e9ee;   /* hairline borders */
-  --line-soft:  #f1f3f6;   /* dividers inside a surface */
-  --paper:      #ffffff;   /* raised surface */
-  --canvas:     #f7f8fa;   /* page ground */
+     These were cool greys built around a navy that no longer exists. Warm
+     neutrals are what let ivory read as ivory rather than as "white that
+     needs cleaning" — a cool grey beside a warm paper looks like a mistake. */
+  --ink:        #1F1416;   /* primary text — near-black, brown-shifted */
+  --ink-soft:   #6B5B5E;   /* secondary text, descriptions */
+  --ink-faint:  #9A8B8E;   /* metadata, captions, disabled */
+
+  --line:       #E7E0D8;   /* hairline borders */
+  --line-soft:  #F2ECE4;   /* dividers inside a surface */
+  --paper:      #FBF9F6;   /* raised surface — warm ivory */
+  --canvas:     #F4F0EA;   /* page ground — parchment */
 
   /* ── Brand ───────────────────────────────────────────────────────────────
-     A deep institutional navy. It carries the header, the bottom navigation,
-     the primary action and the current location — and nothing else. A second
-     accent exists only for honours, where the institution means something
-     different by it. */
-  --navy:        #16273f;
-  --navy-deep:   #0f1b2d;
-  --navy-soft:   #eef1f6;
-  --navy-line:   #c9d3e0;
+     Oxblood, taken from the crest.
 
-  --accent:      var(--navy);
-  --accent-hover:#0f1b2d;
-  --accent-ink:  #ffffff;
-  --accent-soft: var(--navy-soft);
-  --accent-line: var(--navy-line);
+     The product was navy while the mark on it is a red seal, so the two never
+     belonged to each other — the logo always looked applied rather than part
+     of the thing. The dark surface is now the deepest tone in that seal, and
+     the accent is the seal's own red.
 
-  --gold:       #96742f;
-  --gold-soft:  #f5efe3;
+     Named --brand rather than --navy. The old names had to be renamed the
+     moment the palette moved, which is the argument for never naming a token
+     after the colour it currently holds. */
+  --brand:       #3B1219;   /* the dark surface: app bar, tab bar, panels */
+  --brand-deep:  #2A0C11;   /* pressed, and the deepest ground */
+  --brand-soft:  #F6EAEA;   /* tinted fill behind an icon or a chip */
+  --brand-line:  #E3C9CB;   /* a border in the brand family */
+
+  --accent:      #8C2F39;   /* the seal's red: primary action, current page */
+  --accent-hover:#73242D;
+  --accent-ink:  #FBF9F6;
+  --accent-soft: var(--brand-soft);
+  --accent-line: var(--brand-line);
+
+  /* Brass. For honours and awards only — never for state. */
+  --gold:       #B08442;
+  --gold-soft:  #F7EFE2;
 
   /* ── Semantic ────────────────────────────────────────────────────────────
      State only. Never for distinguishing features from one another. */
-  --ok:          #1f7a52;
-  --ok-soft:     #e8f3ed;
-  --warn:        #9a6a1e;
-  --warn-soft:   #fbf1e0;
-  --danger:      #a8342f;
-  --danger-soft: #f9eae9;
-  --info:        #2b5c8a;
-  --info-soft:   #eaf1f8;
+  --ok:          #2F6B4F;
+  --ok-soft:     #E7F0E9;
+  --warn:        #92671F;
+  --warn-soft:   #F8EEDC;
+  --danger:      #A32C35;   /* distinct from --accent: destructive, not brand */
+  --danger-soft: #F7E7E7;
+  --info:        #3D5A78;
+  --info-soft:   #ECF0F5;
 
   /* ── Type scale ──────────────────────────────────────────────────────────
      Eight steps, each with a job. A page title is 22px on a phone: confidence
@@ -291,7 +302,7 @@ table { border-collapse: collapse; width: 100%; }
    ═════════════════════════════════════════════════════════════════════════ */
 
 .app-bar {
-  background: var(--navy);
+  background: var(--brand);
   color: #fff;
   height: var(--appbar-h);
   padding-top: env(safe-area-inset-top);
@@ -299,7 +310,7 @@ table { border-collapse: collapse; width: 100%; }
 }
 
 .tab-bar {
-  background: var(--navy);
+  background: var(--brand);
   padding-bottom: env(safe-area-inset-bottom);
 }
 

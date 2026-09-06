@@ -342,7 +342,7 @@ export default function AdminLeads() {
         />
         <select value={sourceFilter} onChange={e => setSourceFilter(e.target.value)}
           aria-label="Filter by source"
-          className="h-12 sm:h-11 px-3 rounded-lg border border-[var(--line)] bg-white
+          className="h-12 sm:h-11 px-3 rounded-lg border border-[var(--line)] bg-[var(--paper)]
             text-[15px] sm:text-[13px] text-[var(--ink)] sm:w-[150px]
             focus:outline-none focus:border-[var(--accent)]">
           <option value="all">All sources</option>
@@ -352,7 +352,7 @@ export default function AdminLeads() {
         </select>
         <select value={statusFilter} onChange={e => setStatusFilter(e.target.value)}
           aria-label="Filter by stage"
-          className="h-12 sm:h-11 px-3 rounded-lg border border-[var(--line)] bg-white
+          className="h-12 sm:h-11 px-3 rounded-lg border border-[var(--line)] bg-[var(--paper)]
             text-[15px] sm:text-[13px] text-[var(--ink)] sm:w-[150px]
             focus:outline-none focus:border-[var(--accent)]">
           <option value="all">All stages</option>
@@ -427,16 +427,16 @@ export default function AdminLeads() {
                         <a href={tel} aria-label={`Call ${l.full_name}`}
                           onClick={e => e.stopPropagation()}
                           className="w-10 h-10 grid place-items-center rounded-full
-                            bg-[var(--navy-soft)] text-[var(--navy)]
-                            active:bg-[var(--navy-line)] transition-colors">
+                            bg-[var(--brand-soft)] text-[var(--brand)]
+                            active:bg-[var(--brand-line)] transition-colors">
                           <Phone size={16} aria-hidden="true" />
                         </a>
                         <a href={wa} target="_blank" rel="noopener noreferrer"
                           aria-label={`Message ${l.full_name} on WhatsApp`}
                           onClick={e => e.stopPropagation()}
                           className="w-10 h-10 grid place-items-center rounded-full
-                            bg-[var(--navy-soft)] text-[var(--navy)]
-                            active:bg-[var(--navy-line)] transition-colors">
+                            bg-[var(--brand-soft)] text-[var(--brand)]
+                            active:bg-[var(--brand-line)] transition-colors">
                           <MessageCircle size={16} aria-hidden="true" />
                         </a>
                       </>

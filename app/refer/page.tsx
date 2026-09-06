@@ -101,7 +101,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
     <div className="min-h-screen" style={{ background: 'var(--canvas)' }}>
       <div className="relative overflow-hidden" style={{ background: 'var(--accent)' }}>
         <div className="relative max-w-md mx-auto px-4 pt-10 pb-20 text-center">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-white overflow-hidden p-1.5 mb-4 shadow-[var(--shadow-overlay)]">
+          <div className="inline-flex w-14 h-14 rounded-2xl bg-[var(--paper)] overflow-hidden p-1.5 mb-4 shadow-[var(--shadow-overlay)]">
             <img src="/brand/logo.png" alt="Cambridge" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-display text-white text-[24px] font-semibold tracking-[-0.02em]">{title}</h1>
@@ -130,7 +130,7 @@ function Select({ label, value, onChange, options, placeholder }: { label: strin
     <div>
       <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
+        className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
         <option value="">{placeholder || 'Select…'}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>

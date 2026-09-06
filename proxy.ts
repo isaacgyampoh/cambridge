@@ -31,6 +31,9 @@ const PUBLIC = [
   '/api/auth/recover/',
   '/api/courses/public', '/api/paystack/key', '/api/paystack/init', '/api/paystack/verify',
   '/api/flyers/public', '/api/flyers/submit',
+  // Counts of already-public things, for the sign-in panel. Counts only —
+  // see app/api/public/stats/route.ts for what it will and will not answer.
+  '/api/public/stats',
   // decides its own auth per folder: public submission folders are open,
   // everything else requires a session (see app/api/upload/route.ts)
   '/api/upload',

@@ -1,12 +1,20 @@
 import { PDFDocument, rgb, StandardFonts } from 'pdf-lib'
 import { createServiceClient } from '@/lib/supabase/server'
 
-/** Brand teal */
-const TEAL = rgb(0.102, 0.478, 0.522)      // #1a7a85
-const INK = rgb(0.102, 0.133, 0.188)       // #1a2230
-const SOFT = rgb(0.353, 0.400, 0.459)      // #5a6675
-const FAINT = rgb(0.592, 0.631, 0.690)     // #97a1b0
-const PANEL = rgb(0.941, 0.969, 0.972)     // #f0f7f8
+/*
+ * The admission letter's palette, matching globals.css.
+ *
+ * This was teal — #1a7a85, from a palette the product no longer uses. The
+ * letter is the single most formal thing the centre sends anybody, and it was
+ * arriving in a colour that appears nowhere else on the crest, the portal or
+ * the site. These are the same values as --brand, --ink and --canvas.
+ */
+const BRAND = rgb(0.231, 0.071, 0.098)     // #3B1219 oxblood
+const ACCENT = rgb(0.549, 0.184, 0.224)    // #8C2F39 crest red
+const INK = rgb(0.122, 0.078, 0.086)       // #1F1416
+const SOFT = rgb(0.420, 0.357, 0.369)      // #6B5B5E
+const FAINT = rgb(0.604, 0.545, 0.557)     // #9A8B8E
+const PANEL = rgb(0.957, 0.941, 0.918)     // #F4F0EA parchment
 
 interface LetterData {
   name: string
@@ -31,7 +39,7 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
     const serif = await pdf.embedFont(StandardFonts.TimesRoman)
 
     // ── Header band ──
-    page.drawRectangle({ x: 0, y: height - 110, width, height: 110, color: TEAL })
+    page.drawRectangle({ x: 0, y: height - 110, width, height: 110, color: BRAND })
     page.drawText('CAMBRIDGE CENTER OF EXCELLENCE', {
       x: 40, y: height - 58, size: 18, font: bold, color: rgb(1, 1, 1),
     })
@@ -57,7 +65,7 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
     y -= 30
     const panelH = data.startDate ? 108 : 88
     page.drawRectangle({ x: 40, y: y - panelH, width: width - 80, height: panelH, color: PANEL })
-    page.drawRectangle({ x: 40, y: y - panelH, width: 4, height: panelH, color: TEAL })
+    page.drawRectangle({ x: 40, y: y - panelH, width: 4, height: panelH, color: BRAND })
 
     let py = y - 24
     const row = (label: string, value: string) => {

@@ -146,7 +146,7 @@ export default function SettingsPage() {
             <span aria-hidden="true"
               className={`relative block w-12 h-7 rounded-full transition-colors
                 ${autoAssign ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
-            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${autoAssign ? 'translate-x-5' : ''}`} />
+            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-[var(--paper)] shadow-[var(--shadow-raised)] transition-transform ${autoAssign ? 'translate-x-5' : ''}`} />
             </span>
           </button>
         </div>
@@ -204,7 +204,7 @@ export default function SettingsPage() {
           }} disabled={testing === 'ai'}>{testing === 'ai' ? 'Checking…' : 'Test AI'}</Button>
         </div>
         {result && (
-          <div className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-[var(--ok-soft)] text-emerald-800' : 'bg-[var(--warn-soft)] text-amber-800'}`}>
+          <div className={`mt-3 rounded-lg p-3 text-sm ${result.success ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
             <div className="font-medium mb-1">{result.channel}: {result.success ? 'Delivered to provider' : 'Not delivered'}</div>
             {result.hint && <div className="text-xs">{result.hint}</div>}
             {result.arkeselResponse && <div className="text-[12px] font-mono mt-1 opacity-70">{JSON.stringify(result.arkeselResponse)}</div>}

@@ -102,7 +102,7 @@ export default function CertificatesPage() {
         eyebrow="Academics"
         title="Certificate registry"
         description="Issue certificates to students who completed their class and paid full fees. Online students get a download link automatically."
-        actions={<button onClick={exportRegistry} className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)]"> Export registry</button>}
+        actions={<button onClick={exportRegistry} className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)]"> Export registry</button>}
       />
 
       {/* Ready to issue */}

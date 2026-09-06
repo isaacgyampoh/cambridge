@@ -72,7 +72,7 @@ export default function MarketerAttendance() {
                       <a href={telHref(s.phone) as string}
                         aria-label={`Call ${s.name}`}
                         className="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-[36px] px-3
-                          rounded-lg bg-[var(--navy-soft)] text-[var(--navy)] text-[13px] font-medium">
+                          rounded-lg bg-[var(--brand-soft)] text-[var(--brand)] text-[13px] font-medium">
                         <Phone size={14} aria-hidden="true" /> Call
                       </a>
                     )}

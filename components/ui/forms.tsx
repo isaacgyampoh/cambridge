@@ -25,7 +25,7 @@ import { Search as SearchIcon, X, ChevronDown, Eye, EyeOff } from 'lucide-react'
    ───────────────────────────────────────────── */
 
 const base =
-  'w-full rounded-lg border bg-white text-[var(--ink)] placeholder:text-[var(--ink-faint)] ' +
+  'w-full rounded-lg border bg-[var(--paper)] text-[var(--ink)] placeholder:text-[var(--ink-faint)] ' +
   'transition-shadow focus:outline-none focus:ring-4 disabled:opacity-60 disabled:bg-[var(--canvas)]'
 
 /** 16px on phones is not a style choice: iOS zooms the page in below it. */

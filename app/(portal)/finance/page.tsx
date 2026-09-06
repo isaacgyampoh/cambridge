@@ -139,7 +139,7 @@ export default function FinancePage() {
       <div className="flex gap-1 mb-4 bg-[var(--line-soft)] rounded-lg p-1 w-fit">
         {[{ k: 'payments', l: `Payments (${payments.length})` }, { k: 'invoices', l: `Invoices (${invoices.length})` }].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${tab === t.k ? 'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${tab === t.k ? 'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {t.l}
           </button>
         ))}

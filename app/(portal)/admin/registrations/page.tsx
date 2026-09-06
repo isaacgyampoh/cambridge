@@ -269,7 +269,7 @@ export default function AdminRegistrations() {
                 {telHref(selected.phone) && (
                   <a href={telHref(selected.phone) as string}
                     className="inline-flex items-center gap-2 h-11 px-4 rounded-xl
-                      bg-[var(--navy)] text-white text-[14px] font-semibold
+                      bg-[var(--brand)] text-white text-[14px] font-semibold
                       hover:brightness-110 transition">
                     <Phone size={16} aria-hidden="true" /> Call
                   </a>

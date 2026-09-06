@@ -59,7 +59,7 @@ export default function FileUpload({
           {uploading ? <Loader2 size={14} className="animate-spin" /> : <Upload size={14} />}
           {uploading ? 'Uploading…' : label}
         </button>
-        {preview && <Check size={15} className="text-emerald-500" />}
+        {preview && <Check size={15} className="text-[var(--ok)]" />}
       </div>
     )
   }
@@ -94,7 +94,7 @@ export default function FileUpload({
       )}
 
       {!configured && (
-        <p className="text-[11px] text-amber-600 mt-2">File storage isn’t connected yet. Add your Cloudinary keys to enable uploads.</p>
+        <p className="text-[11px] text-[var(--warn)] mt-2">File storage isn’t connected yet. Add your Cloudinary keys to enable uploads.</p>
       )}
     </div>
   )

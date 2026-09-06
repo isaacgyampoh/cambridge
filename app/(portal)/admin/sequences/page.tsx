@@ -135,7 +135,7 @@ export default function SequencesPage() {
                     <span aria-hidden="true"
                       className={`relative block w-11 h-6 rounded-full transition-colors
                         ${seq.is_active ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
-                      <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${seq.is_active ? 'translate-x-5' : ''}`} />
+                      <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-[var(--paper)] shadow-[var(--shadow-raised)] transition-transform ${seq.is_active ? 'translate-x-5' : ''}`} />
                     </span>
                   </button>
                 </div>

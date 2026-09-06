@@ -269,7 +269,7 @@ export default function DocumentsPage() {
             placeholder="Document name (e.g. Admission Letter 2025)"
             className="h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
           <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-            className="h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+            className="h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
             {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
@@ -292,7 +292,7 @@ export default function DocumentsPage() {
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">For which programme?</label>
               <select value={form.course_id} onChange={e => setForm(f => ({ ...f, course_id: e.target.value }))}
-                className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
                 <option value="">All programmes (general)</option>
                 {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -304,7 +304,7 @@ export default function DocumentsPage() {
                 <input type="number" min={1} value={form.section_no}
                   onChange={e => setForm(f => ({ ...f, section_no: e.target.value }))}
                   placeholder="e.g. 1 — leave blank if it applies to the whole course"
-                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]" />
                 <p className="text-[12px] text-[var(--ink-faint)] mt-1 mb-3">
                   Students see it when the class reaches this section. Paying in full opens every section at once.
                 </p>
@@ -313,11 +313,11 @@ export default function DocumentsPage() {
                 <input type="number" min={0} value={form.unlock_after_amount}
                   onChange={e => setForm(f => ({ ...f, unlock_after_amount: e.target.value }))}
                   placeholder="e.g. 500 — 0 means available immediately"
-                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]" />
                 <p className="text-[12px] text-[var(--ink-faint)] mt-1 mb-3">Released automatically once their total payments reach this.</p>
                 <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Who receives it?</label>
                 <select value={form.delivery_scope} onChange={e => setForm(f => ({ ...f, delivery_scope: e.target.value }))}
-                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
                   <option value="online">Online students only</option>
                   <option value="">All students</option>
                 </select>
@@ -345,7 +345,7 @@ export default function DocumentsPage() {
           <div className="mb-4">
             <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Which students is this letter for?</label>
             <select value={form.delivery_scope} onChange={e => setForm(f => ({ ...f, delivery_scope: e.target.value }))}
-              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
               <option value="">Both online and in person</option>
               <option value="online">Online students only</option>
               <option value="in_person">In-person students only</option>
@@ -377,7 +377,7 @@ export default function DocumentsPage() {
             </p>
             <div className="flex flex-wrap gap-1.5">
               {TEMPLATE_FIELDS.map(f => (
-                <code key={f} className="text-[12px] bg-white border border-blue-200 text-[var(--accent)] px-2 py-0.5 rounded font-mono">{f}</code>
+                <code key={f} className="text-[12px] bg-[var(--paper)] border border-[var(--accent-line)] text-[var(--accent)] px-2 py-0.5 rounded font-mono">{f}</code>
               ))}
             </div>
           </div>

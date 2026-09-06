@@ -104,7 +104,7 @@ export default function WorkforcePage() {
         <Card className="p-4 mb-6 border-[var(--warn)]/20 bg-[var(--warn-soft)]">
           <div className="flex items-start gap-3">
             
-            <div className="text-sm text-amber-800">
+            <div className="text-sm text-[var(--warn)]">
               <strong>No office location set.</strong> Staff cannot sign in until you set one. Stand at your office and use “Office location, then Use my current location”.
             </div>
           </div>

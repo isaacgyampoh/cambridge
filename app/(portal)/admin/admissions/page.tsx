@@ -224,8 +224,8 @@ export default function AdminAdmissions() {
                   {tel && (
                     <a href={tel} aria-label={`Call ${lead?.full_name}`}
                       className="w-10 h-10 grid place-items-center rounded-full flex-shrink-0
-                        bg-[var(--navy-soft)] text-[var(--navy)]
-                        active:bg-[var(--navy-line)] transition-colors">
+                        bg-[var(--brand-soft)] text-[var(--brand)]
+                        active:bg-[var(--brand-line)] transition-colors">
                       <Phone size={16} aria-hidden="true" />
                     </a>
                   )}
@@ -233,8 +233,8 @@ export default function AdminAdmissions() {
                     <a href={wa} target="_blank" rel="noopener noreferrer"
                       aria-label={`Message ${lead?.full_name} on WhatsApp`}
                       className="w-10 h-10 grid place-items-center rounded-full flex-shrink-0
-                        bg-[var(--navy-soft)] text-[var(--navy)]
-                        active:bg-[var(--navy-line)] transition-colors">
+                        bg-[var(--brand-soft)] text-[var(--brand)]
+                        active:bg-[var(--brand-line)] transition-colors">
                       <MessageSquare size={16} aria-hidden="true" />
                     </a>
                   )}

@@ -120,7 +120,7 @@ export default function CommandPalette() {
         <div className="fixed inset-0 z-[10001] flex items-start justify-center pt-[12vh] px-4"
           style={{ backgroundColor: 'rgba(20,20,22,0.4)', backdropFilter: 'blur(2px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}>
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-[var(--shadow-overlay)] overflow-hidden border border-[var(--line)]">
+          <div className="w-full max-w-lg bg-[var(--paper)] rounded-2xl shadow-[var(--shadow-overlay)] overflow-hidden border border-[var(--line)]">
             {/* Search input */}
             <div className="flex items-center gap-3 px-4 border-b border-[var(--line)]" style={{ height: 56 }}>
               <Search size={18} className="text-[var(--ink-faint)] flex-shrink-0" />

@@ -272,7 +272,7 @@ export default function StaffPage() {
                   </div>
 
                   <div className="space-y-3">
-                    <div className="bg-white rounded-xl p-3 flex items-center justify-between">
+                    <div className="bg-[var(--paper)] rounded-xl p-3 flex items-center justify-between">
                       <div>
                         <div className="text-[11px] font-bold text-[var(--ink-faint)]">Phone (Login)</div>
                         <div className="text-sm font-semibold text-[var(--ink)]">{creds.phone}</div>
@@ -281,7 +281,7 @@ export default function StaffPage() {
                         className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors" aria-label="Copy"><Copy size={15} aria-hidden="true" /></button>
                     </div>
 
-                    <div className="bg-white rounded-xl p-3 flex items-center justify-between">
+                    <div className="bg-[var(--paper)] rounded-xl p-3 flex items-center justify-between">
                       <div>
                         <div className="text-[11px] font-bold text-[var(--ink-faint)]">Initial PIN</div>
                         <div className="text-2xl font-bold tracking-[0.3em] text-[var(--accent)]">{creds.initial_pin}</div>
@@ -395,7 +395,7 @@ export default function StaffPage() {
                       <button type="button" onClick={() => set('role', 'super_admin')}
                         className={`h-10 px-3 rounded-2xl text-[12px] font-semibold border-2 transition text-left col-span-2 ${
                           form.role === 'super_admin'
-                            ? 'border-purple-600 bg-purple-50 text-[var(--gold)]'
+                            ? 'border-[var(--gold)] bg-[var(--gold-soft)] text-[var(--gold)]'
                             : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'
                         }`}>
                          Super Admin (full access)
@@ -499,7 +499,7 @@ export default function StaffPage() {
                         <div>
                           <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Reports to (optional)</label>
                           <select value={form.reports_to} onChange={e => set('reports_to', e.target.value)}
-                            className="w-full h-11 px-4 rounded-2xl border-2 border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                            className="w-full h-11 px-4 rounded-2xl border-2 border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
                             <option value="">No one — reports to admin</option>
                             {staff.filter((s: any) => s.is_team_lead || s.role === 'project_manager').map((s: any) => (
                               <option key={s.id} value={s.id}>{s.full_name} ({ROLE_LABEL[s.role] || s.role})</option>
@@ -628,7 +628,7 @@ export default function StaffPage() {
         <div className="px-4 py-3 border-b border-[var(--line)]">
           <input value={search} onChange={e => setSearch(e.target.value)}
             placeholder="Search by name, email or phone"
-            className="w-full h-9 px-4 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-white transition" />
+            className="w-full h-9 px-4 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-[var(--paper)] transition" />
         </div>
 
         {loading ? (

@@ -23,7 +23,7 @@ const STATUSES = [
 
 const ACTIVITY_TYPES = [
   { key: 'call', label: 'Call', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
-  { key: 'whatsapp', label: 'WhatsApp', color: 'bg-emerald-100 text-[var(--ok)]'},
+  { key: 'whatsapp', label: 'WhatsApp', color: 'bg-[var(--ok-soft)] text-[var(--ok)]'},
   { key: 'email', label: 'Email', color: 'bg-[var(--accent-soft)] text-[var(--accent)]'},
   { key: 'meeting', label: 'Meeting', color: 'bg-[var(--gold-soft)] text-[var(--gold)]'},
   { key: 'note', label: 'Note', color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]'},
@@ -263,7 +263,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <div className="text-[13px] text-[var(--ink-soft)] mt-0.5">The AI stepped aside (a voice note, a question it couldn’t handle, or the lead asked for a person). Reply to them on WhatsApp, then resume the AI when you’re done.</div>
                 </div>
                 <button onClick={resumeAI}
-                  className="flex-shrink-0 h-11 sm:h-9 px-3 rounded-lg bg-[var(--paper)] border border-[var(--line)] text-[13px] font-semibold text-[var(--ink)] hover:bg-white transition">
+                  className="flex-shrink-0 h-11 sm:h-9 px-3 rounded-lg bg-[var(--paper)] border border-[var(--line)] text-[13px] font-semibold text-[var(--ink)] hover:bg-[var(--paper)] transition">
                   Resume AI
                 </button>
               </div>
@@ -423,7 +423,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <h3 className="font-display text-lg font-semibold mb-1">Register student</h3>
               <p className="text-white/70 text-sm mb-4">Mark as enrolled to earn points and your GHS 200 registration commission.</p>
               <button onClick={() => setRegOpen(true)}
-                className="w-full h-10 bg-white text-[var(--accent)] rounded-lg text-sm font-semibold hover:bg-white/90 transition">
+                className="w-full h-10 bg-[var(--paper)] text-[var(--accent)] rounded-lg text-sm font-semibold hover:bg-white/90 transition">
                 Register &amp; earn points
               </button>
             </div>
@@ -477,7 +477,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div>
               <label className="block text-xs font-semibold text-[var(--ink-soft)] mb-1.5">Programme</label>
               <select value={regForm.programCode} onChange={e => setRegForm({ ...regForm, programCode: e.target.value })}
-                className="w-full h-11 px-3 rounded-lg border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                className="w-full h-11 px-3 rounded-lg border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
                 <option value="">Select programme</option>
                 {programs.map((p: any) => (
                   <option key={p.code} value={p.code}>{p.name} {p.is_corporate ? '(40–200 pts)' : `(${p.points} pts)`}</option>
@@ -550,7 +550,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             {telHref(lead.phone) && (
               <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()}
                 className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl
-                  bg-[var(--navy)] text-white text-[15px] font-semibold
+                  bg-[var(--brand)] text-white text-[15px] font-semibold
                   active:brightness-110 transition disabled:opacity-60" />
             )}
             {whatsappHref(lead.phone) && (

@@ -101,7 +101,7 @@ export default function SetupPage() {
       <div className="w-full max-w-[460px]">
 
         <header className="text-center mb-7">
-          <span className="w-16 h-16 rounded-2xl bg-white border border-[var(--line)] grid place-items-center mx-auto mb-4 p-2.5 shadow-[var(--shadow-raised)]">
+          <span className="w-16 h-16 rounded-2xl bg-[var(--paper)] border border-[var(--line)] grid place-items-center mx-auto mb-4 p-2.5 shadow-[var(--shadow-raised)]">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
           </span>

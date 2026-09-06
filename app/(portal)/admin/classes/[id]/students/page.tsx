@@ -291,7 +291,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
             toast.success(`${parts.join('. ')}.`)
           }
         }}
-          className="inline-flex items-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition mr-2">
+          className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition mr-2">
           Issue certificates
         </button>
         <button onClick={() => { setShowAttendance(s => !s); if (!attendance) loadAttendance() }}

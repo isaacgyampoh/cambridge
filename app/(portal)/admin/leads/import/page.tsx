@@ -198,7 +198,7 @@ export default function ImportLeadsPage() {
       {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/leads"
-          className="flex items-center gap-1.5 h-9 px-3 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
+          className="flex items-center gap-1.5 h-9 px-3 bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
            Leads
         </Link>
         <div>
@@ -313,7 +313,7 @@ export default function ImportLeadsPage() {
           {/* Left — input */}
           <div className="space-y-4">
             {/* Template download */}
-            <div className="bg-[var(--accent-soft)] border border-blue-100 rounded-2xl p-4 flex items-center gap-3">
+            <div className="bg-[var(--accent-soft)] border border-[var(--accent-line)] rounded-2xl p-4 flex items-center gap-3">
               
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-[var(--accent)]">Need a template?</div>
@@ -330,7 +330,7 @@ export default function ImportLeadsPage() {
               <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden"
                 onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
               <button onClick={() => fileRef.current?.click()}
-                className="w-full h-28 border-2 border-dashed border-[var(--line)] rounded-2xl flex flex-col items-center justify-center gap-2 text-[var(--ink-faint)] hover:border-blue-400 hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-all">
+                className="w-full h-28 border-2 border-dashed border-[var(--line)] rounded-2xl flex flex-col items-center justify-center gap-2 text-[var(--ink-faint)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-all">
                 
                 <span className="text-sm font-semibold">Click to upload CSV file</span>
                 <span className="text-xs">or drag & drop</span>
@@ -347,7 +347,7 @@ export default function ImportLeadsPage() {
                 onChange={e => handleText(e.target.value)}
                 rows={12}
                 placeholder={`full_name,phone,email,course_interest,source,city,notes\nKwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes\nAbena Owusu,0551234567,,PHRI,google,Kumasi,`}
-                className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm font-mono resize-none focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-white transition"
+                className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm font-mono resize-none focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-[var(--paper)] transition"
               />
             </div>
           </div>
@@ -364,12 +364,12 @@ export default function ImportLeadsPage() {
               <>
                 {/* Stats bar */}
                 <div className="flex gap-3">
-                  <div className="flex-1 bg-[var(--ok-soft)] border border-green-100 rounded-xl p-3 text-center">
+                  <div className="flex-1 bg-[var(--ok-soft)] border border-[var(--ok-soft)] rounded-xl p-3 text-center">
                     <div className="text-xl font-bold text-[var(--ok)]">{validCount}</div>
                     <div className="text-xs text-[var(--ok)] font-semibold">Ready to import</div>
                   </div>
                   {errorCount > 0 && (
-                    <div className="flex-1 bg-[var(--danger-soft)] border border-red-100 rounded-xl p-3 text-center">
+                    <div className="flex-1 bg-[var(--danger-soft)] border border-[var(--danger-soft)] rounded-xl p-3 text-center">
                       <div className="text-xl font-bold text-[var(--danger)]">{errorCount}</div>
                       <div className="text-xs text-[var(--danger)] font-semibold">Will be skipped</div>
                     </div>

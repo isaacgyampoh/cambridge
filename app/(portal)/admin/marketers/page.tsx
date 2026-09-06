@@ -177,7 +177,7 @@ export default function MarketerPerformancePage() {
   const STATUS_CONFIG = {
     top_performer: { label: 'Top Performer', color: 'bg-[var(--warn-soft)] text-[var(--warn)] border-yellow-200', bg: 'border-yellow-300'},
     active: { label: 'Active', color: 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/20', bg: 'border-[var(--ok)]/20'},
-    at_risk: { label: 'At Risk', color: 'bg-[var(--warn-soft)] text-[var(--warn)] border-orange-200', bg: 'border-orange-300'},
+    at_risk: { label: 'At Risk', color: 'bg-[var(--warn-soft)] text-[var(--warn)] border-[var(--warn-soft)]', bg: 'border-[var(--warn)]'},
     inactive: { label: 'Inactive', color: 'bg-[var(--danger-soft)] text-[var(--danger)] border-[var(--danger)]/20', bg: 'border-red-300'},
   }
 
@@ -202,7 +202,7 @@ export default function MarketerPerformancePage() {
         <div className="flex gap-1 bg-[var(--line-soft)] rounded-lg p-1">
           {[{v:'7',l:'7d'},{v:'30',l:'30d'},{v:'90',l:'90d'}].map(r => (
             <button key={r.v} onClick={() => setRange(r.v)}
-              className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition ${range === r.v ? 'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+              className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition ${range === r.v ? 'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
               {r.l}
             </button>
           ))}
@@ -248,7 +248,7 @@ export default function MarketerPerformancePage() {
           {selected && <div className="p-6">
             <h2 className="font-semibold text-[var(--ink)] mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
             <p className="text-sm text-[var(--ink-faint)] mb-4">This will send an in-app notification and SMS.</p>
-            <div className="bg-orange-50 rounded-xl p-3 mb-4 text-xs text-[var(--warn)]">
+            <div className="bg-[var(--warn-soft)] rounded-xl p-3 mb-4 text-xs text-[var(--warn)]">
               <strong>Performance snapshot:</strong><br />
               {selected.totalLeads} leads · {selected.convertedLeads} converted ({selected.conversionRate}%) · {selected.uncontactedLeads} uncontacted · Last active: {selected.daysSinceActivity === 999 ? 'Never': `${selected.daysSinceActivity} days ago`}
             </div>
@@ -270,7 +270,7 @@ export default function MarketerPerformancePage() {
             </div>
             <div className="flex gap-2">
               <button onClick={() => sendAlert(selected)} disabled={sendingAlert || !alertMsg.trim()}
-                className="flex-1 h-11 bg-orange-500 text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-orange-600 transition flex items-center justify-center gap-2">
+                className="flex-1 h-11 bg-[var(--warn)] text-white rounded-xl text-sm font-semibold disabled:opacity-50 hover:bg-[var(--warn)] transition flex items-center justify-center gap-2">
                 
                 {sendingAlert ? 'Sending...': 'Send Alert'}
               </button>
@@ -346,7 +346,7 @@ export default function MarketerPerformancePage() {
                             load()
                           }}
                           className={`text-[11px] font-semibold rounded-lg border px-2 py-1.5 transition ${
-                            on ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-white text-[var(--ink-faint)] border-[var(--line)] hover:border-[var(--ink-faint)]'
+                            on ? 'bg-[var(--accent)] text-white border-[var(--accent)]' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)] hover:border-[var(--ink-faint)]'
                           }`}>
                           {src === 'google' ? 'Google' : 'Website'}
                         </button>
@@ -358,7 +358,7 @@ export default function MarketerPerformancePage() {
                       </div>
                     )}
                     <button onClick={() => setSelected(m)}
-                      className="flex items-center gap-1.5 px-3 py-2 bg-[var(--warn-soft)] text-[var(--warn)] rounded-xl text-xs font-semibold hover:bg-orange-200 transition">
+                      className="flex items-center gap-1.5 px-3 py-2 bg-[var(--warn-soft)] text-[var(--warn)] rounded-xl text-xs font-semibold hover:bg-[var(--warn-soft)] transition">
                        Alert
                     </button>
                   </div>

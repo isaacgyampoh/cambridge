@@ -44,7 +44,7 @@ export default function StudentDashboard() {
       <div className="grid grid-cols-3 gap-3 mb-5">
         {[
           { label: 'Enrolled', value: enrollments.length, icon: BookOpen, color: 'text-[var(--accent)] bg-[var(--accent-soft)]'},
-          { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-purple-600 bg-purple-50'},
+          { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-[var(--gold)] bg-[var(--gold-soft)]'},
           { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-[var(--danger)] bg-[var(--danger-soft)]': 'text-[var(--ok)] bg-[var(--ok-soft)]'},
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">

@@ -212,7 +212,7 @@ export default function AttendanceDashboard() {
 
       {/* No batches warning */}
       {batches.length === 0 && (
-        <div className="bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-2xl p-4 mb-5 text-sm text-amber-800">
+        <div className="bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-2xl p-4 mb-5 text-sm text-[var(--warn)]">
           <strong>No classes/batches found.</strong> Go to <span className="font-semibold">Academics, then Courses</span> to add a course,
           then <span className="font-semibold">Academics, then Classes</span> to create a batch. Once a batch exists, it will appear here.
         </div>
@@ -228,7 +228,7 @@ export default function AttendanceDashboard() {
               <div>
                 <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Batch</label>
                 <select value={newSession.batch_id} onChange={e => setNewSession(s => ({ ...s, batch_id: e.target.value }))}
-                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
                   <option value="">Select batch...</option>
                   {batches.map((b) => <option key={b.id} value={b.id}>{b.name} — {b.courses?.name}</option>)}
                 </select>

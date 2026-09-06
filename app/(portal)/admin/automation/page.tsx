@@ -64,7 +64,7 @@ export default function AutomationPage() {
         <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
           At cron-job.org create a single job calling this URL every <b>5 minutes</b>:
         </p>
-        <code className="block mt-2 text-[12px] bg-white border border-[var(--line)] rounded-lg px-3 py-2 break-all">
+        <code className="block mt-2 text-[12px] bg-[var(--paper)] border border-[var(--line)] rounded-lg px-3 py-2 break-all">
           https://portal.cambridge.edu.gh/api/cron/run?key=1024
         </code>
       </Card>

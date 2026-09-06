@@ -53,7 +53,7 @@ export default function NewInvoice() {
           <div>
             <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Student *</label>
             <select value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })}
-              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
               <option value="">Select student...</option>
               {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
             </select>
@@ -64,7 +64,7 @@ export default function NewInvoice() {
               const c = courses.find(x => x.id === e.target.value)
               setForm({ ...form, course_id: e.target.value, total_amount: c ? String(c.course_fee) : form.total_amount })
             }}
-              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
               <option value="">Select course (optional)...</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.name} — GHS {c.course_fee}</option>)}
             </select>

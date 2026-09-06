@@ -82,7 +82,7 @@ export default function PMReports() {
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Marketing Reports</h1>
           <p className="text-[var(--ink-faint)] text-sm mt-0.5">Lead pipeline analytics</p>
         </div>
-        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>

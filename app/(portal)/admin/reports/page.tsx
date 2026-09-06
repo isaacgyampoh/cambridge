@@ -71,7 +71,7 @@ export default function AdminReports() {
         title="System reports"
         description="Leads, admissions, revenue and enrolment across the centre."
         actions={
-        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
@@ -86,9 +86,9 @@ export default function AdminReports() {
           { label: 'Total Leads', value: data.totalLeads, sub: `${data.unassigned} unassigned`, color: 'bg-[var(--accent-soft)] text-[var(--accent)]' },
           { label: 'Conversion Rate', value: `${data.totalLeads ? Math.round(data.converted/data.totalLeads*100) : 0}%`, sub: `${data.converted} converted`, color: 'bg-[var(--ok-soft)] text-[var(--ok)]' },
           { label: 'Revenue', value: formatGHS(data.revenue), sub: `${data.txCount} transactions`, color: 'bg-[var(--ok-soft)] text-[var(--ok)]' },
-          { label: 'Total Students', value: data.totalStudents, sub: `${data.ongoingBatches} active classes`, color: 'bg-purple-50 text-purple-600' },
-          { label: 'Admissions', value: data.totalAdmissions, sub: `${data.admitted} admitted`, color: 'bg-indigo-50 text-indigo-600' },
-          { label: 'Ongoing Batches', value: data.ongoingBatches, sub: `${data.upcomingBatches} upcoming`, color: 'bg-orange-50 text-orange-600' },
+          { label: 'Total Students', value: data.totalStudents, sub: `${data.ongoingBatches} active classes`, color: 'bg-[var(--gold-soft)] text-[var(--gold)]' },
+          { label: 'Admissions', value: data.totalAdmissions, sub: `${data.admitted} admitted`, color: 'bg-[var(--accent-soft)] text-[var(--accent)]' },
+          { label: 'Ongoing Batches', value: data.ongoingBatches, sub: `${data.upcomingBatches} upcoming`, color: 'bg-[var(--warn-soft)] text-[var(--warn)]' },
         ].map(k => (
           <div key={k.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-4">
             <div className={`text-2xl font-bold ${k.color.split(' ')[1]}`}>{k.value}</div>

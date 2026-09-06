@@ -126,9 +126,9 @@ export function PinBoxes({
           }}
           onFocus={e => e.target.select()}
           className={`w-[52px] h-[56px] text-center text-[20px] font-medium rounded-xl
-            bg-[var(--paper)] text-[var(--ink)] caret-[var(--navy)]
+            bg-[var(--paper)] text-[var(--ink)] caret-[var(--brand)]
             border transition-colors duration-150
-            focus:outline-none focus:border-[var(--navy)] focus:ring-4 focus:ring-[var(--navy-soft)]
+            focus:outline-none focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand-soft)]
             disabled:opacity-50
             ${invalid ? 'border-[var(--danger)]' : 'border-[var(--line)]'}`}
         />

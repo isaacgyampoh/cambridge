@@ -73,7 +73,7 @@ export default function AdmissionProcess() {
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Process and track student admissions.</p>
         </div>
         <button type="button" onClick={() => { refetchA(); refetchApp() }}
-          className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition" aria-label="Refresh"><RefreshCw size={16} aria-hidden="true" /></button>
+          className="h-10 w-10 flex items-center justify-center bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition" aria-label="Refresh"><RefreshCw size={16} aria-hidden="true" /></button>
       </div>
 
       {/* Stats */}
@@ -81,7 +81,7 @@ export default function AdmissionProcess() {
         {[
           { label: 'Total', value: stats.total, tone: 'text-[var(--ink)]' },
           { label: 'Pending', value: stats.pending, tone: 'text-[var(--warn)]' },
-          { label: 'Awaiting payment', value: stats.awaitingPayment, tone: 'text-orange-600' },
+          { label: 'Awaiting payment', value: stats.awaitingPayment, tone: 'text-[var(--warn)]' },
           { label: 'Admitted', value: stats.admitted, tone: 'text-[var(--ok)]' },
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-2xl p-5 border border-[var(--line)]">
@@ -95,7 +95,7 @@ export default function AdmissionProcess() {
       <div className="flex gap-1 mb-4 bg-[var(--line-soft)] rounded-lg p-1 w-fit">
         {[{k:'admissions',l:`Admissions (${admissions.length})`},{k:'applications',l:`Applications (${applications.length})`}].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${tab===t.k?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${tab===t.k?'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {t.l}
           </button>
         ))}
@@ -107,7 +107,7 @@ export default function AdmissionProcess() {
           <div className="flex flex-wrap gap-1.5 mb-4">
             {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`h-11 sm:h-8 px-3 rounded-2xl text-xs font-semibold transition capitalize ${filter===f?'bg-[var(--ink)] text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
+                className={`h-11 sm:h-8 px-3 rounded-2xl text-xs font-semibold transition capitalize ${filter===f?'bg-[var(--ink)] text-white':'bg-[var(--paper)] text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
                 {f.replace(/_/g, ' ')}
               </button>
             ))}
@@ -162,7 +162,7 @@ export default function AdmissionProcess() {
                           Request forms
                         </button>
                         <button disabled={isActing} onClick={() => updateStatus(a.id, 'awaiting_payment')}
-                          className="px-3 py-1.5 bg-orange-500 text-white rounded-xl text-xs font-semibold hover:bg-orange-600 disabled:opacity-50 transition">
+                          className="px-3 py-1.5 bg-[var(--warn)] text-white rounded-xl text-xs font-semibold hover:bg-[var(--warn)] disabled:opacity-50 transition">
                           Awaiting payment
                         </button>
                       </>}

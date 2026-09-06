@@ -77,7 +77,7 @@ export default function FinanceReports() {
         title="Finance reports"
         description="Revenue, payment methods and what is still outstanding."
         actions={
-        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
@@ -89,7 +89,7 @@ export default function FinanceReports() {
         {[
           { label: 'Revenue', value: formatGHS(data.totalRevenue), icon: DollarSign, color: 'text-[var(--ok)] bg-[var(--ok-soft)]'},
           { label: 'Transactions', value: data.txCount, icon: TrendingUp, color: 'text-[var(--accent)] bg-[var(--accent-soft)]'},
-          { label: 'Avg Transaction', value: formatGHS(data.avgTx), icon: TrendingUp, color: 'text-purple-600 bg-purple-50'},
+          { label: 'Avg Transaction', value: formatGHS(data.avgTx), icon: TrendingUp, color: 'text-[var(--gold)] bg-[var(--gold-soft)]'},
           { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-[var(--danger)] bg-[var(--danger-soft)]'},
         ].map(k => (
           <div key={k.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-4">

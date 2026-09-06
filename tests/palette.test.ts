@@ -1,0 +1,129 @@
+import { test, describe } from 'node:test'
+import assert from 'node:assert/strict'
+import { readFileSync, readdirSync, statSync } from 'node:fs'
+import { join } from 'node:path'
+
+/**
+ * ONE PALETTE, DECLARED ONCE.
+ *
+ * ── WHAT WENT WRONG ────────────────────────────────────────────────────────
+ *
+ * The product was navy while the mark on it is a red seal, so the logo always
+ * looked applied rather than belonging. Underneath that, three separate
+ * palettes were live at the same time:
+ *
+ *   globals.css        navy      #16273f
+ *   manifest.json      teal      #1a7a85   ← left over from an older design
+ *   the admission PDF  teal      #1a7a85
+ *   the emails         teal      #1a7a85
+ *
+ * The manifest one was visible: iOS paints the browser chrome with
+ * theme_color, so a teal band sat above the sign-in screen. app/layout.tsx
+ * did declare a themeColor, but as `var(--accent)` — a CSS variable, which a
+ * meta tag cannot resolve, so it was ignored and the manifest won.
+ *
+ * The letter is worse than cosmetic: it is the most formal thing the centre
+ * sends anybody, and it was arriving in a colour that appeared on nothing
+ * else the institution owns.
+ */
+
+const BRAND = '#3B1219'      // the dark surface
+const ACCENT = '#8C2F39'     // the crest red
+const PAPER = '#FBF9F6'      // warm ivory
+
+function sourceFiles(dir: string, out: string[] = []): string[] {
+  for (const entry of readdirSync(dir)) {
+    if (entry === 'node_modules' || entry === '.next' || entry.startsWith('.')) continue
+    const full = join(dir, entry)
+    if (statSync(full).isDirectory()) sourceFiles(full, out)
+    else if (/\.tsx?$/.test(full)) out.push(full)
+  }
+  return out
+}
+
+function code(src: string): string {
+  return src
+    .replace(/\/\*[\s\S]*?\*\//g, m => m.replace(/[^\n]/g, ' '))
+    .split('\n')
+    .map(l => (l.trim().startsWith('//') ? '' : l))
+    .join('\n')
+}
+
+describe('the palette is declared once and agreed everywhere', () => {
+  test('globals.css defines the brand tokens', () => {
+    const css = readFileSync('app/globals.css', 'utf8')
+    assert.match(css, new RegExp(`--brand:\\s*${BRAND}`, 'i'),
+      '--brand is not the crest oxblood')
+    assert.match(css, new RegExp(`--accent:\\s*${ACCENT}`, 'i'),
+      '--accent is not the crest red')
+    assert.match(css, new RegExp(`--paper:\\s*${PAPER}`, 'i'),
+      '--paper is not the warm ivory')
+  })
+
+  test('the token is not named after the colour it holds', () => {
+    /*
+     * These were --navy-*, and every one had to be renamed the moment the
+     * palette moved. A token named for its current value is a rename waiting
+     * to happen, and a lie in between.
+     */
+    const offenders: string[] = []
+    for (const file of [...sourceFiles('app'), ...sourceFiles('components')]) {
+      const src = code(readFileSync(file, 'utf8'))
+      if (/--(navy|teal|blue|green|red)\b/.test(src)) offenders.push(file)
+    }
+    assert.deepEqual(offenders, [],
+      'name a token for its ROLE (--brand, --accent), never its hue:\n  ' +
+      offenders.join('\n  '))
+  })
+
+  test('the phone chrome matches the application', () => {
+    // iOS paints the browser bar with these. They must agree, and neither may
+    // be a CSS variable — a meta tag cannot resolve one.
+    const manifest = JSON.parse(readFileSync('public/manifest.json', 'utf8'))
+    assert.equal(manifest.theme_color, BRAND,
+      'manifest.json theme_color does not match --brand')
+    assert.equal(manifest.background_color, PAPER,
+      'manifest.json background_color does not match --paper')
+
+    const layout = readFileSync('app/layout.tsx', 'utf8')
+    assert.match(layout, new RegExp(`themeColor:\\s*'${BRAND}'`, 'i'),
+      'the viewport themeColor does not match --brand')
+    assert.ok(!/themeColor:\s*'var\(/.test(layout),
+      'themeColor is a CSS variable, which a meta tag cannot resolve')
+  })
+
+  test('nothing outbound is still the old teal', () => {
+    // The admission letter, the emails, the PDF. What the centre sends has to
+    // look like the centre.
+    const offenders: string[] = []
+    for (const file of [...sourceFiles('app'), ...sourceFiles('lib')]) {
+      const src = code(readFileSync(file, 'utf8'))
+      if (/#1a7a85/i.test(src)) offenders.push(file)
+      if (/0\.102,\s*0\.478,\s*0\.522/.test(src)) offenders.push(`${file} (as rgb)`)
+    }
+    assert.deepEqual(offenders, [],
+      'the old teal is still being sent to people:\n  ' + offenders.join('\n  '))
+  })
+
+  test('screens use tokens, not Tailwind default colours', () => {
+    /*
+     * Tailwind's default ramp is cool. Beside a warm ivory it reads as a
+     * printing error, and it also means a palette change stops working: these
+     * do not move when globals.css does.
+     */
+    const BANNED = /\b(?:bg|text|border|ring|from|to)-(?:gray|slate|zinc|neutral|stone|blue|indigo|purple|violet|fuchsia|pink|rose|orange|amber|lime|teal|cyan|sky)-\d{2,3}\b/g
+
+    const offenders: string[] = []
+    for (const file of [...sourceFiles('app'), ...sourceFiles('components')]) {
+      const src = code(readFileSync(file, 'utf8'))
+      for (const m of src.matchAll(BANNED)) {
+        const line = src.slice(0, m.index).split('\n').length
+        offenders.push(`${file}:${line} — ${m[0]}`)
+      }
+    }
+
+    assert.deepEqual(offenders, [],
+      'use the tokens in globals.css so the palette can actually change:\n  ' +
+      offenders.join('\n  '))
+  })
+})

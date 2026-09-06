@@ -23,7 +23,7 @@ import { telHref, whatsappHref, displayPhone } from '@/lib/ui/contact'
  *
  * The hierarchy is explicit, and the second level is the one that matters:
  *
- *   1. Today          — the day in four figures, in the app's own navy, so the
+ *   1. Today          — the day in four figures, in the brand's own oxblood, so the
  *                       top of the screen orients rather than instructs
  *   2. Who is waiting — NAMED PEOPLE with a phone button, not a count. This is
  *                       the change that makes the dashboard a place work
@@ -209,7 +209,7 @@ export default function Overview() {
             in a stack of cards.
           */}
           <section aria-labelledby="today-heading"
-            className="mb-6 rounded-2xl bg-[var(--navy)] text-white px-5 py-4 sm:px-6 sm:py-5">
+            className="mb-6 rounded-2xl bg-[var(--brand)] text-white px-5 py-4 sm:px-6 sm:py-5">
             <h2 id="today-heading"
               className="t-overline text-white/55 mb-3.5">Today</h2>
 
@@ -287,8 +287,8 @@ export default function Overview() {
                         <span className="flex items-center gap-1.5 flex-shrink-0">
                           <a href={tel} aria-label={`Call ${lead.name} on ${displayPhone(lead.phone)}`}
                             className="w-10 h-10 grid place-items-center rounded-full
-                              bg-[var(--navy-soft)] text-[var(--navy)]
-                              hover:bg-[var(--navy-line)] transition-colors
+                              bg-[var(--brand-soft)] text-[var(--brand)]
+                              hover:bg-[var(--brand-line)] transition-colors
                               focus-visible:outline-none focus-visible:ring-2
                               focus-visible:ring-[var(--accent)]">
                             <Phone size={16} aria-hidden="true" />
@@ -296,8 +296,8 @@ export default function Overview() {
                           <a href={wa} target="_blank" rel="noopener noreferrer"
                             aria-label={`Message ${lead.name} on WhatsApp`}
                             className="w-10 h-10 grid place-items-center rounded-full
-                              bg-[var(--navy-soft)] text-[var(--navy)]
-                              hover:bg-[var(--navy-line)] transition-colors
+                              bg-[var(--brand-soft)] text-[var(--brand)]
+                              hover:bg-[var(--brand-line)] transition-colors
                               focus-visible:outline-none focus-visible:ring-2
                               focus-visible:ring-[var(--accent)]">
                             <MessageCircle size={16} aria-hidden="true" />
@@ -373,7 +373,7 @@ export default function Overview() {
                   <Link key={action.label} href={action.href}
                     className="flex flex-col justify-between gap-3 min-h-[76px] p-3.5 rounded-2xl border
                       border-[var(--line)] bg-[var(--paper)] text-[13px] font-medium text-[var(--ink)]
-                      hover:border-[var(--navy-line)] hover:bg-[var(--navy-soft)] transition-colors
+                      hover:border-[var(--brand-line)] hover:bg-[var(--brand-soft)] transition-colors
                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
                     <Icon size={18} aria-hidden="true" className="text-[var(--ink-faint)]" />
                     <span className="leading-tight">{action.label}</span>

@@ -34,7 +34,7 @@ export default function FlyerLanding({ params }: { params: Promise<{ id: string 
     <div className="min-h-screen" style={{ background: 'var(--canvas)' }}>
       <div className="max-w-md mx-auto px-4 py-8">
         {/* Flyer image */}
-        <div className="rounded-2xl overflow-hidden border border-[var(--line)] shadow-[var(--shadow-raised)] mb-5 bg-white">
+        <div className="rounded-2xl overflow-hidden border border-[var(--line)] shadow-[var(--shadow-raised)] mb-5 bg-[var(--paper)]">
           <img src={flyer.image_url} alt={flyer.title || 'Cambridge Center of Excellence'} className="w-full object-contain" />
         </div>
 

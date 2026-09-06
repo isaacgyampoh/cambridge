@@ -249,11 +249,11 @@ export function Field({
 }
 
 export const inputClass =
-  'w-full h-12 sm:h-11 px-4 sm:px-3.5 rounded-lg border border-[var(--line)] bg-white text-[15px] sm:text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
+  'w-full h-12 sm:h-11 px-4 sm:px-3.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[15px] sm:text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
 
 // For multi-line inputs — same look as inputClass but auto-height with comfortable padding.
 export const textareaClass =
-  'w-full px-4 sm:px-3.5 py-3 rounded-lg border border-[var(--line)] bg-white text-[15px] sm:text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
+  'w-full px-4 sm:px-3.5 py-3 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[15px] sm:text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
 
 /* ─────────────────────────────────────────────
    Spinner

@@ -298,7 +298,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     <div className="flex flex-col h-full bg-[var(--paper)]">
       <div className={`flex items-center border-b border-[var(--line)] flex-shrink-0 h-[60px]
         ${wide ? 'px-4 gap-3' : 'justify-center'}`}>
-        <span className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 bg-white
+        <span className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 bg-[var(--paper)]
           border border-[var(--line)] overflow-hidden p-0.5">
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img src="/brand/logo.png" alt="" aria-hidden="true" className="w-full h-full object-contain" />
@@ -425,7 +425,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           just be decoration.
         */}
         <header className="flex-shrink-0 flex items-center gap-2 px-3 sm:px-5
-          h-[56px] lg:h-[60px] bg-[var(--navy)] lg:bg-[var(--paper)]
+          h-[56px] lg:h-[60px] bg-[var(--brand)] lg:bg-[var(--paper)]
           border-b border-transparent lg:border-[var(--line)] safe-t">
 
           {canGoBack ? (

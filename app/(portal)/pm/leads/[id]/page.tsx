@@ -192,7 +192,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <p className="text-sm text-[var(--ink-faint)] mb-3">Unassigned</p>
             )}
             <select onChange={e => reassign(e.target.value)} defaultValue=""
-              className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)]">
               <option value="" disabled>{assignee ? 'Reassign to...' : 'Assign to...'}</option>
               {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>

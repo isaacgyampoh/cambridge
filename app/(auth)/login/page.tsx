@@ -27,6 +27,24 @@ function LoginForm() {
   const [notice,  setNotice]  = useState('')
   const busy = useRef(false)
 
+  /*
+   * The centre's standing figures, for the brand panel.
+   *
+   * Fetched after paint and never awaited by anything: the sign-in form does
+   * not wait on it, and a failure leaves the panel without figures rather than
+   * putting an error next to a PIN field.
+   */
+  const [stats, setStats] = useState<{ alumni: number; courses: number; graduates: number } | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    fetch('/api/public/stats')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (alive && d) setStats(d) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+
   /* Account recovery. Separate state so it cannot be confused with sign-in. */
   const [recoverPin, setRecoverPin] = useState('')
   const [recoverNew, setRecoverNew] = useState('')
@@ -231,29 +249,61 @@ function LoginForm() {
         no decorative geometry — the seriousness comes from the restraint, and
         from the fact that nothing on it is trying to sell anything.
       */}
-      <aside className="hidden lg:flex flex-col justify-between flex-1 px-14 py-14"
-        style={{ background: 'var(--navy)' }}>
+      <aside className="hidden lg:flex flex-col justify-between w-[42%] max-w-[560px] px-14 py-14"
+        style={{ background: 'var(--brand)' }}>
         <div className="flex items-center gap-3.5">
-          <span className="w-11 h-11 rounded-xl bg-white/95 grid place-items-center overflow-hidden p-1.5">
+          <span className="w-11 h-11 rounded-xl bg-[var(--paper)] grid place-items-center overflow-hidden p-1.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
           </span>
-          <span className="text-white text-[15px] font-semibold tracking-[0.02em] uppercase">
+          <span className="text-[var(--paper)] text-[15px] font-semibold tracking-[0.02em] uppercase">
             {BRAND.shortName}
           </span>
         </div>
 
         <div className="max-w-sm">
-          <p className="text-white text-[20px] leading-snug font-medium">
+          <p className="text-[var(--paper)] text-[26px] leading-[1.25] font-medium tracking-[-0.01em]">
             {BRAND.tagline}
           </p>
+
+          {/*
+            Three standing figures.
+
+            The panel held one line and a great deal of nothing. These are the
+            same three facts a prospective student would ask for, and every one
+            is already public — see app/api/public/stats. They render only once
+            they arrive, so the panel never shows a row of zeroes while the
+            request is in flight, and never shows an error: nobody signing in
+            can act on a failed count.
+          */}
+          {stats && (stats.alumni > 0 || stats.courses > 0 || stats.graduates > 0) && (
+            <dl className="mt-10 flex gap-9 fade-in">
+              {[
+                { n: stats.graduates, label: 'Graduates' },
+                { n: stats.alumni, label: 'Alumni' },
+                { n: stats.courses, label: 'Programmes' },
+              ].filter(x => x.n > 0).map(x => (
+                <div key={x.label}>
+                  <dt className="sr-only">{x.label}</dt>
+                  <dd>
+                    <span className="block numeric text-[var(--paper)] text-[30px] font-semibold leading-none">
+                      {x.n.toLocaleString('en-GB')}
+                    </span>
+                    <span className="block text-[12px] text-[var(--paper)]/50 mt-2 tracking-[0.04em] uppercase">
+                      {x.label}
+                    </span>
+                  </dd>
+                </div>
+              ))}
+            </dl>
+          )}
         </div>
 
-        <div className="flex items-center gap-4 text-white/45 text-[12px]">
+        <div className="flex items-center gap-4 text-[var(--paper)]/45 text-[12px]">
           <span>Admissions</span>
-          <span className="w-1 h-1 rounded-full bg-white/25" />
+          <span className="w-1 h-1 rounded-full bg-[var(--paper)]/25" />
           <span>Student management</span>
-          <span className="w-1 h-1 rounded-full bg-white/25" />
+          <span className="w-1 h-1 rounded-full bg-[var(--paper)]/25" />
           <span>Communication</span>
         </div>
       </aside>
@@ -263,15 +313,23 @@ function LoginForm() {
         style={{ background: 'var(--paper)' }}>
         <div className="w-full max-w-[340px] mx-auto">
 
-          {/* On a phone the brand is a mark and a name. */}
-          <div className="lg:hidden flex flex-col items-center mb-10">
-            <span className="w-14 h-14 rounded-2xl grid place-items-center p-2.5 mb-3.5"
-              style={{ background: 'var(--navy)' }}>
+          {/*
+            On a phone the brand is the crest and the name.
+
+            The mark used to be `brightness-0 invert` on a filled brand square,
+            which flattens a detailed seal into a white silhouette — on the
+            device it rendered as a solid block with nothing legible in it. The
+            crest is shown as itself, on paper, exactly as the desktop panel
+            shows it.
+          */}
+          <div className="lg:hidden flex flex-col items-center mb-9">
+            <span className="w-16 h-16 rounded-2xl grid place-items-center p-2.5 mb-4
+              bg-[var(--paper)] border border-[var(--line)] shadow-[var(--shadow-raised)]">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={BRAND.logo} alt="" aria-hidden="true"
-                className="w-full h-full object-contain brightness-0 invert" />
+                className="w-full h-full object-contain" />
             </span>
-            <h1 className="text-[14px] font-semibold tracking-[0.06em] uppercase text-[var(--ink)]">
+            <h1 className="text-[13px] font-semibold tracking-[0.08em] uppercase text-[var(--ink-soft)]">
               {BRAND.shortName}
             </h1>
           </div>
@@ -308,7 +366,7 @@ function LoginForm() {
                 aria-live="polite">
                 {loading && (
                   <span className="inline-flex items-center gap-2 text-[13px] text-[var(--ink-soft)]">
-                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--navy)] rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--brand)] rounded-full animate-spin" />
                     Signing in…
                   </span>
                 )}
@@ -569,7 +627,7 @@ function LoginForm() {
 
 
               {error && (
-                <div className="mt-5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">
+                <div className="mt-5 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger-soft)] rounded-xl text-sm text-[var(--danger)]">
                   {error}
                 </div>
               )}

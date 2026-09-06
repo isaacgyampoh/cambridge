@@ -13,7 +13,7 @@ export default async function PublicAlumniPage() {
   const rest = (alumni || []).filter((a: any) => !a.is_featured)
 
   return (
-    <div className="min-h-screen bg-gray-50">
+    <div className="min-h-screen bg-[var(--canvas)]">
       {/* Hero */}
       <div className="bg-[var(--accent)] text-white py-14 px-4">
         <div className="max-w-4xl mx-auto text-center">
@@ -21,23 +21,23 @@ export default async function PublicAlumniPage() {
             <GraduationCap size={28} className="text-white" />
           </div>
           <h1 className="text-4xl font-black mb-3">Our Alumni</h1>
-          <p className="text-blue-200 text-lg max-w-xl mx-auto">
+          <p className="text-[var(--accent-line)] text-lg max-w-xl mx-auto">
             Real people, real results. Meet the graduates of Cambridge Center of Excellence who are making an impact.
           </p>
           <div className="flex items-center justify-center gap-8 mt-8">
             <div className="text-center">
               <div className="text-3xl font-black">{(alumni || []).length}+</div>
-              <div className="text-blue-300 text-sm">Graduates</div>
+              <div className="text-[var(--accent-line)] text-sm">Graduates</div>
             </div>
             <div className="w-px h-10 bg-white/20" />
             <div className="text-center">
               <div className="text-3xl font-black">100%</div>
-              <div className="text-blue-300 text-sm">Certified</div>
+              <div className="text-[var(--accent-line)] text-sm">Certified</div>
             </div>
             <div className="w-px h-10 bg-white/20" />
             <div className="text-center">
               <div className="text-3xl font-black">5</div>
-              <div className="text-blue-300 text-sm">Rating</div>
+              <div className="text-[var(--accent-line)] text-sm">Rating</div>
             </div>
           </div>
         </div>
@@ -49,17 +49,17 @@ export default async function PublicAlumniPage() {
           <div className="mb-12">
             <div className="flex items-center gap-2 mb-6">
               <Star size={18} className="text-yellow-500"fill="currentColor" />
-              <h2 className="text-xl font-bold text-gray-900">Featured Success Stories</h2>
+              <h2 className="text-xl font-bold text-[var(--ink)]">Featured Success Stories</h2>
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {featured.map((a: any) => (
-                <div key={a.id} className="bg-white rounded-2xl border-2 border-yellow-200 overflow-hidden shadow-[var(--shadow-raised)]">
+                <div key={a.id} className="bg-[var(--paper)] rounded-2xl border-2 border-yellow-200 overflow-hidden shadow-[var(--shadow-raised)]">
                   <div className="bg-[var(--accent)] h-20 relative">
                     <div className="absolute -bottom-8 left-6">
-                      <div className="w-16 h-16 rounded-2xl border-4 border-white overflow-hidden bg-blue-200">
+                      <div className="w-16 h-16 rounded-2xl border-4 border-white overflow-hidden bg-[var(--accent-line)]">
                         {a.photo_url
                           ? <img src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold text-2xl">{a.full_name.charAt(0)}</div>}
+                          : <div className="w-full h-full flex items-center justify-center text-[var(--accent)] font-bold text-2xl">{a.full_name.charAt(0)}</div>}
                       </div>
                     </div>
                     <div className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1.5">
@@ -67,31 +67,31 @@ export default async function PublicAlumniPage() {
                     </div>
                   </div>
                   <div className="pt-10 px-6 pb-6">
-                    <h3 className="text-lg font-bold text-gray-900">{a.full_name}</h3>
+                    <h3 className="text-lg font-bold text-[var(--ink)]">{a.full_name}</h3>
                     {(a.current_job_title || a.current_company) && (
-                      <div className="flex items-center gap-1.5 text-sm text-gray-500 mt-0.5">
+                      <div className="flex items-center gap-1.5 text-sm text-[var(--ink-soft)] mt-0.5">
                         <Briefcase size={13} />
                         {[a.current_job_title, a.current_company].filter(Boolean).join('at ')}
                       </div>
                     )}
-                    <div className="flex items-center gap-1.5 text-sm text-blue-600 mt-0.5">
+                    <div className="flex items-center gap-1.5 text-sm text-[var(--accent)] mt-0.5">
                       <GraduationCap size={13} />
                       {a.course_completed}
                     </div>
 
                     {a.testimonial && (
-                      <blockquote className="text-sm text-gray-600 italic mt-4 leading-relaxed border-l-4 border-blue-200 pl-4">
+                      <blockquote className="text-sm text-[var(--ink-soft)] italic mt-4 leading-relaxed border-l-4 border-[var(--accent-line)] pl-4">
                         ”{a.testimonial}”
                       </blockquote>
                     )}
 
                     {a.success_story && (
-                      <p className="text-sm text-gray-500 mt-3 leading-relaxed">{a.success_story}</p>
+                      <p className="text-sm text-[var(--ink-soft)] mt-3 leading-relaxed">{a.success_story}</p>
                     )}
 
                     {a.linkedin_url && (
                       <a href={a.linkedin_url} target="_blank"
-                        className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-blue-600 hover:text-blue-800 transition">
+                        className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)] transition">
                          View LinkedIn profile
                       </a>
                     )}
@@ -105,31 +105,31 @@ export default async function PublicAlumniPage() {
         {/* All alumni */}
         {rest.length > 0 && (
           <div>
-            <h2 className="text-xl font-bold text-gray-900 mb-6">All Graduates</h2>
+            <h2 className="text-xl font-bold text-[var(--ink)] mb-6">All Graduates</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {rest.map((a: any) => (
-                <div key={a.id} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-[var(--shadow-raised)] hover:shadow-[var(--shadow-raised)] transition">
+                <div key={a.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 shadow-[var(--shadow-raised)] hover:shadow-[var(--shadow-raised)] transition">
                   <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-100 flex-shrink-0">
+                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--accent-soft)] flex-shrink-0">
                       {a.photo_url
                         ? <img src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center text-blue-600 font-bold">{a.full_name.charAt(0)}</div>}
+                        : <div className="w-full h-full flex items-center justify-center text-[var(--accent)] font-bold">{a.full_name.charAt(0)}</div>}
                     </div>
                     <div className="min-w-0">
-                      <div className="font-bold text-gray-900 truncate">{a.full_name}</div>
-                      <div className="text-xs text-blue-600">{a.course_completed}</div>
+                      <div className="font-bold text-[var(--ink)] truncate">{a.full_name}</div>
+                      <div className="text-xs text-[var(--accent)]">{a.course_completed}</div>
                     </div>
                   </div>
 
                   {(a.current_job_title || a.current_company) && (
-                    <div className="text-xs text-gray-500 flex items-center gap-1 mb-2">
+                    <div className="text-xs text-[var(--ink-soft)] flex items-center gap-1 mb-2">
                       <Briefcase size={11} />
                       {[a.current_job_title, a.current_company].filter(Boolean).join('at ')}
                     </div>
                   )}
 
                   {a.testimonial && (
-                    <p className="text-xs text-gray-500 italic line-clamp-3">”{a.testimonial}”</p>
+                    <p className="text-xs text-[var(--ink-soft)] italic line-clamp-3">”{a.testimonial}”</p>
                   )}
                 </div>
               ))}
@@ -138,7 +138,7 @@ export default async function PublicAlumniPage() {
         )}
 
         {(alumni || []).length === 0 && (
-          <div className="text-center py-20 text-gray-400">
+          <div className="text-center py-20 text-[var(--ink-faint)]">
             <GraduationCap size={48} className="mx-auto mb-4 opacity-30" />
             <p className="text-lg font-medium">Alumni stories coming soon</p>
           </div>

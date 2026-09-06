@@ -78,18 +78,18 @@ export default function ConversionsPage() {
       {/* Period selector */}
       <div className="flex flex-wrap items-center gap-2 mb-6">
         <select value={year} onChange={e => setYear(Number(e.target.value))}
-          className="h-9 px-3 rounded-lg border border-[var(--line)] bg-white text-sm focus:outline-none focus:border-[var(--accent)]">
+          className="h-9 px-3 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-sm focus:outline-none focus:border-[var(--accent)]">
           {[0,1,2].map(i => { const y = now.getFullYear() - i; return <option key={y} value={y}>{y}</option> })}
         </select>
         <button onClick={() => setMonth('')}
-          className={`h-11 sm:h-9 px-3 rounded-lg text-sm font-medium transition ${!month ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>
+          className={`h-11 sm:h-9 px-3 rounded-lg text-sm font-medium transition ${!month ? 'bg-[var(--accent)] text-white' : 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)]'}`}>
           Full year
         </button>
         {MONTHS.map((m, i) => {
           const key = `${year}-${String(i+1).padStart(2,'0')}`
           return (
             <button key={m} onClick={() => setMonth(key)}
-              className={`h-11 sm:h-9 px-3 rounded-lg text-sm font-medium transition ${month === key ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--ink-faint)]'}`}>
+              className={`h-11 sm:h-9 px-3 rounded-lg text-sm font-medium transition ${month === key ? 'bg-[var(--accent)] text-white' : 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--ink-faint)]'}`}>
               {m}
             </button>
           )

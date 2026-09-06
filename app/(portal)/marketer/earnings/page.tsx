@@ -66,7 +66,7 @@ export default function MarketerEarnings() {
                 <span>{data.pointsToNext} points to {next.name} ({formatGHS(next.gross_salary)})</span>
               </div>
               <div className="h-2.5 bg-white/15 rounded-full overflow-hidden">
-                <div className="h-full bg-white rounded-full transition-all duration-700" style={{ width: `${data.progressPct}%` }} />
+                <div className="h-full bg-[var(--paper)] rounded-full transition-all duration-700" style={{ width: `${data.progressPct}%` }} />
               </div>
             </div>
           ) : rank ? (

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
-import { RefreshCw } from 'lucide-react'
+import { RefreshCw, Send } from 'lucide-react'
 import { formatDate, daysUntil } from '@/lib/utils'
 import { Card, EmptyState } from '@/components/ui'
 
@@ -28,11 +28,21 @@ export default function ReceptionistDashboard() {
     setSending(null)
   }
 
+  /*
+   * Four ways to send the same reminder, so they look like four of the same
+   * thing.
+   *
+   * They were accent, orange, purple and red — four unrelated hues for four
+   * options of one kind, which reads as four unrelated actions and leaves the
+   * operator deciding what the colours mean. Urgency is already carried by the
+   * order and the words. Only the last one, sent on the morning of the class,
+   * is emphasised, because it is the one that cannot be sent late.
+   */
   const REMINDER_TYPES = [
-    { type: '1_week', label: '1 Week Before', color: 'bg-[var(--accent)] hover:brightness-110'},
-    { type: '2_days', label: '2 Days Before', color: 'bg-orange-500 hover:bg-orange-600'},
-    { type: 'day', label: 'Day Before', color: 'bg-purple-600 hover:bg-purple-700'},
-    { type: 'class_day', label: 'Class Day ', color: 'bg-[var(--danger)] hover:bg-[var(--danger)]'},
+    { type: '1_week',    label: 'A week before', urgent: false },
+    { type: '2_days',    label: 'Two days before', urgent: false },
+    { type: 'day',       label: 'The day before', urgent: false },
+    { type: 'class_day', label: 'On the day', urgent: true },
   ]
 
   return (
@@ -44,13 +54,13 @@ export default function ReceptionistDashboard() {
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send personalised reminders in each marketer’s name.</p>
         </div>
         <button type="button" onClick={refetch} aria-label="Refresh the list"
-          className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)]
+          className="h-10 w-10 flex items-center justify-center bg-[var(--paper)] border border-[var(--line)]
             text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
           <RefreshCw size={16} aria-hidden="true" />
         </button>
       </div>
 
-      <div className="bg-[var(--accent-soft)] border border-blue-200 rounded-2xl p-4 mb-5 text-sm text-[var(--accent)]">
+      <div className="bg-[var(--accent-soft)] border border-[var(--accent-line)] rounded-2xl p-4 mb-5 text-sm text-[var(--accent)]">
          Messages go out as: <strong>”Hi Kofi, it’s Ama from Cambridge CE — your class is on Friday...”</strong>
         Each student gets their own assigned marketer’s name. Feels personal, not automated.
       </div>
@@ -88,7 +98,7 @@ export default function ReceptionistDashboard() {
                       {readableStatus(batch.status)}
                     </span>
                     {days !== null && days >= 0 && (
-                      <div className={`text-xs font-semibold mt-1 ${days<=1?'text-[var(--danger)]':days<=7?'text-orange-500':'text-[var(--ink-faint)]'}`}>
+                      <div className={`text-xs font-semibold mt-1 ${days<=1?'text-[var(--danger)]':days<=7?'text-[var(--warn)]':'text-[var(--ink-faint)]'}`}>
                         {days === 0 ? 'Today!': `${days}d away`}
                       </div>
                     )}
@@ -96,15 +106,20 @@ export default function ReceptionistDashboard() {
                 </div>
 
                 <div className="border-t border-[var(--line-soft)] pt-4">
-                  <p className="text-[13px] font-semibold text-[var(--ink-faint)] mb-2">Send Reminders via WhatsApp + SMS</p>
+                  <p className="t-overline mb-2.5">Send a reminder by WhatsApp and SMS</p>
                   <div className="flex flex-wrap gap-2">
                     {REMINDER_TYPES.map(r => (
-                      <button key={r.type}
+                      <button key={r.type} type="button"
                         disabled={!!sending}
                         onClick={() => sendReminders(batch.id, r.type)}
-                        className={`flex items-center gap-1.5 px-4 py-2 ${r.color} text-white rounded-xl text-xs font-semibold disabled:opacity-50 transition`}>
-                        
-                        {sending === batch.id + r.type ? 'Sending...': r.label}
+                        className={`inline-flex items-center gap-1.5 h-11 sm:h-10 px-4 rounded-xl
+                          text-[13px] font-semibold transition-colors disabled:opacity-50
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+                          ${r.urgent
+                            ? 'bg-[var(--accent)] text-[var(--accent-ink)] hover:bg-[var(--accent-hover)]'
+                            : 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] hover:bg-[var(--canvas)]'}`}>
+                        <Send size={14} aria-hidden="true" />
+                        {sending === batch.id + r.type ? 'Sending…' : r.label}
                       </button>
                     ))}
                   </div>

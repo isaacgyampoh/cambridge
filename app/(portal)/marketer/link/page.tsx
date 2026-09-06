@@ -159,7 +159,7 @@ export default function MarketerLink() {
                 {appUrl}
               </div>
               <button type="button" onClick={copy} aria-label="Copy the link"
-                className="flex-shrink-0 w-12 h-12 grid place-items-center bg-[var(--navy)] text-white
+                className="flex-shrink-0 w-12 h-12 grid place-items-center bg-[var(--brand)] text-white
                   rounded-lg hover:brightness-110 transition">
                 <Copy size={17} aria-hidden="true" />
               </button>

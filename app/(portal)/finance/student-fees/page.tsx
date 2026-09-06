@@ -130,9 +130,9 @@ export default function StudentFeesPage() {
       </div>
 
       <div className="flex gap-2 mb-4">
-        <button onClick={() => setTab('students')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'students' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All students</button>
-        <button onClick={() => setTab('pending')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'pending' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>
-          To verify {pending.length > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-amber-400 text-white text-[11px]">{pending.length}</span>}
+        <button onClick={() => setTab('students')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'students' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)]'}`}>All students</button>
+        <button onClick={() => setTab('pending')} className={`text-sm font-medium px-4 h-11 sm:h-9 rounded-lg ${tab === 'pending' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)]'}`}>
+          To verify {pending.length > 0 && <span className="ml-1 px-1.5 py-0.5 rounded-full bg-[var(--warn)] text-white text-[11px]">{pending.length}</span>}
         </button>
       </div>
 

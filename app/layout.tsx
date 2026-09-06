@@ -48,7 +48,18 @@ export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
   maximumScale: 1,
-  themeColor: 'var(--accent)',
+  /*
+   * A literal, because this is a meta tag and not a stylesheet.
+   *
+   * It was `var(--accent)`. The browser cannot resolve a CSS variable here, so
+   * the tag was ignored and the phone fell back to the manifest — which still
+   * carried #1a7a85 from an old palette. That is why a teal band sat above the
+   * sign-in screen on iOS.
+   *
+   * Kept in step with --brand in globals.css and theme_color in
+   * public/manifest.json; all three must say the same thing.
+   */
+  themeColor: '#3B1219',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

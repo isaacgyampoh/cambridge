@@ -364,9 +364,9 @@ export function ProgressSteps({
                 className={`w-[18px] h-[18px] rounded-full flex-shrink-0 grid place-items-center
                   border-2 transition-colors
                   ${done
-                    ? 'bg-[var(--navy)] border-[var(--navy)]'
+                    ? 'bg-[var(--brand)] border-[var(--brand)]'
                     : active
-                      ? 'bg-[var(--paper)] border-[var(--navy)] ring-4 ring-[var(--navy-soft)]'
+                      ? 'bg-[var(--paper)] border-[var(--brand)] ring-4 ring-[var(--brand-soft)]'
                       : 'bg-[var(--paper)] border-[var(--line)]'}`}
               >
                 {done && (
@@ -380,7 +380,7 @@ export function ProgressSteps({
               {!last && (
                 <span aria-hidden="true"
                   className={`w-[2px] h-6 sm:w-full sm:h-[2px] sm:ml-1 flex-shrink-0
-                    ${done ? 'bg-[var(--navy)]' : 'bg-[var(--line)]'}`} />
+                    ${done ? 'bg-[var(--brand)]' : 'bg-[var(--line)]'}`} />
               )}
             </div>
 

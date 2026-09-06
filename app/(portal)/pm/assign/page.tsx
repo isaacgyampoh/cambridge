@@ -183,7 +183,7 @@ export default function PMAssign() {
               placeholder="Search" className="h-10 pl-8 pr-3 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] w-44" />
           </div>
           <button type="button" onClick={refetch} aria-label="Refresh the list"
-            className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)]
+            className="h-10 w-10 flex items-center justify-center bg-[var(--paper)] border border-[var(--line)]
               text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
             <RefreshCw size={16} aria-hidden="true" />
           </button>
@@ -216,7 +216,7 @@ export default function PMAssign() {
           { key: 'all', label: `All (${stats.total})` },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key as any)}
-            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${filter===f.key?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-11 sm:h-8 rounded-lg text-[13px] font-medium transition ${filter===f.key?'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {f.label}
           </button>
         ))}

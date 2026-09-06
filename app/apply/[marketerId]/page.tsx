@@ -195,7 +195,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
         {/* Branded hero */}
         <div className="relative overflow-hidden" style={{ background: 'var(--accent)' }}>
           <div className="relative max-w-2xl mx-auto px-4 pt-10 pb-24 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-white overflow-hidden p-1.5 shadow-[var(--shadow-overlay)]">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-[var(--paper)] overflow-hidden p-1.5 shadow-[var(--shadow-overlay)]">
               <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
             </div>
             <h1 className="font-display text-white text-[24px] sm:text-[24px] font-semibold tracking-[-0.02em]">Cambridge Center of Excellence</h1>
@@ -244,7 +244,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <div>
                   <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Gender</label>
                   <select value={form.gender} onChange={e => set('gender', e.target.value)}
-                    className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] bg-white">
+                    className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] bg-[var(--paper)]">
                     <option value="">Select...</option>
                     <option>Male</option><option>Female</option><option>Other</option>
                   </select>
@@ -304,7 +304,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <div>
                   <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Programme you’re registering for *</label>
                   <select value={form.course_id} onChange={e => set('course_id', e.target.value)}
-                    className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
+                    className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-[var(--paper)]">
                     <option value="">Select programme...</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -470,7 +470,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
             <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4 text-center">
               <div className="text-[13px] text-[var(--ink-faint)]">Your course fee</div>
               <div className="font-display text-3xl font-semibold text-[var(--ink)] mt-1">GHS {Number(fee.total_fee).toFixed(2)}</div>
-              {Number(fee.amount_paid) > 0 && <div className="text-xs text-emerald-600 mt-1">GHS {Number(fee.amount_paid).toFixed(2)} paid · balance GHS {Number(fee.balance).toFixed(2)}</div>}
+              {Number(fee.amount_paid) > 0 && <div className="text-xs text-[var(--ok)] mt-1">GHS {Number(fee.amount_paid).toFixed(2)} paid · balance GHS {Number(fee.balance).toFixed(2)}</div>}
             </div>
             <p className="text-center text-sm text-[var(--ink-soft)] mb-4">Would you like to pay now, or later?</p>
             <button onClick={() => setView('method')} className={btn + " bg-[var(--accent)] text-white mb-2.5"}>Pay now</button>
@@ -495,7 +495,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
               <div className="text-[11px] text-[var(--ink-faint)] mt-2">Transfer GHS {Number(amount).toFixed(2)}, then upload your screenshot. Finance will verify it.</div>
             </div>
             {screenshot ? (
-              <div className="flex items-center gap-2 mb-3"><img src={screenshot} alt="" className="w-11 h-11 rounded-lg object-cover" /><span className="text-sm text-emerald-600">Screenshot attached</span></div>
+              <div className="flex items-center gap-2 mb-3"><img src={screenshot} alt="" className="w-11 h-11 rounded-lg object-cover" /><span className="text-sm text-[var(--ok)]">Screenshot attached</span></div>
             ) : (
               <label className="flex items-center justify-center h-12 rounded-2xl border border-dashed border-[var(--line)] text-sm text-[var(--ink-soft)] cursor-pointer mb-3">
                 {uploading ? 'Uploading…' : 'Upload payment screenshot'}

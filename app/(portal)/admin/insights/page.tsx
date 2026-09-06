@@ -39,7 +39,7 @@ export default function InsightsPage() {
           <div className="flex gap-1 bg-[var(--line-soft)] rounded-lg p-1">
             {[7, 30, 90].map(d => (
               <button key={d} onClick={() => setDays(d)}
-                className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition ${days === d ? 'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+                className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition ${days === d ? 'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
                 {d}d
               </button>
             ))}

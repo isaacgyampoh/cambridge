@@ -291,21 +291,21 @@ export default function BroadcastPage() {
                 {/* Sub-filters */}
                 {form.target_type === 'leads_by_status'&& (
                   <select value={form.target_filters.status || ''} onChange={e => setForm(f => ({ ...f, target_filters: { status: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none">
                     <option value="">Select status...</option>
                     {STATUS_OPTS.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                   </select>
                 )}
                 {form.target_type === 'leads_by_source'&& (
                   <select value={form.target_filters.source || ''} onChange={e => setForm(f => ({ ...f, target_filters: { source: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none">
                     <option value="">Select source...</option>
                     {SOURCE_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 )}
                 {form.target_type === 'batch_students'&& (
                   <select value={form.target_filters.batch_id || ''} onChange={e => setForm(f => ({ ...f, target_filters: { batch_id: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none">
                     <option value="">Select batch...</option>
                     {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
@@ -330,8 +330,8 @@ export default function BroadcastPage() {
                 <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-2">Send via</label>
                 <div className="flex gap-2">
                   {[
-                    { key: 'whatsapp', label: 'WhatsApp', color: 'border-green-400 bg-[var(--ok-soft)] text-[var(--ok)]'},
-                    { key: 'sms', label: 'SMS', color: 'border-blue-400 bg-[var(--accent-soft)] text-[var(--accent)]'},
+                    { key: 'whatsapp', label: 'WhatsApp', color: 'border-[var(--ok)] bg-[var(--ok-soft)] text-[var(--ok)]'},
+                    { key: 'sms', label: 'SMS', color: 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'},
                   ].map(ch => (
                     <button key={ch.key} onClick={() => toggleChannel(ch.key)}
                       className={`px-4 py-2 rounded-2xl border-2 text-sm font-semibold transition ${form.channels.includes(ch.key) ? ch.color : 'border-[var(--line)] text-[var(--ink-faint)]'}`}>
@@ -477,7 +477,7 @@ export default function BroadcastPage() {
               <label className="flex items-center gap-3 cursor-pointer">
                 <button type="button" role="switch" aria-checked={sendToLeads} onClick={() => setSendToLeads(s => !s)}
                   className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${sendToLeads ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
-                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${sendToLeads ? 'translate-x-5' : ''}`} />
+                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-[var(--paper)] shadow-[var(--shadow-raised)] transition-transform ${sendToLeads ? 'translate-x-5' : ''}`} />
                 </button>
                 <div>
                   <div className="text-sm font-medium text-[var(--ink)]">Also send this link to leads</div>
@@ -487,9 +487,9 @@ export default function BroadcastPage() {
               {sendToLeads && (
                 <div className="flex gap-2 mt-3 pl-14">
                   <button type="button" onClick={() => setLeadAudience('active')}
-                    className={`h-11 sm:h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'active' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>Active leads</button>
+                    className={`h-11 sm:h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'active' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)]'}`}>Active leads</button>
                   <button type="button" onClick={() => setLeadAudience('all')}
-                    className={`h-11 sm:h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'all' ? 'bg-[var(--accent)] text-white' : 'bg-white border border-[var(--line)] text-[var(--ink-soft)]'}`}>All leads</button>
+                    className={`h-11 sm:h-8 px-3 rounded-lg text-xs font-medium transition ${leadAudience === 'all' ? 'bg-[var(--accent)] text-white' : 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)]'}`}>All leads</button>
                 </div>
               )}
             </div>
