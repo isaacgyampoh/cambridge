@@ -58,6 +58,30 @@ export default function StaffPage() {
     filters: [{ col: 'role', op: 'neq', val: 'student'}],
   })
 
+  /*
+   * How many open leads each person is carrying.
+   *
+   * The staff list showed a name, a role and whether somebody was in the lead
+   * pool, and nothing about what any of them were actually holding. That is
+   * why an 8-to-23 spread in lead distribution ran for months unnoticed: the
+   * screen a manager would look at to spot it did not show it.
+   */
+  const [workload, setWorkload] = useState<Record<string, number>>({})
+  const [spread, setSpread] = useState<{ min: number; max: number; people: number } | null>(null)
+
+  useEffect(() => {
+    let alive = true
+    fetch('/api/staff/workload')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!alive || !d) return
+        setWorkload(d.open || {})
+        setSpread(d.spread || null)
+      })
+      .catch(() => { /* the list is still useful without the counts */ })
+    return () => { alive = false }
+  }, [])
+
   function set(k: string, v: string | boolean | string[]) { setForm(f => ({ ...f, [k]: v })) }
 
   function openModal() { setForm({ ...EMPTY }); setCreds(null); setShowModal(true) }
@@ -581,6 +605,11 @@ export default function StaffPage() {
                           <span className={`w-1.5 h-1.5 rounded-full ${s.is_active ? 'bg-[var(--ok)]' : 'bg-[var(--ink-faint)]'}`} />
                           {s.is_active ? 'Active' : 'Inactive'}
                         </span>
+                        {workload[s.id] !== undefined && (
+                          <span className="text-[11px] font-medium text-[var(--ink-soft)] tabular-nums">
+                            {workload[s.id]} open {workload[s.id] === 1 ? 'lead' : 'leads'}
+                          </span>
+                        )}
                       </div>
                     </div>
                   </div>
@@ -613,7 +642,7 @@ export default function StaffPage() {
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
-                  {['Staff member', 'Role', 'Department', 'Status', ''].map(h => (
+                  {['Staff member', 'Role', 'Department', 'Open leads', 'Status', ''].map(h => (
                     <th key={h} className="text-left text-[12px] font-medium text-[var(--ink-faint)] px-4 py-3">{h}</th>
                   ))}
                 </tr>
@@ -645,6 +674,19 @@ export default function StaffPage() {
                     </td>
                     {/* Department */}
                     <td className="px-4 py-3.5 text-[13px] text-[var(--ink-soft)]">{(s as any).department || '—'}</td>
+                    {/* Open leads — the column that makes an uneven
+                        distribution visible without opening anything. */}
+                    <td className="px-4 py-3.5 text-[13px] tabular-nums">
+                      {workload[s.id] !== undefined ? (
+                        <span className={workload[s.id] === 0 && markets
+                          ? 'text-[var(--warn)] font-semibold'
+                          : 'text-[var(--ink)]'}>
+                          {workload[s.id]}
+                        </span>
+                      ) : (
+                        <span className="text-[var(--ink-faint)]">—</span>
+                      )}
+                    </td>
                     {/* Status */}
                     <td className="px-4 py-3.5">
                       <span className={`inline-flex items-center gap-1.5 text-[12px] font-medium ${s.is_active ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'}`}>

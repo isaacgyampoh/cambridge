@@ -86,6 +86,9 @@ export const API_PORTALS: Record<string, string[]> = {
   '/api/knowledge':          ['knowledge'],
   '/api/alumni':             ['alumni'],
   '/api/workforce':          ['workforce'],
+  // Read-only lead counts per person, for the staff list. Whoever oversees
+  // assignment needs it, not only whoever manages staff records.
+  '/api/staff/workload':     ['staff', 'leads', 'pm_leads', 'marketers'],
   '/api/staff':              ['staff'],
 }
 
