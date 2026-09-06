@@ -1,7 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PageHeader, Card, StatCard, Spinner, EmptyState, Button } from '@/components/ui'
+import { PageHeader, Card, StatCard, Spinner, Button } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
+
+type ReferralCode = {
+  id: string
+  referrer_name: string
+  code: string
+  referrals_count?: number
+  enrolled?: number
+  referrer_phone?: string | null
+  referrer_email?: string | null
+}
 
 export default function ReferralsAdmin() {
   const [data, setData] = useState<any>(null)
@@ -15,6 +26,23 @@ export default function ReferralsAdmin() {
   function copyShare() { navigator.clipboard.writeText(shareUrl); setCopied(true); toast.success('Referral page link copied'); setTimeout(() => setCopied(false), 2000) }
 
   if (!data) return <div className="py-20"><Spinner /></div>
+
+  const referrerColumns: Column<ReferralCode>[] = [
+    { key: 'referrer', header: 'Referrer', primary: true, render: c => c.referrer_name },
+    {
+      key: 'code', header: 'Code', secondary: true,
+      render: c => <span className="font-mono text-[13px]">{c.code}</span>,
+    },
+    { key: 'referred', header: 'Referred', numeric: true, render: c => c.referrals_count || 0 },
+    {
+      key: 'enrolled', header: 'Enrolled', numeric: true,
+      render: c => <span className="font-semibold text-[var(--ok)]">{c.enrolled || 0}</span>,
+    },
+    {
+      key: 'contact', header: 'Contact',
+      render: c => c.referrer_phone?.replace(/^233/, '0') || c.referrer_email || '—',
+    },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -32,34 +60,14 @@ export default function ReferralsAdmin() {
 
       <Card className="p-6">
         <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">Top referrers</h3>
-        {(!data.codes || data.codes.length === 0) ? (
-          <EmptyState title="No referrals yet" description="Share the referral page link (button above) with your students and leads so they can start referring friends." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full text-[14px]">
-              <thead>
-                <tr className="text-left text-[12px] text-[var(--ink-faint)] border-b border-[var(--line)]">
-                  <th className="py-2.5 font-medium">Referrer</th>
-                  <th className="py-2.5 font-medium">Code</th>
-                  <th className="py-2.5 font-medium text-center">Referred</th>
-                  <th className="py-2.5 font-medium text-center">Enrolled</th>
-                  <th className="py-2.5 font-medium">Contact</th>
-                </tr>
-              </thead>
-              <tbody>
-                {data.codes.map((c: any) => (
-                  <tr key={c.id} className="border-b border-[var(--line-soft)] last:border-0">
-                    <td data-label="Referrer" className="py-3 font-medium text-[var(--ink)]">{c.referrer_name}</td>
-                    <td data-label="Code" className="py-3 text-[var(--ink-soft)]">{c.code}</td>
-                    <td data-label="Referred" className="py-3 text-center text-[var(--ink)]">{c.referrals_count || 0}</td>
-                    <td data-label="Enrolled" className="py-3 text-center font-semibold text-[var(--ok)]">{c.enrolled || 0}</td>
-                    <td data-label="Contact" className="py-3 text-[var(--ink-soft)]">{c.referrer_phone || c.referrer_email || '—'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<ReferralCode>
+          caption="Top referrers"
+          rows={data.codes || []}
+          rowKey={c => c.id}
+          columns={referrerColumns}
+          emptyTitle="No referrals yet"
+          emptyMessage="Share the referral page link above with your students and leads so they can start referring friends."
+        />
       </Card>
     </div>
   )

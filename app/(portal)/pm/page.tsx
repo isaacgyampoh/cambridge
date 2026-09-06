@@ -1,7 +1,17 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { StatCard, Card, Spinner } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import Link from 'next/link'
+
+type TeamMember = {
+  id: string
+  full_name: string
+  tier?: string | null
+  leads: number
+  converted: number
+  rate: number
+}
 
 export default function PMDashboard() {
   const [s, setS] = useState<any>(null)
@@ -13,6 +23,20 @@ export default function PMDashboard() {
   }, [])
 
   if (!s) return <div className="py-20"><Spinner /></div>
+
+  const teamColumns: Column<TeamMember>[] = [
+    { key: 'name', header: 'Name', primary: true, render: m => m.full_name },
+    {
+      key: 'tier', header: 'Tier', secondary: true,
+      render: m => <span className="capitalize">{m.tier || 'mid'}</span>,
+    },
+    { key: 'leads', header: 'Leads', numeric: true, render: m => m.leads },
+    {
+      key: 'converted', header: 'Converted', numeric: true,
+      render: m => <span className="font-semibold text-[var(--ok)]">{m.converted}</span>,
+    },
+    { key: 'rate', header: 'Rate', numeric: true, render: m => `${m.rate}%` },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -67,30 +91,14 @@ export default function PMDashboard() {
         <Card className="p-6 mt-4">
           <div className="text-[15px] font-semibold text-[var(--ink)] mb-1">Your team</div>
           <p className="text-[13px] text-[var(--ink-soft)] mb-4">People who report to you and everything they're working on.</p>
-          <div className="overflow-x-auto">
-            <table className="rtc w-full text-[14px]">
-              <thead>
-                <tr className="text-left text-[12px] text-[var(--ink-faint)] border-b border-[var(--line)]">
-                  <th className="py-2.5 font-medium">Name</th>
-                  <th className="py-2.5 font-medium">Tier</th>
-                  <th className="py-2.5 font-medium text-center">Leads</th>
-                  <th className="py-2.5 font-medium text-center">Converted</th>
-                  <th className="py-2.5 font-medium text-center">Rate</th>
-                </tr>
-              </thead>
-              <tbody>
-                {s.subTeam.map((m: any) => (
-                  <tr key={m.id} className="border-b border-[var(--line-soft)] last:border-0">
-                    <td data-label="Name" className="py-3 font-medium text-[var(--ink)]">{m.full_name}</td>
-                    <td data-label="Tier" className="py-3 text-[var(--ink-soft)] capitalize">{m.tier || 'mid'}</td>
-                    <td data-label="Leads" className="py-3 text-center text-[var(--ink)]">{m.leads}</td>
-                    <td data-label="Converted" className="py-3 text-center font-semibold text-[var(--ok)]">{m.converted}</td>
-                    <td data-label="Rate" className="py-3 text-center text-[var(--ink-soft)]">{m.rate}%</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <DataTable<TeamMember>
+            caption="Your team"
+            rows={s.subTeam}
+            rowKey={m => m.id}
+            columns={teamColumns}
+            emptyTitle="Nobody reports to you yet"
+            emptyMessage="People assigned to report to you will appear here."
+          />
         </Card>
       )}
     </div>
