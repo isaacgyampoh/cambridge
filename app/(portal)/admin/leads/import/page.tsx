@@ -255,6 +255,14 @@ export default function ImportLeadsPage() {
                     <span className="text-sm font-semibold text-[var(--ink)]">Preview</span>
                     <span className="text-xs text-[var(--ink-faint)]">Showing first 20 rows</span>
                   </div>
+                  {/*
+                    Deliberately still a table, and the only one left in the
+                    portal. This is a CSV preview: the point is to check that
+                    each column landed in the right field before importing, and
+                    a grid with headers is exactly the tool for that. Cards
+                    would break the column alignment that makes a mis-mapped
+                    import visible at a glance.
+                  */}
                   <div className="overflow-x-auto max-h-80 overflow-y-auto">
                     <table className="rtc w-full">
                       <thead className="bg-[var(--line-soft)] sticky top-0">

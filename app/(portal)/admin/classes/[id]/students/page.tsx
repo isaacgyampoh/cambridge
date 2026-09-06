@@ -1,10 +1,19 @@
 'use client'
 import { useState, useEffect, use } from 'react'
 import { useData } from '@/hooks/useData'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, Spinner, inputClass } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
-import { Users, Plus, Search, X, Check, GraduationCap, UserMinus, Send } from 'lucide-react'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
+
+type Enrollment = {
+  id: string
+  full_name: string
+  phone?: string | null
+  email?: string | null
+  fees_paid?: boolean
+  status?: string | null
+}
 
 export default function ClassStudents({ params }: { params: Promise<{ id: string }> }) {
   const { id: batchId } = use(params)
@@ -170,6 +179,56 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     finally { setActing(null) }
   }
 
+  const enrolledColumns: Column<Enrollment>[] = [
+    { key: 'student', header: 'Student', primary: true, render: e => e.full_name },
+    {
+      key: 'contact', header: 'Contact', secondary: true,
+      render: e => [
+        e.phone && String(e.phone).replace(/^233/, '0'),
+        e.email,
+      ].filter(Boolean).join(' · ') || '—',
+    },
+    {
+      key: 'fees', header: 'Full fees',
+      render: e => (
+        <button disabled={acting === e.id} onClick={() => togglePaid(e)}
+          className={`text-[12px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition min-h-[32px]
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+            ${e.fees_paid
+              ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200'
+              : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)] hover:ring-[var(--accent)]'}`}>
+          {e.fees_paid ? 'Paid in full' : 'Mark paid'}
+        </button>
+      ),
+    },
+    {
+      key: 'status', header: 'Status',
+      render: e => e.status === 'completed'
+        ? <Badge tone="success">Completed</Badge>
+        : <Badge tone="neutral">Active</Badge>,
+    },
+    {
+      key: 'actions', header: 'Actions',
+      render: e => (
+        <span className="flex items-center gap-1.5 flex-wrap sm:justify-end">
+          {e.status !== 'completed' ? (
+            <>
+              <Button size="sm" variant="secondary" disabled={acting === e.id}
+                onClick={() => openDefer(e)}>Move class</Button>
+              <Button size="sm" variant="secondary" disabled={acting === e.id}
+                onClick={() => markComplete(e, true)}>Mark done</Button>
+            </>
+          ) : (
+            <Button size="sm" variant="ghost" disabled={acting === e.id}
+              onClick={() => markComplete(e, false)}>Reopen</Button>
+          )}
+          <Button size="sm" variant="ghost" disabled={acting === e.id}
+            onClick={() => remove(e)}>Remove</Button>
+        </span>
+      ),
+    },
+  ]
+
   return (
     <div className="fade-in w-full">
       <PageHeader
@@ -247,64 +306,16 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         </Card>
       )}
 
-      {loading ? <Spinner /> : enrolled.length === 0 ? (
-        <EmptyState  title="No students enrolled yet"
-          description="Enroll registered students into this class to send them Zoom links, materials, and certificates."
-          action={<Button onClick={() => setAddOpen(true)}>Enroll a student</Button>} />
-      ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead>
-                <tr className="border-b border-[var(--line)]">
-                  {['Student', 'Contact', 'Full fees', 'Status', ''].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {enrolled.map((e: any) => (
-                  <tr key={e.id} className="border-b border-[var(--line-soft)] last:border-0">
-                    <td data-label="Student" className="px-4 py-3 font-medium text-[var(--ink)]">{e.full_name}</td>
-                    <td data-label="Contact" className="px-4 py-3 text-xs text-[var(--ink-soft)]">{e.phone && String(e.phone).replace(/^233/, '0')}{e.email ? ` · ${e.email}` : ''}</td>
-                    <td data-label="Full fees" className="px-4 py-3">
-                      <button disabled={acting === e.id} onClick={() => togglePaid(e)}
-                        className={`text-xs font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${e.fees_paid ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)] hover:ring-[var(--accent)]'}`}>
-                        {e.fees_paid ? 'Paid in full' : 'Mark paid'}
-                      </button>
-                    </td>
-                    <td data-label="Status" className="px-4 py-3">
-                      {e.status === 'completed'
-                        ? <Badge tone="success">Completed</Badge>
-                        : <Badge tone="neutral">Active</Badge>}
-                    </td>
-                    <td className="px-4 py-3">
-                      <div className="flex items-center gap-1.5 justify-end">
-                        {e.status !== 'completed' ? (
-                          <>
-                          <Button size="sm" variant="secondary" disabled={acting === e.id}
-                            onClick={() => openDefer(e)}>
-                            Move class
-                          </Button>
-                          <Button size="sm" variant="secondary" disabled={acting === e.id}
-                            onClick={() => markComplete(e, true)}>
-                            Mark done
-                          </Button>
-                          </>
-                        ) : (
-                          <Button size="sm" variant="ghost" disabled={acting === e.id}
-                            onClick={() => markComplete(e, false)}>Reopen</Button>
-                        )}
-                        <button disabled={acting === e.id} onClick={() => remove(e)} className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <DataTable<Enrollment>
+        caption="Students in this class"
+        state={loading ? 'loading' : 'ready'}
+        rows={enrolled}
+        rowKey={e => e.id}
+        columns={enrolledColumns}
+        emptyTitle="No students enrolled yet"
+        emptyMessage="Enroll registered students into this class to send them Zoom links, materials and certificates."
+        emptyAction={<Button onClick={() => setAddOpen(true)}>Enroll a student</Button>}
+      />
 
       {/* Enroll modal */}
       {/* Move a student to another class */}
