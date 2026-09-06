@@ -1,6 +1,7 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
+import { execSync } from 'node:child_process'
 import { PIN_LENGTH } from '../lib/auth/pinPolicy.ts'
 
 /**
@@ -182,5 +183,50 @@ describe('the policy length reaches the user-facing copy', () => {
     assert.match(login, /\{PIN_LENGTH\}-digit/,
       'the copy hardcodes a PIN length instead of reading the policy')
     assert.equal(PIN_LENGTH, 4)
+  })
+})
+
+describe('rate-limit helpers are read correctly, not just awaited', () => {
+  /**
+   * isBlocked() returns { blocked, retryAfter }. An object is always truthy,
+   * so `if (await isBlocked(key))` is permanently true — which is exactly what
+   * shipped on the first deploy of the recovery route and blocked recovery for
+   * everybody. The bug is invisible to typecheck: awaiting and discarding an
+   * object is valid TypeScript.
+   */
+  test('no route treats isBlocked as a boolean', () => {
+    const routes = execSync("grep -rl 'isBlocked' app --include='*.ts'", { encoding: 'utf8' })
+      .trim().split('\n').filter(Boolean)
+
+    const offenders: string[] = []
+    for (const file of routes) {
+      const src = readFileSync(file, 'utf8')
+      src.split('\n').forEach((line, i) => {
+        const trimmed = line.trim()
+        if (trimmed.startsWith('*') || trimmed.startsWith('//')) return
+        if (/if\s*\(\s*await\s+isBlocked\(/.test(line)) {
+          offenders.push(`${file}:${i + 1}  ${trimmed}`)
+        }
+      })
+    }
+    assert.deepEqual(offenders, [],
+      'these use isBlocked as a boolean, which is always true:\n' + offenders.join('\n'))
+  })
+
+  test('rateLimit is read the same way', () => {
+    const routes = execSync("grep -rl 'rateLimit(' app --include='*.ts'", { encoding: 'utf8' })
+      .trim().split('\n').filter(Boolean)
+    const offenders: string[] = []
+    for (const file of routes) {
+      const src = readFileSync(file, 'utf8')
+      src.split('\n').forEach((line, i) => {
+        const trimmed = line.trim()
+        if (trimmed.startsWith('*') || trimmed.startsWith('//')) return
+        if (/if\s*\(\s*await\s+rateLimit\(/.test(line)) {
+          offenders.push(`${file}:${i + 1}  ${trimmed}`)
+        }
+      })
+    }
+    assert.deepEqual(offenders, [], offenders.join('\n'))
   })
 })

@@ -489,7 +489,10 @@ function LoginForm() {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
-                <p className="text-[var(--ink-soft)] text-sm">Enter your PIN. We will email a sign-in code to your Cambridge address.</p>
+                <p className="text-[var(--ink-soft)] text-sm">
+                  Enter your {PIN_LENGTH}-digit PIN. We will email a sign-in code to your
+                  {' '}{BRAND.shortName} address.
+                </p>
               </div>
 
               <PinBoxes value={pin} onChange={setPin} onSubmit={() => submitPin(pin)} label='PIN' masked={!showPin} />

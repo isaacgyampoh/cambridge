@@ -29,9 +29,16 @@ const GLOBAL_KEY = 'recover:global'
 export async function POST(req: NextRequest) {
   const ip = clientIp(req)
 
-  if (await isBlocked(GLOBAL_KEY)) {
+  /*
+   * isBlocked returns an OBJECT, so `if (await isBlocked(...))` is always
+   * true — which blocked recovery for everyone, permanently, the moment this
+   * shipped. Read the field.
+   */
+  const globalLimit = await isBlocked(GLOBAL_KEY)
+  if (globalLimit.blocked) {
+    console.error('[recover] global recovery ceiling reached — paused for everyone.')
     return NextResponse.json(
-      { error: 'Recovery is temporarily unavailable. Please try again shortly.' },
+      { error: `Recovery is temporarily unavailable. ${retryMessage(globalLimit.retryAfter)}` },
       { status: 429 }
     )
   }
