@@ -109,6 +109,7 @@ export const ALL_PORTALS = [
       { label: 'Settings',   href: '/admin/settings' },
       { label: 'Automation', href: '/admin/automation' },
       { label: 'Incoming WhatsApp', href: '/admin/webhook-log' },
+      { label: 'SMS Delivery', href: '/admin/sms-delivery' },
     ]},
 
   // ── Category groups (used by super_admin for a tidy, organised sidebar) ──

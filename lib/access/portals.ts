@@ -24,7 +24,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   grp_socials: ['/content'],
   admissions:  ['/admin/admissions', '/admission', '/admission/process', '/admin/registrations'],
   finance:     ['/admin/finance', '/finance'],
-  broadcast:   ['/admin/broadcast', '/admin/links'],
+  broadcast:   ['/admin/broadcast', '/admin/links', '/admin/sms-delivery'],
   attendance:  ['/admin/attendance'],
   academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates', '/coordinator'],
   documents:   ['/admin/documents'],
@@ -41,10 +41,10 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   my_earnings: ['/marketer/earnings'],
   registrations: ['/finance/registrations'],
   clock_in:    ['/clock-in'],
-  messages:    ['/messages'],
+  messages:    ['/messages', '/admin/sms-delivery'],
   my_links:    ['/links'],
   my_attendance: ['/marketer/attendance'],
-  prep:        ['/coordinator'],  settings:    ['/admin/settings', '/admin/automation', '/admin/webhook-log'],
+  prep:        ['/coordinator'],  settings:    ['/admin/settings', '/admin/automation', '/admin/webhook-log', '/admin/sms-delivery'],
 }
 
 export const ROLE_DEFAULTS: Record<string, string[]> = {

@@ -1,6 +1,8 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
-import { deliverSMS, normaliseRecipient } from '@/lib/integrations/sms'
+import { arkeselProvider, normaliseRecipient } from '@/lib/integrations/sms'
+import type { SmsProvider } from '@/lib/notifications/provider'
+import { MAX_ATTEMPTS, planNextState } from '@/lib/notifications/retry'
 
 /**
  * Reliable SMS delivery.
@@ -24,13 +26,6 @@ import { deliverSMS, normaliseRecipient } from '@/lib/integrations/sms'
  *   registration must not roll back because a text message could not be sent.
  */
 
-const MAX_ATTEMPTS = 4
-
-/** Backoff between attempts, in minutes: ~1m, 5m, 25m. */
-function backoffMinutes(attempt: number): number {
-  return Math.min(5 ** attempt, 120)
-}
-
 export type QueueSMSOptions = {
   to: string
   message: string
@@ -45,6 +40,14 @@ export type QueueSMSOptions = {
   dedupeKey?: string | null
   /** Attempt delivery immediately as well as queueing. Default true. */
   immediate?: boolean
+  /**
+   * The provider to send through. Defaults to Arkesel.
+   *
+   * Injectable so the retry path can be exercised against a scripted fake —
+   * timeouts, temporary failures and the accepted-but-timed-out case — without
+   * provoking the real provider to test our own code.
+   */
+  provider?: SmsProvider
 }
 
 export type QueueResult = {
@@ -95,51 +98,46 @@ export async function queueSMS(opts: QueueSMSOptions): Promise<QueueResult> {
     return { queued: true, duplicate: false, sent: false, id: row.id }
   }
 
-  const sent = await attemptDelivery(row.id, recipient, opts.message, 1)
+  const sent = await attemptDelivery(
+    row.id, recipient, opts.message, 1, MAX_ATTEMPTS, opts.provider ?? arkeselProvider
+  )
   return { queued: true, duplicate: false, sent, id: row.id }
 }
 
 /**
  * Send one queued message and record the outcome.
  * Returns whether it was delivered. Never throws.
+ *
+ * The decision of what the outcome MEANS lives in lib/notifications/retry.ts
+ * and is under test; this function's only job is to make the attempt and
+ * persist that decision.
  */
 async function attemptDelivery(
   id: string,
   recipient: string,
   message: string,
   attempt: number,
-  maxAttempts = MAX_ATTEMPTS
+  maxAttempts = MAX_ATTEMPTS,
+  provider: SmsProvider = arkeselProvider
 ): Promise<boolean> {
   const sb = createServiceClient()
-  const result = await deliverSMS(recipient, message)
+  const result = await provider.send(recipient, message)
+  const { reason, ...columns } = planNextState(result, attempt, maxAttempts)
 
-  if (result.ok) {
-    await sb.from('sms_logs').update({
-      status: 'sent',
-      attempts: attempt,
-      sent_at: new Date().toISOString(),
-      next_retry_at: null,
-      provider_response: result.response ?? null,
-      last_error: null,
-    }).eq('id', id).then(() => {}, () => {})
-    return true
-  }
-
-  const exhausted = attempt >= maxAttempts || result.permanent
   await sb.from('sms_logs').update({
-    status: exhausted ? 'failed' : 'retrying',
-    attempts: attempt,
-    next_retry_at: exhausted
-      ? null
-      : new Date(Date.now() + backoffMinutes(attempt) * 60_000).toISOString(),
+    ...columns,
+    // Keep whatever the provider said, for the delivery record. Never carries
+    // our API key: it is the response body, not the request.
     provider_response: result.response ?? null,
-    last_error: result.error?.slice(0, 500) || null,
   }).eq('id', id).then(() => {}, () => {})
 
-  if (exhausted) {
-    console.error('[sms] giving up after', attempt, 'attempts:', recipient, result.error)
+  if (reason === 'permanent' || reason === 'exhausted') {
+    console.error(
+      `[sms] giving up on ${id} after ${attempt} attempt(s) (${reason}):`,
+      recipient, result.error
+    )
   }
-  return false
+  return columns.status === 'sent'
 }
 
 /**
@@ -148,9 +146,10 @@ async function attemptDelivery(
  * Rows are claimed with SKIP LOCKED, so two overlapping cron runs take
  * disjoint batches rather than both sending the same message.
  */
-export async function processSmsQueue(limit = 25): Promise<{
-  claimed: number; sent: number; failed: number
-}> {
+export async function processSmsQueue(
+  limit = 25,
+  provider: SmsProvider = arkeselProvider
+): Promise<{ claimed: number; sent: number; failed: number }> {
   const sb = createServiceClient()
   const { data: due, error } = await sb.rpc('claim_due_sms', { p_limit: limit })
 
@@ -164,7 +163,9 @@ export async function processSmsQueue(limit = 25): Promise<{
 
   let sent = 0, failed = 0
   for (const row of rows) {
-    const ok = await attemptDelivery(row.id, row.recipient, row.message, row.attempts, row.max_attempts)
+    const ok = await attemptDelivery(
+      row.id, row.recipient, row.message, row.attempts, row.max_attempts, provider
+    )
     if (ok) sent++; else failed++
   }
 

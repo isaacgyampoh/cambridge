@@ -2,6 +2,9 @@ import 'server-only'
 import { CONFIG } from '@/lib/config'
 import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
+import {
+  type SmsProvider, type SendOutcome, classifyFailure, extractMessageId,
+} from '@/lib/notifications/provider'
 
 /**
  * Arkesel SMS transport.
@@ -33,13 +36,8 @@ export function normaliseRecipient(num: string): string | null {
   return digits
 }
 
-export type DeliveryResult = {
-  ok: boolean
-  /** True when retrying could not possibly help — a bad number, a rejected key. */
-  permanent: boolean
-  error?: string
-  response?: unknown
-}
+/** Kept as an alias so existing callers do not change. */
+export type DeliveryResult = SendOutcome
 
 /**
  * One delivery attempt to one recipient.
@@ -48,6 +46,11 @@ export type DeliveryResult = {
  * queue burning four attempts on a phone number that will never be valid,
  * while still retrying a provider timeout that would have succeeded.
  */
+export const arkeselProvider: SmsProvider = {
+  name: 'arkesel',
+  send: (to, message) => deliverSMS(to, message),
+}
+
 export async function deliverSMS(to: string, message: string): Promise<DeliveryResult> {
   const recipient = normaliseRecipient(to)
   if (!recipient) {
@@ -82,14 +85,21 @@ export async function deliverSMS(to: string, message: string): Promise<DeliveryR
     const body = await res.json().catch(() => ({}))
     const ok = res.ok && (body?.status === 'success' || body?.code === 'ok')
 
-    if (ok) return { ok: true, permanent: false, response: body }
+    if (ok) {
+      return {
+        ok: true,
+        permanent: false,
+        // Persisted by the queue so "why didn't this arrive?" can be taken to
+        // Arkesel with a reference rather than a description.
+        providerMessageId: extractMessageId(body),
+        response: body,
+      }
+    }
 
-    // 4xx other than 429 means the request itself is wrong — a bad sender id,
-    // an invalid number, a rejected key. Retrying sends the same bad request.
-    const permanent = res.status >= 400 && res.status < 500 && res.status !== 429
     return {
       ok: false,
-      permanent,
+      // Both signals, because Arkesel refuses some requests in the body.
+      permanent: classifyFailure(res.status, body),
       error: `Arkesel ${res.status}: ${body?.message || body?.code || 'rejected'}`,
       response: body,
     }

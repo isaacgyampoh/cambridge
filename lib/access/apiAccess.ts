@@ -63,6 +63,10 @@ export const API_PORTALS: Record<string, string[]> = {
   '/api/links':              ['broadcast', 'my_links'],
   '/api/messages':           ['messages', 'conversations'],
   '/api/sms':                ['broadcast', 'messages'],
+  // Read-only delivery diagnostics. Reachable by whoever runs the system as
+  // well as whoever sends the messages: the person asked why a colleague
+  // never got their text is usually not the person who sent it.
+  '/api/sms/delivery':       ['broadcast', 'messages', 'settings'],
   '/api/whatsapp':           ['wa_lines', 'conversations'],
 
   '/api/reports':            ['reports'],

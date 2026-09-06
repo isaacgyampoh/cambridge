@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { canReachApi } from '../lib/access/apiAccess.ts'
-import { resolvePortals, ROLE_DEFAULTS } from '../lib/access/portals.ts'
+import { resolvePortals, ROLE_DEFAULTS, PORTAL_PATHS } from '../lib/access/portals.ts'
+import { API_PORTALS } from '../lib/access/apiAccess.ts'
 
 /**
  * The route guard previously granted a fixed list of about forty-five /api
@@ -114,4 +115,47 @@ describe('unknown endpoints are refused, not allowed', () => {
     const p = portalsFor('accountant')
     assert.equal(canReachApi('/api/class-reminders/run', 'accountant', p), true)
   })
+})
+
+/* ─────────────────────────────────────────────
+   A screen and its data must agree about who may see them
+   ───────────────────────────────────────────── */
+
+describe('page access and API access do not drift apart', () => {
+  /**
+   * When a page is reachable by a portal its API is not, the user gets the
+   * screen and then an empty panel with no explanation — the precise failure
+   * the SMS delivery screen was built to remove, reproduced by its own access
+   * rules. This pins the pairing rather than trusting three files to be
+   * edited together.
+   */
+  const PAIRS: Array<{ page: string; api: string }> = [
+    { page: '/admin/sms-delivery', api: '/api/sms/delivery' },
+  ]
+
+  for (const { page, api } of PAIRS) {
+    test(`${page} and ${api} are granted by exactly the same portals`, () => {
+      const viaPage = Object.entries(PORTAL_PATHS)
+        .filter(([, routes]) => (routes as string[]).includes(page))
+        .map(([portal]) => portal)
+        .sort()
+      const viaApi = [...(API_PORTALS[api] ?? [])].sort()
+
+      assert.ok(viaPage.length > 0, `${page} is in no portal's route list — nobody can reach it`)
+      assert.deepEqual(viaPage, viaApi,
+        `${page} is reachable by [${viaPage}] but ${api} only by [${viaApi}]`)
+    })
+
+    test(`every role that can open ${page} can also load its data`, () => {
+      for (const role of Object.keys(ROLE_DEFAULTS)) {
+        const portals = portalsFor(role)
+        const canSeePage = Object.entries(PORTAL_PATHS)
+          .some(([portal, routes]) =>
+            portals.includes(portal) && (routes as string[]).includes(page))
+        if (!canSeePage) continue
+        assert.equal(canReachApi(api, role, portals), true,
+          `${role} can open ${page} but is refused ${api}`)
+      }
+    })
+  }
 })
