@@ -67,7 +67,7 @@ export default function MarketerAttendance() {
                   </div>
                   <div className="flex items-center gap-2">
                     {!s.present && s.phone && (
-                      <a href={`tel:${s.phone}`} className="inline-flex items-center gap-1 h-8 px-3 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] text-xs font-medium">
+                      <a href={`tel:${s.phone}`} className="inline-flex items-center gap-1 min-h-[44px] sm:min-h-[36px] px-3 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] text-[13px] font-medium">
                          Call
                       </a>
                     )}

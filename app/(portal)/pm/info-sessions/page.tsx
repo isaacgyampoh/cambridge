@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Field, inputClass, textareaClass, Spinner, EmptyState, Badge } from '@/components/ui'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -101,7 +102,7 @@ export default function InfoSessions() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-display text-[16px] font-semibold text-[var(--ink)]">{s.title}</h3>
-                          <Badge tone={s.status === 'sent' ? 'success' : s.status === 'cancelled' ? 'danger' : 'accent'}>{s.status}</Badge>
+                          <Badge tone={s.status === 'sent' ? 'success' : s.status === 'cancelled' ? 'danger' : 'accent'}>{readableStatus(s.status)}</Badge>
                         </div>
                         <p className="text-[13px] text-[var(--ink-soft)] mt-1">Session: {when}</p>
                         {s.status === 'scheduled' && <p className="text-[13px] text-[var(--ink-faint)]">Auto-sends: {sendWhen}</p>}

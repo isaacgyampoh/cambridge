@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
 import { Banknote, Check, X, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
@@ -94,7 +95,7 @@ export default function ClassPaymentsPage() {
                       <span className="font-medium text-[var(--ink)]">{p.enrollment?.full_name || p.student_name}</span>
                       <span className="text-[var(--ink-faint)]"> · GHS {Number(p.amount).toFixed(2)} · {p.method?.toUpperCase()}</span>
                     </div>
-                    <Badge tone={p.status === 'verified' ? 'success' : 'neutral'}>{p.status}</Badge>
+                    <Badge tone={p.status === 'verified' ? 'success' : 'neutral'}>{readableStatus(p.status)}</Badge>
                   </div>
                 ))}
               </div>

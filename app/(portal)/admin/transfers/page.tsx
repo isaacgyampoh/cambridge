@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState } from '@/components/ui'
 import { ArrowLeftRight, Check, X, Phone } from 'lucide-react'
 import { toast } from 'sonner'
@@ -88,7 +89,7 @@ export default function TransfersPage() {
                       <span className="font-medium text-[var(--ink)]">{r.lead?.full_name}</span>
                       <span className="text-[var(--ink-faint)]"> · {r.requester?.full_name}</span>
                     </div>
-                    <Badge tone={r.status === 'approved' ? 'success' : 'neutral'}>{r.status}</Badge>
+                    <Badge tone={r.status === 'approved' ? 'success' : 'neutral'}>{readableStatus(r.status)}</Badge>
                   </div>
                 ))}
               </div>

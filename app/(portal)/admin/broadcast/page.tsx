@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Send, Users, Clock, CheckCircle, XCircle, Plus, X } from 'lucide-react'
@@ -344,7 +345,7 @@ export default function BroadcastPage() {
                   <p className="text-sm text-[var(--ink-soft)] mt-0.5 line-clamp-2">{b.message}</p>
                 </div>
                 <span className={`text-xs font-bold px-3 py-1 rounded-full ml-3 flex-shrink-0 ${STATUS_CONFIG[b.status]}`}>
-                  {b.status}
+                  {readableStatus(b.status)}
                 </span>
               </div>
               <div className="flex items-center gap-4 text-xs text-[var(--ink-faint)]">

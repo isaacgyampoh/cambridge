@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { StatCard, Card, Spinner } from '@/components/ui'
 import Link from 'next/link'
 
@@ -43,7 +44,7 @@ export default function TrainerDashboard() {
                   <div className="text-[14px] font-medium text-[var(--ink)]">{c.name}</div>
                   <div className="text-[13px] text-[var(--ink-faint)]">{c.course}</div>
                 </div>
-                <span className={`text-[12px] font-medium px-2 py-0.5 rounded-full ${c.status === 'ongoing' ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>{c.status}</span>
+                <span className={`text-[12px] font-medium px-2 py-0.5 rounded-full ${c.status === 'ongoing' ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>{readableStatus(c.status)}</span>
               </div>
             ))}
           </div>

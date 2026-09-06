@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, inputClass } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
@@ -396,7 +397,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
               <div key={a.id} className="flex items-center justify-between gap-3 py-2.5 border-b border-[var(--line-soft)] last:border-0">
                 <div className="min-w-0">
                   <div className="text-sm font-medium text-[var(--ink)] truncate">{a.full_name}</div>
-                  <div className="text-[12px] text-[var(--ink-faint)]">{a.course?.name || '—'} · {a.payment_status}</div>
+                  <div className="text-[12px] text-[var(--ink-faint)]">{a.course?.name || '—'} · {readableStatus(a.payment_status)}</div>
                 </div>
                 <Button size="sm" disabled={acting === a.id} onClick={() => enroll(a.id)}>
                   {acting === a.id ? '…' : 'Enroll'}

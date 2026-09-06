@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, EmptyState, inputClass, StatCard } from '@/components/ui'
 import { DataTable, type Column } from '@/components/ui/DataTable'
@@ -106,7 +107,7 @@ export default function StudentFeesPage() {
       key: 'status', header: 'Status',
       render: f => (
         <Badge tone={f.status === 'paid' ? 'success' : f.status === 'partial' ? 'warning' : 'neutral'}>
-          {f.status}
+          {readableStatus(f.status)}
         </Badge>
       ),
     },

@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, textareaClass} from '@/components/ui'
 import FileUpload from '@/components/shared/FileUpload'
 import { Sparkles, Wand2, MessageSquare, Hash, Lightbulb, Copy, Save, Send, Trash2, Calendar, FileText } from 'lucide-react'
@@ -198,7 +199,7 @@ function PostRow({ p, onLoad, onDelete }: any) {
         <div className="min-w-0 flex-1 cursor-pointer" onClick={() => onLoad(p)}>
           <div className="flex items-center gap-2 mb-1">
             {p.platform && <Badge tone="neutral">{p.platform}</Badge>}
-            <Badge tone={p.status === 'scheduled' ? 'accent' : 'neutral'}>{p.status}</Badge>
+            <Badge tone={p.status === 'scheduled' ? 'accent' : 'neutral'}>{readableStatus(p.status)}</Badge>
           </div>
           <p className="text-sm text-[var(--ink-soft)] line-clamp-2">{p.body}</p>
         </div>

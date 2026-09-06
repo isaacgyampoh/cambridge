@@ -1,5 +1,6 @@
 'use client'
 import { useData } from '@/hooks/useData'
+import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, Button } from '@/components/ui'
 import { BookOpen, GraduationCap, CalendarCheck, Users, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
@@ -100,7 +101,7 @@ export default function AcademicsHub() {
                           <div className="font-medium text-[var(--ink)] truncate">{b.name}</div>
                           <div className="text-xs text-[var(--ink-faint)] mt-0.5 truncate">{b.courses?.name}</div>
                         </div>
-                        <Badge tone={STATUS[b.status] || 'neutral'}>{b.status}</Badge>
+                        <Badge tone={STATUS[b.status] || 'neutral'}>{readableStatus(b.status)}</Badge>
                       </Card>
                     </Link>
                   ))}

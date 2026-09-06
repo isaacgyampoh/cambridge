@@ -1,5 +1,6 @@
 'use client'
 import { CONFIG } from '@/lib/config'
+import { readableStatus } from '@/lib/ui/status'
 import { useState, useEffect } from 'react'
 
 import type { Profile, Application } from '@/types'
@@ -101,7 +102,7 @@ export default function MarketerLink() {
           ${a.payment_status === 'paid'
             ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
             : 'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
-          {a.payment_status}
+          {readableStatus(a.payment_status)}
         </span>
       ),
     },

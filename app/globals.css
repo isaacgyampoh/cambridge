@@ -171,8 +171,13 @@ table { border-collapse: collapse; width: 100%; }
   /* iOS zooms the page in when a focused field is under 16px */
   input, select, textarea { font-size: 16px !important; }
 
-  /* Comfortable tap targets */
+  /* Comfortable tap targets.
+     The rule used to name `a.btn`, a class nothing in the codebase applies, so
+     every link styled as a button — call links, back links, row actions —
+     stayed at the 32 or 36 pixels its utility class asked for. Any anchor that
+     sets a small explicit height is a control, and is raised to 44 here. */
   button, [role='button'], a.btn { min-height: 44px; }
+  a[class*="h-7"], a[class*="h-8"], a[class*="h-9"], a[class*="h-10"] { min-height: 44px; }
 
   /* Tables never fit a phone — let them scroll instead of breaking layout,
      with momentum so it feels native */

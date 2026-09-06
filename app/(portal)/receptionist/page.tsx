@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Calendar, Send, RefreshCw } from 'lucide-react'
@@ -79,7 +80,7 @@ export default function ReceptionistDashboard() {
                   </div>
                   <div className="text-right">
                     <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ${batch.status==='ongoing'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
-                      {batch.status}
+                      {readableStatus(batch.status)}
                     </span>
                     {days !== null && days >= 0 && (
                       <div className={`text-xs font-semibold mt-1 ${days<=1?'text-[var(--danger)]':days<=7?'text-orange-500':'text-[var(--ink-faint)]'}`}>

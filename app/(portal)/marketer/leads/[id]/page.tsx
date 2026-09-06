@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, STATUS_COLORS, SOURCE_COLORS } from '@/lib/utils'
 import { toast } from 'sonner'
@@ -412,7 +413,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                       <div className="absolute -left-[15px] top-1.5 w-2.5 h-2.5 rounded-full bg-[var(--accent)] ring-4 ring-[var(--paper)]" />
                       <div className="text-[14px] font-medium text-[var(--ink)]">{a.subject}</div>
                       {a.description && <div className="text-[13px] text-[var(--ink-soft)] mt-0.5 leading-relaxed">{a.description}</div>}
-                      {a.outcome && <div className="text-[13px] text-[var(--accent)] mt-1 font-medium">Result: {a.outcome}</div>}
+                      {a.outcome && <div className="text-[13px] text-[var(--accent)] mt-1 font-medium">Result: {readableStatus(a.outcome)}</div>}
                       {a.next_follow_up && (
                         <div className="text-[13px] text-[var(--warn)] mt-1">Follow up: {formatDateTime(a.next_follow_up)}</div>
                       )}

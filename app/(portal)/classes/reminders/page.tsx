@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Field, inputClass, textareaClass, Spinner, EmptyState, Badge } from '@/components/ui'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -96,7 +97,7 @@ export default function ClassReminders() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
                           <h3 className="font-display text-[16px] font-semibold text-[var(--ink)]">{r.batch?.name || 'Class'}</h3>
-                          <Badge tone={r.status === 'sent' ? 'success' : r.status === 'cancelled' ? 'danger' : 'accent'}>{r.status}</Badge>
+                          <Badge tone={r.status === 'sent' ? 'success' : r.status === 'cancelled' ? 'danger' : 'accent'}>{readableStatus(r.status)}</Badge>
                         </div>
                         <p className="text-[13px] text-[var(--ink-soft)] mt-1">Class: {when}</p>
                         {r.status === 'scheduled' && <p className="text-[13px] text-[var(--ink-faint)]">Reminder sends: {send}</p>}

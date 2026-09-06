@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { readableStatus } from '@/lib/ui/status'
 import { useData, mutate } from '@/hooks/useData'
 import { formatGHS, formatDateTime } from '@/lib/utils'
 import { DollarSign, TrendingUp, AlertCircle, Plus, RefreshCw, X, Receipt, FileText } from 'lucide-react'
@@ -150,7 +151,7 @@ export default function FinancePage() {
                     <div className="text-[15px] font-semibold text-[var(--ink)] flex-shrink-0">{formatGHS(p.amount)}</div>
                   </div>
                   <div className="flex items-center gap-2 mt-2 flex-wrap">
-                    <Badge tone={p.status === 'paid' ? 'success' : p.status === 'pending' ? 'warning' : 'danger'}>{p.status}</Badge>
+                    <Badge tone={p.status === 'paid' ? 'success' : p.status === 'pending' ? 'warning' : 'danger'}>{readableStatus(p.status)}</Badge>
                     <Badge tone={METHOD_TONE[p.method] || 'neutral'}>{p.method?.replace(/_/g, ' ') || '—'}</Badge>
                     {p.receipt_number && <span className="text-[11px] font-mono text-[var(--ink-faint)]">{p.receipt_number}</span>}
                     <span className="text-[11px] text-[var(--ink-faint)] ml-auto">{formatDateTime(p.created_at)}</span>
@@ -177,7 +178,7 @@ export default function FinancePage() {
                       </td>
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(p.amount)}</td>
                       <td className="px-4 py-3"><Badge tone={METHOD_TONE[p.method] || 'neutral'}>{p.method?.replace(/_/g, ' ') || '—'}</Badge></td>
-                      <td className="px-4 py-3"><Badge tone={p.status === 'paid' ? 'success' : p.status === 'pending' ? 'warning' : 'danger'}>{p.status}</Badge></td>
+                      <td className="px-4 py-3"><Badge tone={p.status === 'paid' ? 'success' : p.status === 'pending' ? 'warning' : 'danger'}>{readableStatus(p.status)}</Badge></td>
                       <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{formatDateTime(p.created_at)}</td>
                     </tr>
                   ))}

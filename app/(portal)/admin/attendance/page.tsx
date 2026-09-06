@@ -322,7 +322,10 @@ export default function AttendanceDashboard() {
                 </div>
 
                 {/* Stats */}
-                <div className="grid grid-cols-4 gap-2">
+                {/* Four cells across a 320px screen leaves 74px each, which
+                    is not enough for a figure and its label. Two rows of two
+                    below sm, four across from there. */}
+                <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
                   {[
                     { label: 'Total', value: signins.length, color: 'text-[var(--ink)]'},
                     { label: 'Verified', value: verified.length, color: 'text-[var(--ok)]'},

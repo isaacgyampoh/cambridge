@@ -169,6 +169,20 @@ export function describeStatus(domain: StatusDomain, value: unknown): StatusDesc
   return TABLES[domain][key] ?? humanise(value)
 }
 
+/**
+ * Make any status value readable, without claiming to know what it means.
+ *
+ * For the domains this module does not model — a batch's state, a broadcast's,
+ * a scheduled post's. Those screens were printing the raw column, so a person
+ * read "not_interested" and "in_progress" in lower case next to properly
+ * written labels. This is the floor: no snake_case ever reaches a reader, even
+ * where the system has no opinion on the value.
+ */
+export function readableStatus(value: unknown): string {
+  if (typeof value !== 'string' || !value.trim()) return 'Unknown'
+  return humanise(value).label
+}
+
 /** Just the label, for places that cannot render a badge — a title, an export. */
 export function statusLabel(domain: StatusDomain, value: unknown): string {
   return describeStatus(domain, value).label
