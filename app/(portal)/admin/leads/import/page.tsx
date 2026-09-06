@@ -40,6 +40,16 @@ export default function ImportLeadsPage() {
   const [raw,       setRaw]       = useState('')
   const [parsed,    setParsed]    = useState<ParsedLead[]>([])
   const [importing, setImporting] = useState(false)
+  /*
+   * How far through we are.
+   *
+   * The browser sends the file in batches of fifty. A five-hundred-row list is
+   * ten sequential requests, and the screen previously said nothing at all
+   * between the first and the last — several minutes of a disabled button,
+   * which is indistinguishable from a hang and is exactly when somebody
+   * reloads the page and imports the list twice.
+   */
+  const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [result, setResult] = useState<(ImportResult & { requestsFailed: number }) | null>(null)
 
   const VALID_SOURCES = ['facebook','google','linkedin','website','referral','manual']
@@ -102,6 +112,7 @@ export default function ImportLeadsPage() {
     if (!valid.length) { toast.error('No valid leads to import'); return }
     setImporting(true)
     setResult(null)
+    setProgress({ done: 0, total: valid.length })
 
     /*
      * Batches accumulate into ONE import record, identified by a reference the
@@ -153,10 +164,16 @@ export default function ImportLeadsPage() {
       } catch {
         requestsFailed += batch.length
         toast.error(`Rows ${i + 1}–${i + batch.length} could not be sent. Check your connection.`)
+      } finally {
+        // Advance whether the batch landed or not: the bar tracks how much of
+        // the file has been attempted, and a stalled bar during a failing run
+        // is the least useful thing it could do.
+        setProgress({ done: Math.min(i + BATCH, valid.length), total: valid.length })
       }
     }
 
     setImporting(false)
+    setProgress(null)
 
     if (!latest) {
       toast.error('Nothing was imported.')
@@ -190,6 +207,29 @@ export default function ImportLeadsPage() {
           <p className="text-[var(--ink-faint)] text-sm">Upload a CSV file or paste data to import multiple leads at once</p>
         </div>
       </div>
+
+      {/* While the file is being sent, say how far through it is. Ten
+          sequential requests with a silent disabled button is
+          indistinguishable from a hang, and that is when somebody reloads and
+          imports the same list twice. */}
+      {importing && progress && (
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 max-w-lg mx-auto mb-5"
+          role="status" aria-live="polite">
+          <div className="flex items-baseline justify-between gap-3 mb-3">
+            <span className="text-[15px] font-semibold text-[var(--ink)]">Importing…</span>
+            <span className="text-[13px] text-[var(--ink-soft)] tabular-nums">
+              {progress.done} of {progress.total}
+            </span>
+          </div>
+          <div className="h-2 rounded-full bg-[var(--line-soft)] overflow-hidden">
+            <div className="h-full bg-[var(--accent)] transition-[width] duration-300 ease-out"
+              style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
+          </div>
+          <p className="text-[12.5px] text-[var(--ink-faint)] mt-3 leading-relaxed">
+            Sent in batches so a long list cannot time out. Please keep this page open.
+          </p>
+        </div>
+      )}
 
       {result ? (
         /*
@@ -234,8 +274,8 @@ export default function ImportLeadsPage() {
 
           {(result.unassigned > 0 || result.failed > 0) && (
             <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mb-5">
-              Rows that did not land are recorded against {result.reference} with the reason,
-              so they can be corrected and re-imported without hunting for the original file.
+              Every row that did not land is recorded against {result.reference} with the
+              reason. Open the full report below to see which people are missing and why.
             </p>
           )}
 
@@ -245,10 +285,20 @@ export default function ImportLeadsPage() {
           </p>
 
           <div className="flex flex-col sm:flex-row gap-2.5">
-            <Link href="/admin/leads"
+            {/* The row-level report. Every figure above is traceable to the
+                rows behind it, which was recorded from the start but had
+                nowhere to be seen. */}
+            <Link href={`/admin/leads/import/${encodeURIComponent(result.reference)}`}
               className="flex-1 min-h-[44px] bg-[var(--accent)] text-white rounded-xl text-sm font-bold
                 hover:brightness-110 transition flex items-center justify-center
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
+              See the full report
+            </Link>
+            <Link href="/admin/leads"
+              className="flex-1 min-h-[44px] bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)]
+                rounded-xl text-sm font-semibold hover:bg-[var(--canvas)] transition
+                flex items-center justify-center
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
               View leads
             </Link>
             <button onClick={() => { setResult(null); setParsed([]); setRaw('') }}

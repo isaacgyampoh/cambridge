@@ -32,6 +32,8 @@ export const SHARED_API_PATHS: string[] = [
 
 /** API prefix → the portals that grant it. Any one portal is enough. */
 export const API_PORTALS: Record<string, string[]> = {
+  // Import history is read-only and belongs to whoever runs imports.
+  '/api/leads/imports':      ['leads', 'pm_leads'],
   '/api/leads':              ['leads', 'my_leads', 'pm_leads'],
   '/api/referrals':          ['leads', 'my_leads'],
   '/api/conversions':        ['leads', 'my_leads'],
