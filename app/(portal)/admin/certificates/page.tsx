@@ -2,12 +2,22 @@
 import { useState } from 'react'
 import { useData } from '@/hooks/useData'
 import FileUpload from '@/components/shared/FileUpload'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, Field } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, inputClass, Field } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
-import { Award, Search, X, Download, Send, Copy } from 'lucide-react'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
 import { exportToExcel } from '@/lib/utils/export'
 import { CONFIG } from '@/lib/config'
+
+type Certificate = {
+  id: string
+  student_name: string
+  course_name?: string | null
+  month_completed?: string | null
+  certificate_no?: string | null
+  issued?: boolean
+  download_token?: string | null
+}
 
 export default function CertificatesPage() {
   const { data: certs, loading, refetch } = useData<any>({
@@ -33,6 +43,35 @@ export default function CertificatesPage() {
   const filtered = certs.filter((c: any) => !search ||
     (c.student_name || '').toLowerCase().includes(search.toLowerCase()) ||
     (c.course_name || '').toLowerCase().includes(search.toLowerCase()))
+
+  const certificateColumns: Column<Certificate>[] = [
+    { key: 'student', header: 'Student', primary: true, render: c => c.student_name },
+    { key: 'course', header: 'Course', secondary: true, render: c => c.course_name || '—' },
+    { key: 'completed', header: 'Completed', render: c => c.month_completed || '—' },
+    {
+      key: 'number', header: 'Certificate no.',
+      render: c => <span className="font-mono text-[12px]">{c.certificate_no || '—'}</span>,
+    },
+    {
+      key: 'status', header: 'Status',
+      render: c => c.issued ? <Badge tone="success">Issued</Badge> : <Badge tone="neutral">Draft</Badge>,
+    },
+    {
+      key: 'link', header: 'Link',
+      render: c => c.download_token ? (
+        <button
+          onClick={() => {
+            navigator.clipboard.writeText(`${CONFIG.appUrl}/certificate/${c.download_token}`)
+            toast.success('Download link copied')
+          }}
+          className="text-[13px] text-[var(--accent)] font-medium hover:underline min-h-[36px]
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1">
+          Copy link
+        </button>
+      ) : null,
+    },
+  ]
+
 
   function openIssue(enr: any) {
     setIssueFor(enr); setCertUrl('')
@@ -97,41 +136,15 @@ export default function CertificatesPage() {
             <input value={search} onChange={e => setSearch(e.target.value)} placeholder="Search certificates..." className={inputClass + ' pl-9'} />
           </div>
         </div>
-        {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-          <EmptyState  title="No certificates issued yet"
-            description="When students complete a class and pay full fees, issue their certificates here." />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead>
-                <tr className="border-b border-[var(--line)]">
-                  {['Student', 'Course', 'Completed', 'Certificate No.', 'Status', ''].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((c: any) => (
-                  <tr key={c.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
-                    <td data-label="Student" className="px-4 py-3 font-medium text-[var(--ink)]">{c.student_name}</td>
-                    <td data-label="Course" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{c.course_name}</td>
-                    <td data-label="Completed" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{c.month_completed || '—'}</td>
-                    <td data-label="Certificate No." className="px-4 py-3 text-xs font-mono text-[var(--ink-soft)]">{c.certificate_no || '—'}</td>
-                    <td data-label="Status" className="px-4 py-3">{c.issued ? <Badge tone="success">Issued</Badge> : <Badge tone="neutral">Draft</Badge>}</td>
-                    <td className="px-4 py-3">
-                      {c.download_token && (
-                        <button onClick={() => { navigator.clipboard.writeText(`${CONFIG.appUrl}/certificate/${c.download_token}`); toast.success('Download link copied') }}
-                          className="inline-flex items-center gap-1 text-xs text-[var(--accent)] font-medium hover:underline">
-                           Link
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<Certificate>
+          caption="Certificates"
+          state={loading ? 'loading' : 'ready'}
+          rows={filtered}
+          rowKey={c => c.id}
+          columns={certificateColumns}
+          emptyTitle="No certificates yet"
+          emptyMessage="Certificates appear here once students complete their course."
+        />
       </Card>
 
       {/* Issue modal */}

@@ -1,10 +1,19 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { useData, mutate } from '@/hooks/useData'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, Field, inputClass, SectionLabel, StatCard } from '@/components/ui'
-import { MapPin, Clock, Crosshair, Check, X } from 'lucide-react'
+import { PageHeader, Card, Button, Badge, Field, inputClass, SectionLabel, StatCard } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
+
+type Shift = {
+  id: string
+  staff?: { full_name?: string; role?: string } | null
+  clock_in_at?: string | null
+  clock_out_at?: string | null
+  distance_meters?: number | null
+  status?: string | null
+}
 
 export default function WorkforcePage() {
   const today = new Date().toISOString().slice(0, 10)
@@ -55,7 +64,29 @@ export default function WorkforcePage() {
   const present = attendance.filter((a: any) => a.clock_in_at).length
   const late = attendance.filter((a: any) => a.status === 'late').length
   const out = attendance.filter((a: any) => a.clock_out_at).length
-  const fmt = (t: string) => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'
+  const fmt = (t?: string | null) => t ? new Date(t).toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit' }) : '—'
+
+  const shiftColumns: Column<Shift>[] = [
+    { key: 'staff', header: 'Staff', primary: true, render: a => a.staff?.full_name || '—' },
+    {
+      key: 'role', header: 'Role', secondary: true,
+      render: a => <span className="capitalize">{a.staff?.role?.replace(/_/g, ' ') || '—'}</span>,
+    },
+    { key: 'in', header: 'Clock in', render: a => fmt(a.clock_in_at) },
+    { key: 'out', header: 'Clock out', render: a => fmt(a.clock_out_at) },
+    {
+      key: 'distance', header: 'Distance', numeric: true,
+      render: a => a.distance_meters != null ? `${a.distance_meters}m` : '—',
+    },
+    {
+      key: 'status', header: 'Status',
+      render: a => (
+        <Badge tone={a.status === 'late' ? 'warning' : 'success'}>
+          {a.status === 'late' ? 'Late' : 'Present'}
+        </Badge>
+      ),
+    },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -88,33 +119,15 @@ export default function WorkforcePage() {
       <SectionLabel>Today — {new Date().toLocaleDateString('en-GB', { weekday: 'long', day: 'numeric', month: 'long' })}</SectionLabel>
 
       <Card className="overflow-hidden">
-        {loading ? <Spinner /> : attendance.length === 0 ? (
-          <div className="py-12"><EmptyState  title="No sign-ins yet today" description="Staff sign-ins will appear here as they arrive." /></div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead>
-                <tr className="border-b border-[var(--line)]">
-                  {['Staff', 'Role', 'Clock in', 'Clock out', 'Distance', 'Status'].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {attendance.map((a: any) => (
-                  <tr key={a.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                    <td data-label="Staff" className="px-4 py-3 font-medium text-sm text-[var(--ink)]">{a.staff?.full_name}</td>
-                    <td data-label="Role" className="px-4 py-3 text-sm text-[var(--ink-soft)] capitalize">{a.staff?.role?.replace(/_/g, ' ')}</td>
-                    <td data-label="Clock in" className="px-4 py-3 text-sm text-[var(--ink)]">{fmt(a.clock_in_at)}</td>
-                    <td data-label="Clock out" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{fmt(a.clock_out_at)}</td>
-                    <td data-label="Distance" className="px-4 py-3 text-sm text-[var(--ink-faint)]">{a.distance_meters != null ? `${a.distance_meters}m` : '—'}</td>
-                    <td data-label="Status" className="px-4 py-3"><Badge tone={a.status === 'late' ? 'warning' : 'success'}>{a.status === 'late' ? 'Late' : 'Present'}</Badge></td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<Shift>
+          caption="Staff attendance"
+          state={loading ? 'loading' : 'ready'}
+          rows={attendance}
+          rowKey={a => a.id}
+          columns={shiftColumns}
+          emptyTitle="No clock-ins today"
+          emptyMessage="Shifts appear here as staff clock in."
+        />
       </Card>
 
       {/* Office location modal */}
