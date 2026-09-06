@@ -167,7 +167,7 @@ export default function GyampohAI() {
                 onKeyDown={onKey}
                 rows={1}
                 placeholder={listening ? 'Listening… speak now' : 'Ask Gyampoh AI anything…'}
-                className="flex-1 resize-none max-h-32 px-3.5 py-2.5 rounded-xl border border-[var(--line)] bg-white text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]" />
+                className="flex-1 resize-none max-h-32 px-3.5 py-2.5 rounded-2xl border border-[var(--line)] bg-white text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]" />
               <button onClick={toggleVoice} title="Speak"
                 className={`h-11 px-3 rounded-xl text-sm font-semibold flex-shrink-0 transition ${listening ? 'bg-[var(--danger)] text-white' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] hover:bg-[var(--line)]'}`}>
                 {listening ? 'Stop' : 'Speak'}

@@ -174,7 +174,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                   const locked  = portal.id === 'dashboard'
                   return (
                     <button key={portal.id} onClick={() => toggle(portal.id)} disabled={locked}
-                      className={`flex items-center gap-3 p-3 rounded-xl border-2 text-left transition-all
+                      className={`flex items-center gap-3 p-3 rounded-2xl border-2 text-left transition-all
                         ${on ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-white hover:border-[var(--line)]'}
                         ${locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
                       <div className="min-w-0 flex-1">
@@ -239,7 +239,7 @@ function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void })
   }
 
   return (
-    <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] mb-5 overflow-hidden">
+    <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] mb-5 overflow-hidden">
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--canvas)] transition">
         <div className="text-left">
           <div className="text-[15px] font-semibold text-[var(--ink)]">Edit details &amp; reset PIN</div>
@@ -253,22 +253,22 @@ function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void })
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Full name</label>
               <input value={form.full_name} onChange={e => setForm(f => ({ ...f, full_name: e.target.value }))}
-                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Phone</label>
               <input value={form.phone} onChange={e => setForm(f => ({ ...f, phone: e.target.value }))} placeholder="024 000 0000"
-                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Email</label>
               <input value={form.email} onChange={e => setForm(f => ({ ...f, email: e.target.value }))} placeholder="name@email.com"
-                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Set new PIN (optional)</label>
               <input value={form.new_pin} onChange={e => setForm(f => ({ ...f, new_pin: e.target.value.replace(/[^0-9]/g, '') }))} placeholder={`${PIN_LENGTH} digits`} maxLength={PIN_LENGTH} inputMode="numeric"
-                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
             </div>
           </div>
           <p className="text-[12px] text-[var(--ink-faint)]">Leave the PIN blank to keep it unchanged. Setting a new one lets a locked-out staff log in; they'll be asked to choose their own on first login.</p>

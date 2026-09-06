@@ -290,7 +290,7 @@ export function Pagination({
 
   const from = (page - 1) * pageSize + 1
   const to = Math.min(page * pageSize, total)
-  const btn = `h-11 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold
+  const btn = `h-11 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold
     text-[var(--ink-soft)] bg-[var(--paper)] transition-colors
     hover:border-[var(--ink-faint)] disabled:opacity-40 disabled:pointer-events-none
     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]`

@@ -116,7 +116,7 @@ export default function NotificationBell({ userId }: { userId: string | null }) 
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-[var(--shadow-overlay)] border border-[var(--line)] z-[200] overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-2xl shadow-[var(--shadow-overlay)] border border-[var(--line)] z-[200] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
             <span className="text-sm font-semibold text-[var(--ink)]">Notifications</span>
             {unread > 0 && (

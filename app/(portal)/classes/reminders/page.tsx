@@ -142,7 +142,7 @@ export default function ClassReminders() {
                     { mins: 30,    label: '30 min before' },
                   ].map(o => (
                     <button key={o.mins} onClick={() => toggleOffset(o.mins)}
-                      className={`h-10 rounded-xl text-[13px] font-medium border transition ${form.offsets.includes(o.mins) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
+                      className={`h-10 rounded-2xl text-[13px] font-medium border transition ${form.offsets.includes(o.mins) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
                       {o.label}
                     </button>
                   ))}
@@ -155,7 +155,7 @@ export default function ClassReminders() {
                 <div className="flex gap-2">
                   {['sms', 'whatsapp'].map(c => (
                     <button key={c} onClick={() => toggleChannel(c)}
-                      className={`flex-1 h-10 rounded-xl text-[13px] font-semibold border transition ${form.channels.includes(c) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
+                      className={`flex-1 h-10 rounded-2xl text-[13px] font-semibold border transition ${form.channels.includes(c) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
                       {c === 'sms' ? 'SMS' : 'WhatsApp'}
                     </button>
                   ))}
@@ -163,7 +163,7 @@ export default function ClassReminders() {
               </div>
 
               {preview && form.batch_id && (
-                <div className="rounded-xl bg-[var(--canvas)] border border-[var(--line)] p-4">
+                <div className="rounded-2xl bg-[var(--canvas)] border border-[var(--line)] p-4">
                   <div className="flex items-baseline justify-between mb-2">
                     <span className="text-[13px] font-semibold text-[var(--ink)]">Reach</span>
                     <span className="text-[13px] text-[var(--accent)] font-semibold">{preview.studentCount} student{preview.studentCount === 1 ? '' : 's'}</span>

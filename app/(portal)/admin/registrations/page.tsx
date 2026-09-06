@@ -254,7 +254,7 @@ export default function AdminRegistrations() {
             ].map(section => (
               <section key={section.title} className="mb-5">
                 <SectionHeader title={section.title} />
-                <dl className="rounded-xl border border-[var(--line)] divide-y divide-[var(--line-soft)]">
+                <dl className="rounded-2xl border border-[var(--line)] divide-y divide-[var(--line-soft)]">
                   {section.rows.map(([label, value]) => (
                     <div key={String(label)}
                       className="flex items-baseline justify-between gap-4 px-4 py-2.5">

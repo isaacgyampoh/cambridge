@@ -84,7 +84,7 @@ export default function AdmissionProcess() {
           { label: 'Awaiting payment', value: stats.awaitingPayment, tone: 'text-orange-600' },
           { label: 'Admitted', value: stats.admitted, tone: 'text-[var(--ok)]' },
         ].map(s => (
-          <div key={s.label} className="bg-[var(--paper)] rounded-xl p-5 border border-[var(--line)]">
+          <div key={s.label} className="bg-[var(--paper)] rounded-2xl p-5 border border-[var(--line)]">
             <div className="text-[13px] font-medium text-[var(--ink-faint)]">{s.label}</div>
             <div className={`font-display text-[24px] font-semibold mt-2 leading-none ${s.tone}`}>{s.value}</div>
           </div>
@@ -107,7 +107,7 @@ export default function AdmissionProcess() {
           <div className="flex flex-wrap gap-1.5 mb-4">
             {['all','pending','awaiting_forms','awaiting_payment','admitted','rejected'].map(f => (
               <button key={f} onClick={() => setFilter(f)}
-                className={`h-8 px-3 rounded-xl text-xs font-semibold transition capitalize ${filter===f?'bg-[var(--ink)] text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
+                className={`h-8 px-3 rounded-2xl text-xs font-semibold transition capitalize ${filter===f?'bg-[var(--ink)] text-white':'bg-white text-[var(--ink-faint)] border border-[var(--line)] hover:bg-[var(--line-soft)]'}`}>
                 {f.replace(/_/g, ' ')}
               </button>
             ))}

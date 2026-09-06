@@ -71,7 +71,7 @@ export default function PMReports() {
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Marketing Reports</h1>
           <p className="text-[var(--ink-faint)] text-sm mt-0.5">Lead pipeline analytics</p>
         </div>
-        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
@@ -87,7 +87,7 @@ export default function PMReports() {
           { label: 'Ready to Join', value: data.byStatus.ready_to_join || 0 },
           { label: 'Registered', value: data.byStatus.registered || 0 },
         ].map(k => (
-          <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 text-center">
+          <div key={k.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 text-center">
             <div className="text-3xl font-semibold text-[var(--ink)]">{k.value}</div>
             <div className="text-sm text-[var(--ink-faint)] mt-1">{k.label}</div>
           </div>
@@ -96,7 +96,7 @@ export default function PMReports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 mb-5">
         {/* By Source */}
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Leads by Source</h3>
           <div className="space-y-3">
             {Object.entries(data.bySource).sort((a: any, b: any) => b[1] - a[1]).map(([source, count]: any) => (
@@ -114,7 +114,7 @@ export default function PMReports() {
         </div>
 
         {/* By Status */}
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Pipeline Status</h3>
           <div className="space-y-3">
             {Object.entries(data.byStatus).sort((a: any, b: any) => b[1] - a[1]).map(([status, count]: any) => (
@@ -133,7 +133,7 @@ export default function PMReports() {
       </div>
 
       {/* Marketer performance */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Marketer Performance</h3>
         <DataTable<MarketerRow>
           caption="Marketer performance"

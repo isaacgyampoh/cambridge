@@ -157,7 +157,7 @@ export default function SequencesPage() {
           <SectionLabel>Steps</SectionLabel>
           <div className="space-y-3 mb-4">
             {steps.map((st, i) => (
-              <div key={i} className="rounded-xl border border-[var(--line)] p-4 bg-[var(--canvas)]">
+              <div key={i} className="rounded-2xl border border-[var(--line)] p-4 bg-[var(--canvas)]">
                 <div className="flex items-center justify-between mb-3">
                   <div className="flex items-center gap-2 text-sm font-medium text-[var(--ink)]">
                     <span className="w-6 h-6 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center text-xs font-semibold">{i + 1}</span>

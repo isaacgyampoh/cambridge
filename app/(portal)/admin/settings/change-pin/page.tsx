@@ -51,7 +51,7 @@ export default function ChangePINPage() {
             type={showPin ? 'text' : 'password'} inputMode="numeric" maxLength={1} value={digit}
             onChange={e => onChange(e.target.value, i)}
             onKeyDown={e => onKeyDown(e, i)}
-            className={`w-14 h-14 text-center text-xl font-bold rounded-xl border-2 focus:outline-none transition
+            className={`w-14 h-14 text-center text-xl font-bold rounded-2xl border-2 focus:outline-none transition
               ${digit ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]' : 'border-[var(--line)] bg-[var(--line-soft)]'}
               focus:border-[var(--accent)] focus:bg-white`} />
         ))}
@@ -71,7 +71,7 @@ export default function ChangePINPage() {
         </div>
       </div>
 
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 space-y-5">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 space-y-5">
         <PinRow label="Current PIN" value={currentPin}
           onChange={(v: string, i: number) => handleInput(v, i, currentPin, setCurrentPin, currentRefs)}
           onKeyDown={(e: any, i: number) => handleKeyDown(e, i, currentPin, currentRefs)}

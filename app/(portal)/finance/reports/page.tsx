@@ -66,7 +66,7 @@ export default function FinanceReports() {
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">Finance Reports</h1>
           <p className="text-[var(--ink-faint)] text-sm mt-0.5">Revenue and payment analytics</p>
         </div>
-        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
@@ -80,7 +80,7 @@ export default function FinanceReports() {
           { label: 'Avg Transaction', value: formatGHS(data.avgTx), icon: TrendingUp, color: 'text-purple-600 bg-purple-50'},
           { label: 'Outstanding', value: formatGHS(data.totalOutstanding), icon: AlertCircle, color: 'text-[var(--danger)] bg-[var(--danger-soft)]'},
         ].map(k => (
-          <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-4">
+          <div key={k.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-4">
             <div className={`w-10 h-10 rounded-xl ${k.color.split(' ')[1]} flex items-center justify-center mb-3`}>
               <k.icon size={20} className={k.color.split(' ')[0]} />
             </div>
@@ -91,7 +91,7 @@ export default function FinanceReports() {
       </div>
 
       {/* Revenue chart */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-5">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 mb-5">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Daily Revenue</h3>
         <div className="flex items-end gap-1 h-32">
           {Object.entries(data.daily).slice(-30).map(([date, amount]: any) => (
@@ -112,7 +112,7 @@ export default function FinanceReports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
         {/* By method */}
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Revenue by Payment Method</h3>
           <div className="space-y-3">
             {Object.entries(data.byMethod).sort((a: any, b: any) => b[1] - a[1]).map(([method, amt]: any) => (
@@ -131,7 +131,7 @@ export default function FinanceReports() {
         </div>
 
         {/* Outstanding balances */}
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Outstanding Balances</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
             {data.outstanding.slice(0, 20).map((inv: any) => (

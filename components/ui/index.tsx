@@ -59,8 +59,9 @@ type BtnProps = {
 }
 
 export function Button({
-  children, onClick, href, variant = 'primary', size = 'md', icon, disabled, type = 'button', className = '',
-}: BtnProps) {
+  children, onClick, href, variant = 'primary', size = 'md', icon, disabled,
+  type = 'button', className = '', block = false,
+}: BtnProps & { block?: boolean }) {
   const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap select-none'
   const sizes = { sm: 'h-10 sm:h-9 px-4 sm:px-3.5 text-[13px] sm:text-[13px]', md: 'h-12 sm:h-11 px-5 text-[15px] sm:text-[14px]' }
   const variants = {
@@ -69,7 +70,7 @@ export function Button({
     ghost:     'text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]',
     danger:    'bg-[var(--paper)] text-[var(--danger)] border border-[var(--danger)]/25 hover:bg-[var(--danger-soft)]',
   }
-  const cls = `${base} ${sizes[size]} ${variants[variant]} ${className}`
+  const cls = `${base} ${sizes[size]} ${variants[variant]} ${block ? 'w-full' : ''} ${className}`
   // Icons removed system-wide — text only.
   if (href) return <Link href={href} className={cls}>{children}</Link>
   return <button type={type} onClick={onClick} disabled={disabled} className={cls}>{children}</button>
@@ -89,7 +90,7 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--paper)] border border-[var(--line)] rounded-xl
+      className={`bg-[var(--paper)] border border-[var(--line)] rounded-2xl
         ${hover ? 'transition-colors duration-150 hover:border-[var(--ink-faint)] cursor-pointer' : ''}
         ${className}`}>
       {children}
@@ -182,10 +183,21 @@ export function EmptyState({
   action?: React.ReactNode
 }) {
   return (
-    <div className="rounded-xl border border-[var(--line)] bg-[var(--paper)] py-12 px-6 text-center">
+    /*
+     * A centred mark, a short line, and the way forward.
+     *
+     * This was a dashed box with a large heading — the dashes read as a
+     * dropzone and the heading gave "nothing here" the same weight as the page
+     * title. A quiet circular mark carries the state without competing with
+     * the content that will eventually replace it.
+     */
+    <div className="py-12 px-6 text-center">
+      <span className="w-11 h-11 rounded-full bg-[var(--line-soft)] grid place-items-center mx-auto mb-4">
+        {icon || <span className="w-2 h-2 rounded-full bg-[var(--ink-faint)]" aria-hidden="true" />}
+      </span>
       <h3 className="text-[14px] font-medium text-[var(--ink)]">{title}</h3>
       {description && <p className="t-sub mt-1.5 max-w-sm mx-auto">{description}</p>}
-      {action && <div className="mt-5">{action}</div>}
+      {action && <div className="mt-5 inline-flex">{action}</div>}
     </div>
   )
 }

@@ -205,7 +205,7 @@ export default function ClassesPage() {
               : <Field label="Meeting link"><input value={form.zoom_link} onChange={e => setForm({ ...form, zoom_link: e.target.value })} placeholder="https://…" className={inputClass} /></Field>}
 
             {/* Spread payment — collect the fee class by class */}
-            <div className="rounded-xl border border-[var(--line)] p-3">
+            <div className="rounded-2xl border border-[var(--line)] p-3">
               <div className="text-[13px] font-semibold text-[var(--ink)] mb-2">Spread payment (online sign-in)</div>
               <div className="grid grid-cols-2 gap-3">
                 <Field label="Free sessions">

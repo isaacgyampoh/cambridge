@@ -89,7 +89,7 @@ export default function TrainerClasses() {
               <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-8 text-center text-[var(--ink-faint)] text-sm">No classes assigned</div>
             ) : batches.map(b => (
               <button key={b.id} onClick={() => setSelected(b.id)}
-                className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected===b.id?'border-[var(--accent)]':'border-[var(--line-soft)] hover:border-[var(--line)]'}`}>
+                className={`w-full text-left bg-[var(--paper)] rounded-2xl border-2 p-4 transition ${selected===b.id?'border-[var(--accent)]':'border-[var(--line-soft)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-center gap-3">
                   <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center">
                     
@@ -116,7 +116,7 @@ export default function TrainerClasses() {
                 <div className="flex items-center justify-between mb-4">
                   <h2 className="text-sm font-semibold text-[var(--ink)]">Attendance — {students.length} students</h2>
                   <input type="date" value={attendanceDate} onChange={e => setAttendanceDate(e.target.value)}
-                    className="h-9 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                    className="h-9 px-3 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
 
                 <div className="flex gap-2 mb-3 text-[11px] font-bold text-[var(--ink-faint)]">

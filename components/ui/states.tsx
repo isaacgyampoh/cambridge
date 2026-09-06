@@ -123,7 +123,7 @@ export function ErrorState({
       <p className="text-[14px] text-[var(--ink-soft)] leading-relaxed max-w-sm mx-auto">{message}</p>
       {onRetry && (
         <button onClick={onRetry}
-          className="mt-5 inline-flex items-center gap-2 min-h-[44px] px-5 rounded-xl
+          className="mt-5 inline-flex items-center gap-2 min-h-[44px] px-5 rounded-2xl
             bg-[var(--paper)] border border-[var(--line)] text-[14px] font-semibold text-[var(--ink)]
             hover:bg-[var(--line-soft)] transition-colors
             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--danger)] focus-visible:ring-offset-2">
@@ -192,7 +192,7 @@ export function ConfirmDialog({
         <div className="text-[14px] text-[var(--ink-soft)] leading-relaxed mb-6">{message}</div>
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
           <button onClick={onCancel} disabled={busy}
-            className="min-h-[44px] px-5 rounded-xl border border-[var(--line)] bg-[var(--paper)]
+            className="min-h-[44px] px-5 rounded-2xl border border-[var(--line)] bg-[var(--paper)]
               text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--line-soft)]
               disabled:opacity-50 transition-colors
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">

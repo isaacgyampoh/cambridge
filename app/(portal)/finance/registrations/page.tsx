@@ -122,7 +122,7 @@ export default function FinanceRegistrations() {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 mb-10">
           {data.byMarketer.map((m: any) => (
             <div key={m.id}
-              className={`rounded-xl border p-4 transition ${marketerFilter === m.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--paper)]'}`}>
+              className={`rounded-2xl border p-4 transition ${marketerFilter === m.id ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--paper)]'}`}>
               <button onClick={() => setMarketerFilter(marketerFilter === m.id ? 'all' : m.id)} className="w-full text-left">
                 <div className="flex items-center justify-between">
                   <div className="font-medium text-[var(--ink)]">{m.name}</div>

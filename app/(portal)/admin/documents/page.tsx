@@ -219,20 +219,20 @@ export default function DocumentsPage() {
       </div>
 
       {/* Upload section */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-6">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 mb-6">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Upload New Document</h3>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <input value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))}
             placeholder="Document name (e.g. Admission Letter 2025)"
-            className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+            className="h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
           <select value={form.type} onChange={e => setForm(f => ({ ...f, type: e.target.value }))}
-            className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+            className="h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
             {DOC_TYPES.map(t => <option key={t.value} value={t.value}>{t.label}</option>)}
           </select>
           <input value={form.description} onChange={e => setForm(f => ({ ...f, description: e.target.value }))}
             placeholder="Description (optional)"
-            className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
-          <label className="flex items-center gap-3 px-4 h-11 rounded-xl border border-[var(--line)] cursor-pointer hover:bg-[var(--line-soft)]">
+            className="h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+          <label className="flex items-center gap-3 px-4 h-11 rounded-2xl border border-[var(--line)] cursor-pointer hover:bg-[var(--line-soft)]">
             <input type="checkbox" checked={form.is_template} onChange={e => setForm(f => ({ ...f, is_template: e.target.checked }))}
               className="w-4 h-4 accent-blue-600" />
             <div>
@@ -249,7 +249,7 @@ export default function DocumentsPage() {
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">For which programme?</label>
               <select value={form.course_id} onChange={e => setForm(f => ({ ...f, course_id: e.target.value }))}
-                className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
                 <option value="">All programmes (general)</option>
                 {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
               </select>
@@ -261,7 +261,7 @@ export default function DocumentsPage() {
                 <input type="number" min={1} value={form.section_no}
                   onChange={e => setForm(f => ({ ...f, section_no: e.target.value }))}
                   placeholder="e.g. 1 — leave blank if it applies to the whole course"
-                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
                 <p className="text-[12px] text-[var(--ink-faint)] mt-1 mb-3">
                   Students see it when the class reaches this section. Paying in full opens every section at once.
                 </p>
@@ -270,11 +270,11 @@ export default function DocumentsPage() {
                 <input type="number" min={0} value={form.unlock_after_amount}
                   onChange={e => setForm(f => ({ ...f, unlock_after_amount: e.target.value }))}
                   placeholder="e.g. 500 — 0 means available immediately"
-                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]" />
                 <p className="text-[12px] text-[var(--ink-faint)] mt-1 mb-3">Released automatically once their total payments reach this.</p>
                 <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Who receives it?</label>
                 <select value={form.delivery_scope} onChange={e => setForm(f => ({ ...f, delivery_scope: e.target.value }))}
-                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
                   <option value="online">Online students only</option>
                   <option value="">All students</option>
                 </select>
@@ -302,7 +302,7 @@ export default function DocumentsPage() {
           <div className="mb-4">
             <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Which students is this letter for?</label>
             <select value={form.delivery_scope} onChange={e => setForm(f => ({ ...f, delivery_scope: e.target.value }))}
-              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
               <option value="">Both online and in person</option>
               <option value="online">Online students only</option>
               <option value="in_person">In-person students only</option>
@@ -353,7 +353,7 @@ export default function DocumentsPage() {
       {courses.length > 0 && (() => {
         const mats = docs.filter((d: any) => d.type === 'course_material')
         return (
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-6">
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 mb-6">
             <h3 className="text-[14px] font-semibold text-[var(--ink)] mb-1">Course materials</h3>
             <p className="text-[12px] text-[var(--ink-soft)] mb-4">
               What each programme has, and the payment that releases it. Students read these inside
@@ -406,7 +406,7 @@ export default function DocumentsPage() {
         const hasGeneral = (docs || []).some((d: any) => d.type === 'admission_letter' && !d.course_id && d.is_active !== false)
         const missing = courses.filter((c: any) => !letterCourseIds.has(c.id))
         return (
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-6">
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 mb-6">
             <div className="flex items-center justify-between mb-3">
               <h3 className="text-[14px] font-semibold text-[var(--ink)]">Admission letter coverage</h3>
               <span className="text-[12px] text-[var(--ink-soft)]">{letterCourseIds.size} of {courses.length} programmes</span>
@@ -473,7 +473,7 @@ export default function DocumentsPage() {
                 {previewing ? 'Generating…' : 'Save & preview'}
               </button>
               <button onClick={() => setPosDoc(null)}
-                className="h-11 px-5 rounded-xl border border-[var(--line)] text-[var(--ink-soft)] text-sm font-medium">Close</button>
+                className="h-11 px-5 rounded-2xl border border-[var(--line)] text-[var(--ink-soft)] text-sm font-medium">Close</button>
             </div>
             <p className="text-[12px] text-[var(--ink-faint)] mt-3">
               If your PDF already has real form fields, these positions are ignored and the fields are filled directly.
@@ -535,14 +535,14 @@ export default function DocumentsPage() {
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
       ) : docs.length === 0 ? (
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
           
           <p>No documents yet. Upload your first PDF above.</p>
         </div>
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {docs.map(doc => (
-            <div key={doc.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <div key={doc.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
               <div className="flex items-start justify-between mb-3">
                 <div className="w-10 h-10 rounded-xl bg-[var(--danger-soft)] flex items-center justify-center flex-shrink-0">
                   

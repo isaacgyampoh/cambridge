@@ -85,7 +85,7 @@ export default function TransfersPage() {
               <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Decided</p>
               <div className="space-y-2">
                 {decided.slice(0, 20).map(r => (
-                  <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-[var(--line)] bg-[var(--paper)]">
+                  <div key={r.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)]">
                     <div className="text-sm">
                       <span className="font-medium text-[var(--ink)]">{r.lead?.full_name}</span>
                       <span className="text-[var(--ink-faint)]"> · {r.requester?.full_name}</span>

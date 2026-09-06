@@ -44,7 +44,7 @@ export default function WebhookLogPage() {
             alert(`${d.verdict}\n\n${lines}`)
             refetch()
           }} className="h-10 px-4 rounded-xl bg-[var(--accent)] text-white text-[13px] font-semibold">Test a reply</button>
-          <button onClick={() => refetch()} className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)]">Refresh</button>
+          <button onClick={() => refetch()} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)]">Refresh</button>
         </>} />
 
       {data && (

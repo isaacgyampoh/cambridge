@@ -64,7 +64,7 @@ export default function PMDashboard() {
           </div>
           <div className="mt-4 flex flex-wrap gap-2">
             <Link href="/pm/assign" className="h-10 px-4 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold inline-flex items-center">Assign leads</Link>
-            <Link href="/pm/prep-activity" className="h-10 px-4 rounded-xl border border-[var(--line)] text-[var(--ink-soft)] text-sm font-medium inline-flex items-center">Team activity</Link>
+            <Link href="/pm/prep-activity" className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[var(--ink-soft)] text-sm font-medium inline-flex items-center">Team activity</Link>
           </div>
         </Card>
 

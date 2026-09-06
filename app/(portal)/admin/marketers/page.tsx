@@ -217,7 +217,7 @@ export default function MarketerPerformancePage() {
           { label: 'At risk', value: summary.atRisk, tone: 'text-[var(--warn)]' },
           { label: 'Inactive', value: summary.inactive, tone: 'text-[var(--danger)]' },
         ].map(k => (
-          <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div key={k.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <div className="text-[13px] font-medium text-[var(--ink-faint)]">{k.label}</div>
             <div className={`font-display text-[24px] leading-none font-semibold mt-3 ${k.tone}`}>{k.value}</div>
           </div>
@@ -230,12 +230,12 @@ export default function MarketerPerformancePage() {
           <div className="text-[13px] font-medium text-white/70">Total leads</div>
           <div className="font-display text-[24px] leading-none font-semibold mt-3">{summary.totalLeads}</div>
         </div>
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <div className="text-[13px] font-medium text-[var(--ink-faint)]">Converted</div>
           <div className="font-display text-[24px] leading-none font-semibold mt-3 text-[var(--ink)]">{summary.totalConverted}</div>
           <div className="text-xs text-[var(--ink-faint)] mt-1.5">{summary.totalLeads ? Math.round(summary.totalConverted/summary.totalLeads*100) : 0}% conversion</div>
         </div>
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <div className="text-[13px] font-medium text-[var(--ink-faint)]">Revenue attributed</div>
           <div className="font-display text-[24px] leading-none font-semibold mt-3 text-[var(--ink)]">{formatGHS(summary.totalRevenue)}</div>
         </div>
@@ -434,7 +434,7 @@ export default function MarketerPerformancePage() {
             )
           })}
           {marketers.length === 0 && !loading && (
-            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
               
               <p>No marketing officers found</p>
             </div>

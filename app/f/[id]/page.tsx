@@ -54,7 +54,7 @@ export default function FlyerLanding({ params }: { params: Promise<{ id: string 
               </button>
               {flyer.marketer_code && (
                 <a href={`/apply/${flyer.marketer_code}`}
-                  className="block w-full h-12 rounded-xl border border-[var(--line)] text-[var(--ink)] font-semibold text-[15px] flex items-center justify-center hover:bg-[var(--canvas)] transition">
+                  className="block w-full h-12 rounded-2xl border border-[var(--line)] text-[var(--ink)] font-semibold text-[15px] flex items-center justify-center hover:bg-[var(--canvas)] transition">
                   Register &amp; pay now
                 </a>
               )}
@@ -91,7 +91,7 @@ function Field({ label, value, onChange, placeholder }: { label: string; value: 
     <div>
       <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
+        className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
     </div>
   )
 }

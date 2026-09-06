@@ -174,7 +174,7 @@ export default function Overview() {
             <section className="mb-9" aria-labelledby="attention-heading">
               <h2 id="attention-heading" className="t-overline mb-2.5">Needs attention</h2>
 
-              <ul className="rounded-xl border border-[var(--line)] bg-[var(--paper)] overflow-hidden
+              <ul className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] overflow-hidden
                 divide-y divide-[var(--line-soft)]">
                 {data.attention.map(item => (
                   <li key={item.key}>
@@ -207,7 +207,7 @@ export default function Overview() {
             </section>
           ) : (
             <section className="mb-9">
-              <div className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-5 py-8 text-center">
+              <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-5 py-8 text-center">
                 <p className="text-[14px] font-medium text-[var(--ink)]">Nothing needs attention</p>
                 <p className="t-sub mt-1">
                   No follow-ups are due and nothing is waiting to be assigned.
@@ -226,7 +226,7 @@ export default function Overview() {
           */}
           <section className="mb-9" aria-labelledby="today-heading">
             <h2 id="today-heading" className="t-overline mb-2.5">Today</h2>
-            <div className="rounded-xl border border-[var(--line)] bg-[var(--paper)]
+            <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)]
               grid grid-cols-3 divide-x divide-[var(--line-soft)]">
               {[
                 { label: 'New leads', value: data.today.newLeads },
@@ -282,7 +282,7 @@ export default function Overview() {
                 description="Notes and calls recorded against a lead will appear here."
               />
             ) : (
-              <ul className="divide-y divide-[var(--line-soft)] rounded-xl border border-[var(--line)]
+              <ul className="divide-y divide-[var(--line-soft)] rounded-2xl border border-[var(--line)]
                 bg-[var(--paper)] overflow-hidden">
                 {data.activity.map(entry => {
                   const body = (

@@ -4,7 +4,7 @@ import { useState, useRef, useEffect, Suspense } from 'react'
 import { PIN_LENGTH, OTP_LENGTH } from '@/lib/auth/pinPolicy'
 import { BRAND } from '@/lib/brand'
 import { useRouter } from 'next/navigation'
-import { Eye, EyeOff } from 'lucide-react'
+import { Delete } from 'lucide-react'
 
 /**
  * PIN entry. Exactly PIN_LENGTH boxes — four.
@@ -26,6 +26,26 @@ import { Eye, EyeOff } from 'lucide-react'
  * recovery where the next step changes a credential. Enter submits; otherwise
  * the caller supplies an explicit button.
  */
+/**
+ * PIN entry: dots and a keypad.
+ *
+ * ── WHY NOT INPUT BOXES ────────────────────────────────────────────────────
+ *
+ * Four text inputs summon the device keyboard, which on a phone covers roughly
+ * half the screen — including, often, the very boxes being filled. The person
+ * is typing a four-digit number into a full QWERTY-capable keyboard they did
+ * not need.
+ *
+ * Dots plus a keypad is what banking applications do, and the reason is
+ * practical rather than stylistic: the digits are large, deliberately placed,
+ * reachable one-handed, and nothing is ever obscured.
+ *
+ * ── KEYBOARD STILL WORKS ───────────────────────────────────────────────────
+ *
+ * A visually hidden input holds the real value, so typing, pasting and
+ * password managers behave exactly as before, and the field carries the
+ * accessible name. The keypad is an additional way in, not the only one.
+ */
 function PinBoxes({
   value, onChange, onSubmit, label, masked,
   autoSubmit = false, disabled = false, autoFocus = false,
@@ -39,111 +59,137 @@ function PinBoxes({
   /** Submit the moment the last digit lands. */
   autoSubmit?: boolean
   disabled?: boolean
-  /** Take focus on mount, and again whenever the value is cleared. */
   autoFocus?: boolean
 }) {
-  const boxes = useRef<(HTMLInputElement | null)[]>([])
+  const field = useRef<HTMLInputElement>(null)
 
   /*
    * The value already handed to onSubmit.
    *
-   * Auto-submitting on the last digit creates three ways to fire twice: typing
-   * the fourth digit and pasting into the same box, a paste that lands while a
-   * request is in flight, and React re-running the handler. Remembering what
-   * was submitted makes the call idempotent for a given PIN, and it resets as
-   * soon as the person edits — so a wrong PIN can be corrected and retried.
+   * Auto-submitting on the last digit creates several ways to fire twice:
+   * a keypad tap, a paste, a fast typist, React re-running the handler.
+   * Remembering what was submitted makes it idempotent for a given PIN, and it
+   * resets as soon as the person edits — so a wrong PIN can be retried.
    */
   const submitted = useRef<string | null>(null)
 
-  const focus = (i: number) =>
-    boxes.current[Math.max(0, Math.min(i, PIN_LENGTH - 1))]?.focus()
-
-  /*
-   * Focus follows the caller.
-   *
-   * The parent used to hold these refs and call .focus() itself — on mount and
-   * after a rejected PIN. Moving the refs in here to satisfy the rules of
-   * hooks silently broke both, because the parent's refs then pointed at
-   * nothing. The component now takes the responsibility along with the refs.
-   *
-   * Focusing on an empty value covers both cases: first render, and the reset
-   * that follows a wrong PIN. It cannot steal focus mid-entry, because a
-   * partially typed value is not empty.
-   */
   useEffect(() => {
-    if (!autoFocus || disabled) return
-    if (value === '') focus(0)
-    // A cleared value is the signal; re-running on every keystroke would fight
-    // the natural progression between boxes.
+    if (autoFocus && !disabled) field.current?.focus()
   }, [autoFocus, disabled, value === ''])   // eslint-disable-line react-hooks/exhaustive-deps
 
-  /** Apply a new value, and fire once when it completes. */
   const commit = (next: string) => {
     onChange(next)
-    if (next.length < PIN_LENGTH) {
-      // Editing invalidates any earlier submission, so a correction can retry.
-      submitted.current = null
-      return
-    }
+    if (next.length < PIN_LENGTH) { submitted.current = null; return }
     if (!autoSubmit || !onSubmit) return
     if (submitted.current === next) return
     submitted.current = next
     onSubmit(next)
   }
 
+  const press = (digit: string) => {
+    if (disabled || value.length >= PIN_LENGTH) return
+    commit(value + digit)
+  }
+
+  const back = () => {
+    if (disabled) return
+    commit(value.slice(0, -1))
+  }
+
+  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
+
   return (
-    <div className="flex gap-2.5 justify-center lg:justify-start"
-      role="group" aria-label={`${label}, ${PIN_LENGTH} digits`}>
-      {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-        <input
-          key={i}
-          ref={el => { boxes.current[i] = el }}
-          type={masked ? 'password' : 'text'}
-          aria-label={`${label}, digit ${i + 1} of ${PIN_LENGTH}`}
-          inputMode="numeric"
-          pattern="[0-9]*"
-          maxLength={1}
-          disabled={disabled}
-          autoComplete={i === 0 ? 'one-time-code' : 'off'}
-          value={value[i] || ''}
-          onChange={e => {
-            const digit = e.target.value.replace(/\D/g, '').slice(-1)
-            // Typing into a box replaces everything from it onwards, so a
-            // correction never leaves a stale digit behind the cursor.
-            const next = (value.slice(0, i) + digit).slice(0, PIN_LENGTH)
-            commit(next)
-            if (digit) focus(i + 1)
-          }}
-          onKeyDown={e => {
-            if (e.key === 'Enter' && value.length === PIN_LENGTH && onSubmit) {
-              if (submitted.current !== value) { submitted.current = value; onSubmit(value) }
-              return
-            }
-            if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); focus(i - 1); return }
-            if (e.key === 'ArrowRight' && i + 1 < PIN_LENGTH) { e.preventDefault(); focus(i + 1); return }
-            if (e.key !== 'Backspace') return
-            e.preventDefault()
-            if (value[i]) commit(value.slice(0, i))
-            else if (i > 0) { commit(value.slice(0, i - 1)); focus(i - 1) }
-          }}
-          onPaste={e => {
-            const digits = e.clipboardData.getData('text').replace(/\D/g, '')
-            if (!digits) return
-            e.preventDefault()
-            const next = (value.slice(0, i) + digits).slice(0, PIN_LENGTH)
-            commit(next)
-            focus(next.length)
-          }}
-          onFocus={e => e.target.select()}
-          style={{
-            backgroundColor: value[i] ? 'var(--accent)' : 'var(--paper)',
-            borderColor: value[i] ? 'var(--accent)' : 'var(--line)',
-            color: value[i] ? '#fff' : 'var(--ink)',
-            transition: 'background-color 0.12s ease, border-color 0.12s ease',
-          }}
-          className="w-[52px] h-[58px] sm:w-[56px] sm:h-[62px] text-center text-[22px] font-semibold rounded-lg border-2 focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] disabled:opacity-60 caret-transparent"
-        />
-      ))}
+    <div>
+      {/* The real field. Visually hidden, fully functional. */}
+      <input
+        ref={field}
+        type={masked ? 'password' : 'text'}
+        aria-label={`${label}, ${PIN_LENGTH} digits`}
+        inputMode="numeric"
+        pattern="[0-9]*"
+        autoComplete="one-time-code"
+        maxLength={PIN_LENGTH}
+        disabled={disabled}
+        value={value}
+        onChange={e => commit(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
+        onKeyDown={e => {
+          if (e.key === 'Enter' && value.length === PIN_LENGTH && onSubmit
+              && submitted.current !== value) {
+            submitted.current = value
+            onSubmit(value)
+          }
+        }}
+        className="sr-only"
+      />
+
+      {/* What the person sees: one mark per digit entered. */}
+      <button
+        type="button"
+        onClick={() => field.current?.focus()}
+        aria-hidden="true"
+        tabIndex={-1}
+        className="flex gap-3.5 justify-center w-full mb-8 cursor-default"
+      >
+        {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+          <span
+            key={i}
+            className={`w-3.5 h-3.5 rounded-full transition-colors duration-150 ${
+              i < value.length
+                ? 'bg-[var(--accent)]'
+                : 'bg-transparent border-2 border-[var(--line)]'
+            }`}
+          />
+        ))}
+      </button>
+
+      {/* The keypad. */}
+      <div className="grid grid-cols-3 gap-2.5 max-w-[280px] mx-auto">
+        {keys.map(k => (
+          <button
+            key={k}
+            type="button"
+            onClick={() => press(k)}
+            disabled={disabled || value.length >= PIN_LENGTH}
+            aria-label={k}
+            className="h-14 rounded-2xl text-[20px] font-medium text-[var(--ink)]
+              bg-[var(--paper)] border border-[var(--line)]
+              hover:bg-[var(--canvas)] active:bg-[var(--line-soft)]
+              disabled:opacity-40 disabled:pointer-events-none transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+          >
+            {k}
+          </button>
+        ))}
+
+        <span aria-hidden="true" />
+
+        <button
+          type="button"
+          onClick={() => press('0')}
+          disabled={disabled || value.length >= PIN_LENGTH}
+          aria-label="0"
+          className="h-14 rounded-2xl text-[20px] font-medium text-[var(--ink)]
+            bg-[var(--paper)] border border-[var(--line)]
+            hover:bg-[var(--canvas)] active:bg-[var(--line-soft)]
+            disabled:opacity-40 disabled:pointer-events-none transition-colors
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
+          0
+        </button>
+
+        <button
+          type="button"
+          onClick={back}
+          disabled={disabled || value.length === 0}
+          aria-label="Delete the last digit"
+          className="h-14 rounded-xl grid place-items-center text-[var(--ink-soft)]
+            hover:bg-[var(--line-soft)] disabled:opacity-30 disabled:pointer-events-none
+            transition-colors
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
+        >
+          <Delete size={20} aria-hidden="true" />
+        </button>
+      </div>
     </div>
   )
 }
@@ -163,7 +209,6 @@ function LoginForm() {
   const [pendingChangePin, setPendingChangePin] = useState(false)
   const [newPin,  setNewPin]  = useState('')
   const [confPin, setConfPin] = useState('')
-  const [showPin, setShowPin] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
   const [notice,  setNotice]  = useState('')
@@ -495,7 +540,7 @@ function LoginForm() {
 
           {/* On a phone the brand is a mark and a name, nothing more. */}
           <div className="lg:hidden flex flex-col items-center mb-9">
-            <span className="w-14 h-14 rounded-xl bg-[var(--paper)] border border-[var(--line)] grid place-items-center p-2.5 mb-3">
+            <span className="w-14 h-14 rounded-2xl bg-[var(--paper)] border border-[var(--line)] grid place-items-center p-2.5 mb-3">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
             </span>
@@ -513,7 +558,7 @@ function LoginForm() {
               </div>
 
               <PinBoxes value={pin} onChange={setPin} onSubmit={submitPin} label='PIN' autoFocus
-                masked={!showPin} autoSubmit disabled={loading} />
+                masked autoSubmit disabled={loading} />
 
               {/*
                 No button. The fourth digit IS the action.
@@ -531,15 +576,6 @@ function LoginForm() {
                     Signing in…
                   </span>
                 )}
-              </div>
-
-              <div className="flex justify-center lg:justify-start">
-                <button onClick={() => setShowPin(s => !s)}
-                  className="inline-flex items-center gap-1.5 min-h-[40px] px-2 text-[13px]
-                    text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
-                  {showPin ? <EyeOff size={14} aria-hidden="true" /> : <Eye size={14} aria-hidden="true" />}
-                  {showPin ? 'Hide PIN' : 'Show PIN'}
-                </button>
               </div>
 
               {notice && !error && (
@@ -662,7 +698,7 @@ function LoginForm() {
               </div>
 
               <PinBoxes value={recoverPin} onChange={setRecoverPin} onSubmit={startRecovery} label='Recovery PIN' autoFocus
-                masked={!showPin} autoSubmit disabled={loading} />
+                masked autoSubmit disabled={loading} />
 
               <div className="h-6 mt-5 flex items-center justify-center lg:justify-start" aria-live="polite">
                 {loading && (
@@ -764,13 +800,13 @@ function LoginForm() {
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">
                     New PIN
                   </p>
-                  <PinBoxes value={recoverNew} onChange={setRecoverNew} label='New PIN' masked={!showPin} autoFocus />
+                  <PinBoxes value={recoverNew} onChange={setRecoverNew} label='New PIN' masked autoFocus />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">
                     Confirm PIN
                   </p>
-                  <PinBoxes value={recoverConfirm} onChange={setRecoverConfirm} label='Confirm PIN' masked={!showPin} />
+                  <PinBoxes value={recoverConfirm} onChange={setRecoverConfirm} label='Confirm PIN' masked />
                 </div>
               </div>
 
@@ -806,21 +842,14 @@ function LoginForm() {
               <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">New PIN</p>
-                  <PinBoxes value={newPin} onChange={setNewPin} label='New PIN' masked={!showPin} autoFocus />
+                  <PinBoxes value={newPin} onChange={setNewPin} label='New PIN' masked autoFocus />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">Confirm PIN</p>
-                  <PinBoxes value={confPin} onChange={setConfPin} label='Confirm PIN' masked={!showPin} />
+                  <PinBoxes value={confPin} onChange={setConfPin} label='Confirm PIN' masked />
                 </div>
               </div>
 
-              <div className="mt-4 flex justify-center lg:justify-start">
-                <button onClick={() => setShowPin(s => !s)}
-                  className="flex items-center gap-1.5 text-xs text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition-colors">
-                  {showPin ? <EyeOff size={13} /> : <Eye size={13} />}
-                  {showPin ? 'Hide' : 'Show'}
-                </button>
-              </div>
 
               {error && (
                 <div className="mt-5 px-4 py-3 bg-red-50 border border-red-100 rounded-xl text-sm text-red-600">

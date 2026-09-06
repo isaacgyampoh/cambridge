@@ -207,7 +207,7 @@ export default function Messages() {
                 <textarea value={input} onChange={e => setInput(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter' && !e.shiftKey) { e.preventDefault(); send() } }}
                   rows={1} placeholder={recording ? 'Recording… tap Stop to send' : 'Type a message…'}
-                  className="flex-1 resize-none max-h-32 px-3.5 py-2.5 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)]" />
+                  className="flex-1 resize-none max-h-32 px-3.5 py-2.5 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)]" />
                 {input.trim() ? (
                   <button onClick={send}
                     className="h-11 px-5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold flex-shrink-0">Send</button>

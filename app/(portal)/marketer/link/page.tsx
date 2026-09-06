@@ -149,7 +149,7 @@ export default function MarketerLink() {
       )}
 
       {/* Link card */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 mb-5">
         <p className="text-[12px] font-semibold text-[var(--ink-faint)] mb-2">Your registration link (always yours)</p>
         {appUrl ? (
           <div>
@@ -189,7 +189,7 @@ export default function MarketerLink() {
       {/* Referral / flyer link — for casual sharing (status, flyers). Friend
           leaves interest first, becomes YOUR lead, AI engages them on WhatsApp. */}
       {profile?.marketer_code && (
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6 mb-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 mb-5">
           <p className="text-[12px] font-semibold text-[var(--accent)] mb-1">Your referral link (for flyers & status)</p>
           <p className="text-[13px] text-[var(--ink-soft)] mb-3">Post this anywhere. Anyone who clicks it and leaves their details becomes <b>your</b> lead — our WhatsApp AI greets them, answers their questions, and sends the registration form when they're ready.</p>
           {(() => {
@@ -222,7 +222,7 @@ export default function MarketerLink() {
           { label: 'Paid', value: stats.paid },
           { label: 'Submitted', value: stats.converted },
         ].map(s => (
-          <div key={s.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div key={s.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <div className="text-[13px] font-medium text-[var(--ink-faint)]">{s.label}</div>
             <div className="font-display text-[24px] font-semibold text-[var(--ink)] mt-2 leading-none">{s.value}</div>
           </div>
@@ -230,7 +230,7 @@ export default function MarketerLink() {
       </div>
 
       {/* Applications table */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] overflow-hidden">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] overflow-hidden">
         <div className="px-5 py-4 border-b border-[var(--line)]">
           <h3 className="text-sm font-semibold text-[var(--ink)]">Registrations via your link</h3>
         </div>

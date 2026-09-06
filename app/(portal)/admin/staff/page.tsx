@@ -305,7 +305,7 @@ export default function StaffPage() {
                       
                       <input value={form.full_name} onChange={e => set('full_name', e.target.value)}
                         placeholder="e.g. Ama Owusu"type="text"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
                     </div>
                   </div>
 
@@ -318,7 +318,7 @@ export default function StaffPage() {
                       
                       <input value={form.email} onChange={e => set('email', e.target.value)}
                         placeholder="ama@cambridge.edu.gh"type="email"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
                     </div>
                   </div>
 
@@ -331,7 +331,7 @@ export default function StaffPage() {
                       
                       <input value={form.phone} onChange={e => set('phone', e.target.value)}
                         placeholder="0241234567"type="tel"
-                        className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
+                        className="w-full h-11 pl-9 pr-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition" />
                     </div>
                   </div>
 
@@ -343,7 +343,7 @@ export default function StaffPage() {
                         
                         <input value={form.department} onChange={e => set('department', e.target.value)}
                           placeholder="Marketing"type="text"
-                          className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
+                          className="w-full h-11 pl-9 pr-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
                       </div>
                     </div>
                     <div>
@@ -354,7 +354,7 @@ export default function StaffPage() {
                         
                         <input value={form.initial_pin} onChange={e => set('initial_pin', e.target.value.replace(/\D/g, '').slice(0, 6))}
                           placeholder="1234" type={showPin ? 'text': 'password'}
-                          className="w-full h-11 pl-9 pr-10 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
+                          className="w-full h-11 pl-9 pr-10 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] transition" />
                         <button type="button" onClick={() => setShowPin(!showPin)}
                           className="absolute right-3 top-1/2 -translate-y-1/2 text-[var(--ink-faint)] hover:text-[var(--ink-soft)]">
                           {showPin ? null : null}
@@ -369,7 +369,7 @@ export default function StaffPage() {
                     <div className="grid grid-cols-2 gap-2">
                       {ROLES.filter(r => r.value !== 'super_admin').map(r => (
                         <button key={r.value} type="button" onClick={() => set('role', r.value)}
-                          className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left ${
+                          className={`h-10 px-3 rounded-2xl text-[12px] font-semibold border-2 transition text-left ${
                             form.role === r.value
                               ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
                               : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)] hover:bg-[var(--line-soft)]'
@@ -378,7 +378,7 @@ export default function StaffPage() {
                         </button>
                       ))}
                       <button type="button" onClick={() => set('role', 'super_admin')}
-                        className={`h-10 px-3 rounded-xl text-[12px] font-semibold border-2 transition text-left col-span-2 ${
+                        className={`h-10 px-3 rounded-2xl text-[12px] font-semibold border-2 transition text-left col-span-2 ${
                           form.role === 'super_admin'
                             ? 'border-purple-600 bg-purple-50 text-[var(--gold)]'
                             : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'
@@ -394,7 +394,7 @@ export default function StaffPage() {
                       <div className="grid grid-cols-2 gap-2">
                         {COORDINATOR_PROGRAMS.map(p => (
                           <button key={p.value} type="button" onClick={() => set('coordinator_program', p.value)}
-                            className={`text-left px-4 py-3 rounded-xl border-2 transition ${
+                            className={`text-left px-4 py-3 rounded-2xl border-2 transition ${
                               form.coordinator_program === p.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
                             }`}>
                             <div className={`text-[14px] font-semibold ${form.coordinator_program === p.value ? 'text-[var(--accent)]' : 'text-[var(--ink)]'}`}>{p.value}</div>
@@ -425,7 +425,7 @@ export default function StaffPage() {
                           return (
                             <button key={d.value} type="button"
                               onClick={() => set('duties', on ? form.duties.filter(x => x !== d.value) : [...form.duties, d.value])}
-                              className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl border transition ${
+                              className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-2xl border transition ${
                                 on ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
                               }`}>
                               <span className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--line)]'}`}>
@@ -454,7 +454,7 @@ export default function StaffPage() {
                           { v: 'support', l: 'Support', d: 'Smallest share' },
                         ].map(t => (
                           <button key={t.v} type="button" onClick={() => set('performance_tier', t.v)}
-                            className={`text-left px-3 py-2.5 rounded-xl border-2 transition ${
+                            className={`text-left px-3 py-2.5 rounded-2xl border-2 transition ${
                               form.performance_tier === t.v
                                 ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
                                 : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
@@ -471,7 +471,7 @@ export default function StaffPage() {
                   {/* Reporting hierarchy — mark a team lead, or set who this
                       person reports to (e.g. a sub-PM reports to the main PM) */}
                   {form.role !== 'super_admin' && (
-                    <div className="p-4 rounded-xl border border-[var(--line)] space-y-3">
+                    <div className="p-4 rounded-2xl border border-[var(--line)] space-y-3">
                       <label className="flex items-start gap-3 cursor-pointer">
                         <input type="checkbox" checked={form.is_team_lead} onChange={e => set('is_team_lead', e.target.checked)}
                           className="mt-0.5 w-4 h-4 accent-[var(--accent)]" />
@@ -484,7 +484,7 @@ export default function StaffPage() {
                         <div>
                           <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Reports to (optional)</label>
                           <select value={form.reports_to} onChange={e => set('reports_to', e.target.value)}
-                            className="w-full h-11 px-4 rounded-xl border-2 border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+                            className="w-full h-11 px-4 rounded-2xl border-2 border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
                             <option value="">No one — reports to admin</option>
                             {staff.filter((s: any) => s.is_team_lead || s.role === 'project_manager').map((s: any) => (
                               <option key={s.id} value={s.id}>{s.full_name} ({ROLE_LABEL[s.role] || s.role})</option>
@@ -608,7 +608,7 @@ export default function StaffPage() {
       </div>
 
       {/* ── Search + table ── */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] overflow-hidden">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] overflow-hidden">
         {/* Search bar */}
         <div className="px-4 py-3 border-b border-[var(--line)]">
           <input value={search} onChange={e => setSearch(e.target.value)}
@@ -752,7 +752,7 @@ export default function StaffPage() {
                       {openMenu === s.id && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
-                          <div className="absolute right-4 top-12 z-20 w-52 bg-[var(--paper)] rounded-xl border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1.5">
+                          <div className="absolute right-4 top-12 z-20 w-52 bg-[var(--paper)] rounded-2xl border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1.5">
                             <a href={`/admin/staff/${s.id}`}
                               className="block px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">Edit details &amp; access</a>
                             <button onClick={() => {

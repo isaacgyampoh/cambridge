@@ -47,7 +47,7 @@ export default function StudentDashboard() {
           { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-purple-600 bg-purple-50'},
           { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-[var(--danger)] bg-[var(--danger-soft)]': 'text-[var(--ok)] bg-[var(--ok-soft)]'},
         ].map(s => (
-          <div key={s.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div key={s.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <div className="w-9 h-9 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center mb-3">
               <s.icon size={17} className="text-[var(--accent)]" />
             </div>

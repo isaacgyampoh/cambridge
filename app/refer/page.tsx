@@ -120,7 +120,7 @@ function Input({ label, value, onChange, placeholder }: { label: string; value: 
     <div>
       <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{label}</label>
       <input value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-        className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
+        className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
     </div>
   )
 }
@@ -130,7 +130,7 @@ function Select({ label, value, onChange, options, placeholder }: { label: strin
     <div>
       <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{label}</label>
       <select value={value} onChange={e => onChange(e.target.value)}
-        className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
+        className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
         <option value="">{placeholder || 'Select…'}</option>
         {options.map(o => <option key={o} value={o}>{o}</option>)}
       </select>

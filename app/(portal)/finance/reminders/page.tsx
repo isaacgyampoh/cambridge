@@ -87,7 +87,7 @@ export default function PaymentReminders() {
               <div className="flex gap-2">
                 {['sms', 'whatsapp'].map(c => (
                   <button key={c} onClick={() => toggle(c)}
-                    className={`flex-1 h-10 rounded-xl text-[13px] font-semibold border transition ${channels.includes(c) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
+                    className={`flex-1 h-10 rounded-2xl text-[13px] font-semibold border transition ${channels.includes(c) ? 'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/30' : 'bg-[var(--paper)] text-[var(--ink-faint)] border-[var(--line)]'}`}>
                     {c === 'sms' ? 'SMS' : 'WhatsApp'}
                   </button>
                 ))}
@@ -96,7 +96,7 @@ export default function PaymentReminders() {
             <Field label="Add a note (optional)">
               <textarea className={textareaClass} rows={2} placeholder="Kindly settle before Friday to keep your place." value={note} onChange={e => setNote(e.target.value)} />
             </Field>
-            <div className="rounded-xl bg-[var(--canvas)] border border-[var(--line)] p-3 text-[12px] text-[var(--ink-soft)] leading-relaxed">
+            <div className="rounded-2xl bg-[var(--canvas)] border border-[var(--line)] p-3 text-[12px] text-[var(--ink-soft)] leading-relaxed">
               Each student gets: their name, outstanding balance, your note, and a personal pay link.
             </div>
             <Button onClick={send} disabled={sending || (preview?.owingCount ?? 0) === 0} className="w-full">

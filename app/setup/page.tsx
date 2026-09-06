@@ -250,7 +250,7 @@ export default function SetupPage() {
                     : 'A super admin is already provisioned. If you have forgotten the PIN, use Forgot PIN on the sign-in screen.'}
                 </p>
 
-                <dl className="mt-5 rounded-xl border border-[var(--line)] divide-y divide-[var(--line-soft)] text-[13px]">
+                <dl className="mt-5 rounded-2xl border border-[var(--line)] divide-y divide-[var(--line-soft)] text-[13px]">
                   {[
                     ['Super admin account', state.superAdminExists],
                     ['Sign-in PIN set', state.hasSignInPin],
@@ -266,7 +266,7 @@ export default function SetupPage() {
                 </dl>
 
                 <Link href="/login"
-                  className="mt-5 w-full h-12 rounded-xl border border-[var(--line)] bg-[var(--paper)]
+                  className="mt-5 w-full h-12 rounded-2xl border border-[var(--line)] bg-[var(--paper)]
                     text-[var(--ink)] font-semibold text-[15px] flex items-center justify-center
                     hover:bg-[var(--canvas)] transition-colors">
                   Go to sign in

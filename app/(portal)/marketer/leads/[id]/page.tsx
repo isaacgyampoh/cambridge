@@ -280,14 +280,14 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             )}
 
             {/* Quick comment — instant heads-up to the PM */}
-            <div className="mt-4 rounded-xl border border-[var(--line)] p-4">
+            <div className="mt-4 rounded-2xl border border-[var(--line)] p-4">
               <div className="text-[14px] font-semibold text-[var(--ink)] mb-1">Quick comment</div>
               <div className="text-[13px] text-[var(--ink-soft)] mb-3">Something the PM should know right away (e.g. this lead needs a scholarship). They're notified instantly by SMS.</div>
               <div className="flex gap-2">
                 <input value={commentText} onChange={e => setCommentText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') postComment() }}
                   placeholder="Type a quick note for the PM…"
-                  className="flex-1 h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                  className="flex-1 h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 <button onClick={postComment} disabled={postingComment || !commentText.trim()}
                   className="h-11 px-4 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition flex-shrink-0">
                   {postingComment ? 'Posting…' : 'Send'}
@@ -367,7 +367,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div className="flex flex-wrap gap-2 mb-4">
               {ACTIVITY_TYPES.map(t => (
                 <button key={t.key} onClick={() => setActType(t.key)}
-                  className={`px-3 py-1.5 rounded-xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'}`}>
+                  className={`px-3 py-1.5 rounded-2xl text-xs font-semibold border-2 transition ${actType === t.key ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'}`}>
                   {t.label}
                 </button>
               ))}
@@ -383,12 +383,12 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   <label className="text-xs font-semibold text-[var(--ink-faint)] mb-1 block">Outcome</label>
                   <input value={actOutcome} onChange={e => setActOutcome(e.target.value)}
                     placeholder="e.g. Showed interest in PMP"
-                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
                 <div>
                   <label className="text-xs font-semibold text-[var(--ink-faint)] mb-1 block">Follow-up Date</label>
                   <input type="datetime-local" value={followUpDate} onChange={e => setFollowUpDate(e.target.value)}
-                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
               </div>
 
@@ -456,7 +456,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             <div className="space-y-2 mb-4">
               {STATUSES.map(s => (
                 <button key={s.key} onClick={() => setNewStatus(s.key)}
-                  className={`w-full text-left px-3 py-2.5 rounded-xl text-sm font-semibold border-2 transition ${
+                  className={`w-full text-left px-3 py-2.5 rounded-2xl text-sm font-semibold border-2 transition ${
                     newStatus === s.key ? STATUS_COLORS[s.key] + 'border-current': 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'
                   }`}>
                   {s.label}

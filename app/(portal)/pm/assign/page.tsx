@@ -194,7 +194,7 @@ export default function PMAssign() {
           { label: 'Today', value: stats.today, icon: TrendingUp, accent: false },
           { label: 'Ready to join', value: stats.readyToJoin, icon: UserCheck, accent: false },
         ].map(s => (
-          <div key={s.label} className={`rounded-xl p-5 border ${s.accent ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--paper)] border-[var(--line)]'}`}>
+          <div key={s.label} className={`rounded-2xl p-5 border ${s.accent ? 'bg-[var(--accent)] border-[var(--accent)] text-white' : 'bg-[var(--paper)] border-[var(--line)]'}`}>
             <div className="flex items-start justify-between">
               <div className={`text-[13px] font-medium ${s.accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>{s.label}</div>
               <s.icon size={17} className={s.accent ? 'text-white/50' : 'text-[var(--ink-faint)]'} />

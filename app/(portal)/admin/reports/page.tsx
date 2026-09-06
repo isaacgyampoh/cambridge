@@ -61,7 +61,7 @@ export default function AdminReports() {
           <h1 className="font-display text-2xl font-semibold text-[var(--ink)]">System Reports</h1>
           <p className="text-[var(--ink-faint)] text-sm mt-0.5">Full ERP analytics overview</p>
         </div>
-        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+        <select value={range} onChange={e => setRange(e.target.value)} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
           <option value="7">Last 7 days</option>
           <option value="30">Last 30 days</option>
           <option value="90">Last 90 days</option>
@@ -79,7 +79,7 @@ export default function AdminReports() {
           { label: 'Admissions', value: data.totalAdmissions, sub: `${data.admitted} admitted`, color: 'bg-indigo-50 text-indigo-600' },
           { label: 'Ongoing Batches', value: data.ongoingBatches, sub: `${data.upcomingBatches} upcoming`, color: 'bg-orange-50 text-orange-600' },
         ].map(k => (
-          <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-4">
+          <div key={k.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-4">
             <div className={`text-2xl font-bold ${k.color.split(' ')[1]}`}>{k.value}</div>
             <div className="text-sm font-semibold text-[var(--ink-soft)] mt-0.5">{k.label}</div>
             <div className="text-xs text-[var(--ink-faint)] mt-0.5">{k.sub}</div>
@@ -89,7 +89,7 @@ export default function AdminReports() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
         {/* Lead sources */}
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Leads by Source</h3>
           <div className="space-y-2">
             {Object.entries(data.bySource).sort((a: any, b: any) => b[1] - a[1]).map(([src, cnt]: any) => (
@@ -107,7 +107,7 @@ export default function AdminReports() {
         </div>
 
         {/* Admission pipeline */}
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Admission Pipeline</h3>
           <div className="space-y-2">
             {Object.entries(data.byAdmStatus).sort((a: any, b: any) => b[1] - a[1]).map(([status, cnt]: any) => (
@@ -121,7 +121,7 @@ export default function AdminReports() {
         </div>
 
         {/* Quick actions */}
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Quick Actions</h3>
           <div className="space-y-2">
             {[

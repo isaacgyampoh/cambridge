@@ -499,7 +499,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
             <input id="pay-amount" type="number" inputMode="decimal" min="1" value={amount}
               onChange={e => setAmount(e.target.value)}
               placeholder={s?.minTopUp ? String(s.minTopUp) : '0.00'}
-              className="w-full h-[52px] px-4 rounded-xl border-2 border-[var(--line)] bg-[var(--paper)]
+              className="w-full h-[52px] px-4 rounded-2xl border-2 border-[var(--line)] bg-[var(--paper)]
                 text-[15px] text-[var(--ink)] mb-3 focus:outline-none focus:border-[var(--accent)] transition-colors" />
             {s?.minTopUp ? (
               <p className="text-[12px] text-[var(--ink-faint)] mb-3">

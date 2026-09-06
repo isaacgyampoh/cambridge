@@ -263,7 +263,7 @@ export default function ConversationsPage() {
           if (d.error) alert(d.error)
           else { alert(`Moved ${d.fixed} chat${d.fixed === 1 ? '' : 's'}.`); location.reload() }
         }}
-          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
+          className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Fix chat attribution
         </button>
         <button onClick={async () => {
@@ -280,7 +280,7 @@ export default function ConversationsPage() {
           if (d.error) alert(d.error)
           else { alert(`Resumed on ${d.resumed} lead${d.resumed === 1 ? '' : 's'}.`); location.reload() }
         }}
-          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
+          className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Resume assistant
         </button>
       </div>

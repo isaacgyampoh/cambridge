@@ -184,7 +184,7 @@ export function RowAction({
     success: 'border-[var(--ok)]/25 text-[var(--ok)] hover:bg-[var(--ok-soft)]',
   }
   const cls = `flex-1 inline-flex items-center justify-center gap-1.5 min-h-[42px] px-3
-    rounded-xl border bg-[var(--paper)] text-[13px] font-semibold transition-colors
+    rounded-2xl border bg-[var(--paper)] text-[13px] font-semibold transition-colors
     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
     ${tones[tone]}`
 

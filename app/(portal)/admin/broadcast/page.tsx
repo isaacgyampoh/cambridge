@@ -220,7 +220,7 @@ export default function BroadcastPage() {
                 <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Campaign Title</label>
                 <input value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))}
                   placeholder="e.g. PMP June Intake Announcement"
-                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
               </div>
 
               {/* Target */}
@@ -229,7 +229,7 @@ export default function BroadcastPage() {
                 <div className="grid grid-cols-2 gap-2 mb-3">
                   {TARGET_TYPES.map(t => (
                     <button key={t.value} onClick={() => setForm(f => ({ ...f, target_type: t.value, target_filters: {} }))}
-                      className={`text-left p-3 rounded-xl border-2 transition ${form.target_type === t.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
+                      className={`text-left p-3 rounded-2xl border-2 transition ${form.target_type === t.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
                       <div className="text-sm font-semibold text-[var(--ink)]">{t.label}</div>
                       <div className="text-xs text-[var(--ink-faint)]">{t.desc}</div>
                     </button>
@@ -239,21 +239,21 @@ export default function BroadcastPage() {
                 {/* Sub-filters */}
                 {form.target_type === 'leads_by_status'&& (
                   <select value={form.target_filters.status || ''} onChange={e => setForm(f => ({ ...f, target_filters: { status: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
                     <option value="">Select status...</option>
                     {STATUS_OPTS.map(s => <option key={s} value={s}>{s.replace(/_/g, ' ')}</option>)}
                   </select>
                 )}
                 {form.target_type === 'leads_by_source'&& (
                   <select value={form.target_filters.source || ''} onChange={e => setForm(f => ({ ...f, target_filters: { source: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
                     <option value="">Select source...</option>
                     {SOURCE_OPTS.map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                 )}
                 {form.target_type === 'batch_students'&& (
                   <select value={form.target_filters.batch_id || ''} onChange={e => setForm(f => ({ ...f, target_filters: { batch_id: e.target.value } }))}
-                    className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none">
+                    className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none">
                     <option value="">Select batch...</option>
                     {batches.map(b => <option key={b.id} value={b.id}>{b.name}</option>)}
                   </select>
@@ -282,7 +282,7 @@ export default function BroadcastPage() {
                     { key: 'sms', label: 'SMS', color: 'border-blue-400 bg-[var(--accent-soft)] text-[var(--accent)]'},
                   ].map(ch => (
                     <button key={ch.key} onClick={() => toggleChannel(ch.key)}
-                      className={`px-4 py-2 rounded-xl border-2 text-sm font-semibold transition ${form.channels.includes(ch.key) ? ch.color : 'border-[var(--line)] text-[var(--ink-faint)]'}`}>
+                      className={`px-4 py-2 rounded-2xl border-2 text-sm font-semibold transition ${form.channels.includes(ch.key) ? ch.color : 'border-[var(--line)] text-[var(--ink-faint)]'}`}>
                       {ch.label}
                     </button>
                   ))}
@@ -297,7 +297,7 @@ export default function BroadcastPage() {
                 </div>
                 <textarea value={form.message} onChange={e => setForm(f => ({ ...f, message: e.target.value }))}
                   rows={5} placeholder="Hello {{name}}! ..."
-                  className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)] mb-2" />
+                  className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)] mb-2" />
                 {/* Templates */}
                 <div className="flex flex-wrap gap-1.5">
                   {TEMPLATES.map(t => (
@@ -316,7 +316,7 @@ export default function BroadcastPage() {
                 </label>
                 <input type="datetime-local" value={form.scheduled_at}
                   onChange={e => setForm(f => ({ ...f, scheduled_at: e.target.value }))}
-                  className="h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                  className="h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
               </div>
             </div>
 
@@ -338,7 +338,7 @@ export default function BroadcastPage() {
       ) : (
         <div className="space-y-3">
           {broadcasts.map(b => (
-            <div key={b.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+            <div key={b.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
               <div className="flex items-start justify-between mb-3">
                 <div>
                   <h3 className="font-medium text-[var(--ink)]">{b.title}</h3>
@@ -370,7 +370,7 @@ export default function BroadcastPage() {
             </div>
           ))}
           {broadcasts.length === 0 && (
-            <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
               
               <p className="font-medium">No broadcasts yet</p>
               <p className="text-sm mt-1">Create your first bulk message campaign</p>
@@ -395,7 +395,7 @@ export default function BroadcastPage() {
               </Field>
               <Field label="Who sees it">
                 {linkForm.link_type === 'zoom' ? (
-                  <div className="h-11 px-4 rounded-xl border border-[var(--line)] bg-[var(--line-soft)] text-sm text-[var(--ink-soft)] flex items-center">Marketers (auto)</div>
+                  <div className="h-11 px-4 rounded-2xl border border-[var(--line)] bg-[var(--line-soft)] text-sm text-[var(--ink-soft)] flex items-center">Marketers (auto)</div>
                 ) : (
                   <select value={linkForm.audience} onChange={e => setLinkForm(f => ({ ...f, audience: e.target.value }))} className={inputClass}>
                     <option value="all">Everyone</option>
@@ -424,7 +424,7 @@ export default function BroadcastPage() {
               <input type="datetime-local" value={linkForm.expires_at} onChange={e => setLinkForm(f => ({ ...f, expires_at: e.target.value }))} className={inputClass} />
             </Field>
 
-            <div className="rounded-xl border border-[var(--line)] p-4">
+            <div className="rounded-2xl border border-[var(--line)] p-4">
               <label className="flex items-center gap-3 cursor-pointer">
                 <button type="button" role="switch" aria-checked={sendToLeads} onClick={() => setSendToLeads(s => !s)}
                   className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${sendToLeads ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>

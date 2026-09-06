@@ -170,7 +170,7 @@ export default function AlumniPage() {
                       <label className="block text-xs font-semibold text-[var(--ink-faint)] mb-1">{f.label}</label>
                       <input type={f.type} value={(form as any)[f.key] || ''} placeholder={f.placeholder}
                         onChange={e => setForm(prev => ({ ...prev, [f.key]: e.target.value }))}
-                        className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+                        className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                     </div>
                   ))}
                 </div>
@@ -185,13 +185,13 @@ export default function AlumniPage() {
                   <label className="block text-xs font-semibold text-[var(--ink-faint)] mb-1">Success Story</label>
                   <textarea value={form.success_story} onChange={e => setForm(f => ({ ...f, success_story: e.target.value }))}
                     rows={3} placeholder="How did Cambridge change their career path? What did they achieve?"
-                    className="w-full px-3 py-2.5 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
+                    className="w-full px-3 py-2.5 rounded-2xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
                 </div>
                 <div>
                   <label className="block text-xs font-semibold text-[var(--ink-faint)] mb-1">Testimonial (their words)</label>
                   <textarea value={form.testimonial} onChange={e => setForm(f => ({ ...f, testimonial: e.target.value }))}
                     rows={2} placeholder={`"Cambridge CE transformed my career..."`}
-                    className="w-full px-3 py-2.5 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
+                    className="w-full px-3 py-2.5 rounded-2xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
                 </div>
               </div>
             </div>
@@ -231,7 +231,7 @@ export default function AlumniPage() {
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
           {alumni.map(a => (
-            <div key={a.id} className={`bg-[var(--paper)] rounded-xl border-2 overflow-hidden transition ${a.is_featured ? 'border-yellow-300': 'border-[var(--line)]'}`}>
+            <div key={a.id} className={`bg-[var(--paper)] rounded-2xl border-2 overflow-hidden transition ${a.is_featured ? 'border-yellow-300': 'border-[var(--line)]'}`}>
               {/* Cover / photo */}
               <div className="h-24 bg-[var(--accent)] relative flex items-end px-4 pb-3">
                 {a.is_featured && (
@@ -283,7 +283,7 @@ export default function AlumniPage() {
             </div>
           ))}
           {alumni.length === 0 && (
-            <div className="col-span-3 bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
+            <div className="col-span-3 bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
               
               <p className="font-medium">No alumni yet</p>
               <p className="text-sm mt-1">Add your first success story to inspire prospective students</p>

@@ -229,7 +229,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{f.label}</label>
                     <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
+                      className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
                   </div>
                 ))}
               </div>
@@ -240,12 +240,12 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <div>
                   <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Date of birth</label>
                   <input type="date" value={form.date_of_birth} onChange={e => set('date_of_birth', e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]" />
+                    className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]" />
                 </div>
                 <div>
                   <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Gender</label>
                   <select value={form.gender} onChange={e => set('gender', e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] bg-white">
+                    className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] bg-white">
                     <option value="">Select...</option>
                     <option>Male</option><option>Female</option><option>Other</option>
                   </select>
@@ -258,7 +258,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{f.label}</label>
                     <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
+                      className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
                   </div>
                 ))}
               </div>
@@ -276,7 +276,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{f.label}</label>
                     <input type={f.type} placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
+                      className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
                   </div>
                 ))}
               </div>
@@ -294,7 +294,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">{f.label}</label>
                     <input type="text" placeholder={f.placeholder} value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
-                      className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
+                      className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-[14px] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition" />
                   </div>
                 ))}
               </div>
@@ -305,7 +305,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 <div>
                   <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Programme you're registering for *</label>
                   <select value={form.course_id} onChange={e => set('course_id', e.target.value)}
-                    className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
+                    className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
                     <option value="">Select programme...</option>
                     {courses.map(c => <option key={c.id} value={c.id}>{c.name}</option>)}
                   </select>
@@ -318,7 +318,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                       { value: 'in_person', label: 'In-person', sub: 'Attend at the campus' },
                     ].map(d => (
                       <button key={d.value} type="button" onClick={() => { set('delivery', d.value); if (d.value === 'online') set('payment_method', 'paystack') }}
-                        className={`text-left px-4 py-3 rounded-xl border transition ${form.delivery === d.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'}`}>
+                        className={`text-left px-4 py-3 rounded-2xl border transition ${form.delivery === d.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'}`}>
                         <div className="text-[14px] font-semibold text-[var(--ink)]">{d.label}</div>
                         <div className="text-[11px] text-[var(--ink-faint)]">{d.sub}</div>
                       </button>
@@ -337,7 +337,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                     ...(form.delivery === 'online' ? [] : [{ value: 'cash', label: 'Pay Cash', sub: 'At the office' }]),
                   ].map(m => (
                     <button key={m.value} type="button" onClick={() => set('payment_method', m.value)}
-                      className={`p-3 rounded-xl border-2 text-left transition ${
+                      className={`p-3 rounded-2xl border-2 text-left transition ${
                         form.payment_method === m.value ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
                       }`}>
                       <div className="text-[14px] font-semibold text-[var(--ink)]">{m.label}</div>
@@ -481,7 +481,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
           <>
             <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Amount to pay</label>
             <p className="text-[11px] text-[var(--ink-faint)] mb-2">You can pay all or part of GHS {Number(fee.balance).toFixed(2)}.</p>
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full h-12 px-4 rounded-xl border border-[var(--line)] text-[15px] mb-4 outline-none" />
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full h-12 px-4 rounded-2xl border border-[var(--line)] text-[15px] mb-4 outline-none" />
             <button onClick={payMomo} disabled={busy} className={btn + " mb-2.5"} style={{ background: '#ffcc00', color: 'var(--ink)' }}>Mobile Money (MoMo)</button>
             <button onClick={() => setView('bank')} className={btn + " text-white"} style={{ background: '#1e3a8a' }}>Bank transfer</button>
           </>
@@ -498,7 +498,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
             {screenshot ? (
               <div className="flex items-center gap-2 mb-3"><img src={screenshot} alt="" className="w-11 h-11 rounded-lg object-cover" /><span className="text-sm text-emerald-600">Screenshot attached</span></div>
             ) : (
-              <label className="flex items-center justify-center h-12 rounded-xl border border-dashed border-[var(--line)] text-sm text-[var(--ink-soft)] cursor-pointer mb-3">
+              <label className="flex items-center justify-center h-12 rounded-2xl border border-dashed border-[var(--line)] text-sm text-[var(--ink-soft)] cursor-pointer mb-3">
                 {uploading ? 'Uploading…' : 'Upload payment screenshot'}
                 <input type="file" accept="image/*" className="hidden" onChange={e => { const f = e.target.files?.[0]; if (f) uploadShot(f) }} />
               </label>

@@ -429,7 +429,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-            className="hidden sm:inline-flex items-center gap-2 h-10 pl-3 pr-2 rounded-xl
+            className="hidden sm:inline-flex items-center gap-2 h-10 pl-3 pr-2 rounded-2xl
               border border-[var(--line)] text-[var(--ink-faint)] hover:border-[var(--ink-faint)]
               hover:text-[var(--ink-soft)] transition-colors flex-shrink-0"
           >
@@ -460,7 +460,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 <button type="button" aria-hidden="true" tabIndex={-1}
                   onClick={() => setMenuPath(null)} className="fixed inset-0 z-30 cursor-default" />
                 <div role="menu" aria-label="Account"
-                  className="absolute right-0 mt-1 z-40 w-[230px] rounded-xl bg-[var(--paper)]
+                  className="absolute right-0 mt-1 z-40 w-[230px] rounded-2xl bg-[var(--paper)]
                     border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1">
                   <div className="px-3.5 py-2.5 border-b border-[var(--line)]">
                     <div className="text-[13px] font-semibold text-[var(--ink)] truncate">

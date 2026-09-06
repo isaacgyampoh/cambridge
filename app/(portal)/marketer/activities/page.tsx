@@ -101,7 +101,7 @@ export default function ActivitiesPage() {
           { key: 'all', label: 'All Pending'},
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key)}
-            className={`px-4 py-2 rounded-xl text-sm font-semibold transition ${filter === f.key ? 'bg-[var(--accent)] text-white': 'bg-white text-[var(--ink-soft)] border border-[var(--line)]'}`}>
+            className={`px-4 py-2 rounded-2xl text-sm font-semibold transition ${filter === f.key ? 'bg-[var(--accent)] text-white': 'bg-white text-[var(--ink-soft)] border border-[var(--line)]'}`}>
             {f.label}
           </button>
         ))}
@@ -110,7 +110,7 @@ export default function ActivitiesPage() {
       {loading ? (
         <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
       ) : queue.length === 0 ? (
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
           
           <p className="font-medium">All caught up! </p>
           <p className="text-sm mt-1">No follow-ups due. Keep up the great work!</p>
@@ -121,7 +121,7 @@ export default function ActivitiesPage() {
             const lead = item.lead
             const isOverdue = new Date(item.follow_up_at) < new Date()
             return (
-              <div key={item.id} className={`bg-[var(--paper)] rounded-xl border-2 p-4 ${isOverdue ? 'border-[var(--danger)]/20': 'border-[var(--line)]'}`}>
+              <div key={item.id} className={`bg-[var(--paper)] rounded-2xl border-2 p-4 ${isOverdue ? 'border-[var(--danger)]/20': 'border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 mb-1">

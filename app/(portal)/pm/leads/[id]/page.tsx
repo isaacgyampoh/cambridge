@@ -84,7 +84,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
         {/* Left — lead info */}
         <div className="lg:col-span-2 space-y-5">
           {/* Header card */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <div className="flex items-start justify-between mb-4">
               <div className="flex items-center gap-3">
                 <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-bold text-lg">
@@ -137,7 +137,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           </div>
 
           {/* Add note */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Add Note</h3>
             <textarea value={note} onChange={e => setNote(e.target.value)} rows={3} placeholder="Write a note..."
               className="w-full text-sm px-3 py-2 border border-[var(--line)] rounded-xl resize-none focus:outline-none focus:border-[var(--accent)] mb-2" />
@@ -147,7 +147,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           </div>
 
           {/* Activity timeline */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Activity Timeline</h3>
             {activities.length === 0 ? (
               <p className="text-sm text-[var(--ink-faint)] text-center py-4">No activities yet</p>
@@ -173,7 +173,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
         {/* Right — assignment + status logs */}
         <div className="space-y-5">
           {/* Assignment */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Assignment</h3>
             {assignee ? (
               <div className="flex items-center gap-2 mb-3">
@@ -187,14 +187,14 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <p className="text-sm text-[var(--ink-faint)] mb-3">Unassigned</p>
             )}
             <select onChange={e => reassign(e.target.value)} defaultValue=""
-              className="w-full h-10 px-3 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-10 px-3 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
               <option value="" disabled>{assignee ? 'Reassign to...' : 'Assign to...'}</option>
               {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>
           </div>
 
           {/* Status history */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
             <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Status History</h3>
             {logs.length === 0 ? <p className="text-xs text-[var(--ink-faint)]">No changes yet</p> : (
               <div className="space-y-2">

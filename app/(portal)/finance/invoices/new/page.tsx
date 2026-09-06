@@ -48,13 +48,13 @@ export default function NewInvoice() {
       <Link href="/finance" className="inline-flex items-center gap-2 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
          Back to invoices
       </Link>
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-6">
+      <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
         <h1 className="font-semibold text-[var(--ink)] mb-5">Create Invoice</h1>
         <div className="space-y-4">
           <div>
             <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Student *</label>
             <select value={form.student_id} onChange={e => setForm({ ...form, student_id: e.target.value })}
-              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
               <option value="">Select student...</option>
               {students.map(s => <option key={s.id} value={s.id}>{s.full_name}</option>)}
             </select>
@@ -65,7 +65,7 @@ export default function NewInvoice() {
               const c = courses.find(x => x.id === e.target.value)
               setForm({ ...form, course_id: e.target.value, total_amount: c ? String(c.course_fee) : form.total_amount })
             }}
-              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
               <option value="">Select course (optional)...</option>
               {courses.map(c => <option key={c.id} value={c.id}>{c.name} — GHS {c.course_fee}</option>)}
             </select>
@@ -73,17 +73,17 @@ export default function NewInvoice() {
           <div>
             <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Amount (GHS) *</label>
             <input type="number" step="0.01" min="0" value={form.total_amount} onChange={e => setForm({ ...form, total_amount: e.target.value })}
-              placeholder="0.00" className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+              placeholder="0.00" className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
           </div>
           <div>
             <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Due Date</label>
             <input type="date" value={form.due_date} onChange={e => setForm({ ...form, due_date: e.target.value })}
-              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
           </div>
           <div>
             <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Notes</label>
             <textarea value={form.notes} onChange={e => setForm({ ...form, notes: e.target.value })} rows={2}
-              className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
+              className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
           </div>
         </div>
         <div className="flex gap-2 mt-5">

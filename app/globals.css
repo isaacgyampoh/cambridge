@@ -80,9 +80,9 @@
   /* ── Radius ──────────────────────────────────────────────────────────────
      Three values. Controls, surfaces, and circles. Eight different radii is
      how an interface stops looking deliberate. */
-  --radius-control: 8px;   /* buttons, inputs, badges, menu items */
-  --radius-surface: 12px;  /* cards, dialogs, panels */
-  --radius-full:    999px; /* avatars, dots */
+  --radius-control: 10px;  /* buttons, inputs, badges, menu items */
+  --radius-surface: 16px;  /* cards, dialogs, panels */
+  --radius-full:    999px; /* avatars, dots, keypad marks */
 
   /* ── Elevation ───────────────────────────────────────────────────────────
      Borders carry structure; shadow is used sparingly and only where

@@ -286,7 +286,7 @@ export function ActionMenu({
       {trigger}
       {open && (
         <div role="menu" aria-label={label}
-          className={`absolute z-30 mt-1 min-w-[200px] rounded-xl bg-[var(--paper)]
+          className={`absolute z-30 mt-1 min-w-[200px] rounded-2xl bg-[var(--paper)]
             border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1 ${align === 'right' ? 'right-0' : 'left-0'}`}>
           {actions.map(action => (
             <button

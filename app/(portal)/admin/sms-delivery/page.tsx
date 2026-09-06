@@ -235,7 +235,7 @@ export default function SmsDeliveryPage() {
 
             <p className="text-[14px] text-[var(--ink)] leading-relaxed mb-4">{row.diagnosis}</p>
 
-            <div className="rounded-xl bg-[var(--canvas)] border border-[var(--line)] p-3 mb-4">
+            <div className="rounded-2xl bg-[var(--canvas)] border border-[var(--line)] p-3 mb-4">
               <div className="text-[12px] font-medium text-[var(--ink-faint)] mb-1">The message itself</div>
               <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed whitespace-pre-wrap break-words">
                 {row.message}

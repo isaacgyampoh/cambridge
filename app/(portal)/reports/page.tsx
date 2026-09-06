@@ -77,7 +77,7 @@ export default function Reports() {
           <p className="text-[13px] text-[var(--ink-soft)] mb-3">Anything you want your PM to know — wins, challenges, plans. This is filed alongside the automatic figures.</p>
           <textarea value={manualNote} onChange={e => setManualNote(e.target.value)} rows={5}
             placeholder="e.g. Closed 3 PMP registrations this week. Two leads asked about scholarships — following up Monday…"
-            className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] resize-none" />
+            className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] resize-none" />
           <div className="flex gap-2 mt-3">
             <button onClick={fileManual} disabled={filingManual || !manualNote.trim()}
               className="h-10 px-5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">

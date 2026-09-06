@@ -90,7 +90,7 @@ export default function ClassPaymentsPage() {
               <p className="text-[13px] font-medium text-[var(--ink-faint)] mb-3">Recent</p>
               <div className="space-y-2">
                 {decided.slice(0, 30).map(p => (
-                  <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-xl border border-[var(--line)] bg-[var(--paper)]">
+                  <div key={p.id} className="flex items-center justify-between gap-3 px-4 py-3 rounded-2xl border border-[var(--line)] bg-[var(--paper)]">
                     <div className="text-sm">
                       <span className="font-medium text-[var(--ink)]">{p.enrollment?.full_name || p.student_name}</span>
                       <span className="text-[var(--ink-faint)]"> · GHS {Number(p.amount).toFixed(2)} · {p.method?.toUpperCase()}</span>

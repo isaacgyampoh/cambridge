@@ -129,7 +129,7 @@ export default function NewLeadPage() {
                       value={(form as any)[f.key]}
                       onChange={e => set(f.key, e.target.value)}
                       placeholder={f.placeholder}
-                      className="w-full h-11 pl-9 pr-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition"
+                      className="w-full h-11 pl-9 pr-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] focus:ring-2 focus:ring-[var(--accent-soft)] transition"
                     />
                   </div>
                 </div>
@@ -139,7 +139,7 @@ export default function NewLeadPage() {
               <div>
                 <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Gender</label>
                 <select value={form.gender} onChange={e => set('gender', e.target.value)}
-                  className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] transition">
+                  className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] transition">
                   <option value="">Select...</option>
                   <option>Male</option><option>Female</option><option>Other</option>
                 </select>
@@ -151,7 +151,7 @@ export default function NewLeadPage() {
           <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Course Interest</h2>
             <select value={form.course_interest} onChange={e => set('course_interest', e.target.value)}
-              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
               <option value="">Select a course…</option>
               {courses.map(c => <option key={c} value={c}>{c}</option>)}
             </select>
@@ -162,7 +162,7 @@ export default function NewLeadPage() {
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Notes</h2>
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={4}
               placeholder="Any additional info about this lead..."
-              className="w-full px-4 py-3 rounded-xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)] transition" />
+              className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)] transition" />
           </div>
         </div>
 
@@ -176,7 +176,7 @@ export default function NewLeadPage() {
               {SOURCES.map(s => (
                 <button key={s} type="button"
                   onClick={() => set('source', s)}
-                  className={`w-full flex items-center gap-3 h-11 px-4 rounded-xl text-sm font-semibold border-2 transition capitalize ${
+                  className={`w-full flex items-center gap-3 h-11 px-4 rounded-2xl text-sm font-semibold border-2 transition capitalize ${
                     form.source === s
                       ? 'border-[var(--accent)] bg-[var(--accent-soft)] text-[var(--accent)]'
                       : 'border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--line)]'
@@ -195,7 +195,7 @@ export default function NewLeadPage() {
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Assign To (optional)</h2>
             <p className="text-xs text-[var(--ink-faint)] mb-3">If assigned now, marketer gets notified via SMS & WhatsApp</p>
             <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}
-              className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] transition">
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] transition">
               <option value="">Leave unassigned</option>
               {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>

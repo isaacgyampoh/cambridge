@@ -70,7 +70,7 @@ export default function FileUpload({
         onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
 
       {preview ? (
-        <div className="flex items-center gap-3 p-3 rounded-xl border border-[var(--line)] bg-[var(--line-soft)]">
+        <div className="flex items-center gap-3 p-3 rounded-2xl border border-[var(--line)] bg-[var(--line-soft)]">
           {isImage ? (
             <img src={preview} alt="" className="w-12 h-12 rounded-lg object-cover" />
           ) : (
@@ -84,7 +84,7 @@ export default function FileUpload({
         </div>
       ) : (
         <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
-          className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-xl border-2 border-dashed border-[var(--line)] hover:border-[var(--accent)] transition disabled:opacity-50">
+          className="w-full flex flex-col items-center justify-center gap-2 py-8 rounded-2xl border-2 border-dashed border-[var(--line)] hover:border-[var(--accent)] transition disabled:opacity-50">
           {uploading ? <Loader2 size={22} className="animate-spin text-[var(--accent)]" /> : <Upload size={22} className="text-[var(--ink-faint)]" />}
           <span className="text-sm text-[var(--ink-soft)]">{uploading ? 'Uploading…' : label}</span>
           <span className="text-[11px] text-[var(--ink-faint)]">Images or PDF, up to 10MB</span>
