@@ -1,6 +1,9 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, generateOTP } from '@/lib/auth/pin'
+import { generatePin, PIN_LENGTH } from '@/lib/auth/pinPolicy'
+import { setRecoveryPin } from '@/lib/auth/recovery'
+import { randomInt } from 'crypto'
 import { recordAudit } from '@/lib/audit'
 import { CONFIG } from '@/lib/config'
 import { SECRETS } from '@/lib/config.server'
@@ -10,6 +13,11 @@ export const runtime = 'nodejs'
 
 /**
  * One-time bootstrap: create (or recover) the super-admin account.
+ *
+ * Issues a FOUR-digit sign-in PIN and a FOUR-digit recovery PIN, both shown
+ * once. It previously issued an eight-digit PIN, which the four-box sign-in
+ * form could not accept — so this route had never produced a usable
+ * credential.
  *
  * The previous version hardcoded the PIN as '1024' and returned it in the JSON
  * response. Anyone who learned the setup secret — which was itself a literal
@@ -31,8 +39,14 @@ export async function GET(req: NextRequest) {
   }
 
   const sb = createServiceClient()
-  // A random 8-digit PIN, shown once. Forced to be changed at first sign-in.
-  const initialPin = generateOTP(8)
+  /*
+   * A FOUR-digit PIN, because that is the product's PIN policy.
+   *
+   * This issued an eight-digit PIN, which the sign-in form — four boxes —
+   * could not accept. Account recovery therefore never worked at all: the
+   * route returned a credential nobody could type.
+   */
+  const initialPin = generatePin(randomInt)
   const pinHash = await hashPIN(initialPin)
 
   let userId: string | null = null
@@ -79,13 +93,27 @@ export async function GET(req: NextRequest) {
       resource: 'profiles', resourceId: userId, success: true, request: req,
     })
 
+    /*
+     * A recovery PIN as well as a sign-in PIN.
+     *
+     * Without one, forgetting this PIN means another setup-secret round trip —
+     * which is what happened last time. With one, the account can be recovered
+     * from the sign-in screen by anyone holding the recovery PIN AND the
+     * corporate mailbox.
+     */
+    const recovery = await setRecoveryPin(userId)
+
     return NextResponse.json({
       success: true,
-      message: 'Super admin PIN has been reset. This PIN is shown once — save it now.',
+      message: 'Super admin PIN has been reset. Both PINs are shown once — save them now.',
+      recoveryPin: recovery.ok ? recovery.pin : null,
+      recoveryNote: recovery.ok
+        ? 'Keep this somewhere safe. It is what lets you reset your PIN yourself if you forget it — you will also need a code sent to the account email.'
+        : 'A recovery PIN could not be set. Set one from the Staff page once you are signed in.',
       signIn: {
         identifier: existing.email || CONFIG.superAdminEmail,
         pin: initialPin,
-        note: 'You will be required to choose a new PIN at first sign-in.',
+        note: `This is a ${PIN_LENGTH}-digit PIN. You will be asked to choose a new one at first sign-in.`,
       },
     })
   }
@@ -115,13 +143,19 @@ export async function GET(req: NextRequest) {
     resource: 'profiles', resourceId: userId, success: true, request: req,
   })
 
+  const recovery = await setRecoveryPin(userId)
+
   return NextResponse.json({
     success: true,
-    message: 'Super admin created. This PIN is shown once — save it now.',
+    message: 'Super admin created. Both PINs are shown once — save them now.',
+    recoveryPin: recovery.ok ? recovery.pin : null,
+    recoveryNote: recovery.ok
+      ? 'Keep this somewhere safe. It is what lets you reset your PIN yourself if you forget it.'
+      : 'A recovery PIN could not be set. Set one from the Staff page once you are signed in.',
     signIn: {
       identifier: CONFIG.superAdminEmail,
       pin: initialPin,
-      note: 'You will be required to choose a new PIN at first sign-in.',
+      note: `This is a ${PIN_LENGTH}-digit PIN. You will be asked to choose a new one at first sign-in.`,
     },
   })
 }

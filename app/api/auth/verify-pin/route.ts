@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PIN_PATTERN, PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { maskEmail } from '@/lib/ui/contact'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
@@ -51,7 +52,8 @@ const GLOBAL_WINDOW_SECONDS = 10 * 60
 const GLOBAL_BLOCK_SECONDS = 5 * 60
 
 const Body = z.object({
-  pin: z.string().regex(/^\d{4,8}$/, 'Your PIN is 4 to 8 digits'),
+  // Exactly four digits — lib/auth/pinPolicy.ts is the only place that says so.
+  pin: z.string().regex(PIN_PATTERN, `Your PIN is ${PIN_LENGTH} digits`),
 })
 
 /**

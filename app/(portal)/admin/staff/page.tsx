@@ -1,5 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { BRAND } from '@/lib/brand'
+import { Dialog, Button, Input } from '@/components/ui'
+import { PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import Modal from '@/components/shared/Modal'
@@ -82,6 +85,44 @@ export default function StaffPage() {
       .catch(() => { /* the list is still useful without the counts */ })
     return () => { alive = false }
   }, [])
+
+  /*
+   * Resetting a colleague's PIN.
+   *
+   * The PIN travels in plaintext over HTTPS and is hashed on the SERVER with
+   * the production pepper — never in the browser, never stored in the clear,
+   * never returned or logged. The colleague is forced to choose their own at
+   * first sign-in, so an administrator does not keep knowing it.
+   */
+  const [resetFor, setResetFor] = useState<{ id: string; name: string } | null>(null)
+  const [resetPin, setResetPin] = useState('')
+  const [resetConfirm, setResetConfirm] = useState('')
+  const [resetBusy, setResetBusy] = useState(false)
+  const [issuedRecovery, setIssuedRecovery] = useState<string | null>(null)
+
+  async function submitReset() {
+    if (!resetFor) return
+    if (resetPin.length !== PIN_LENGTH) {
+      toast.error(`A PIN must be exactly ${PIN_LENGTH} digits`); return
+    }
+    if (resetPin !== resetConfirm) { toast.error('Those PINs do not match'); return }
+
+    setResetBusy(true)
+    try {
+      const d = await fetch('/api/admin/reset-pin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: resetFor.id, newPin: resetPin, withRecoveryPin: true }),
+      }).then(r => r.json())
+      if (!d.success) { toast.error(d.error || 'Could not reset that PIN'); return }
+      setIssuedRecovery(d.recoveryPin || null)
+      setResetPin(''); setResetConfirm('')
+      toast.success(d.message || 'PIN reset')
+    } catch {
+      toast.error('Could not reach the server. Check your connection.')
+    } finally {
+      setResetBusy(false)
+    }
+  }
 
   function set(k: string, v: string | boolean | string[]) { setForm(f => ({ ...f, [k]: v })) }
 
@@ -618,6 +659,13 @@ export default function StaffPage() {
                   <div className="flex flex-wrap gap-2 mt-3">
                     <a href={`/admin/staff/${s.id}`}
                       className="flex-1 min-w-[calc(50%-4px)] h-10 inline-flex items-center justify-center rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold">Edit &amp; access</a>
+                    <button onClick={() => {
+                      setResetFor({ id: s.id, name: s.full_name })
+                      setResetPin(''); setResetConfirm(''); setIssuedRecovery(null)
+                    }}
+                      className="flex-1 min-w-[calc(50%-4px)] h-10 rounded-lg border border-[var(--line)] text-[var(--ink-soft)] text-[13px] font-medium">
+                      Reset PIN
+                    </button>
                     <button onClick={() => toggleActive(s.id, s.is_active)}
                       className="flex-1 min-w-[calc(50%-4px)] h-10 rounded-lg border border-[var(--line)] text-[var(--ink-soft)] text-[13px] font-medium">
                       {s.is_active ? 'Deactivate' : 'Activate'}
@@ -707,6 +755,14 @@ export default function StaffPage() {
                           <div className="absolute right-4 top-12 z-20 w-52 bg-[var(--paper)] rounded-xl border border-[var(--line)] shadow-[0_8px_30px_rgba(26,34,48,0.12)] py-1.5">
                             <a href={`/admin/staff/${s.id}`}
                               className="block px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">Edit details &amp; access</a>
+                            <button onClick={() => {
+                              setResetFor({ id: s.id, name: s.full_name })
+                              setResetPin(''); setResetConfirm(''); setIssuedRecovery(null)
+                              setOpenMenu(null)
+                            }}
+                              className="block w-full text-left px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">
+                              Reset PIN
+                            </button>
                             <button onClick={() => { toggleActive(s.id, s.is_active); setOpenMenu(null) }}
                               className="block w-full text-left px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">
                               {s.is_active ? 'Deactivate' : 'Activate'}
@@ -737,6 +793,78 @@ export default function StaffPage() {
           </>
         )}
       </div>
+
+      {/* Resetting a colleague's PIN. Hashed server-side; shown to nobody
+          afterwards. */}
+      <Dialog
+        open={Boolean(resetFor)}
+        onClose={() => { setResetFor(null); setIssuedRecovery(null) }}
+        title={resetFor ? `Reset ${resetFor.name}'s PIN` : ''}
+        description={issuedRecovery
+          ? undefined
+          : `Choose a temporary ${PIN_LENGTH}-digit PIN. They will be asked to pick their own when they next sign in.`}
+        footer={issuedRecovery ? (
+          <Button onClick={() => { setResetFor(null); setIssuedRecovery(null) }}>Done</Button>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={() => setResetFor(null)}>Cancel</Button>
+            <Button
+              onClick={submitReset}
+              disabled={resetBusy || resetPin.length !== PIN_LENGTH || resetConfirm.length !== PIN_LENGTH}
+            >
+              {resetBusy ? 'Resetting…' : 'Reset PIN'}
+            </Button>
+          </>
+        )}
+      >
+        {issuedRecovery ? (
+          <div className="space-y-4">
+            <p className="text-[14px] text-[var(--ink)] leading-relaxed">
+              Their PIN has been reset. Give them the PIN you chose — they will be asked
+              to replace it as soon as they sign in.
+            </p>
+            <div className="rounded-xl border border-[var(--accent)]/25 bg-[var(--accent-soft)] p-4">
+              <div className="text-[12px] font-semibold text-[var(--ink-soft)] mb-1.5">
+                Recovery PIN — shown once
+              </div>
+              <div className="font-display text-[28px] font-semibold tracking-[0.3em] text-[var(--accent)] tabular-nums">
+                {issuedRecovery}
+              </div>
+              <p className="text-[12.5px] text-[var(--ink-soft)] mt-2 leading-relaxed">
+                This is what lets them reset their own PIN later without asking you.
+                They will also need a code sent to their {BRAND.shortName} email, so
+                this alone cannot sign anyone in. Write it down now — it is not stored
+                anywhere you can read it again.
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="space-y-4">
+            <Input
+              label="Temporary PIN"
+              purpose="pin"
+              value={resetPin}
+              onChange={v => setResetPin(v.replace(/\D/g, '').slice(0, PIN_LENGTH))}
+              maxLength={PIN_LENGTH}
+              placeholder={'•'.repeat(PIN_LENGTH)}
+              hint={`Exactly ${PIN_LENGTH} digits. Avoid obvious patterns.`}
+              required
+            />
+            <Input
+              label="Confirm PIN"
+              purpose="pin"
+              value={resetConfirm}
+              onChange={v => setResetConfirm(v.replace(/\D/g, '').slice(0, PIN_LENGTH))}
+              maxLength={PIN_LENGTH}
+              placeholder={'•'.repeat(PIN_LENGTH)}
+              error={resetConfirm.length === PIN_LENGTH && resetConfirm !== resetPin
+                ? 'Those PINs do not match'
+                : null}
+              required
+            />
+          </div>
+        )}
+      </Dialog>
     </div>
   )
 }

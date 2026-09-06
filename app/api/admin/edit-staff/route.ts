@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidPin, PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN } from '@/lib/auth/pin'
@@ -43,7 +44,10 @@ export async function POST(req: NextRequest) {
   }
 
   if (new_pin?.trim()) {
-    if (!/^\d{4,6}$/.test(new_pin.trim())) return NextResponse.json({ error: 'PIN must be 4-6 digits.' }, { status: 400 })
+    if (!isValidPin(new_pin.trim())) {
+      return NextResponse.json(
+        { error: `A PIN must be exactly ${PIN_LENGTH} digits.` }, { status: 400 })
+    }
     update.pin_hash = hashPIN(new_pin.trim())
     update.pin_set_at = new Date().toISOString()
     update.must_change_pin = true    // they set their own on next login

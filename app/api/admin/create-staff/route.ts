@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { isValidPin, PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, getSessionFromCookies } from '@/lib/auth/pin'
 import { DUTIES, ROLE_DEFAULTS } from '@/lib/access/portals'
@@ -25,8 +26,9 @@ export async function POST(req: NextRequest) {
 
   // Generate PIN — last 4 digits of phone or custom
   const pin = initial_pin?.trim() || phone233.slice(-4)
-  if (!/^\d{4,6}$/.test(pin)) {
-    return NextResponse.json({ error: 'PIN must be 4-6 digits' }, { status: 400 })
+  if (!isValidPin(pin)) {
+    return NextResponse.json(
+      { error: `A PIN must be exactly ${PIN_LENGTH} digits` }, { status: 400 })
   }
 
   const sb = createServiceClient()

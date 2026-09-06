@@ -81,6 +81,7 @@ export const DELETE_TABLES: Record<string, string[]> = {
  */
 export const SECRET_COLUMNS = [
   'pin_hash', 'otp_code', 'otp_expires_at', 'otp_attempts',
+  'recovery_pin_hash', 'reset_token_hash', 'reset_token_expires_at',
   'session_token', 'wasender_api_key', 'wawp_access_token',
   'api_key', 'access_token', 'secret', 'password',
 ]
@@ -102,6 +103,9 @@ export const UNWRITABLE_COLUMNS = [
   'id', 'created_at',
   'role', 'portals', 'is_active', 'permissions',
   'pin_hash', 'pin_set_at', 'must_change_pin', 'login_attempts', 'locked_until',
+  // Recovery credentials (migration 0015). Enumerated explicitly rather than
+  // trusted to a pattern match, because this list is what actually enforces it.
+  'recovery_pin_hash', 'recovery_pin_set_at', 'reset_token_hash', 'reset_token_expires_at',
   'otp_code', 'otp_expires_at', 'otp_attempts',
   'session_token', 'marketer_code',
   'wasender_api_key', 'wawp_access_token',

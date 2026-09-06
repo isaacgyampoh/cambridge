@@ -28,6 +28,7 @@ const PUBLIC = [
   '/api/student/', '/api/auth/', '/api/setup/', '/api/signin/',
   '/api/classes/signin', '/api/classes/pay', '/api/fees/pay',
   '/api/webhooks/', '/api/applications/', '/api/referrals/submit',
+  '/api/auth/recover/',
   '/api/courses/public', '/api/paystack/key', '/api/paystack/init', '/api/paystack/verify',
   '/api/flyers/public', '/api/flyers/submit',
   // decides its own auth per folder: public submission folders are open,

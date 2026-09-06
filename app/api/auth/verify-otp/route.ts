@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { OTP_PATTERN } from '@/lib/auth/pinPolicy'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   hashToken, createSession, ROLE_PORTAL, SESSION_COOKIE, SESSION_COOKIE_OPTIONS,
@@ -13,7 +14,8 @@ const MAX_OTP_ATTEMPTS = 5
 
 const Body = z.object({
   userId: z.string().uuid('Please start signing in again.'),
-  code: z.string().regex(/^\d{4,8}$/, 'Enter the code from your email'),
+  // An OTP, not a PIN. Different concept, different length.
+  code: z.string().regex(OTP_PATTERN, 'Enter the code from your email'),
 })
 
 /** Step 2 of login: verify the emailed one-time code and create the session. */

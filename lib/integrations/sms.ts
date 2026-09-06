@@ -1,5 +1,6 @@
 import 'server-only'
 import { CONFIG } from '@/lib/config'
+import { BRAND, BRAND_VOICE } from '@/lib/brand'
 import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
@@ -75,7 +76,9 @@ export async function deliverSMS(to: string, message: string): Promise<DeliveryR
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
       body: JSON.stringify({
-        sender: CONFIG.arkeselSenderId,
+        // The registered sender id. See lib/brand.ts — changing it needs
+        // provider approval, or the networks drop the message silently.
+        sender: BRAND.smsSender,
         message,
         recipients: [recipient],
       }),
@@ -146,25 +149,25 @@ export async function sendSMS(to: string | string[], message: string): Promise<b
 // ── SMS templates ────────────────────────────────────────────
 export const SMS = {
   newLeadToPM: (leadName: string, source: string, count: number) =>
-    `CCE Alert: New lead "${leadName}" from ${source}. You have ${count} unassigned lead(s). Assign now: ${CONFIG.appUrl}/pm`,
+    `${BRAND_VOICE.smsPrefix} Alert: New lead "${leadName}" from ${source}. You have ${count} unassigned lead(s). Assign now: ${CONFIG.appUrl}/pm`,
 
   leadAssignedToMarketer: (marketerName: string, leadName: string) =>
-    `CCE: Hi ${marketerName}, a new lead "${leadName}" has been assigned to you. View now: ${CONFIG.appUrl}/marketer`,
+    `${BRAND_VOICE.smsPrefix}: Hi ${marketerName}, a new lead "${leadName}" has been assigned to you. View now: ${CONFIG.appUrl}/marketer`,
 
   readyToJoinToOfficer: (officerName: string, studentName: string) =>
-    `CCE: Hi ${officerName}, ${studentName} is ready to join a class. Process admission: ${CONFIG.appUrl}/admission`,
+    `${BRAND_VOICE.smsPrefix}: Hi ${officerName}, ${studentName} is ready to join a class. Process admission: ${CONFIG.appUrl}/admission`,
 
   readyToJoinToAccountant: (studentName: string) =>
-    `CCE: ${studentName} is ready to join. Awaiting registration fee. Check: ${CONFIG.appUrl}/finance`,
+    `${BRAND_VOICE.smsPrefix}: ${studentName} is ready to join. Awaiting registration fee. Check: ${CONFIG.appUrl}/finance`,
 
   classReminder: (name: string, course: string, date: string, time: string, venue: string) =>
-    `CCE Reminder: Hi ${name}, your ${course} class is on ${date} at ${time}. Venue: ${venue}. See you there!`,
+    `${BRAND_VOICE.smsPrefix} Reminder: Hi ${name}, your ${course} class is on ${date} at ${time}. Venue: ${venue}. See you there!`,
 
   applicationReceived: (name: string) =>
-    `CCE: Hi ${name}, we received your application. Our team will contact you shortly. Welcome to Cambridge!`,
+    `${BRAND_VOICE.smsPrefix}: Hi ${name}, we received your application. Our team will contact you shortly. Welcome to ${BRAND.shortName}!`,
 
   paymentConfirmed: (name: string, amount: string, receipt: string) =>
-    `CCE: Payment of GHS ${amount} confirmed. Receipt: ${receipt}. Thank you, ${name}!`,
+    `${BRAND_VOICE.smsPrefix}: Payment of GHS ${amount} confirmed. Receipt: ${receipt}. Thank you, ${name}!`,
 
   /**
    * Sent once payment is verified server-side and the registration is
@@ -172,6 +175,6 @@ export const SMS = {
    * record, so it can never describe the wrong one.
    */
   registrationConfirmed: (name: string, programme: string, classMode: string) =>
-    `CCE: Hi ${name}, your registration for ${programme} (${classMode}) is confirmed and your payment has been received. ` +
-    `Admission processing has begun — watch this number and your email for the next step. Welcome to Cambridge!`,
+    `${BRAND_VOICE.smsPrefix}: Hi ${name}, your registration for ${programme} (${classMode}) is confirmed and your payment has been received. ` +
+    `Admission processing has begun — watch this number and your email for the next step. Welcome to ${BRAND.shortName}!`,
 }

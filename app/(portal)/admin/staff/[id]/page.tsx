@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect, use } from 'react'
+import { PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { displayPhone } from '@/lib/ui/contact'
 import { useRouter } from 'next/navigation'
 import { portalOption } from '@/lib/nav/model'
@@ -266,7 +267,7 @@ function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void })
             </div>
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Set new PIN (optional)</label>
-              <input value={form.new_pin} onChange={e => setForm(f => ({ ...f, new_pin: e.target.value.replace(/[^0-9]/g, '') }))} placeholder="4-6 digits" maxLength={6}
+              <input value={form.new_pin} onChange={e => setForm(f => ({ ...f, new_pin: e.target.value.replace(/[^0-9]/g, '') }))} placeholder={`${PIN_LENGTH} digits`} maxLength={PIN_LENGTH} inputMode="numeric"
                 className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
             </div>
           </div>

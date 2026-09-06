@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { PIN_PATTERN, PIN_LENGTH, pinRejectionReason } from '@/lib/auth/pinPolicy'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, verifyPIN, getSessionFromCookies } from '@/lib/auth/pin'
 import { rateLimit, retryMessage } from '@/lib/auth/rateLimit'
@@ -7,28 +8,9 @@ import { z } from 'zod'
 
 export const runtime = 'nodejs'
 
-/**
- * A PIN is only four to eight digits, so the few patterns that get guessed
- * first are worth refusing outright.
- */
-const WEAK = new Set([
-  '0000', '1111', '2222', '3333', '4444', '5555', '6666', '7777', '8888', '9999',
-  '1234', '4321', '0123', '1230', '2580', '1212', '1122', '6969', '1024',
-])
-
-function pinIsWeak(pin: string): string | null {
-  if (WEAK.has(pin)) return 'That PIN is too easy to guess. Please choose another.'
-  if (/^(\d)\1+$/.test(pin)) return 'A PIN cannot be the same digit repeated. Please choose another.'
-  // Straight runs up or down, e.g. 3456 or 8765.
-  const asc = pin.split('').every((d, i, a) => i === 0 || +d === +a[i - 1] + 1)
-  const desc = pin.split('').every((d, i, a) => i === 0 || +d === +a[i - 1] - 1)
-  if (asc || desc) return 'A PIN cannot be consecutive digits. Please choose another.'
-  return null
-}
-
 const Body = z.object({
-  currentPin: z.string().regex(/^\d{4,8}$/).optional(),
-  newPin: z.string().regex(/^\d{4,8}$/, 'Your new PIN must be 4 to 8 digits'),
+  currentPin: z.string().regex(PIN_PATTERN).optional(),
+  newPin: z.string().regex(PIN_PATTERN, `Your new PIN must be exactly ${PIN_LENGTH} digits`),
 })
 
 export async function POST(req: NextRequest) {
@@ -46,7 +28,7 @@ export async function POST(req: NextRequest) {
   }
   const { currentPin, newPin } = parsed.data
 
-  const weak = pinIsWeak(newPin)
+  const weak = pinRejectionReason(newPin)
   if (weak) return NextResponse.json({ error: weak }, { status: 400 })
 
   const limit = await rateLimit(`changepin:${session.userId}`, 10, 15 * 60, 15 * 60)

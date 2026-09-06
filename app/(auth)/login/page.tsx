@@ -1,14 +1,103 @@
 'use client'
 
 import { useState, useRef, useEffect, Suspense } from 'react'
+import { PIN_LENGTH, OTP_LENGTH } from '@/lib/auth/pinPolicy'
+import { BRAND } from '@/lib/brand'
 import { useRouter } from 'next/navigation'
 import { Eye, EyeOff } from 'lucide-react'
 
+/**
+ * PIN entry. Exactly PIN_LENGTH boxes — four.
+ *
+ * ── WHY A MODULE-SCOPE COMPONENT ───────────────────────────────────────────
+ *
+ * This began as a render function inside the page, because a component
+ * DEFINED INSIDE a render body gets a fresh identity every pass and React
+ * remounts it on each keystroke — losing focus and dropping fast typing.
+ *
+ * Declaring it here removes that hazard entirely: the identity is stable, so
+ * the inputs stay mounted, and the component owns its own refs instead of
+ * having them threaded in as an argument on every call.
+ *
+ * ── BEHAVIOUR ──────────────────────────────────────────────────────────────
+ *
+ * There is no auto-submit. Submitting the moment a fourth digit lands means a
+ * mistyped digit navigates before it can be corrected, which matters most in
+ * recovery where the next step changes a credential. Enter submits; otherwise
+ * the caller supplies an explicit button.
+ */
+function PinBoxes({
+  value, onChange, onSubmit, label, masked,
+}: {
+  value: string
+  onChange: (next: string) => void
+  onSubmit?: () => void
+  label: string
+  masked: boolean
+}) {
+  const boxes = useRef<(HTMLInputElement | null)[]>([])
+  const focus = (i: number) => boxes.current[Math.max(0, Math.min(i, PIN_LENGTH - 1))]?.focus()
+
+  return (
+    <div className="flex gap-2 sm:gap-2.5 justify-center lg:justify-start"
+      role="group" aria-label={`${label}, ${PIN_LENGTH} digits`}>
+      {Array.from({ length: PIN_LENGTH }).map((_, i) => (
+        <input
+          key={i}
+          ref={el => { boxes.current[i] = el }}
+          type={masked ? 'password' : 'text'}
+          aria-label={`${label}, digit ${i + 1} of ${PIN_LENGTH}`}
+          inputMode="numeric"
+          maxLength={1}
+          autoComplete="off"
+          value={value[i] || ''}
+          onChange={e => {
+            const digit = e.target.value.replace(/\D/g, '').slice(-1)
+            // Typing into a box replaces everything from it onwards, so a
+            // correction never leaves a stale digit behind the cursor.
+            const next = (value.slice(0, i) + digit).slice(0, PIN_LENGTH)
+            onChange(next)
+            if (digit) focus(i + 1)
+          }}
+          onKeyDown={e => {
+            if (e.key === 'Enter' && value.length === PIN_LENGTH && onSubmit) { onSubmit(); return }
+            if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); focus(i - 1); return }
+            if (e.key === 'ArrowRight' && i + 1 < PIN_LENGTH) { e.preventDefault(); focus(i + 1); return }
+            if (e.key !== 'Backspace') return
+            e.preventDefault()
+            if (value[i]) onChange(value.slice(0, i))
+            else if (i > 0) { onChange(value.slice(0, i - 1)); focus(i - 1) }
+          }}
+          onPaste={e => {
+            const digits = e.clipboardData.getData('text').replace(/\D/g, '')
+            if (!digits) return
+            e.preventDefault()
+            const next = (value.slice(0, i) + digits).slice(0, PIN_LENGTH)
+            onChange(next)
+            focus(next.length)
+          }}
+          onFocus={e => e.target.select()}
+          style={{
+            backgroundColor: value[i] ? 'var(--accent)' : 'var(--paper)',
+            borderColor: value[i] ? 'var(--accent)' : 'var(--line)',
+            color: value[i] ? '#fff' : 'var(--ink)',
+            transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
+          }}
+          className="w-[clamp(52px,16vw,64px)] h-[clamp(58px,18vw,70px)] text-center text-[24px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
+        />
+      ))}
+    </div>
+  )
+}
+
 function LoginForm() {
   const router = useRouter()
-  const [step,    setStep]    = useState<'pin' | 'otp' | 'set-pin'>('pin')
+  const [step,    setStep]    = useState<
+    'pin' | 'otp' | 'set-pin' | 'recover-pin' | 'recover-otp' | 'recover-new'
+  >('pin')
   const [pin,     setPin]     = useState('')
-  const [otp,     setOtp]     = useState(['', '', '', '', '', ''])
+  /* The emailed code. A different length from the PIN, deliberately. */
+  const [otp,     setOtp]     = useState<string[]>(Array(OTP_LENGTH).fill(''))
   const [otpUserId, setOtpUserId] = useState('')
   const [emailHint, setEmailHint] = useState('')
   const [resendIn,  setResendIn]  = useState(0)   // seconds until resend is offered
@@ -19,7 +108,14 @@ function LoginForm() {
   const [showPin, setShowPin] = useState(false)
   const [loading, setLoading] = useState(false)
   const [error,   setError]   = useState('')
+  const [notice,  setNotice]  = useState('')
   const busy = useRef(false)
+
+  /* Account recovery. Separate state so it cannot be confused with sign-in. */
+  const [recoverPin, setRecoverPin] = useState('')
+  const [recoverNew, setRecoverNew] = useState('')
+  const [recoverConfirm, setRecoverConfirm] = useState('')
+  const [resetToken, setResetToken] = useState('')
 
   /*
    * Eight boxes each, because a PIN is four to EIGHT digits — that is the
@@ -34,32 +130,24 @@ function LoginForm() {
    * Written out rather than built with Array.from, because a hook may not be
    * called from inside a callback.
    */
-  const p = [
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-  ]
-  const n = [
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-  ]
-  const c = [
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-    useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null),
-  ]
+  /*
+   * One ref holding the boxes, assigned through callback refs.
+   *
+   * Indexing an array of individual useRef objects during render is what the
+   * react-hooks rule objects to, and it grew a warning per call site as the
+   * recovery screens were added. A single array ref written from a callback
+   * is the supported shape and behaves identically.
+   */
+  type Boxes = React.RefObject<(HTMLInputElement | null)[]>
+  const p = useRef<(HTMLInputElement | null)[]>([])
+  const n = useRef<(HTMLInputElement | null)[]>([])
+  const c = useRef<(HTMLInputElement | null)[]>([])
 
-  const MIN_PIN = 4
-  const MAX_PIN = 8
-  const o = [useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null), useRef<HTMLInputElement>(null)]
+  const o = useRef<(HTMLInputElement | null)[]>([])
 
-  useEffect(() => { setTimeout(() => p[0].current?.focus(), 120) }, [])
+  useEffect(() => { setTimeout(() => p.current[0]?.focus(), 120) }, [])
 
-  function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p, onFull?: (s: string) => void) {
+  function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: Boxes, onFull?: (s: string) => void) {
     if (!/^\d*$/.test(val)) return
     const ch = val.slice(-1)
     // Compute the next array from the CURRENT props (arr is the live value
@@ -70,7 +158,7 @@ function LoginForm() {
     set(next)
     if (!ch) return
     if (i < arr.length - 1) {
-      refs[i + 1].current?.focus()
+      refs.current[i + 1]?.focus()
     } else {
       const full = next.join('')
       if (full.length === arr.length && onFull && !busy.current) {
@@ -82,12 +170,12 @@ function LoginForm() {
   function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p) {
     // Arrow keys move between boxes, so a mistyped digit can be corrected
     // without deleting everything after it.
-    if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); refs[i - 1].current?.focus(); return }
-    if (e.key === 'ArrowRight' && i < arr.length - 1) { e.preventDefault(); refs[i + 1].current?.focus(); return }
+    if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); refs.current[i - 1]?.focus(); return }
+    if (e.key === 'ArrowRight' && i < arr.length - 1) { e.preventDefault(); refs.current[i + 1]?.focus(); return }
     if (e.key !== 'Backspace') return
     const next = [...arr]
     if (next[i]) { next[i] = ''; set(next) }
-    else if (i > 0) { next[i - 1] = ''; set(next); refs[i - 1].current?.focus() }
+    else if (i > 0) { next[i - 1] = ''; set(next); refs.current[i - 1]?.focus() }
   }
 
   /**
@@ -101,7 +189,7 @@ function LoginForm() {
    */
   function handlePaste(
     e: React.ClipboardEvent, i: number, arr: string[],
-    set: React.Dispatch<React.SetStateAction<string[]>>, refs: typeof p,
+    set: React.Dispatch<React.SetStateAction<string[]>>, refs: Boxes,
     onFull?: (s: string) => void
   ) {
     const digits = e.clipboardData.getData('text').replace(/\D/g, '')
@@ -113,7 +201,7 @@ function LoginForm() {
     set(next)
 
     const landed = Math.min(i + digits.length, arr.length - 1)
-    refs[landed].current?.focus()
+    refs.current[landed]?.focus()
 
     const full = next.join('')
     if (full.length === arr.length && !next.includes('') && onFull && !busy.current) onFull(full)
@@ -130,7 +218,7 @@ function LoginForm() {
     if (!d.success) {
       setError(d.error || 'Incorrect PIN')
       setPin('')
-      setTimeout(() => p[0].current?.focus(), 80)
+      setTimeout(() => p.current[0]?.focus(), 80)
       return
     }
     // PIN correct → an OTP was emailed. Move to the OTP step.
@@ -141,10 +229,10 @@ function LoginForm() {
       setCodeLeft(d.expiresInSeconds || 600)
       setResendIn(30)
       setStep('otp')
-      setTimeout(() => o[0].current?.focus(), 120)
+      setTimeout(() => o.current[0]?.focus(), 120)
       return
     }
-    if (d.mustChangePIN) { setStep('set-pin'); setTimeout(() => n[0].current?.focus(), 100); return }
+    if (d.mustChangePIN) { setStep('set-pin'); setTimeout(() => n.current[0]?.focus(), 100); return }
     router.replace(d.redirect || '/admin')
   }
 
@@ -158,11 +246,11 @@ function LoginForm() {
     busy.current = false; setLoading(false)
     if (!d.success) {
       setError(d.error || 'Incorrect code')
-      setOtp(['', '', '', '', '', ''])
-      setTimeout(() => o[0].current?.focus(), 80)
+      setOtp(Array(OTP_LENGTH).fill(''))
+      setTimeout(() => o.current[0]?.focus(), 80)
       return
     }
-    if (d.mustChangePIN || pendingChangePin) { setStep('set-pin'); setTimeout(() => n[0].current?.focus(), 100); return }
+    if (d.mustChangePIN || pendingChangePin) { setStep('set-pin'); setTimeout(() => n.current[0]?.focus(), 100); return }
     router.replace(d.redirect || '/admin')
   }
 
@@ -176,17 +264,17 @@ function LoginForm() {
       }).then(r => r.json())
 
       if (d.success) {
-        setOtp(['', '', '', '', '', ''])
+        setOtp(Array(OTP_LENGTH).fill(''))
         setCodeLeft(d.expiresInSeconds || 600)
         setResendIn(30)
-        setTimeout(() => o[0].current?.focus(), 80)
+        setTimeout(() => o.current[0]?.focus(), 80)
         return
       }
       // A stale sign-in cannot be resumed — send them back to the PIN step.
       setError(d.error || 'Could not send a new code.')
       if (/expired/i.test(d.error || '')) {
         setStep('pin'); setPin('')
-        setTimeout(() => p[0].current?.focus(), 100)
+        setTimeout(() => p.current[0]?.focus(), 100)
       }
     } catch {
       setError('Could not reach the server. Check your connection and try again.')
@@ -195,15 +283,90 @@ function LoginForm() {
     }
   }
 
+  /* ── account recovery ─────────────────────────────────────────────────
+     recovery PIN → code to the corporate mailbox → choose a new PIN.
+
+     The recovery PIN alone proves nothing: without the mailbox there is no
+     way through, which is what stops a four-digit code being a back door. */
+
+  async function startRecovery() {
+    if (recoverPin.length !== PIN_LENGTH) return
+    setLoading(true); setError('')
+    try {
+      const d = await fetch('/api/auth/recover/start', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ pin: recoverPin }),
+      }).then(r => r.json())
+      if (!d.success) { setError(d.error || 'That recovery PIN is not recognised.'); return }
+      setOtpUserId(d.userId)
+      setEmailHint(d.emailHint || '')
+      setCodeLeft(d.expiresInSeconds || 600)
+      setResendIn(30)
+      setOtp(Array(OTP_LENGTH).fill(''))
+      setStep('recover-otp')
+      setTimeout(() => o.current[0]?.focus(), 120)
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.')
+    } finally { setLoading(false) }
+  }
+
+  async function submitRecoveryCode(code: string) {
+    setLoading(true); setError('')
+    try {
+      const d = await fetch('/api/auth/recover/verify', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: otpUserId, code }),
+      }).then(r => r.json())
+      if (!d.success) {
+        setError(d.error || 'That code is not correct.')
+        setOtp(Array(OTP_LENGTH).fill(''))
+        setTimeout(() => o.current[0]?.focus(), 80)
+        return
+      }
+      setResetToken(d.resetToken)
+      setStep('recover-new')
+      setTimeout(() => n.current[0]?.focus(), 120)
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.')
+    } finally { setLoading(false) }
+  }
+
+  async function finishRecovery() {
+    if (recoverNew.length !== PIN_LENGTH) { setError(`Your new PIN must be exactly ${PIN_LENGTH} digits`); return }
+    if (recoverNew !== recoverConfirm) {
+      setError("Those PINs don't match — try again")
+      setRecoverConfirm('')
+      setTimeout(() => c.current[0]?.focus(), 80)
+      return
+    }
+    setLoading(true); setError('')
+    try {
+      const d = await fetch('/api/auth/recover/complete', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ resetToken, newPin: recoverNew }),
+      }).then(r => r.json())
+      if (!d.success) { setError(d.error || 'Could not set your new PIN.'); return }
+      // Back to the front door. Recovery never creates a session, so the new
+      // PIN goes through the normal PIN + OTP flow like any other sign-in.
+      setStep('pin')
+      setPin(''); setRecoverPin(''); setRecoverNew(''); setRecoverConfirm(''); setResetToken('')
+      setError('')
+      setNotice('Your PIN has been changed. Sign in with your new PIN.')
+      setTimeout(() => p.current[0]?.focus(), 120)
+    } catch {
+      setError('Could not reach the server. Check your connection and try again.')
+    } finally { setLoading(false) }
+  }
+
   async function submitNewPin(confirmOverride?: string) {
     const np = newPin
     const cp = confirmOverride ?? confPin
-    if (np.length < 4) { setError('Your new PIN must be at least 4 digits'); return }
-    if (cp.length < 4) { setError('Confirm your PIN'); return }
+    if (np.length !== PIN_LENGTH) { setError(`Your new PIN must be exactly ${PIN_LENGTH} digits`); return }
+    if (cp.length !== PIN_LENGTH) { setError('Confirm your PIN'); return }
     if (np !== cp) {
       setError("PINs don't match — try again")
       setConfPin('')
-      setTimeout(() => c[0].current?.focus(), 80)
+      setTimeout(() => c.current[0]?.focus(), 80)
       return
     }
     setLoading(true); setError('')
@@ -212,87 +375,6 @@ function LoginForm() {
     setLoading(false)
     if (d.success) router.replace('/admin')
     else setError(d.error || 'Failed')
-  }
-
-  /**
-   * PIN entry, for a PIN of four to eight digits.
-   *
-   * NOTE: a plain render function, NOT a nested component. Rendering it as
-   * <Boxes/> would give it a fresh identity each pass, so React would remount
-   * the inputs on every keystroke — losing focus and dropping fast typing.
-   *
-   * The boxes grow with the value: four are always shown, and one more appears
-   * as each is filled, up to eight. That is how the control communicates that
-   * a longer PIN is allowed without demanding one.
-   *
-   * There is no auto-submit. Submitting as soon as the fourth box filled is
-   * exactly what made a longer PIN impossible to enter, so the caller supplies
-   * an explicit action instead; Enter also submits.
-   */
-  const renderPin = (
-    value: string,
-    setValue: (v: string) => void,
-    refs: typeof p,
-    onSubmit?: () => void,
-    groupLabel = 'PIN'
-  ) => {
-    const shown = Math.min(MAX_PIN, Math.max(MIN_PIN, value.length + 1))
-
-    const setAt = (i: number, digit: string) => {
-      // Typing into a box replaces everything from that box onwards, so a
-      // correction never leaves stale digits behind it.
-      const next = (value.slice(0, i) + digit).slice(0, MAX_PIN)
-      setValue(next)
-      if (digit && i + 1 < MAX_PIN) refs[Math.min(i + 1, MAX_PIN - 1)].current?.focus()
-    }
-
-    return (
-      <div className="flex gap-2 sm:gap-2.5 justify-center lg:justify-start flex-wrap"
-        role="group" aria-label={`${groupLabel}, ${MIN_PIN} to ${MAX_PIN} digits`}>
-        {Array.from({ length: shown }).map((_, i) => (
-          <input
-            key={i}
-            ref={refs[i]}
-            type={showPin ? 'text' : 'password'}
-            aria-label={`${groupLabel}, digit ${i + 1}`}
-            inputMode="numeric"
-            maxLength={1}
-            autoComplete="off"
-            value={value[i] || ''}
-            onChange={e => {
-              const digit = e.target.value.replace(/\D/g, '').slice(-1)
-              setAt(i, digit)
-            }}
-            onKeyDown={e => {
-              if (e.key === 'Enter' && value.length >= MIN_PIN && onSubmit) { onSubmit(); return }
-              if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); refs[i - 1].current?.focus(); return }
-              if (e.key === 'ArrowRight' && i + 1 < shown) { e.preventDefault(); refs[i + 1].current?.focus(); return }
-              if (e.key !== 'Backspace') return
-              e.preventDefault()
-              if (value[i]) setValue(value.slice(0, i))
-              else if (i > 0) { setValue(value.slice(0, i - 1)); refs[i - 1].current?.focus() }
-            }}
-            onPaste={e => {
-              // Nobody retypes a recovery PIN they can copy out of an email.
-              const digits = e.clipboardData.getData('text').replace(/\D/g, '')
-              if (!digits) return
-              e.preventDefault()
-              const next = (value.slice(0, i) + digits).slice(0, MAX_PIN)
-              setValue(next)
-              refs[Math.min(next.length, MAX_PIN - 1)].current?.focus()
-            }}
-            onFocus={e => e.target.select()}
-            style={{
-              backgroundColor: value[i] ? 'var(--accent)' : 'var(--paper)',
-              borderColor: value[i] ? 'var(--accent)' : 'var(--line)',
-              color: value[i] ? '#fff' : 'var(--ink)',
-              transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
-            }}
-            className="w-[clamp(44px,13vw,56px)] h-[clamp(52px,15vw,64px)] text-center text-[22px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
-          />
-        ))}
-      </div>
-    )
   }
 
   // Counts the resend cooldown and the code's own expiry down together. State
@@ -410,14 +492,14 @@ function LoginForm() {
                 <p className="text-[var(--ink-soft)] text-sm">Enter your PIN. We will email a sign-in code to your Cambridge address.</p>
               </div>
 
-              {renderPin(pin, setPin, p, () => submitPin(pin), 'PIN')}
+              <PinBoxes value={pin} onChange={setPin} onSubmit={() => submitPin(pin)} label='PIN' masked={!showPin} />
 
               {/* An explicit action, because the form no longer submits itself
                   the moment a fourth digit lands — that behaviour is what made
                   a PIN longer than four impossible to enter. */}
               <button
                 onClick={() => submitPin(pin)}
-                disabled={loading || pin.length < MIN_PIN}
+                disabled={loading || pin.length !== PIN_LENGTH}
                 className="w-full h-12 mt-6 bg-[var(--accent)] text-white rounded-xl font-semibold
                   text-[15px] hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none
                   transition-all flex items-center justify-center gap-2
@@ -437,6 +519,13 @@ function LoginForm() {
                 </button>
               </div>
 
+              {notice && !error && (
+                <div role="status"
+                  className="mt-6 px-4 py-3 bg-[var(--ok-soft)] border border-[var(--ok)]/20 rounded-xl text-sm text-[var(--ok)]">
+                  {notice}
+                </div>
+              )}
+
               {error && !loading && (
                 <div role="alert"
                   className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
@@ -445,7 +534,17 @@ function LoginForm() {
               )}
 
               <p className="text-xs text-[var(--ink-faint)] mt-8">
-                Forgot your PIN? Contact your administrator.
+                Forgot your PIN?{' '}
+                <button
+                  onClick={() => {
+                    setStep('recover-pin'); setRecoverPin(''); setError(''); setNotice('')
+                    setTimeout(() => p.current[0]?.focus(), 100)
+                  }}
+                  className="font-semibold text-[var(--accent)] hover:underline
+                    focus-visible:outline-none focus-visible:ring-2
+                    focus-visible:ring-[var(--accent)] rounded px-0.5">
+                  Reset it securely
+                </button>
               </p>
             </>
           )}
@@ -454,17 +553,17 @@ function LoginForm() {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Check your email</h2>
-                <p className="text-[var(--ink-soft)] text-sm">We sent a 6-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
+                <p className="text-[var(--ink-soft)] text-sm">We sent a {OTP_LENGTH}-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
               </div>
 
               <div className="flex gap-1.5 sm:gap-2 justify-center lg:justify-start">
                 {otp.map((v, i) => (
-                  <input key={i} ref={o[i]}
+                  <input key={i} ref={el => { o.current[i] = el }}
                     type="text" inputMode="numeric" maxLength={1} value={v}
                     // The OS offers the code straight from the email or SMS on
                     // the first box, so it never has to be read and retyped.
                     autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                    aria-label={`Sign-in code, digit ${i + 1} of 6`}
+                    aria-label={`Sign-in code, digit ${i + 1} of ${OTP_LENGTH}`}
                     disabled={codeLeft <= 0}
                     onChange={e => handleDigit(e.target.value, i, otp, setOtp, o, submitOtp)}
                     onKeyDown={e => handleBksp(e, i, otp, setOtp, o)}
@@ -512,7 +611,7 @@ function LoginForm() {
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
                   {resendIn > 0 ? `Send a new code in ${resendIn}s` : 'Send a new code'}
                 </button>
-                <button onClick={() => { setStep('pin'); setPin(''); setError(''); setTimeout(() => p[0].current?.focus(), 80) }}
+                <button onClick={() => { setStep('pin'); setPin(''); setError(''); setTimeout(() => p.current[0]?.focus(), 80) }}
                   className="text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
                     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
                   Start again
@@ -528,6 +627,156 @@ function LoginForm() {
             </>
           )}
 
+          {step === 'recover-pin' && (
+            <>
+              <div className="mb-8">
+                <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
+                  Reset your PIN
+                </h2>
+                <p className="text-[var(--ink-soft)] text-sm">
+                  Enter your {PIN_LENGTH}-digit recovery PIN. We will email a code to your
+                  {' '}{BRAND.shortName} address to confirm it is you.
+                </p>
+              </div>
+
+              <PinBoxes value={recoverPin} onChange={setRecoverPin} onSubmit={startRecovery} label='Recovery PIN' masked={!showPin} />
+
+              <button
+                onClick={startRecovery}
+                disabled={loading || recoverPin.length !== PIN_LENGTH}
+                className="w-full h-12 mt-6 bg-[var(--accent)] text-white rounded-xl font-semibold
+                  text-[15px] hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none
+                  transition-all flex items-center justify-center gap-2
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+                  focus-visible:ring-offset-2">
+                {loading
+                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Checking…</>
+                  : 'Continue'}
+              </button>
+
+              {error && !loading && (
+                <div role="alert"
+                  className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={() => { setStep('pin'); setPin(''); setError(''); setTimeout(() => p.current[0]?.focus(), 80) }}
+                className="mt-6 text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
+                Back to sign in
+              </button>
+
+              <p className="text-xs text-[var(--ink-faint)] mt-6 leading-relaxed">
+                No recovery PIN? Ask a super admin to reset your PIN from the Staff page.
+              </p>
+            </>
+          )}
+
+          {step === 'recover-otp' && (
+            <>
+              <div className="mb-8">
+                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
+                  Check your email
+                </h2>
+                <p className="text-[var(--ink-soft)] text-sm">
+                  We sent a {OTP_LENGTH}-digit code to {emailHint || 'your email'}. Enter it to choose a new PIN.
+                </p>
+              </div>
+
+              <div className="flex gap-1.5 sm:gap-2 justify-center lg:justify-start">
+                {otp.map((v, i) => (
+                  <input key={i} ref={el => { o.current[i] = el }}
+                    type="text" inputMode="numeric" maxLength={1} value={v}
+                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
+                    aria-label={`Recovery code, digit ${i + 1} of ${OTP_LENGTH}`}
+                    disabled={codeLeft <= 0}
+                    onChange={e => handleDigit(e.target.value, i, otp, setOtp, o, submitRecoveryCode)}
+                    onKeyDown={e => handleBksp(e, i, otp, setOtp, o)}
+                    onPaste={e => handlePaste(e, i, otp, setOtp, o, submitRecoveryCode)}
+                    onFocus={e => e.target.select()}
+                    style={{
+                      backgroundColor: v ? 'var(--accent)' : 'var(--paper)',
+                      borderColor: v ? 'var(--accent)' : 'var(--line)',
+                      color: v ? '#fff' : 'var(--ink)',
+                    }}
+                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[20px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
+                  />
+                ))}
+              </div>
+
+              {codeLeft <= 0 && !loading && (
+                <div role="status"
+                  className="mt-6 px-4 py-3 bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-xl text-sm text-[var(--warn)]">
+                  That code has expired. Start the reset again.
+                </div>
+              )}
+
+              {error && !loading && codeLeft > 0 && (
+                <div role="alert"
+                  className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={() => { setStep('recover-pin'); setRecoverPin(''); setError(''); setTimeout(() => p.current[0]?.focus(), 80) }}
+                className="mt-8 text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
+                Start again
+              </button>
+            </>
+          )}
+
+          {step === 'recover-new' && (
+            <>
+              <div className="mb-8">
+                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
+                  Choose a new PIN
+                </h2>
+                <p className="text-[var(--ink-soft)] text-sm">
+                  {PIN_LENGTH} digits, known only to you. You will use it to sign in from now on.
+                </p>
+              </div>
+
+              <div className="space-y-6">
+                <div>
+                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">
+                    New PIN
+                  </p>
+                  <PinBoxes value={recoverNew} onChange={setRecoverNew} onSubmit={undefined} label='New PIN' masked={!showPin} />
+                </div>
+                <div>
+                  <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">
+                    Confirm PIN
+                  </p>
+                  <PinBoxes value={recoverConfirm} onChange={setRecoverConfirm} onSubmit={finishRecovery} label='Confirm PIN' masked={!showPin} />
+                </div>
+              </div>
+
+              {error && !loading && (
+                <div role="alert"
+                  className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15 rounded-xl text-sm text-[var(--danger)]">
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={finishRecovery}
+                disabled={loading || recoverNew.length !== PIN_LENGTH || recoverConfirm.length !== PIN_LENGTH}
+                className="w-full h-12 mt-6 bg-[var(--accent)] text-white rounded-xl font-semibold
+                  text-[15px] hover:brightness-110 disabled:opacity-40 disabled:pointer-events-none
+                  transition-all flex items-center justify-center gap-2
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+                  focus-visible:ring-offset-2">
+                {loading
+                  ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Saving…</>
+                  : 'Set my PIN'}
+              </button>
+            </>
+          )}
+
           {step === 'set-pin' && (
             <>
               <div className="mb-8">
@@ -538,11 +787,11 @@ function LoginForm() {
               <div className="space-y-6">
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">New PIN</p>
-                  {renderPin(newPin, setNewPin, n, undefined, 'New PIN')}
+                  <PinBoxes value={newPin} onChange={setNewPin} onSubmit={undefined} label='New PIN' masked={!showPin} />
                 </div>
                 <div>
                   <p className="text-[11px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.12em] mb-3 text-center lg:text-left">Confirm PIN</p>
-                  {renderPin(confPin, setConfPin, c, () => submitNewPin(), 'Confirm PIN')}
+                  <PinBoxes value={confPin} onChange={setConfPin} onSubmit={() => submitNewPin()} label='Confirm PIN' masked={!showPin} />
                 </div>
               </div>
 
@@ -560,7 +809,7 @@ function LoginForm() {
                 </div>
               )}
 
-              <button onClick={() => submitNewPin()} disabled={loading || newPin.length < MIN_PIN || confPin.length < MIN_PIN}
+              <button onClick={() => submitNewPin()} disabled={loading || newPin.length !== PIN_LENGTH || confPin.length !== PIN_LENGTH}
                 className="w-full h-12 bg-[var(--accent)] text-white rounded-xl font-medium text-sm mt-6 hover:brightness-110 disabled:opacity-40 transition-all flex items-center justify-center gap-2">
                 {loading
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Setting PIN…</>
