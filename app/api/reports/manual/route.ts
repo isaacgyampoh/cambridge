@@ -15,7 +15,7 @@ export async function POST(req: NextRequest) {
   const p = ['daily', 'weekly', 'monthly'].includes(period) ? period : 'daily'
 
   const now = new Date()
-  let start = new Date()
+  const start = new Date()
   if (p === 'daily') start.setHours(0, 0, 0, 0)
   else if (p === 'weekly') start.setDate(now.getDate() - 7)
   else start.setMonth(now.getMonth() - 1)

@@ -3,7 +3,6 @@ import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { claimJob, markSent } from '@/lib/messageJobs'
-import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 export const maxDuration = 120

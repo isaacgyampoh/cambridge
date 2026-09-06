@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { MapPin, CheckCircle2, LogIn, LogOut, AlertTriangle, Clock } from 'lucide-react'
 import { Card, Button, Badge, Spinner } from '@/components/ui'
 import { toast } from 'sonner'
 

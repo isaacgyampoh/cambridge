@@ -2,17 +2,17 @@
 import { useData } from '@/hooks/useData'
 import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, Button } from '@/components/ui'
-import { BookOpen, GraduationCap, CalendarCheck, Users, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
+import type { Batch, Course } from '@/types'
 
 export default function AcademicsHub() {
-  const { data: courses, loading: lc } = useData<any>({ table: 'courses', limit: 200 })
-  const { data: batches, loading: lb } = useData<any>({ table: 'batches', select: '*, courses(name)', orderBy: 'created_at', orderAsc: false, limit: 200 })
+  const { data: courses, loading: lc } = useData<Course>({ table: 'courses', limit: 200 })
+  const { data: batches, loading: lb } = useData<Batch>({ table: 'batches', select: '*, courses(name)', orderBy: 'created_at', orderAsc: false, limit: 200 })
 
   const loading = lc || lb
-  const activeCourses = courses.filter((c: any) => c.is_active)
-  const ongoing = batches.filter((b: any) => b.status === 'ongoing')
-  const upcoming = batches.filter((b: any) => b.status === 'upcoming')
+  const activeCourses = courses.filter((c) => c.is_active)
+  const ongoing = batches.filter((b) => b.status === 'ongoing')
+  const upcoming = batches.filter((b) => b.status === 'upcoming')
 
   const STATUS: Record<string, any> = {
     upcoming: 'accent', ongoing: 'success', completed: 'muted', cancelled: 'danger',

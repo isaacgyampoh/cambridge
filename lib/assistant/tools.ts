@@ -192,7 +192,7 @@ export const TOOLS: Record<string, {
     run: async (args, _ctx) => {
       const sb = createServiceClient()
       const { data } = await sb.from('student_fees').select('amount_paid, updated_at').limit(5000)
-      let rows = data || []
+      const rows = data || []
       const total = rows.reduce((s: number, f: any) => s + Number(f.amount_paid || 0), 0)
       return { period: args.period || 'all', total_collected: `GHS ${total.toFixed(2)}`, records: rows.length }
     },

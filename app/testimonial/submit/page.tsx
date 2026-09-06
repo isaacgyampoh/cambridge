@@ -3,7 +3,6 @@ import { uploadFile } from '@/lib/upload'
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast, Toaster } from 'sonner'
-import { CONFIG } from '@/lib/config'
 
 function SubmitForm() {
   const params = useSearchParams()
@@ -55,7 +54,7 @@ function SubmitForm() {
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 60, height: 60, objectFit: 'contain', margin: '0 auto 12px' }} />
         <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Share your experience</h1>
-        <p style={{ color: 'var(--ink-soft)', fontSize: 14 }}>We'd love to hear how your programme went. Your words may be featured on our socials.</p>
+        <p style={{ color: 'var(--ink-soft)', fontSize: 14 }}>We’d love to hear how your programme went. Your words may be featured on our socials.</p>
       </div>
 
       <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--line)', padding: 24 }}>

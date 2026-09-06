@@ -1,4 +1,5 @@
 'use client'
+import { toast } from 'sonner'
 import { useState, useRef, useEffect } from 'react'
 
 type Msg = { role: 'user' | 'assistant'; content: string }
@@ -17,7 +18,7 @@ export default function GyampohAI() {
   // Voice input via the browser's Web Speech API (no extra service needed)
   function toggleVoice() {
     const SR = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition
-    if (!SR) { alert('Voice input is not supported on this browser. Try Chrome.'); return }
+    if (!SR) { toast.error('Voice input is not supported in this browser. Chrome supports it.'); return }
     if (listening) { recognitionRef.current?.stop(); setListening(false); return }
     const rec = new SR()
     rec.lang = 'en-GH'
@@ -112,7 +113,7 @@ export default function GyampohAI() {
           <div ref={scrollRef} className="flex-1 overflow-y-auto px-4 py-4 space-y-3">
             {messages.length === 0 && (
               <div className="text-center mt-8">
-                <div className="font-display text-lg font-semibold text-[var(--ink)] mb-1">Hello, I'm Gyampoh AI</div>
+                <div className="font-display text-lg font-semibold text-[var(--ink)] mb-1">Hello, I’m Gyampoh AI</div>
                 <p className="text-sm text-[var(--ink-soft)] max-w-[260px] mx-auto leading-relaxed">Ask me about our data, get advice, or help writing. I can look things up in the system for you.</p>
 
                 {alerts.length > 0 && (

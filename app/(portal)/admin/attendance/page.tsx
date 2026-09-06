@@ -7,6 +7,8 @@ import { formatDateTime } from '@/lib/utils'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
 import Modal from '@/components/shared/Modal'
+import { RefreshCw, X } from 'lucide-react'
+import type { Batch } from '@/types'
 
 type SignIn = {
   id: string
@@ -35,7 +37,7 @@ export default function AttendanceDashboard() {
     limit: 20,
   })
 
-  const { data: batches } = useData<any>({
+  const { data: batches } = useData<Batch>({
     table: 'batches',
     select: '*, courses(name)',
     orderBy: 'created_at',
@@ -222,9 +224,7 @@ export default function AttendanceDashboard() {
       {(
         <Modal open={creating} onClose={() => setCreating(false)} maxWidth="max-w-sm">
           <div className="p-6 relative">
-            <button onClick={() => setCreating(false)} className="absolute top-4 right-4 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
-              
-            </button>
+            <button type="button" onClick={() => setCreating(false)} className="absolute top-4 right-4 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             <h2 className="font-semibold text-[var(--ink)] mb-4">Create Sign-in Session</h2>
             <div className="space-y-3 mb-5">
               <div>
@@ -232,7 +232,7 @@ export default function AttendanceDashboard() {
                 <select value={newSession.batch_id} onChange={e => setNewSession(s => ({ ...s, batch_id: e.target.value }))}
                   className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)]">
                   <option value="">Select batch...</option>
-                  {batches.map((b: any) => <option key={b.id} value={b.id}>{b.name} — {b.courses?.name}</option>)}
+                  {batches.map((b) => <option key={b.id} value={b.id}>{b.name} — {b.courses?.name}</option>)}
                 </select>
                 {batches.length === 0 && (
                   <p className="text-xs text-[var(--danger)] mt-1">No batches available. Create one in Academics, then Classes first.</p>
@@ -346,9 +346,7 @@ export default function AttendanceDashboard() {
                 <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line-soft)]">
                   <span className="text-sm font-semibold text-[var(--ink)]">{signins.length} sign-ins</span>
                   <div className="flex gap-2">
-                    <button onClick={() => refetchSignins()} className="p-2 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition">
-                      
-                    </button>
+                    <button type="button" onClick={() => refetchSignins()} className="p-2 text-[var(--ink-faint)] hover:text-[var(--ink-soft)] transition" aria-label="Refresh"><RefreshCw size={16} aria-hidden="true" /></button>
                     <button onClick={exportCSV} className="flex items-center gap-1.5 px-3 py-1.5 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg text-xs font-semibold hover:bg-[var(--line)] transition">
                        Export
                     </button>

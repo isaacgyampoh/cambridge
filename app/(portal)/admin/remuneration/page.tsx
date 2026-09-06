@@ -6,6 +6,7 @@ import { formatGHS } from '@/lib/utils'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
 
 const RANK_TONE = (rank: string): any =>
   rank.startsWith('Omega') ? 'accent' : rank.startsWith('Titan') || rank.startsWith('Delta') ? 'success' : rank === 'Unranked' ? 'muted' : 'warning'
@@ -141,7 +142,7 @@ export default function AdminRemuneration() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Programme point values</h2>
-            <button onClick={() => setSettingsOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setSettingsOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <p className="text-sm text-[var(--ink-soft)] mb-5">Points each enrolled student earns the marketer. Corporate is a 40–200 valuation entered per deal.</p>
           <div className="space-y-3">

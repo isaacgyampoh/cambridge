@@ -8,6 +8,8 @@ import Modal from '@/components/shared/Modal'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import { X } from 'lucide-react'
+import type { Application } from '@/types'
 
 type Enrollment = {
   id: string
@@ -89,7 +91,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   }
 
   // All paid registrations (candidates to enroll)
-  const { data: apps } = useData<any>({
+  const { data: apps } = useData<Application>({
     table: 'applications', select: 'id, full_name, email, phone, payment_status, course:course_id(name)',
     orderBy: 'created_at', orderAsc: false, limit: 1000,
   })
@@ -107,7 +109,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
   useEffect(() => { load() }, [batchId])
 
   const enrolledAppIds = new Set(enrolled.map((e: any) => e.application_id))
-  const candidates = apps.filter((a: any) =>
+  const candidates = apps.filter((a) =>
     !enrolledAppIds.has(a.id) &&
     (!search || (a.full_name || '').toLowerCase().includes(search.toLowerCase()) || (a.phone || '').includes(search))
   )
@@ -301,7 +303,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
       {showAttendance && (
         <Card className="p-5 mb-5">
           <div className="flex items-center justify-between mb-4">
-            <h3 className="font-display font-semibold text-[var(--ink)]">Today's attendance</h3>
+            <h3 className="font-display font-semibold text-[var(--ink)]">Today’s attendance</h3>
             <span className="text-xs text-[var(--ink-faint)]">{attendance?.date || ''}</span>
           </div>
           {!attendance ? <Spinner /> : (
@@ -385,7 +387,7 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Enroll a student</h2>
-            <button onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="relative mb-4">
             

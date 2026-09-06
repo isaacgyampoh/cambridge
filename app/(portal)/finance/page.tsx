@@ -3,35 +3,38 @@ import { useState } from 'react'
 import { readableStatus } from '@/lib/ui/status'
 import { useData, mutate } from '@/hooks/useData'
 import { formatGHS, formatDateTime } from '@/lib/utils'
-import { DollarSign, TrendingUp, AlertCircle, Plus, RefreshCw, X, Receipt, FileText } from 'lucide-react'
+import { X } from 'lucide-react'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
 import Modal from '@/components/shared/Modal'
 import { PageHeader, Card, Button, Badge, StatCard, Spinner, EmptyState, Field, inputClass } from '@/components/ui'
+import type { Invoice, Payment, Profile } from '@/types'
 
 const METHOD_TONE: Record<string, any> = {
   cash: 'success', paystack: 'accent', bank_transfer: 'neutral', mobile_money: 'warning',
 }
 
 export default function FinancePage() {
+  const { ask, dialog } = useConfirm()
   const [tab, setTab] = useState<'payments' | 'invoices'>('payments')
   const [showModal, setShowModal] = useState(false)
   const [form, setForm] = useState({ student_id: '', amount: '', method: 'cash', notes: '' })
   const [saving, setSaving] = useState(false)
 
-  const { data: payments, loading: loadP, refetch: refetchP } = useData<any>({
+  const { data: payments, loading: loadP, refetch: refetchP } = useData<Payment>({
     table: 'payments', select: '*, student:student_id(full_name, phone)', orderBy: 'created_at', orderAsc: false, limit: 200,
   })
-  const { data: invoices, loading: loadI, refetch: refetchI } = useData<any>({
+  const { data: invoices, loading: loadI, refetch: refetchI } = useData<Invoice>({
     table: 'invoices', select: '*, student:student_id(full_name)', orderBy: 'created_at', orderAsc: false, limit: 200,
   })
-  const { data: students } = useData<any>({
+  const { data: students } = useData<Profile>({
     table: 'profiles', select: 'id, full_name, phone',
     filters: [{ col: 'role', op: 'eq', val: 'student' }, { col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', limit: 500,
   })
 
   const loading = loadP || loadI
-  const paidPayments = payments.filter((p: any) => p.status === 'paid')
+  const paidPayments = payments.filter((p) => p.status === 'paid')
   const totalRevenue = paidPayments.reduce((a: number, p: any) => a + Number(p.amount), 0)
   const outstanding = invoices.reduce((a: number, i: any) => a + Number(i.outstanding || 0), 0)
   const todayRev = paidPayments
@@ -56,6 +59,7 @@ export default function FinancePage() {
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
+      {dialog}
       <PageHeader
         eyebrow="Finance"
         title="Payments & invoices"
@@ -64,7 +68,15 @@ export default function FinancePage() {
           <>
             <Button variant="secondary" href="/finance/reports">Reports</Button>
             <Button variant="secondary" onClick={async () => {
-              const ref = prompt('Paste the Paystack reference of a payment that did not register (or leave blank to auto-scan recent payments):')
+              const ref = await ask({
+                title: 'Fix a stuck payment',
+                message: 'Paste the Paystack reference of a payment that did not register. Leave it blank to scan recent payments instead.',
+                confirmLabel: 'Check Paystack',
+                tone: 'accent',
+                input: { label: 'Paystack reference (optional)', placeholder: 'e.g. T123456789' },
+              })
+              // null means cancelled; '' means "scan them all", which is a
+              // real choice here and must not be treated as a cancel.
               if (ref === null) return
               toast.loading('Checking Paystack…', { id: 'rec' })
               const d = await fetch('/api/paystack/reconcile', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(ref.trim() ? { reference: ref.trim() } : {}) }).then(r => r.json()).catch(() => ({ error: 'failed' }))
@@ -90,13 +102,13 @@ export default function FinancePage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Record payment</h2>
-            <button onClick={() => setShowModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setShowModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="space-y-4">
             <Field label="Student" required>
               <select value={form.student_id} onChange={e => setForm(f => ({ ...f, student_id: e.target.value }))} className={inputClass}>
                 <option value="">Select student</option>
-                {students.map((s: any) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
+                {students.map((s) => <option key={s.id} value={s.id}>{s.full_name}</option>)}
               </select>
             </Field>
             <Field label="Amount (GHS)" required>
@@ -141,7 +153,7 @@ export default function FinancePage() {
             <>
             {/* Mobile: payment cards */}
             <div className="sm:hidden divide-y divide-[var(--line-soft)]">
-              {payments.map((p: any) => (
+              {payments.map((p) => (
                 <div key={p.id} className="p-4">
                   <div className="flex items-start justify-between gap-2">
                     <div className="min-w-0">
@@ -169,7 +181,7 @@ export default function FinancePage() {
                   ))}
                 </tr></thead>
                 <tbody>
-                  {payments.map((p: any) => (
+                  {payments.map((p) => (
                     <tr key={p.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
                       <td className="px-4 py-3 text-[12px] font-mono text-[var(--ink-faint)]">{p.receipt_number || '—'}</td>
                       <td className="px-4 py-3">
@@ -199,7 +211,7 @@ export default function FinancePage() {
                   ))}
                 </tr></thead>
                 <tbody>
-                  {invoices.map((inv: any) => (
+                  {invoices.map((inv) => (
                     <tr key={inv.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
                       <td className="px-4 py-3 text-[12px] font-mono text-[var(--ink-faint)]">{inv.invoice_number || '—'}</td>
                       <td className="px-4 py-3 text-sm font-medium text-[var(--ink)]">{inv.student?.full_name || '—'}</td>

@@ -3,7 +3,7 @@ import { useState, useEffect, useRef } from 'react'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { createClient } from '@/lib/supabase/client'
 import { toast } from 'sonner'
-import { Plus, Star, GraduationCap, Briefcase, X, Eye, EyeOff } from 'lucide-react'
+import { Star, Trash2, X } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -137,7 +137,7 @@ export default function AlumniPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-[var(--ink)]">{editId ? 'Edit': 'Add'} Alumni</h2>
-              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"></button>
+              <button type="button" onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
 
             {/* Photo */}
@@ -261,23 +261,21 @@ export default function AlumniPage() {
 
                 {a.testimonial && (
                   <blockquote className="text-xs text-[var(--ink-faint)] italic mt-3 line-clamp-2 border-l-2 border-blue-200 pl-2">
-                    "{a.testimonial}"
+                    ”{a.testimonial}”
                   </blockquote>
                 )}
 
                 <div className="flex gap-2 mt-4">
                   <button onClick={() => openEdit(a)}
                     className="flex-1 h-9 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-xs font-semibold hover:bg-[var(--line)] transition">Edit</button>
-                  <button onClick={() => toggleFeatured(a.id, a.is_featured)}
-                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-[var(--warn-soft)] text-[var(--warn)] hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
-                    
-                  </button>
+                  <button type="button" onClick={() => toggleFeatured(a.id, a.is_featured)}
+                    className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_featured ? 'bg-[var(--warn-soft)] text-[var(--warn)] hover:bg-yellow-200': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`} aria-label="Feature this"><Star size={16} aria-hidden="true" /></button>
                   <button onClick={() => togglePublish(a.id, a.is_published)}
                     className={`h-9 w-9 flex items-center justify-center rounded-xl transition ${a.is_published ? 'bg-[var(--ok-soft)] text-[var(--ok)] hover:bg-[var(--ok-soft)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)] hover:bg-[var(--line)]'}`}>
                     {a.is_published ? null : null}
                   </button>
-                  <button onClick={() => del(a.id)}
-                    className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition text-xs"></button>
+                  <button type="button" onClick={() => del(a.id)}
+                    className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition text-xs" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
                 </div>
               </div>
             </div>

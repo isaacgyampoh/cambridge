@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, Field, inputClass, SectionLabel, textareaClass} from '@/components/ui'
-import { Plus, X, MessageCircleQuestion, Info, Pencil, Trash2, Sparkles } from 'lucide-react'
+import { Pencil, Trash2, X } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -95,7 +95,7 @@ export default function KnowledgeBasePage() {
         <div className="flex items-start gap-3">
           
           <div className="text-sm text-[var(--accent)]">
-            <strong>How the assistant works:</strong> when a lead messages a marketer on WhatsApp and no one replies, the assistant answers in that marketer's voice using only these entries. If something isn't covered here, it won't make things up — it tells the lead the marketer will call them with details. Keep these accurate and up to date.
+            <strong>How the assistant works:</strong> when a lead messages a marketer on WhatsApp and no one replies, the assistant answers in that marketer’s voice using only these entries. If something isn’t covered here, it won’t make things up — it tells the lead the marketer will call them with details. Keep these accurate and up to date.
           </div>
         </div>
       </Card>
@@ -120,8 +120,8 @@ export default function KnowledgeBasePage() {
                       <div className="text-sm text-[var(--ink-soft)] mt-1 whitespace-pre-line">{e.answer}</div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
+                      <button type="button" onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]" aria-label="Edit"><Pencil size={15} aria-hidden="true" /></button>
+                      <button type="button" onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
                     </div>
                   </div>
                 </Card>
@@ -146,8 +146,8 @@ export default function KnowledgeBasePage() {
                       <div className="text-sm text-[var(--ink)] whitespace-pre-line">{e.answer}</div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
+                      <button type="button" onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]" aria-label="Edit"><Pencil size={15} aria-hidden="true" /></button>
+                      <button type="button" onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
                     </div>
                   </div>
                 </Card>
@@ -163,7 +163,7 @@ export default function KnowledgeBasePage() {
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">
               {editing ? 'Edit entry' : form.kind === 'faq' ? 'New FAQ' : 'New info'}
             </h2>
-            <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="space-y-4">
             <Field label="Category" hint="optional, e.g. Fees / Schedule">

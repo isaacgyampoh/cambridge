@@ -3,7 +3,6 @@ import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
-import { SECRETS } from '@/lib/config.server'
 
 /**
  * Cron runner — sends all due drip-sequence messages.

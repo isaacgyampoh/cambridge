@@ -9,7 +9,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 export async function generateReports(period: 'daily' | 'weekly' | 'monthly') {
   const sb = createServiceClient()
   const now = new Date()
-  let start = new Date()
+  const start = new Date()
   if (period === 'daily') start.setDate(now.getDate() - 1)
   else if (period === 'weekly') start.setDate(now.getDate() - 7)
   else start.setMonth(now.getMonth() - 1)

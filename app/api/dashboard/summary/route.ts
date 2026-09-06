@@ -47,6 +47,28 @@ type Attention = {
 
 type ActivityItem = { id: string; at: string; text: string; href?: string }
 
+/**
+ * One person who is actually waiting to be called.
+ *
+ * The counts above say "6 follow-ups overdue", which is a number to go and
+ * look at. This is the six people, by name, with the number to ring — so the
+ * dashboard is somewhere work gets done rather than a signpost to a list.
+ *
+ * Capped at five deliberately. A dashboard is a prompt, not a worklist: the
+ * full set lives on the follow-ups screen, and a home page that scrolls for a
+ * minute is one nobody reads to the bottom of.
+ */
+type PriorityLead = {
+  id: string
+  name: string
+  phone: string | null
+  course: string | null
+  /** When the follow-up was promised. Null when none was set. */
+  dueAt: string | null
+  overdue: boolean
+  href: string
+}
+
 export const GET = withGuard({}, async (_req, { session, portals }) => {
   const sb = createServiceClient()
   const role = session.role
@@ -171,6 +193,38 @@ export const GET = withGuard({}, async (_req, { session, portals }) => {
   const order = { danger: 0, warning: 1, accent: 2 }
   attention.sort((a, b) => order[a.tone] - order[b.tone] || b.count - a.count)
 
+  /* ── who, specifically, is waiting ─────────────────────────────────────── */
+
+  /*
+   * Scoped through mine() like every other query here, so a marketer is given
+   * their own leads and never another marketer's contact details. The oldest
+   * promise first: the person waiting longest is the one to ring.
+   *
+   * This reads follow_up_at. It does not write it, reschedule it, or decide
+   * what counts as a follow-up — that logic stays where it is.
+   */
+  const { data: priorityRows, error: priorityError } = await mine(
+    leads().select('id, full_name, phone, course_interest, follow_up_at')
+  )
+    .not('follow_up_at', 'is', null)
+    .lte('follow_up_at', now)
+    .order('follow_up_at', { ascending: true })
+    .limit(5)
+
+  if (priorityError) {
+    console.error('[dashboard] priority leads failed:', priorityError.message)
+  }
+
+  const priority: PriorityLead[] = (priorityRows || []).map(row => ({
+    id: row.id,
+    name: row.full_name || 'Unnamed lead',
+    phone: row.phone || null,
+    course: row.course_interest || null,
+    dueAt: row.follow_up_at,
+    overdue: Boolean(row.follow_up_at && row.follow_up_at < today),
+    href: `${leadsHref}/${row.id}`,
+  }))
+
   /* ── recent activity ───────────────────────────────────────────────────── */
 
   /*
@@ -211,6 +265,7 @@ export const GET = withGuard({}, async (_req, { session, portals }) => {
       unassigned: unassigned.count || 0,
     },
     attention,
+    priority,
     activity,
     activityFailed: Boolean(activityError),
   })

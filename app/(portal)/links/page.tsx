@@ -2,7 +2,6 @@
 import { PageHeader, EmptyState, Card } from '@/components/ui'
 import SharedLinks from '@/components/shared/SharedLinks'
 import { useState, useEffect } from 'react'
-import { Link2, MessageSquareQuote, Copy } from 'lucide-react'
 import { CONFIG } from '@/lib/config'
 import { toast } from 'sonner'
 
@@ -30,7 +29,7 @@ export default function MyLinksPage() {
           </div>
           <div className="flex-1 min-w-0">
             <div className="font-semibold text-[var(--ink)] text-sm">Testimonial collection link</div>
-            <p className="text-xs text-[var(--ink-soft)] mt-0.5 mb-2.5">Send this to students who've completed. They fill in their words and photo, and they're added to Alumni automatically.</p>
+            <p className="text-xs text-[var(--ink-soft)] mt-0.5 mb-2.5">Send this to students who’ve completed. They fill in their words and photo, and they’re added to Alumni automatically.</p>
             <div className="flex items-center gap-2">
               <code className="flex-1 text-xs bg-[var(--canvas)] rounded-lg px-3 py-2 text-[var(--ink-soft)] truncate">{testimonialLink}</code>
               <button onClick={() => { navigator.clipboard.writeText(testimonialLink); toast.success('Testimonial link copied') }}

@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
-import { Calendar, Send, RefreshCw } from 'lucide-react'
+import { RefreshCw } from 'lucide-react'
 import { formatDate, daysUntil } from '@/lib/utils'
 
 export default function ReceptionistDashboard() {
@@ -40,16 +40,18 @@ export default function ReceptionistDashboard() {
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Front desk</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Class reminders</h1>
-          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send personalised reminders in each marketer's name.</p>
+          <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send personalised reminders in each marketer’s name.</p>
         </div>
-        <button onClick={refetch} className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
-          
+        <button type="button" onClick={refetch} aria-label="Refresh the list"
+          className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)]
+            text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
+          <RefreshCw size={16} aria-hidden="true" />
         </button>
       </div>
 
       <div className="bg-[var(--accent-soft)] border border-blue-200 rounded-2xl p-4 mb-5 text-sm text-[var(--accent)]">
-         Messages go out as: <strong>"Hi Kofi, it's Ama from Cambridge CE — your class is on Friday..."</strong>
-        Each student gets their own assigned marketer's name. Feels personal, not automated.
+         Messages go out as: <strong>”Hi Kofi, it’s Ama from Cambridge CE — your class is on Friday...”</strong>
+        Each student gets their own assigned marketer’s name. Feels personal, not automated.
       </div>
 
       {loading ? (

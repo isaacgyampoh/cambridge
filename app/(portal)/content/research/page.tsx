@@ -187,8 +187,8 @@ function ShadowTab() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
       <Card className="p-6">
-        <h3 className="font-display text-[15px] font-semibold text-[var(--ink)]">Found a post that's working?</h3>
-        <p className="text-[14px] text-[var(--ink-soft)] mt-1 mb-3 leading-relaxed">Paste a competitor's post or ad. You'll get what makes it work, and a stronger Cambridge version — the hook, caption, format and best time to post.</p>
+        <h3 className="font-display text-[15px] font-semibold text-[var(--ink)]">Found a post that’s working?</h3>
+        <p className="text-[14px] text-[var(--ink-soft)] mt-1 mb-3 leading-relaxed">Paste a competitor’s post or ad. You’ll get what makes it work, and a stronger Cambridge version — the hook, caption, format and best time to post.</p>
         <textarea value={adText} onChange={e => setAdText(e.target.value)} rows={12} placeholder="Paste the competitor's post or ad copy here…"
           className={inputClass + ' resize-none h-auto py-3'} />
         <button onClick={analyze} disabled={busy} className="mt-3 h-11 px-5 rounded-xl bg-[var(--accent)] text-white font-semibold text-[15px] hover:brightness-110 disabled:opacity-50 transition">{busy ? 'Analyzing…' : 'Show me how to beat it'}</button>

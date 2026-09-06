@@ -1,12 +1,13 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { displayPhone } from '@/lib/ui/contact'
+import { displayPhone, telHref } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
-import { Users, Phone, PhoneCall } from 'lucide-react'
+import { PageHeader, Card, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
+import { Phone } from 'lucide-react'
+import type { Batch } from '@/types'
 
 export default function MarketerAttendance() {
-  const { data: batches } = useData<any>({ table: 'batches', select: '*, courses(name)', orderBy: 'created_at', orderAsc: false, limit: 100 })
+  const { data: batches } = useData<Batch>({ table: 'batches', select: '*, courses(name)', orderBy: 'created_at', orderAsc: false, limit: 100 })
   const [batchId, setBatchId] = useState('')
   const [att, setAtt] = useState<any>(null)
   const [loading, setLoading] = useState(false)
@@ -67,9 +68,12 @@ export default function MarketerAttendance() {
                     {s.phone && <div className="text-[12px] text-[var(--ink-faint)]">{displayPhone(s.phone)}</div>}
                   </div>
                   <div className="flex items-center gap-2">
-                    {!s.present && s.phone && (
-                      <a href={`tel:${s.phone}`} className="inline-flex items-center gap-1 min-h-[44px] sm:min-h-[36px] px-3 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] text-[13px] font-medium">
-                         Call
+                    {!s.present && telHref(s.phone) && (
+                      <a href={telHref(s.phone) as string}
+                        aria-label={`Call ${s.name}`}
+                        className="inline-flex items-center gap-1.5 min-h-[44px] sm:min-h-[36px] px-3
+                          rounded-lg bg-[var(--navy-soft)] text-[var(--navy)] text-[13px] font-medium">
+                        <Phone size={14} aria-hidden="true" /> Call
                       </a>
                     )}
                     <Badge tone={s.present ? 'success' : 'neutral'}>{s.present ? 'Present' : 'Absent'}</Badge>

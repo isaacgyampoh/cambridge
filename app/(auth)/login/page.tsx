@@ -2,197 +2,10 @@
 
 import { useState, useRef, useEffect, Suspense } from 'react'
 import { PIN_LENGTH, OTP_LENGTH } from '@/lib/auth/pinPolicy'
+import { PinBoxes } from '@/components/ui/PinFields'
 import { BRAND } from '@/lib/brand'
 import { useRouter } from 'next/navigation'
-import { Delete } from 'lucide-react'
 
-/**
- * PIN entry. Exactly PIN_LENGTH boxes — four.
- *
- * ── WHY A MODULE-SCOPE COMPONENT ───────────────────────────────────────────
- *
- * This began as a render function inside the page, because a component
- * DEFINED INSIDE a render body gets a fresh identity every pass and React
- * remounts it on each keystroke — losing focus and dropping fast typing.
- *
- * Declaring it here removes that hazard entirely: the identity is stable, so
- * the inputs stay mounted, and the component owns its own refs instead of
- * having them threaded in as an argument on every call.
- *
- * ── BEHAVIOUR ──────────────────────────────────────────────────────────────
- *
- * There is no auto-submit. Submitting the moment a fourth digit lands means a
- * mistyped digit navigates before it can be corrected, which matters most in
- * recovery where the next step changes a credential. Enter submits; otherwise
- * the caller supplies an explicit button.
- */
-/**
- * PIN entry: dots and a keypad.
- *
- * ── WHY NOT INPUT BOXES ────────────────────────────────────────────────────
- *
- * Four text inputs summon the device keyboard, which on a phone covers roughly
- * half the screen — including, often, the very boxes being filled. The person
- * is typing a four-digit number into a full QWERTY-capable keyboard they did
- * not need.
- *
- * Dots plus a keypad is what banking applications do, and the reason is
- * practical rather than stylistic: the digits are large, deliberately placed,
- * reachable one-handed, and nothing is ever obscured.
- *
- * ── KEYBOARD STILL WORKS ───────────────────────────────────────────────────
- *
- * A visually hidden input holds the real value, so typing, pasting and
- * password managers behave exactly as before, and the field carries the
- * accessible name. The keypad is an additional way in, not the only one.
- */
-function PinBoxes({
-  value, onChange, onSubmit, label, masked,
-  autoSubmit = false, disabled = false, autoFocus = false,
-}: {
-  value: string
-  onChange: (next: string) => void
-  /** Receives the completed value, so it never reads a stale closure. */
-  onSubmit?: (completed: string) => void
-  label: string
-  masked: boolean
-  /** Submit the moment the last digit lands. */
-  autoSubmit?: boolean
-  disabled?: boolean
-  autoFocus?: boolean
-}) {
-  const field = useRef<HTMLInputElement>(null)
-
-  /*
-   * The value already handed to onSubmit.
-   *
-   * Auto-submitting on the last digit creates several ways to fire twice:
-   * a keypad tap, a paste, a fast typist, React re-running the handler.
-   * Remembering what was submitted makes it idempotent for a given PIN, and it
-   * resets as soon as the person edits — so a wrong PIN can be retried.
-   */
-  const submitted = useRef<string | null>(null)
-
-  useEffect(() => {
-    if (autoFocus && !disabled) field.current?.focus()
-  }, [autoFocus, disabled, value === ''])   // eslint-disable-line react-hooks/exhaustive-deps
-
-  const commit = (next: string) => {
-    onChange(next)
-    if (next.length < PIN_LENGTH) { submitted.current = null; return }
-    if (!autoSubmit || !onSubmit) return
-    if (submitted.current === next) return
-    submitted.current = next
-    onSubmit(next)
-  }
-
-  const press = (digit: string) => {
-    if (disabled || value.length >= PIN_LENGTH) return
-    commit(value + digit)
-  }
-
-  const back = () => {
-    if (disabled) return
-    commit(value.slice(0, -1))
-  }
-
-  const keys = ['1', '2', '3', '4', '5', '6', '7', '8', '9']
-
-  return (
-    <div>
-      {/* The real field. Visually hidden, fully functional. */}
-      <input
-        ref={field}
-        type={masked ? 'password' : 'text'}
-        aria-label={`${label}, ${PIN_LENGTH} digits`}
-        inputMode="numeric"
-        pattern="[0-9]*"
-        autoComplete="one-time-code"
-        maxLength={PIN_LENGTH}
-        disabled={disabled}
-        value={value}
-        onChange={e => commit(e.target.value.replace(/\D/g, '').slice(0, PIN_LENGTH))}
-        onKeyDown={e => {
-          if (e.key === 'Enter' && value.length === PIN_LENGTH && onSubmit
-              && submitted.current !== value) {
-            submitted.current = value
-            onSubmit(value)
-          }
-        }}
-        className="sr-only"
-      />
-
-      {/* What the person sees: one mark per digit entered. */}
-      <button
-        type="button"
-        onClick={() => field.current?.focus()}
-        aria-hidden="true"
-        tabIndex={-1}
-        className="flex gap-3.5 justify-center w-full mb-8 cursor-default"
-      >
-        {Array.from({ length: PIN_LENGTH }).map((_, i) => (
-          <span
-            key={i}
-            className={`w-3.5 h-3.5 rounded-full transition-colors duration-150 ${
-              i < value.length
-                ? 'bg-[var(--accent)]'
-                : 'bg-transparent border-2 border-[var(--line)]'
-            }`}
-          />
-        ))}
-      </button>
-
-      {/* The keypad. */}
-      <div className="grid grid-cols-3 gap-2.5 max-w-[280px] mx-auto">
-        {keys.map(k => (
-          <button
-            key={k}
-            type="button"
-            onClick={() => press(k)}
-            disabled={disabled || value.length >= PIN_LENGTH}
-            aria-label={k}
-            className="h-14 rounded-2xl text-[20px] font-medium text-[var(--ink)]
-              bg-[var(--paper)] border border-[var(--line)]
-              hover:bg-[var(--canvas)] active:bg-[var(--line-soft)]
-              disabled:opacity-40 disabled:pointer-events-none transition-colors
-              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-          >
-            {k}
-          </button>
-        ))}
-
-        <span aria-hidden="true" />
-
-        <button
-          type="button"
-          onClick={() => press('0')}
-          disabled={disabled || value.length >= PIN_LENGTH}
-          aria-label="0"
-          className="h-14 rounded-2xl text-[20px] font-medium text-[var(--ink)]
-            bg-[var(--paper)] border border-[var(--line)]
-            hover:bg-[var(--canvas)] active:bg-[var(--line-soft)]
-            disabled:opacity-40 disabled:pointer-events-none transition-colors
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-        >
-          0
-        </button>
-
-        <button
-          type="button"
-          onClick={back}
-          disabled={disabled || value.length === 0}
-          aria-label="Delete the last digit"
-          className="h-14 rounded-xl grid place-items-center text-[var(--ink-soft)]
-            hover:bg-[var(--line-soft)] disabled:opacity-30 disabled:pointer-events-none
-            transition-colors
-            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]"
-        >
-          <Delete size={20} aria-hidden="true" />
-        </button>
-      </div>
-    </div>
-  )
-}
 
 function LoginForm() {
   const router = useRouter()
@@ -201,7 +14,7 @@ function LoginForm() {
   >('pin')
   const [pin,     setPin]     = useState('')
   /* The emailed code. A different length from the PIN, deliberately. */
-  const [otp,     setOtp]     = useState<string[]>(Array(OTP_LENGTH).fill(''))
+  const [otp,     setOtp]     = useState('')
   const [otpUserId, setOtpUserId] = useState('')
   const [emailHint, setEmailHint] = useState('')
   const [resendIn,  setResendIn]  = useState(0)   // seconds until resend is offered
@@ -219,92 +32,6 @@ function LoginForm() {
   const [recoverNew, setRecoverNew] = useState('')
   const [recoverConfirm, setRecoverConfirm] = useState('')
   const [resetToken, setResetToken] = useState('')
-
-  /*
-   * Eight boxes each, because a PIN is four to EIGHT digits — that is the
-   * contract on /api/auth/verify-pin and /api/auth/change-pin.
-   *
-   * The form rendered exactly four and submitted the moment the fourth was
-   * filled, so a PIN longer than four could neither be entered nor set. That
-   * made the account-recovery route unusable: /api/auth/first-run issues an
-   * eight-digit PIN, which there was no way to type. The set-PIN screen also
-   * told people "six digits is safer than four" while giving them four boxes.
-   *
-   * Written out rather than built with Array.from, because a hook may not be
-   * called from inside a callback.
-   */
-  /*
-   * One ref holding the boxes, assigned through callback refs.
-   *
-   * Indexing an array of individual useRef objects during render is what the
-   * react-hooks rule objects to, and it grew a warning per call site as the
-   * recovery screens were added. A single array ref written from a callback
-   * is the supported shape and behaves identically.
-   */
-  type Boxes = React.RefObject<(HTMLInputElement | null)[]>
-
-  const o = useRef<(HTMLInputElement | null)[]>([])
-
-
-  function handleDigit(val: string, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: Boxes, onFull?: (s: string) => void) {
-    if (!/^\d*$/.test(val)) return
-    const ch = val.slice(-1)
-    // Compute the next array from the CURRENT props (arr is the live value
-    // for this box passed from render), update state, THEN do side effects
-    // (focus / submit) outside the updater so they always run exactly once.
-    const next = [...arr]
-    next[i] = ch
-    set(next)
-    if (!ch) return
-    if (i < arr.length - 1) {
-      refs.current[i + 1]?.focus()
-    } else {
-      const full = next.join('')
-      if (full.length === arr.length && onFull && !busy.current) {
-        onFull(full)
-      }
-    }
-  }
-
-  function handleBksp(e: React.KeyboardEvent, i: number, arr: string[], set: React.Dispatch<React.SetStateAction<string[]>>, refs: Boxes) {
-    // Arrow keys move between boxes, so a mistyped digit can be corrected
-    // without deleting everything after it.
-    if (e.key === 'ArrowLeft' && i > 0) { e.preventDefault(); refs.current[i - 1]?.focus(); return }
-    if (e.key === 'ArrowRight' && i < arr.length - 1) { e.preventDefault(); refs.current[i + 1]?.focus(); return }
-    if (e.key !== 'Backspace') return
-    const next = [...arr]
-    if (next[i]) { next[i] = ''; set(next) }
-    else if (i > 0) { next[i - 1] = ''; set(next); refs.current[i - 1]?.focus() }
-  }
-
-  /**
-   * Paste a whole code across the boxes.
-   *
-   * Almost nobody retypes a six-digit code they can copy out of an email, and
-   * without this the paste landed a single digit in one box — the last
-   * character, because each box takes only one. Digits are extracted rather
-   * than the string used as-is, so a code pasted as "123 456" or with a
-   * trailing newline still works.
-   */
-  function handlePaste(
-    e: React.ClipboardEvent, i: number, arr: string[],
-    set: React.Dispatch<React.SetStateAction<string[]>>, refs: Boxes,
-    onFull?: (s: string) => void
-  ) {
-    const digits = e.clipboardData.getData('text').replace(/\D/g, '')
-    if (!digits) return
-    e.preventDefault()
-
-    const next = [...arr]
-    for (let k = 0; k < digits.length && i + k < arr.length; k++) next[i + k] = digits[k]
-    set(next)
-
-    const landed = Math.min(i + digits.length, arr.length - 1)
-    refs.current[landed]?.focus()
-
-    const full = next.join('')
-    if (full.length === arr.length && !next.includes('') && onFull && !busy.current) onFull(full)
-  }
 
   async function submitPin(pinStr: string) {
     busy.current = true; setLoading(true); setError('')
@@ -327,7 +54,6 @@ function LoginForm() {
       setCodeLeft(d.expiresInSeconds || 600)
       setResendIn(30)
       setStep('otp')
-      setTimeout(() => o.current[0]?.focus(), 120)
       return
     }
     if (d.mustChangePIN) { setStep('set-pin'); return }
@@ -344,8 +70,7 @@ function LoginForm() {
     busy.current = false; setLoading(false)
     if (!d.success) {
       setError(d.error || 'Incorrect code')
-      setOtp(Array(OTP_LENGTH).fill(''))
-      setTimeout(() => o.current[0]?.focus(), 80)
+      setOtp('')
       return
     }
     if (d.mustChangePIN || pendingChangePin) { setStep('set-pin'); return }
@@ -362,10 +87,9 @@ function LoginForm() {
       }).then(r => r.json())
 
       if (d.success) {
-        setOtp(Array(OTP_LENGTH).fill(''))
+        setOtp('')
         setCodeLeft(d.expiresInSeconds || 600)
         setResendIn(30)
-        setTimeout(() => o.current[0]?.focus(), 80)
         return
       }
       // A stale sign-in cannot be resumed — send them back to the PIN step.
@@ -411,9 +135,8 @@ function LoginForm() {
       setEmailHint(d.emailHint || '')
       setCodeLeft(d.expiresInSeconds || 600)
       setResendIn(30)
-      setOtp(Array(OTP_LENGTH).fill(''))
+      setOtp('')
       setStep('recover-otp')
-      setTimeout(() => o.current[0]?.focus(), 120)
     } catch {
       setError('Could not reach the server. Check your connection and try again.')
     } finally { setLoading(false) }
@@ -428,8 +151,7 @@ function LoginForm() {
       }).then(r => r.json())
       if (!d.success) {
         setError(d.error || 'That code is not correct.')
-        setOtp(Array(OTP_LENGTH).fill(''))
-        setTimeout(() => o.current[0]?.focus(), 80)
+        setOtp('')
         return
       }
       setResetToken(d.resetToken)
@@ -500,79 +222,93 @@ function LoginForm() {
   }, [])
 
   return (
-    <div className="min-h-[100dvh] w-full flex" style={{ background: 'var(--canvas)' }}>
+    <div className="min-h-[100dvh] w-full flex" style={{ background: 'var(--paper)' }}>
 
       {/*
-        The brand panel.
+        The institutional panel.
 
-        A flat institutional field — no gradient, no radial glow, no decorative
-        arcs. The previous version carried all three plus a marketing paragraph
-        ("Where every lead becomes a graduate"), which is the language of a
-        landing page, not of a tool people sign into forty times a week.
+        A flat navy field carrying the mark and the name. No gradient, no glow,
+        no decorative geometry — the seriousness comes from the restraint, and
+        from the fact that nothing on it is trying to sell anything.
       */}
-      <aside
-        className="hidden lg:flex flex-col justify-between flex-1 px-14 py-12"
-        style={{ background: 'var(--accent)' }}
-      >
-        <div className="flex items-center gap-3">
-          <span className="w-10 h-10 rounded-lg bg-white grid place-items-center overflow-hidden p-1.5">
+      <aside className="hidden lg:flex flex-col justify-between flex-1 px-14 py-14"
+        style={{ background: 'var(--navy)' }}>
+        <div className="flex items-center gap-3.5">
+          <span className="w-11 h-11 rounded-xl bg-white/95 grid place-items-center overflow-hidden p-1.5">
             {/* eslint-disable-next-line @next/next/no-img-element */}
             <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
           </span>
-          <span className="text-white text-[15px] font-semibold tracking-tight">{BRAND.name}</span>
+          <span className="text-white text-[15px] font-semibold tracking-[0.02em] uppercase">
+            {BRAND.shortName}
+          </span>
         </div>
 
         <div className="max-w-sm">
-          <p className="text-white/60 t-overline mb-3">{BRAND.portalName}</p>
-          <p className="text-white text-[17px] leading-snug">
-            Leads, registrations, admissions and fees for {BRAND.shortName}.
+          <p className="text-white text-[20px] leading-snug font-medium">
+            {BRAND.tagline}
           </p>
         </div>
 
-        <p className="text-white/45 text-[12px]">
-          Authorised staff only.
-        </p>
+        <div className="flex items-center gap-4 text-white/45 text-[12px]">
+          <span>Admissions</span>
+          <span className="w-1 h-1 rounded-full bg-white/25" />
+          <span>Student management</span>
+          <span className="w-1 h-1 rounded-full bg-white/25" />
+          <span>Communication</span>
+        </div>
       </aside>
 
       {/* The form. */}
-      <main className="flex-1 flex flex-col items-center justify-center px-5 py-10 sm:py-14">
-        <div className="w-full max-w-[380px]">
+      <main className="flex-1 flex flex-col justify-center px-6 py-10 sm:py-14"
+        style={{ background: 'var(--paper)' }}>
+        <div className="w-full max-w-[340px] mx-auto">
 
-          {/* On a phone the brand is a mark and a name, nothing more. */}
-          <div className="lg:hidden flex flex-col items-center mb-9">
-            <span className="w-14 h-14 rounded-2xl bg-[var(--paper)] border border-[var(--line)] grid place-items-center p-2.5 mb-3">
+          {/* On a phone the brand is a mark and a name. */}
+          <div className="lg:hidden flex flex-col items-center mb-10">
+            <span className="w-14 h-14 rounded-2xl grid place-items-center p-2.5 mb-3.5"
+              style={{ background: 'var(--navy)' }}>
               {/* eslint-disable-next-line @next/next/no-img-element */}
-              <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
+              <img src={BRAND.logo} alt="" aria-hidden="true"
+                className="w-full h-full object-contain brightness-0 invert" />
             </span>
-            <h1 className="t-title text-center">{BRAND.name}</h1>
-            <p className="t-meta mt-1">{BRAND.portalName}</p>
+            <h1 className="text-[14px] font-semibold tracking-[0.06em] uppercase text-[var(--ink)]">
+              {BRAND.shortName}
+            </h1>
           </div>
 
           {step === 'pin' && (
             <>
-              <div className="mb-8">
-                <h2 className="t-display mb-1.5">Sign in</h2>
-                <p className="text-[var(--ink-soft)] text-sm">
-                  Enter your {PIN_LENGTH}-digit PIN to continue.
+              <div className="mb-9 text-center lg:text-left">
+                <h2 className="text-[24px] font-semibold leading-tight text-[var(--ink)]">
+                  Welcome back
+                </h2>
+                <p className="text-[var(--ink-soft)] text-[14px] mt-1.5">
+                  Sign in to continue to your account.
                 </p>
               </div>
 
-              <PinBoxes value={pin} onChange={setPin} onSubmit={submitPin} label='PIN' autoFocus
-                masked autoSubmit disabled={loading} />
+              <p className="t-overline text-center lg:text-left mb-3.5">
+                Enter your {PIN_LENGTH}-digit PIN
+              </p>
+
+              <div className="lg:flex lg:justify-start">
+                <PinBoxes value={pin} onChange={setPin} onSubmit={submitPin} label="PIN" autoFocus
+                  masked autoSubmit disabled={loading} invalid={Boolean(error) && !loading} />
+              </div>
 
               {/*
                 No button. The fourth digit IS the action.
-                
-                A confirm step after a four-digit PIN is a second gesture for
-                something the person has already unambiguously finished — and
-                on a phone it means reaching for a button after the keypad has
-                covered half the screen. Submission is guarded inside PinBoxes
-                so a paste or a fast typist cannot fire it twice.
+
+                A confirm step after four digits is a second gesture for
+                something already unambiguously finished. Submission is guarded
+                inside PinBoxes, so a paste, autofill or a fast typist cannot
+                fire it twice.
               */}
-              <div className="h-6 mt-5 flex items-center justify-center lg:justify-start" aria-live="polite">
+              <div className="h-5 mt-5 flex items-center justify-center lg:justify-start"
+                aria-live="polite">
                 {loading && (
-                  <span className="inline-flex items-center gap-2 t-sub">
-                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--accent)] rounded-full animate-spin" />
+                  <span className="inline-flex items-center gap-2 text-[13px] text-[var(--ink-soft)]">
+                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--navy)] rounded-full animate-spin" />
                     Signing in…
                   </span>
                 )}
@@ -592,7 +328,7 @@ function LoginForm() {
                 </div>
               )}
 
-              <p className="text-xs text-[var(--ink-faint)] mt-8">
+              <p className="text-[13px] text-[var(--ink-faint)] mt-7 text-center lg:text-left">
                 Forgot your PIN?{' '}
                 <button
                   onClick={() => {
@@ -614,29 +350,18 @@ function LoginForm() {
                 <p className="text-[var(--ink-soft)] text-sm">We sent a {OTP_LENGTH}-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
               </div>
 
-              <div className="flex gap-1.5 sm:gap-2 justify-center lg:justify-start">
-                {otp.map((v, i) => (
-                  <input key={i} ref={el => { o.current[i] = el }}
-                    type="text" inputMode="numeric" maxLength={1} value={v}
-                    // The OS offers the code straight from the email or SMS on
-                    // the first box, so it never has to be read and retyped.
-                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                    aria-label={`Sign-in code, digit ${i + 1} of ${OTP_LENGTH}`}
-                    disabled={codeLeft <= 0}
-                    onChange={e => handleDigit(e.target.value, i, otp, setOtp, o, submitOtp)}
-                    onKeyDown={e => handleBksp(e, i, otp, setOtp, o)}
-                    onPaste={e => handlePaste(e, i, otp, setOtp, o, submitOtp)}
-                    onFocus={e => e.target.select()}
-                    style={{
-                      backgroundColor: v ? 'var(--accent)' : 'var(--paper)',
-                      borderColor: v ? 'var(--accent)' : 'var(--line)',
-                      color: v ? '#fff' : 'var(--ink)',
-                      transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
-                    }}
-                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[17px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-[var(--shadow-raised)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                  />
-                ))}
-              </div>
+              <PinBoxes
+                value={otp}
+                onChange={setOtp}
+                onSubmit={submitOtp}
+                label="Sign-in code"
+                masked={false}
+                autoSubmit
+                autoFocus
+                length={OTP_LENGTH}
+                disabled={loading || codeLeft <= 0}
+                invalid={Boolean(error)}
+              />
 
               {loading && (
                 <div className="flex items-center justify-center lg:justify-start gap-2 mt-6 text-[var(--ink-soft)]">
@@ -740,26 +465,18 @@ function LoginForm() {
                 </p>
               </div>
 
-              <div className="flex gap-1.5 sm:gap-2 justify-center lg:justify-start">
-                {otp.map((v, i) => (
-                  <input key={i} ref={el => { o.current[i] = el }}
-                    type="text" inputMode="numeric" maxLength={1} value={v}
-                    autoComplete={i === 0 ? 'one-time-code' : 'off'}
-                    aria-label={`Recovery code, digit ${i + 1} of ${OTP_LENGTH}`}
-                    disabled={codeLeft <= 0}
-                    onChange={e => handleDigit(e.target.value, i, otp, setOtp, o, submitRecoveryCode)}
-                    onKeyDown={e => handleBksp(e, i, otp, setOtp, o)}
-                    onPaste={e => handlePaste(e, i, otp, setOtp, o, submitRecoveryCode)}
-                    onFocus={e => e.target.select()}
-                    style={{
-                      backgroundColor: v ? 'var(--accent)' : 'var(--paper)',
-                      borderColor: v ? 'var(--accent)' : 'var(--line)',
-                      color: v ? '#fff' : 'var(--ink)',
-                    }}
-                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[17px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-[var(--shadow-raised)] focus:ring-4 focus:ring-[var(--accent-soft)]"
-                  />
-                ))}
-              </div>
+              <PinBoxes
+                value={otp}
+                onChange={setOtp}
+                onSubmit={submitRecoveryCode}
+                label="Recovery code"
+                masked={false}
+                autoSubmit
+                autoFocus
+                length={OTP_LENGTH}
+                disabled={loading || codeLeft <= 0}
+                invalid={Boolean(error)}
+              />
 
               {codeLeft <= 0 && !loading && (
                 <div role="status"

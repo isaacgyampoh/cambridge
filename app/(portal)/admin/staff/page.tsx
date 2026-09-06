@@ -7,7 +7,7 @@ import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
-import { Plus, X, Check, Copy, Eye, EyeOff, Shield, Phone, Mail, User, Briefcase, Hash } from 'lucide-react'
+import { Copy, X } from 'lucide-react'
 import { useConfirm } from '@/hooks/useConfirm'
 
 const ROLES = [
@@ -196,8 +196,29 @@ export default function StaffPage() {
   }
 
   async function clearAllStaff() {
-    const typed = prompt('This permanently deletes EVERY staff member except super admins. Leads are kept (unassigned).\n\nType exactly:  DELETE ALL STAFF')
-    if (typed !== 'DELETE ALL STAFF') { if (typed !== null) toast.error('Confirmation did not match. Nothing deleted.'); return }
+    /*
+     * Typed confirmation in the application's own dialog.
+     *
+     * window.prompt() is refused outright by some mobile webviews and returns
+     * null once a browser has been told to block further dialogs — and null
+     * was read here as "cancelled", so the action became impossible with no
+     * message at all.
+     */
+    if (!await confirm({
+      title: 'Delete every staff member?',
+      confirmLabel: 'Delete all staff',
+      requirePhrase: 'DELETE ALL STAFF',
+      message: (
+        <>
+          <p className="mb-3">
+            This permanently removes every staff member except super admins.
+          </p>
+          <p className="mb-3">Leads are kept, and become unassigned.</p>
+          <p className="font-medium text-[var(--ink)]">This cannot be undone.</p>
+        </>
+      ),
+    })) return
+
     const d = await fetch('/api/admin/clear-staff', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ confirm: 'DELETE ALL STAFF' }),
@@ -232,10 +253,8 @@ export default function StaffPage() {
                 <h2 className="font-semibold text-[var(--ink)]">Add Staff Member</h2>
                 <p className="text-xs text-[var(--ink-faint)] mt-0.5">Create login credentials for a new team member</p>
               </div>
-              <button onClick={() => setShowModal(false)}
-                className="w-8 h-8 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
-                
-              </button>
+              <button type="button" onClick={() => setShowModal(false)}
+                className="w-8 h-8 flex items-center justify-center text-[var(--ink-faint)] hover:text-[var(--ink-soft)] hover:bg-[var(--line-soft)] rounded-xl transition-colors" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
 
             {/* Credentials shown after success */}
@@ -258,10 +277,8 @@ export default function StaffPage() {
                         <div className="text-[11px] font-bold text-[var(--ink-faint)]">Phone (Login)</div>
                         <div className="text-sm font-semibold text-[var(--ink)]">{creds.phone}</div>
                       </div>
-                      <button onClick={() => copyText(creds.phone, 'Phone')}
-                        className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors">
-                        
-                      </button>
+                      <button type="button" onClick={() => copyText(creds.phone, 'Phone')}
+                        className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors" aria-label="Copy"><Copy size={15} aria-hidden="true" /></button>
                     </div>
 
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
@@ -269,10 +286,8 @@ export default function StaffPage() {
                         <div className="text-[11px] font-bold text-[var(--ink-faint)]">Initial PIN</div>
                         <div className="text-2xl font-bold tracking-[0.3em] text-[var(--accent)]">{creds.initial_pin}</div>
                       </div>
-                      <button onClick={() => copyText(creds.initial_pin, 'PIN')}
-                        className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors">
-                        
-                      </button>
+                      <button type="button" onClick={() => copyText(creds.initial_pin, 'PIN')}
+                        className="p-2 text-[var(--ink-faint)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] rounded-lg transition-colors" aria-label="Copy"><Copy size={15} aria-hidden="true" /></button>
                     </div>
                   </div>
 
@@ -525,8 +540,8 @@ export default function StaffPage() {
           {isSuperAdmin && (
             <button onClick={async () => {
               const st = await fetch('/api/admin/clean-logins').then(r => r.json()).catch(() => null)
-              if (!st || st.error) return alert(st?.error || 'Could not check')
-              if (!st.orphans) return alert('No leftover logins — every sign-in account belongs to a current staff member.')
+              if (!st || st.error) { toast.error(st?.error || 'Could not check that.'); return }
+              if (!st.orphans) { toast.info('No leftover logins — every sign-in account belongs to a current staff member.'); return }
               if (!await confirm({
                 title: 'Remove leftover sign-in accounts?',
                 confirmLabel: `Remove ${st.orphans}`,
@@ -543,8 +558,8 @@ export default function StaffPage() {
                 ),
               })) return
               const d = await fetch('/api/admin/clean-logins', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-              if (d.error) alert(d.error)
-              else alert(`Removed ${d.removed} leftover login${d.removed === 1 ? '' : 's'}. Those emails can be used again now.`)
+              if (d.error) toast.error(d.error)
+              else toast.success(`Removed ${d.removed} leftover login${d.removed === 1 ? '' : 's'}. Those emails can be used again now.`)
             }}
               className="inline-flex items-center gap-2 h-10 px-4 border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
               Clear leftover logins
@@ -553,8 +568,8 @@ export default function StaffPage() {
           {isSuperAdmin && (
             <button onClick={async () => {
               const st = await fetch('/api/admin/repair-access').then(r => r.json()).catch(() => null)
-              if (!st || st.error) return alert(st?.error || 'Could not check')
-              if (!st.affected) return alert('Everyone has the access their role should give them.')
+              if (!st || st.error) { toast.error(st?.error || 'Could not check that.'); return }
+              if (!st.affected) { toast.info('Everyone already has the access their role should give them.'); return }
               if (!await confirm({
                 title: 'Restore missing access?',
                 confirmLabel: 'Restore access',
@@ -578,8 +593,8 @@ export default function StaffPage() {
                 ),
               })) return
               const d = await fetch('/api/admin/repair-access', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-              if (d.error) alert(d.error)
-              else alert(`Fixed ${d.fixed}. They will see the difference on their next page load.`)
+              if (d.error) toast.error(d.error)
+              else toast.success(`Fixed ${d.fixed}. They will see the difference on their next page load.`)
             }}
               className="inline-flex items-center gap-2 h-10 px-4 border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
               Fix staff access
@@ -686,8 +701,15 @@ export default function StaffPage() {
             })}
           </div>
 
-          {/* Desktop: table */}
-          <div className="hidden sm:block overflow-visible">
+          {/*
+            Desktop: table.
+
+            overflow-x-auto, not overflow-visible: this table has eight columns
+            and at 768px on a tablet the last of them pushed the whole page
+            sideways. A wide table scrolls inside its own box; the page never
+            scrolls horizontally.
+          */}
+          <div className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">

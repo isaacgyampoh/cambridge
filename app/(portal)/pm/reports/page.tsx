@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 import { DataTable, type Column } from '@/components/ui/DataTable'
 
@@ -17,9 +17,17 @@ type MarketerRow = { name: string; total: number; converted: number }
 export default function PMReports() {
   const [data, setData] = useState<any>(null)
   const [range, setRange] = useState('30')
-  useEffect(() => { load() }, [range])
 
-  async function load() {
+  /*
+   * The effect used to call `load()`, which was declared BELOW it and set
+   * state synchronously. Two problems in one line: React 19 counts that as a
+   * cascading render, and the effect depended on a binding that only existed
+   * through hoisting, so the linter could not see when it changed.
+   *
+   * `load` is now a useCallback declared before its effect, which makes the
+   * dependency real and the ordering explicit.
+   */
+  const load = useCallback(async () => {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
 
     const [leads] = await Promise.all([
@@ -44,7 +52,9 @@ export default function PMReports() {
     })
 
     setData({ total, bySource, byStatus, byMarketer, conversionRate: total ? Math.round((byStatus.ready_to_join || 0) / total * 100) : 0 })
-  }
+  }, [range])
+
+  useEffect(() => { load() }, [load])
 
   if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
 

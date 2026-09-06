@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
-import { Banknote, Check, X, ExternalLink } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function ClassPaymentsPage() {

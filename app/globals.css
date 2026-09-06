@@ -15,80 +15,78 @@
 
 :root {
   /* ── Neutrals ────────────────────────────────────────────────────────────
-     A single cool-grey ramp. Text sits at three weights of emphasis and no
-     more; a fourth invariably becomes decoration. */
-  --ink:        #16202e;   /* primary text */
-  --ink-soft:   #56616f;   /* secondary text, descriptions */
-  --ink-faint:  #8b95a3;   /* metadata, captions, disabled */
+     A cool grey ramp. Text has three weights of emphasis and no more. */
+  --ink:        #0f1b2d;   /* primary text */
+  --ink-soft:   #5b6675;   /* secondary text, descriptions */
+  --ink-faint:  #8b96a5;   /* metadata, captions, disabled */
 
-  --line:       #e4e8ed;   /* hairline borders */
-  --line-soft:  #f0f2f5;   /* dividers inside a surface */
+  --line:       #e6e9ee;   /* hairline borders */
+  --line-soft:  #f1f3f6;   /* dividers inside a surface */
   --paper:      #ffffff;   /* raised surface */
-  --canvas:     #f8f9fb;   /* page ground */
+  --canvas:     #f7f8fa;   /* page ground */
 
   /* ── Brand ───────────────────────────────────────────────────────────────
-     ONE brand colour. It marks the primary action, the current location, and
-     nothing else. A second accent exists only for honours and certificates,
-     where the institution genuinely means something different. */
-  --accent:      #14636c;
-  --accent-hover:#0f4f57;
+     A deep institutional navy. It carries the header, the bottom navigation,
+     the primary action and the current location — and nothing else. A second
+     accent exists only for honours, where the institution means something
+     different by it. */
+  --navy:        #16273f;
+  --navy-deep:   #0f1b2d;
+  --navy-soft:   #eef1f6;
+  --navy-line:   #c9d3e0;
+
+  --accent:      var(--navy);
+  --accent-hover:#0f1b2d;
   --accent-ink:  #ffffff;
-  --accent-soft: #e8f1f2;
-  --accent-line: #b9d5d8;
+  --accent-soft: var(--navy-soft);
+  --accent-line: var(--navy-line);
 
   --gold:       #96742f;
   --gold-soft:  #f5efe3;
 
   /* ── Semantic ────────────────────────────────────────────────────────────
-     Reserved for state. Never for categorising features — a screen where
-     every module has its own colour is a screen with no hierarchy. */
-  --ok:          #2c6b4f;
-  --ok-soft:     #e9f1ec;
-  --warn:        #96682a;
-  --warn-soft:   #f6efe3;
-  --danger:      #a63d37;
-  --danger-soft: #f7eae9;
-  --info:        var(--accent);
-  --info-soft:   var(--accent-soft);
+     State only. Never for distinguishing features from one another. */
+  --ok:          #1f7a52;
+  --ok-soft:     #e8f3ed;
+  --warn:        #9a6a1e;
+  --warn-soft:   #fbf1e0;
+  --danger:      #a8342f;
+  --danger-soft: #f9eae9;
+  --info:        #2b5c8a;
+  --info-soft:   #eaf1f8;
 
   /* ── Type scale ──────────────────────────────────────────────────────────
-     Eight steps, and every one has a job. A page title is 24px, not 32:
-     confidence in an administrative tool comes from restraint, not size. */
-  --text-display: 24px;   /* page title */
-  --text-title:   17px;   /* section title, dialog title */
-  --text-lead:    15px;   /* page description, emphasised body */
-  --text-body:    14px;   /* default */
-  --text-sub:     13px;   /* secondary, table cells, dense UI */
-  --text-meta:    12px;   /* metadata, captions, helper text */
-  --text-micro:   11px;   /* labels, badges, overlines */
+     Eight steps, each with a job. A page title is 22px on a phone: confidence
+     in an operations tool comes from restraint, not size. */
+  --text-display: 22px;
+  --text-title:   17px;
+  --text-lead:    15px;
+  --text-body:    14px;
+  --text-sub:     13px;
+  --text-meta:    12px;
+  --text-micro:   11px;
 
   --leading-tight: 1.25;
   --leading-snug:  1.4;
   --leading-body:  1.55;
 
-  /* ── Spacing ─────────────────────────────────────────────────────────────
-     A 4px grid. Anything not on it is a mistake, not a decision. */
-  --space-1: 4px;
-  --space-2: 8px;
-  --space-3: 12px;
-  --space-4: 16px;
-  --space-5: 20px;
-  --space-6: 24px;
-  --space-8: 32px;
-  --space-10: 40px;
+  /* ── Spacing: a 4px grid ─────────────────────────────────────────────── */
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px; --space-4: 16px;
+  --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
 
-  /* ── Radius ──────────────────────────────────────────────────────────────
-     Three values. Controls, surfaces, and circles. Eight different radii is
-     how an interface stops looking deliberate. */
-  --radius-control: 10px;  /* buttons, inputs, badges, menu items */
-  --radius-surface: 16px;  /* cards, dialogs, panels */
-  --radius-full:    999px; /* avatars, dots, keypad marks */
+  /* ── Radius ──────────────────────────────────────────────────────────── */
+  --radius-control: 10px;  /* buttons, inputs, badges */
+  --radius-surface: 16px;  /* cards, sheets, dialogs */
+  --radius-full:    999px;
 
   /* ── Elevation ───────────────────────────────────────────────────────────
-     Borders carry structure; shadow is used sparingly and only where
-     something genuinely floats above the page. */
-  --shadow-raised:  0 1px 2px rgba(22, 32, 46, 0.04);
-  --shadow-overlay: 0 8px 28px -8px rgba(22, 32, 46, 0.18);
+     Borders carry structure. Shadow appears only where something floats. */
+  --shadow-raised:  0 1px 2px rgba(15, 27, 45, 0.04);
+  --shadow-overlay: 0 12px 32px -10px rgba(15, 27, 45, 0.22);
+
+  /* Mobile chrome heights, so content can reserve exactly the right room. */
+  --appbar-h: 56px;
+  --tabbar-h: 60px;
 }
 
 /* ── Type utilities ────────────────────────────────────────────────────────
@@ -282,4 +280,84 @@ table { border-collapse: collapse; width: 100%; }
 @supports (padding: max(0px)) {
   .safe-b { padding-bottom: max(1rem, env(safe-area-inset-bottom)); }
   .safe-t { padding-top: max(0px, env(safe-area-inset-top)); }
+}
+
+/* ═════════════════════════════════════════════════════════════════════════
+   MOBILE APPLICATION CHROME
+
+   The phone is the primary surface, so its chrome is defined here rather than
+   assembled ad hoc per screen: a navy app bar, a navy tab bar, and content
+   that reserves exactly the space they occupy.
+   ═════════════════════════════════════════════════════════════════════════ */
+
+.app-bar {
+  background: var(--navy);
+  color: #fff;
+  height: var(--appbar-h);
+  padding-top: env(safe-area-inset-top);
+  height: calc(var(--appbar-h) + env(safe-area-inset-top));
+}
+
+.tab-bar {
+  background: var(--navy);
+  padding-bottom: env(safe-area-inset-bottom);
+}
+
+/* Content sits clear of the tab bar without each screen remembering to. */
+.has-tabbar {
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px);
+}
+
+/* ── Sticky action bar ────────────────────────────────────────────────────
+   A record's primary actions, pinned within thumb reach on a phone.
+
+   It sits ON TOP OF the tab bar rather than at bottom:0, because both are
+   fixed and the tab bar owns the safe area underneath. Stacking them at the
+   same offset puts one over the other — the action bar wins on z-index and
+   the navigation disappears. */
+.action-bar {
+  position: fixed;
+  left: 0;
+  right: 0;
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom));
+  z-index: 30;                     /* below .tab-bar's 40 */
+  background: color-mix(in srgb, var(--paper) 95%, transparent);
+  border-top: 1px solid var(--line);
+  backdrop-filter: blur(8px);
+}
+
+/* Content clears BOTH bars. Used instead of .has-tabbar on record screens. */
+.has-actionbar {
+  padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 76px);
+}
+
+@media (min-width: 1024px) {
+  .action-bar { display: none; }
+  .has-actionbar { padding-bottom: 2.25rem; }
+}
+
+/* ── List rows ────────────────────────────────────────────────────────────
+   The workhorse of the product. A divider, not a card: fifteen cards down a
+   phone screen is fifteen borders competing with the content inside them. */
+.row-list > * + * { border-top: 1px solid var(--line-soft); }
+
+/* ── Motion ───────────────────────────────────────────────────────────────
+   Short and unremarkable. Anything a person notices twice is too long. */
+@keyframes sheetUp {
+  from { transform: translateY(8px); opacity: 0; }
+  to   { transform: translateY(0);   opacity: 1; }
+}
+.sheet-in { animation: sheetUp 0.18s cubic-bezier(0.22, 1, 0.36, 1) both; }
+
+/* A bottom sheet travels its own height, not the 8px a popover does. The
+   easing settles rather than bounces — a sheet that overshoots reads as a
+   toy. */
+@keyframes sheetRise {
+  from { transform: translateY(100%); }
+  to   { transform: translateY(0); }
+}
+.sheet-rise { animation: sheetRise 0.26s cubic-bezier(0.32, 0.72, 0, 1) both; }
+
+@media (prefers-reduced-motion: reduce) {
+  .sheet-in, .sheet-rise, .fade-in, .stagger > * { animation: none !important; }
 }

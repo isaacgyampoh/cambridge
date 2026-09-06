@@ -6,7 +6,6 @@ import {
 } from 'recharts'
 import { PageHeader, Card, StatCard, SectionLabel, Spinner } from '@/components/ui'
 import { formatGHS } from '@/lib/utils'
-import { TrendingUp, DollarSign, Target, Users } from 'lucide-react'
 
 const ACCENT = 'var(--accent)'
 const SOURCE_COLORS = ['var(--accent)', '#5b9ee0', '#1a5fae', '#86bdf0', '#3d6b9e', 'var(--ink-faint)']

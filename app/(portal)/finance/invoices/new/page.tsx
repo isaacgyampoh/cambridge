@@ -4,7 +4,6 @@ import { useData, mutate } from '@/hooks/useData'
 import { useRouter } from 'next/navigation'
 import type { Profile, Course } from '@/types'
 import { toast } from 'sonner'
-import { ArrowLeft } from 'lucide-react'
 import Link from 'next/link'
 
 export default function NewInvoice() {

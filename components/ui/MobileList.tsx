@@ -39,13 +39,20 @@ export type ListRowProps = {
   meta?: React.ReactNode
   /** Primary actions. Two or three at most; the rest belong in an ActionMenu. */
   actions?: React.ReactNode
+  /**
+   * A secondary strip below the actions — a snooze control, a link into the
+   * record, a progress bar. Kept separate from `meta` because it holds
+   * CONTROLS: it is excluded from the row's link and stops propagation, which
+   * text never needs to do.
+   */
+  subrow?: React.ReactNode
   /** Opening the record. Renders the row as a link with a chevron. */
   href?: string
   onClick?: () => void
 }
 
 export function ListRow({
-  title, subtitle, leading, status, meta, actions, href, onClick,
+  title, subtitle, leading, status, meta, actions, subrow, href, onClick,
 }: ListRowProps) {
   const interactive = Boolean(href || onClick)
 
@@ -87,6 +94,13 @@ export function ListRow({
         <div className="flex items-center gap-2 mt-3 pt-3 border-t border-[var(--line-soft)]"
           onClick={e => { e.stopPropagation(); e.preventDefault() }}>
           {actions}
+        </div>
+      )}
+
+      {subrow && (
+        <div className={actions ? 'mt-2' : 'mt-3 pt-3 border-t border-[var(--line-soft)]'}
+          onClick={e => { e.stopPropagation(); e.preventDefault() }}>
+          {subrow}
         </div>
       )}
     </>

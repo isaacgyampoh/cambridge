@@ -1,8 +1,29 @@
 'use client'
+import { toast } from 'sonner'
 import { uploadFile as uploadToStorage } from '@/lib/upload'
 import { useState, useEffect, useRef } from 'react'
 import { PageHeader, Card, Spinner } from '@/components/ui'
 import { ROLE_LABELS } from '@/lib/utils'
+
+/*
+ * An optimistic message's local identity.
+ *
+ * Date.now() read from inside a component body is what React 19 flags as an
+ * impure render: the same render replayed would produce a different value.
+ * These are only ever called from event handlers, but keeping them at module
+ * scope makes that unambiguous — and stops them being rebuilt every render.
+ *
+ * The sequence matters too: two files attached in the same millisecond used
+ * to receive the same 'tmp' + Date.now() key, and React then reused one row
+ * for both.
+ */
+let optimisticSeq = 0
+function optimisticId(): string {
+  return `tmp-${Date.now()}-${++optimisticSeq}`
+}
+function nowIso(): string {
+  return new Date().toISOString()
+}
 
 export default function Messages() {
   const [staff, setStaff] = useState<any[]>([])
@@ -33,7 +54,7 @@ export default function Messages() {
       rec.start()
       setRecording(true)
     } catch {
-      alert('Could not access the microphone. Please allow mic permission.')
+      toast.error('Could not use the microphone. Allow microphone access and try again.')
     }
   }
 
@@ -46,16 +67,16 @@ export default function Messages() {
     if (!active) return
     setUploading(true)
     try {
-      const voiceFile = new File([blob], `voice-${Date.now()}.webm`, { type: blob.type || 'audio/webm' })
+      const voiceFile = new File([blob], `voice-${optimisticId()}.webm`, { type: blob.type || 'audio/webm' })
       const data = await uploadToStorage(voiceFile, 'voice-notes')
       if (data.url) {
-        const optimistic = { id: 'tmp' + Date.now(), sender_id: me, recipient_id: active.id, audio_url: data.url, created_at: new Date().toISOString() }
+        const optimistic = { id: optimisticId(), sender_id: me, recipient_id: active.id, audio_url: data.url, created_at: nowIso() }
         setThread(t => [...t, optimistic])
         setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
         await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, audio_url: data.url }) })
       }
     } catch {
-      alert('Could not send the voice note. Try again.')
+      toast.error('Could not send that voice note. Try again.')
     } finally {
       setUploading(false)
     }
@@ -69,13 +90,13 @@ export default function Messages() {
       const data = await uploadToStorage(file, 'messages')
       if (data.url) {
         const meta = { file_url: data.url, file_name: file.name, file_type: isImage ? 'image' : 'document', file_size: file.size }
-        const optimistic = { id: 'tmp' + Date.now(), sender_id: me, recipient_id: active.id, ...meta, created_at: new Date().toISOString() }
+        const optimistic = { id: optimisticId(), sender_id: me, recipient_id: active.id, ...meta, created_at: nowIso() }
         setThread(t => [...t, optimistic])
         setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
         await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, ...meta }) })
-      } else { alert('Upload failed. Try again.') }
+      } else { toast.error('That file could not be uploaded. Try again.') }
     } catch {
-      alert('Could not send the file. Try again.')
+      toast.error('Could not send that file. Try again.')
     } finally {
       setUploading(false)
     }
@@ -100,7 +121,7 @@ export default function Messages() {
     const body = input.trim()
     if (!body || !active) return
     setInput('')
-    const optimistic = { id: 'tmp' + Date.now(), sender_id: me, recipient_id: active.id, body, created_at: new Date().toISOString() }
+    const optimistic = { id: optimisticId(), sender_id: me, recipient_id: active.id, body, created_at: nowIso() }
     setThread(t => [...t, optimistic])
     setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
     await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, body }) })

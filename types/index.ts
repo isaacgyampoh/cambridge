@@ -31,6 +31,18 @@ export interface Profile {
   department: string | null
   created_at: string
   updated_at: string
+
+  /*
+   * Each member of staff can have their own WhatsApp line, so a lead is
+   * messaged by the person who owns them rather than from a central number.
+   * These columns exist in the database and were read by the WhatsApp screen
+   * without ever being declared here.
+   */
+  wasender_api_key?: string | null
+  wasender_status?: string | null
+  wasender_phone?: string | null
+  /** The greeting that line opens with. */
+  wa_intro?: string | null
 }
 
 export interface Campus {
@@ -182,6 +194,20 @@ export interface Application {
   course?: Course
 }
 
+/**
+ * A person a record points at, as PostgREST returns an embedded row.
+ *
+ * Joins are requested per screen (`select: '*, student:student_id(...)'`), so
+ * the relation is optional: present when it was asked for, absent when it was
+ * not. Declaring it optional is what stops a screen reading `.student` from a
+ * query that never selected it.
+ */
+export interface EmbeddedPerson {
+  full_name: string
+  phone?: string | null
+  email?: string | null
+}
+
 export interface Payment {
   id: string
   invoice_id: string | null
@@ -196,6 +222,9 @@ export interface Payment {
   recorded_by: string | null
   paid_at: string | null
   created_at: string
+
+  /** Present only when the query joined it. See EmbeddedPerson. */
+  student?: EmbeddedPerson | null
 }
 
 export interface Invoice {

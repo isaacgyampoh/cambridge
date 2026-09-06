@@ -5,11 +5,12 @@ import { readableStatus } from '@/lib/ui/status'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, STATUS_COLORS, SOURCE_COLORS } from '@/lib/utils'
 import { toast } from 'sonner'
-import { ArrowLeft, Phone, MessageSquare, Mail, Calendar, Plus, Clock } from 'lucide-react'
+import { ArrowLeft, Mail, MessageSquare, X } from 'lucide-react'
 import Link from 'next/link'
 import Modal from '@/components/shared/Modal'
 import CallButton from '@/components/shared/CallButton'
 import { changeLeadStatus } from '@/lib/leadStatus'
+import { telHref, whatsappHref, mailtoHref } from '@/lib/ui/contact'
 
 const STATUSES = [
   { key: 'new', label: 'New'},
@@ -189,10 +190,13 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   }
 
   async function sendQuickWA(template: string) {
-    if (!lead?.phone) return
-    const phone = lead.phone.replace(/^0/, '233').replace(/^\+/, '')
-    const msg = template.replace('{{name}}', lead.full_name.split(' ')[0])
-    window.open(`https://wa.me/${phone}?text=${encodeURIComponent(msg)}`, '_blank')
+    const msg = template.replace('{{name}}', lead?.full_name?.split(' ')[0] || 'there')
+    // whatsappHref, not a local replace(): it strips the spaces a number
+    // stored as "+233 24 123 4567" carries, which the two .replace() calls
+    // here did not — that URL opened to nothing.
+    const href = whatsappHref(lead?.phone, msg)
+    if (!href) return
+    window.open(href, '_blank', 'noopener,noreferrer')
     // Log the activity
     try {
       await mutate('POST', 'lead_activities', {
@@ -213,7 +217,9 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   ]
 
   return (
-    <div className="fade-in w-full max-w-5xl mx-auto">
+    // has-actionbar: the sticky contact bar floats over this, so the last
+    // card would otherwise sit underneath it.
+    <div className="fade-in w-full max-w-5xl mx-auto has-actionbar">
       <Link href="/marketer/leads" className="inline-flex items-center gap-1.5 text-sm text-[var(--ink-faint)] hover:text-[var(--ink)] mb-5 transition">
         <ArrowLeft size={15} /> Back to my leads
       </Link>
@@ -254,7 +260,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <div className="mt-4 rounded-xl bg-[var(--warn-soft)] border border-[var(--warn)]/25 p-4 flex items-start gap-3">
                 <div className="flex-1">
                   <div className="text-[14px] font-semibold text-[var(--ink)]">This chat needs you</div>
-                  <div className="text-[13px] text-[var(--ink-soft)] mt-0.5">The AI stepped aside (a voice note, a question it couldn't handle, or the lead asked for a person). Reply to them on WhatsApp, then resume the AI when you're done.</div>
+                  <div className="text-[13px] text-[var(--ink-soft)] mt-0.5">The AI stepped aside (a voice note, a question it couldn’t handle, or the lead asked for a person). Reply to them on WhatsApp, then resume the AI when you’re done.</div>
                 </div>
                 <button onClick={resumeAI}
                   className="flex-shrink-0 h-9 px-3 rounded-lg bg-[var(--paper)] border border-[var(--line)] text-[13px] font-semibold text-[var(--ink)] hover:bg-white transition">
@@ -282,7 +288,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             {/* Quick comment — instant heads-up to the PM */}
             <div className="mt-4 rounded-2xl border border-[var(--line)] p-4">
               <div className="text-[14px] font-semibold text-[var(--ink)] mb-1">Quick comment</div>
-              <div className="text-[13px] text-[var(--ink-soft)] mb-3">Something the PM should know right away (e.g. this lead needs a scholarship). They're notified instantly by SMS.</div>
+              <div className="text-[13px] text-[var(--ink-soft)] mb-3">Something the PM should know right away (e.g. this lead needs a scholarship). They’re notified instantly by SMS.</div>
               <div className="flex gap-2">
                 <input value={commentText} onChange={e => setCommentText(e.target.value)}
                   onKeyDown={e => { if (e.key === 'Enter') postComment() }}
@@ -304,27 +310,6 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 </div>
               )}
             </div>
-            {(lead.phone || lead.email) && (
-              <div className="px-6 pb-5 flex flex-wrap gap-2">
-                {lead.phone && (
-                  <>
-                    <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()}
-                      className="inline-flex items-center gap-2 px-5 h-11 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-110 transition disabled:opacity-60" />
-                    <a href={`https://wa.me/${lead.phone.replace(/^0/, '233').replace(/^\+/, '')}`} target="_blank"
-                      className="inline-flex items-center gap-2 px-5 h-11 bg-[#25D366] text-white rounded-xl text-[15px] font-semibold hover:opacity-90 transition">
-                      WhatsApp
-                    </a>
-                  </>
-                )}
-                {lead.email && (
-                  <a href={`mailto:${lead.email}`}
-                    className="inline-flex items-center gap-2 px-5 h-11 border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-[15px] font-medium hover:bg-[var(--canvas)] transition">
-                    Email
-                  </a>
-                )}
-              </div>
-            )}
-
             {/* Detail rows */}
             <div className="border-t border-[var(--line-soft)] px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5">
               {[
@@ -484,7 +469,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
         <div className="p-6">
           <div className="flex items-center justify-between mb-1">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Register student</h2>
-            <button onClick={() => setRegOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setRegOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <p className="text-sm text-[var(--ink-soft)] mb-5">{lead?.full_name}</p>
 
@@ -536,6 +521,58 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
           </div>
         </div>
       </Modal>
+
+      {/*
+        Contacting this person, always within reach.
+
+        These three buttons were two-thirds of the way down the page, below
+        the activity log and the quick-comment box — so the single most common
+        action on the screen, ringing the lead, was behind a scroll. Pinned to
+        the bottom on a phone they are where a thumb already rests, and the
+        page reserves the space beneath itself (.has-actionbar) so the bar
+        never covers the last row of content, and the bar is offset ABOVE the
+        tab bar rather than sharing bottom:0 with it — two fixed elements at
+        the same offset means one hides the other.
+
+        Desktop keeps them inline at the top of the record instead: a bar
+        stuck to the bottom of a 1440px window is a phone pattern applied
+        where it is not needed.
+
+        The links come from telHref/whatsappHref rather than being assembled
+        here. This screen previously built its own with
+        `.replace(/^0/, '233').replace(/^\+/, '')`, which leaves the spaces in
+        a number stored as "+233 24 123 4567" — producing a wa.me URL that
+        silently opens to nothing. canonicalContact strips them.
+      */}
+      {lead && (lead.phone || lead.email) && (
+        <div className="action-bar px-4 py-2.5">
+          <div className="flex items-center gap-2 max-w-[560px] mx-auto">
+            {telHref(lead.phone) && (
+              <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()}
+                className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl
+                  bg-[var(--navy)] text-white text-[15px] font-semibold
+                  active:brightness-110 transition disabled:opacity-60" />
+            )}
+            {whatsappHref(lead.phone) && (
+              <a href={whatsappHref(lead.phone) as string} target="_blank" rel="noopener noreferrer"
+                aria-label="Message on WhatsApp"
+                className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl
+                  border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)]
+                  text-[15px] font-semibold active:bg-[var(--canvas)] transition">
+                <MessageSquare size={17} aria-hidden="true" /> WhatsApp
+              </a>
+            )}
+            {mailtoHref(lead.email) && (
+              <a href={mailtoHref(lead.email) as string} aria-label="Send an email"
+                className="w-12 h-12 grid place-items-center rounded-xl flex-shrink-0
+                  border border-[var(--line)] text-[var(--ink-soft)]
+                  active:bg-[var(--canvas)] transition">
+                <Mail size={18} aria-hidden="true" />
+              </a>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   )
 }

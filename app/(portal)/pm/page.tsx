@@ -90,7 +90,7 @@ export default function PMDashboard() {
       {s.subTeam && s.subTeam.length > 0 && (
         <Card className="p-6 mt-4">
           <div className="text-[15px] font-semibold text-[var(--ink)] mb-1">Your team</div>
-          <p className="text-[13px] text-[var(--ink-soft)] mb-4">People who report to you and everything they're working on.</p>
+          <p className="text-[13px] text-[var(--ink-soft)] mb-4">People who report to you and everything they’re working on.</p>
           <DataTable<TeamMember>
             caption="Your team"
             rows={s.subTeam}

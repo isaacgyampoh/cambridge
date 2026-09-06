@@ -1,5 +1,4 @@
 'use client'
-import { use } from 'react'
 import LeadDetail from '@/app/(portal)/marketer/leads/[id]/page'
 
 /**

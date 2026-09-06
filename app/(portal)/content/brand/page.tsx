@@ -2,12 +2,12 @@
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Button, Spinner, EmptyState, Field, inputClass, textareaClass} from '@/components/ui'
 import FileUpload from '@/components/shared/FileUpload'
-import { Palette, Save, Trash2, ImageIcon, Copy } from 'lucide-react'
+import { Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 
 export default function BrandKit() {
-  const { confirm, dialog } = useConfirm()
+  const { confirm, ask, dialog } = useConfirm()
   const [profile, setProfile] = useState<any>({ voice: '', tagline: '', do_say: '', dont_say: '', primary_color: 'var(--accent)' })
   const [assets, setAssets] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
@@ -32,7 +32,14 @@ export default function BrandKit() {
   }
 
   async function addAsset(url: string) {
-    const name = prompt('Name this asset (e.g. Primary logo)') || 'Asset'
+    const typed = await ask({
+      title: 'Name this asset',
+      confirmLabel: 'Add asset',
+      input: { label: 'Asset name', placeholder: 'e.g. Primary logo' },
+    })
+    // Cancelled — the upload is not recorded rather than filed as "Asset".
+    if (typed === null) return
+    const name = typed.trim() || 'Asset'
     await fetch('/api/content/brand', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'add_asset', url, name }) })
     toast.success('Asset added'); load()
   }
@@ -105,8 +112,8 @@ export default function BrandKit() {
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs text-[var(--ink-soft)] truncate">{a.name}</span>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => { navigator.clipboard.writeText(a.url); toast.success('Link copied') }} className="p-1 text-[var(--ink-faint)] hover:text-[var(--accent)]"></button>
-                      <button onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
+                      <button type="button" onClick={() => { navigator.clipboard.writeText(a.url); toast.success('Link copied') }} className="p-1 text-[var(--ink-faint)] hover:text-[var(--accent)]" aria-label="Copy"><Copy size={15} aria-hidden="true" /></button>
+                      <button type="button" onClick={() => delAsset(a.id)} className="p-1 text-[var(--ink-faint)] hover:text-[var(--danger)]" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
                     </div>
                   </div>
                 </Card>

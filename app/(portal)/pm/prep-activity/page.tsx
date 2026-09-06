@@ -1,13 +1,23 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PageHeader, Card, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
-import { Activity, MessageSquare, Pencil, UserPlus, UserMinus } from 'lucide-react'
+import { PageHeader, Card, Badge, Spinner, EmptyState } from '@/components/ui'
+import { MessageSquare, Pencil, UserPlus, UserMinus } from 'lucide-react'
 
 const ACTION_META: Record<string, { icon: any; tone: string; label: string }> = {
   added:   { icon: UserPlus,      tone: 'success', label: 'Added' },
   updated: { icon: Pencil,        tone: 'accent',  label: 'Updated' },
   comment: { icon: MessageSquare, tone: 'neutral', label: 'Comment' },
   removed: { icon: UserMinus,     tone: 'warning', label: 'Removed' },
+}
+
+/* Reading the clock is not a render-time job — see the note in messages. */
+function timeAgo(d: string) {
+  const diff = Date.now() - new Date(d).getTime()
+  const m = Math.floor(diff / 60000), h = Math.floor(m / 60), days = Math.floor(h / 24)
+  if (days > 0) return `${days}d ago`
+  if (h > 0) return `${h}h ago`
+  if (m > 0) return `${m}m ago`
+  return 'just now'
 }
 
 export default function PrepActivityPage() {
@@ -22,15 +32,6 @@ export default function PrepActivityPage() {
   }, [program])
 
   const programs = Array.from(new Set(activity.map(a => a.program_code).filter(Boolean)))
-
-  function timeAgo(d: string) {
-    const diff = Date.now() - new Date(d).getTime()
-    const m = Math.floor(diff / 60000), h = Math.floor(m / 60), days = Math.floor(h / 24)
-    if (days > 0) return `${days}d ago`
-    if (h > 0) return `${h}h ago`
-    if (m > 0) return `${m}m ago`
-    return 'just now'
-  }
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">

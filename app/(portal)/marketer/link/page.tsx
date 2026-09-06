@@ -2,6 +2,7 @@
 import { CONFIG } from '@/lib/config'
 import { readableStatus } from '@/lib/ui/status'
 import { useState, useEffect } from 'react'
+import { Copy, ExternalLink } from 'lucide-react'
 
 import type { Profile, Application } from '@/types'
 import { toast } from 'sonner'
@@ -157,11 +158,16 @@ export default function MarketerLink() {
               <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-4 py-3 text-sm text-[var(--ink-soft)] font-mono break-all">
                 {appUrl}
               </div>
-              <button onClick={copy} className="flex-shrink-0 p-3 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition">
-                
+              <button type="button" onClick={copy} aria-label="Copy the link"
+                className="flex-shrink-0 w-12 h-12 grid place-items-center bg-[var(--navy)] text-white
+                  rounded-lg hover:brightness-110 transition">
+                <Copy size={17} aria-hidden="true" />
               </button>
-              <a href={appUrl} target="_blank" className="flex-shrink-0 p-3 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
-                
+              <a href={appUrl} target="_blank" rel="noopener noreferrer"
+                aria-label="Open the link in a new tab"
+                className="flex-shrink-0 w-12 h-12 grid place-items-center bg-[var(--line-soft)]
+                  text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
+                <ExternalLink size={17} aria-hidden="true" />
               </a>
             </div>
             <a href={`https://wa.me/?text=${encodeURIComponent(`Hello, here is your registration link for Cambridge Center of Excellence:\n\n${appUrl}\n\nClick it to fill in your details and pay your registration fee. Once that's done you're registered and we'll take it from there.`)}`}
@@ -174,7 +180,7 @@ export default function MarketerLink() {
           <p className="text-sm text-[var(--ink-faint)]">Loading your link…</p>
         ) : (
           <div>
-            <p className="text-sm text-[var(--ink-soft)] mb-3">You don't have a registration link yet. Generate one now — it's unique to you, and every payment made through it is tracked to your name.</p>
+            <p className="text-sm text-[var(--ink-soft)] mb-3">You don’t have a registration link yet. Generate one now — it’s unique to you, and every payment made through it is tracked to your name.</p>
             <button onClick={generateLink} disabled={generating}
               className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 disabled:opacity-50 transition">
               {generating ? 'Generating…' : 'Generate my link'}
@@ -191,7 +197,7 @@ export default function MarketerLink() {
       {profile?.marketer_code && (
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 mb-5">
           <p className="text-[12px] font-semibold text-[var(--accent)] mb-1">Your referral link (for flyers & status)</p>
-          <p className="text-[13px] text-[var(--ink-soft)] mb-3">Post this anywhere. Anyone who clicks it and leaves their details becomes <b>your</b> lead — our WhatsApp AI greets them, answers their questions, and sends the registration form when they're ready.</p>
+          <p className="text-[13px] text-[var(--ink-soft)] mb-3">Post this anywhere. Anyone who clicks it and leaves their details becomes <b>your</b> lead — our WhatsApp AI greets them, answers their questions, and sends the registration form when they’re ready.</p>
           {(() => {
             const referUrl = `${CONFIG.appUrl}/refer?m=${profile.marketer_code}`
             return (

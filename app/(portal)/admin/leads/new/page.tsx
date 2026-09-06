@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ArrowLeft, UserPlus, Phone, Mail, BookOpen, Globe, MessageSquare } from 'lucide-react'
+import { UserPlus, Phone, Mail, Globe } from 'lucide-react'
 import Link from 'next/link'
 import { useConfirm } from '@/hooks/useConfirm'
 

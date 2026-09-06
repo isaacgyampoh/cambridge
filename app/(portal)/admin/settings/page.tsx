@@ -2,11 +2,17 @@
 import { CONFIG } from '@/lib/config'
 import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
-import { Globe, Send, CheckCircle2, AlertCircle, Copy, MessageSquare, CreditCard, Mail, Database, Smartphone, Sparkles } from 'lucide-react'
-import { PageHeader, Card, Button, Badge, SectionLabel, Field, inputClass, Spinner } from '@/components/ui'
+import { CheckCircle2, AlertCircle, Copy, MessageSquare, CreditCard, Mail, Database, Smartphone, Sparkles } from 'lucide-react'
+import { PageHeader, Card, Button, SectionLabel, inputClass, Spinner } from '@/components/ui'
 
 export default function SettingsPage() {
-  const [status, setStatus] = useState<any>(null)
+  /** What /api/config-status reports. Named so the JSX below is checked. */
+  type ConfigStatus = {
+    supabase?: boolean; arkesel?: boolean; paystack?: boolean; paystackLive?: boolean
+    wawpCentral?: boolean; wawpLines?: number; ai?: boolean; resend?: boolean
+    storage?: boolean; senderId?: string
+  }
+  const [status, setStatus] = useState<ConfigStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState<string | null>(null)
   const [testPhone, setTestPhone] = useState('')
@@ -93,7 +99,7 @@ export default function SettingsPage() {
     { name: 'Database', desc: 'Supabase', icon: Database, ok: status.supabase, detail: status.supabase ? 'Connected' : 'Not configured' },
     { name: 'SMS', desc: `Arkesel · sender "${status.senderId}"`, icon: Smartphone, ok: status.arkesel, detail: status.arkesel ? 'Active' : 'No API key' },
     { name: 'Payments', desc: 'Paystack', icon: CreditCard, ok: status.paystack, detail: status.paystack ? (status.paystackLive ? 'Live keys active' : 'Test keys') : 'Not configured' },
-    { name: 'WhatsApp', desc: 'WaSender — central line plus each marketer\u2019s own number', icon: MessageSquare, ok: status.wawpCentral || status.wawpLines > 0, detail: !status.wawpCentral && status.wawpLines === 0 ? 'No key set' : `Key set${status.wawpLines > 0 ? ` \u00b7 ${status.wawpLines} staff line${status.wawpLines === 1 ? '' : 's'} verified` : ' \u00b7 no staff lines verified yet'}` },
+    { name: 'WhatsApp', desc: 'WaSender — central line plus each marketer\u2019s own number', icon: MessageSquare, ok: status.wawpCentral || (status.wawpLines ?? 0) > 0, detail: !status.wawpCentral && (status.wawpLines ?? 0) === 0 ? 'No key set' : `Key set${(status.wawpLines ?? 0) > 0 ? ` \u00b7 ${status.wawpLines} staff line${status.wawpLines === 1 ? '' : 's'} verified` : ' \u00b7 no staff lines verified yet'}` },
     { name: 'AI assistant', desc: 'Auto-answers WhatsApp inquiries', icon: Sparkles, ok: status.ai, detail: status.ai ? 'Active' : 'Add Anthropic key' },
     { name: 'Email', desc: 'Resend', icon: Mail, ok: status.resend, detail: status.resend ? 'Active' : 'Optional — not set' },
     { name: 'File storage', desc: 'Supabase Storage · flyers, documents, voice notes, letters', icon: Database, ok: status.storage, detail: status.storage ? 'Connected' : 'Set up the uploads bucket' },
@@ -145,9 +151,23 @@ export default function SettingsPage() {
                 <div className="font-medium text-[var(--ink)] text-sm">{i.name}</div>
                 <div className="text-xs text-[var(--ink-faint)] truncate">{i.desc}</div>
               </div>
-              {i.ok
-                ? <span className="flex items-center gap-1 text-[var(--ok)] text-xs font-medium flex-shrink-0">{i.detail}</span>
-                : <span className="flex items-center gap-1 text-[var(--ink-faint)] text-xs font-medium flex-shrink-0">{i.detail}</span>}
+              {/*
+                Status carried by an icon as well as a colour.
+
+                CheckCircle2 and AlertCircle were imported here and rendered
+                nowhere, leaving `gap-1` with nothing to space and the state of
+                each integration signalled ONLY by the colour of its text —
+                unreadable to anyone who does not distinguish green from grey,
+                and invisible in a screenshot pasted into a support thread.
+              */}
+              <span className={`flex items-center gap-1.5 text-xs font-medium flex-shrink-0
+                ${i.ok ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'}`}>
+                {i.ok
+                  ? <CheckCircle2 size={14} aria-hidden="true" />
+                  : <AlertCircle size={14} aria-hidden="true" />}
+                <span className="sr-only">{i.ok ? 'Working: ' : 'Needs attention: '}</span>
+                {i.detail}
+              </span>
             </Card>
           ))}
         </div>
@@ -187,7 +207,7 @@ export default function SettingsPage() {
       {/* Lead connections / Webhooks */}
       <SectionLabel>Lead connections</SectionLabel>
       <p className="text-sm text-[var(--ink-soft)] mb-4 -mt-2">
-        Connect your ad platforms so leads flow straight into the system and auto-assign to your team. Copy each URL into that platform's lead/webhook settings.
+        Connect your ad platforms so leads flow straight into the system and auto-assign to your team. Copy each URL into that platform’s lead/webhook settings.
       </p>
 
       {/* Facebook Page subscription — the step that makes REAL leads flow */}
@@ -214,7 +234,10 @@ export default function SettingsPage() {
                 <div className="text-sm font-medium text-[var(--ink)]">{w.label}</div>
                 <code className="text-xs text-[var(--ink-faint)] font-mono break-all">{CONFIG.appUrl}{w.url}</code>
               </div>
-              <Button variant="ghost" size="sm" onClick={() => copy(`${CONFIG.appUrl}${w.url}`)} >Copy</Button>
+              <Button variant="ghost" size="sm"
+                onClick={() => copy(`${CONFIG.appUrl}${w.url}`)}>
+                <Copy size={14} aria-hidden="true" /> Copy
+              </Button>
             </div>
             {w.hint && <p className="text-[12px] text-[var(--ink-faint)] mt-2 leading-relaxed">{w.hint}</p>}
           </div>

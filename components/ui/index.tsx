@@ -1,7 +1,6 @@
 'use client'
 
 import React from 'react'
-import { ArrowUpRight, ArrowDownRight } from 'lucide-react'
 import Link from 'next/link'
 
 /* ─────────────────────────────────────────────
@@ -291,8 +290,9 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
 
 export {
   StatusBadge, IconButton, Avatar, SectionHeader, LoadingState, Pagination,
-  initialsOf, TONE_CLASSES, TONE_DOT,
+  initialsOf, TONE_CLASSES, TONE_DOT, ProgressSteps,
 } from './primitives'
+export type { ProgressStep } from './primitives'
 
 export {
   Input, SecretInput, Textarea, Select, Search, DateField, DateRange,
@@ -310,6 +310,8 @@ export {
   Skeleton, SkeletonText, SkeletonStat, SkeletonCard, SkeletonList,
   ErrorState, ConfirmDialog,
 } from './states'
+
+export { PinBoxes } from './PinFields'
 
 export { DataTable } from './DataTable'
 export type { Column, DataTableProps } from './DataTable'

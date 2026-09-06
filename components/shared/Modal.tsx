@@ -1,7 +1,8 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect } from 'react'
 import { createPortal } from 'react-dom'
+import { useMounted } from '@/hooks/useMounted'
 
 interface ModalProps {
   open: boolean
@@ -26,9 +27,7 @@ export default function Modal({
   maxWidth = 'max-w-lg',
   closeOnBackdrop = true,
 }: ModalProps) {
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useMounted()
 
   // Lock body scroll while open
   useEffect(() => {

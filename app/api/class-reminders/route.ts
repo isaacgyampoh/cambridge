@@ -16,7 +16,7 @@ export async function GET(req: NextRequest) {
 
   // Trainers only see their own batches; PM/admin see all active batches
   // PM / Finance / Admin all see every active class
-  let bq: any = sb.from('batches').select('id, name, zoom_link, status').in('status', ['upcoming', 'ongoing'])
+  const bq: any = sb.from('batches').select('id, name, zoom_link, status').in('status', ['upcoming', 'ongoing'])
   const { data: batches } = await bq.order('name').limit(200)
 
   const { data: reminders } = await sb.from('class_reminders')

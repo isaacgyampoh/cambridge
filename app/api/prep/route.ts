@@ -42,7 +42,7 @@ export async function GET(req: NextRequest) {
 
   // Eligible: completed class enrollments whose programme matches, not yet tracked
   const trackedEnroll = new Set((records || []).map((r: any) => r.enrollment_id).filter(Boolean))
-  let eq = sb.from('class_enrollments')
+  const eq = sb.from('class_enrollments')
     .select('*, batch:batch_id(name, course:course_id(name, code))')
     .eq('status', 'completed')
   const { data: completed } = await eq

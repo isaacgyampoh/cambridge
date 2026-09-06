@@ -53,7 +53,7 @@ export async function POST(req: NextRequest) {
 
   // Avoid duplicate certificate
   const { data: existing } = await sb.from('certificates').select('id, download_token').eq('enrollment_id', enrollmentId).maybeSingle()
-  let dl = existing?.download_token || token()
+  const dl = existing?.download_token || token()
   if (!existing) {
     const certNo = `CCE/CERT/${new Date().getFullYear()}/${String(Math.floor(1000 + Math.random() * 9000))}`
     await sb.from('certificates').insert({

@@ -5,6 +5,7 @@ import { PageHeader, Card, Button, Badge, Field, inputClass, SectionLabel, StatC
 import Modal from '@/components/shared/Modal'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
 
 type Shift = {
   id: string
@@ -135,7 +136,7 @@ export default function WorkforcePage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Office location</h2>
-            <button onClick={() => setOfficeModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setOfficeModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
 
           {offices.length > 0 && (

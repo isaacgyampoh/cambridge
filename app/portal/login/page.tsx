@@ -65,7 +65,7 @@ export default function StudentLogin() {
               <Smartphone size={22} className="text-[var(--accent)]" aria-hidden="true" />
             </div>
             <p style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.6 }}>
-              If that number is registered with us, we've sent your portal link on WhatsApp. Tap it to sign in.
+              If that number is registered with us, we’ve sent your portal link on WhatsApp. Tap it to sign in.
             </p>
             <button onClick={() => setSent(false)} style={{ marginTop: 16, background: 'none', border: 'none', color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>Use a different number</button>
           </div>
@@ -79,7 +79,7 @@ export default function StudentLogin() {
               {busy ? 'Sending…' : 'Send my link'}
             </button>
             <p style={{ fontSize: 12, color: '#97a1b0', marginTop: 12, lineHeight: 1.5, textAlign: 'center' }}>
-              We'll WhatsApp you a link. No password needed.
+              We’ll WhatsApp you a link. No password needed.
             </p>
           </div>
         )}

@@ -6,7 +6,6 @@ import { useRouter } from 'next/navigation'
 import { portalOption } from '@/lib/nav/model'
 import { NAV_ICONS } from '@/components/shared/navIcons'
 import { toast } from 'sonner'
-import { ArrowLeft, Save, Shield } from 'lucide-react'
 import Link from 'next/link'
 
 const ROLE_DEFAULTS: Record<string, string[]> = {
@@ -243,7 +242,7 @@ function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void })
       <button onClick={() => setOpen(o => !o)} className="w-full flex items-center justify-between px-5 py-4 hover:bg-[var(--canvas)] transition">
         <div className="text-left">
           <div className="text-[15px] font-semibold text-[var(--ink)]">Edit details &amp; reset PIN</div>
-          <div className="text-[13px] text-[var(--ink-soft)]">Change their phone, email, name, or set a new login PIN if they're locked out.</div>
+          <div className="text-[13px] text-[var(--ink-soft)]">Change their phone, email, name, or set a new login PIN if they’re locked out.</div>
         </div>
         <span className="text-[var(--ink-faint)] text-lg">{open ? '−' : '+'}</span>
       </button>
@@ -271,7 +270,7 @@ function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void })
                 className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
             </div>
           </div>
-          <p className="text-[12px] text-[var(--ink-faint)]">Leave the PIN blank to keep it unchanged. Setting a new one lets a locked-out staff log in; they'll be asked to choose their own on first login.</p>
+          <p className="text-[12px] text-[var(--ink-faint)]">Leave the PIN blank to keep it unchanged. Setting a new one lets a locked-out staff log in; they’ll be asked to choose their own on first login.</p>
           <button onClick={save} disabled={saving}
             className="h-11 px-5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
             {saving ? 'Saving…' : 'Save changes'}

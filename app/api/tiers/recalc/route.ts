@@ -1,7 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isValidCronRequest } from '@/lib/auth/guard'
 import { recalcTiers } from '@/lib/recalcTiers'
-import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 

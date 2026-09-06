@@ -1,8 +1,8 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 
 import { formatGHS } from '@/lib/utils'
-import { DollarSign, TrendingUp, AlertCircle, Users } from 'lucide-react'
+import { DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
 
 
 async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], orderBy?: string, orderAsc?: boolean, limit = 2000) {
@@ -17,9 +17,17 @@ async function apiQuery(table: string, select: string, filters?: { col: string; 
 export default function FinanceReports() {
   const [data, setData] = useState<any>(null)
   const [range, setRange] = useState('30')
-  useEffect(() => { load() }, [range])
 
-  async function load() {
+  /*
+   * The effect used to call `load()`, which was declared BELOW it and set
+   * state synchronously. Two problems in one line: React 19 counts that as a
+   * cascading render, and the effect depended on a binding that only existed
+   * through hoisting, so the linter could not see when it changed.
+   *
+   * `load` is now a useCallback declared before its effect, which makes the
+   * dependency real and the ordering explicit.
+   */
+  const load = useCallback(async () => {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
     const [payments, invoices] = await Promise.all([
       apiQuery('payments', '*,student:student_id(full_name)', [{ col: 'created_at', op: 'gte', val: since }]),
@@ -53,7 +61,9 @@ export default function FinanceReports() {
       totalOutstanding: inv.reduce((a: number, i: any) => a + Number(i.outstanding), 0),
       daily,
     })
-  }
+  }, [range])
+
+  useEffect(() => { load() }, [load])
 
   if (!data) return <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
 

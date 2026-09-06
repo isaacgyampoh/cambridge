@@ -1,8 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PageHeader, Card, StatCard, Spinner, SectionLabel, Badge } from '@/components/ui'
+import { PageHeader, Card, StatCard, Spinner, SectionLabel } from '@/components/ui'
 import { formatGHS } from '@/lib/utils'
-import { Trophy, TrendingUp, Wallet, Target, Award } from 'lucide-react'
 
 export default function MarketerEarnings() {
   const [data, setData] = useState<any>(null)

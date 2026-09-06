@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { mutate } from '@/hooks/useData'
-import { formatDate, formatGHS } from '@/lib/utils'
-import { AlertTriangle, TrendingUp, Phone, MessageSquare, Users, Target, Bell } from 'lucide-react'
+import { formatGHS } from '@/lib/utils'
+import { AlertTriangle, TrendingUp, Phone, MessageSquare, Users, Target } from 'lucide-react'
 import { toast } from 'sonner'
 import Modal from '@/components/shared/Modal'
 
@@ -292,8 +292,8 @@ export default function MarketerPerformancePage() {
           Leads nobody introduced are shared by weight. Each <b>high performer counts 45</b>,
           each <b>mid 35</b>, each <b>low or support 20</b>. So a high performer receives about
           1.3 leads for every 1 a mid performer gets, and 2.25 for every 1 a low performer gets.
-          Adding someone to a tier does not reduce anyone else's weight. Leads from a
-          marketer's own link are never shared.
+          Adding someone to a tier does not reduce anyone else’s weight. Leads from a
+          marketer’s own link are never shared.
         </p>
       </div>
 

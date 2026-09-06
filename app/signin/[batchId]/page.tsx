@@ -135,13 +135,13 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
             <button onClick={() => signIn(false)} disabled={busy} style={{ ...btn, background: 'var(--accent)', color: '#fff', opacity: busy ? 0.6 : 1 }}>
               {busy ? 'Signing in…' : 'Sign in'}
             </button>
-            {geoError && <p style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 10, textAlign: 'center' }}>Location is off. If you're in class, please enable location so we can sign you in.</p>}
+            {geoError && <p style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 10, textAlign: 'center' }}>Location is off. If you’re in class, please enable location so we can sign you in.</p>}
           </>
         )}
 
         {step === 'offer_online' && (
           <>
-            <p style={{ color: 'var(--ink-soft)', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>You don't appear to be at the class venue. Are you joining online today?</p>
+            <p style={{ color: 'var(--ink-soft)', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>You don’t appear to be at the class venue. Are you joining online today?</p>
             <button onClick={() => signIn(true)} disabled={busy} style={{ ...btn, background: 'var(--accent)', color: '#fff', marginBottom: 10, opacity: busy ? 0.6 : 1 }}>
               {busy ? 'Switching…' : 'Yes, I\'m joining online'}
             </button>
@@ -152,7 +152,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
         {step === 'signed' && result && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 18 }}>
-              <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 600 }}>You're signed in, {result.studentName?.split(' ')[0]}!</div>
+              <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 600 }}>You’re signed in, {result.studentName?.split(' ')[0]}!</div>
               <div style={{ display: 'inline-block', marginTop: 8, fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 999, background: result.mode === 'online' ? '#eef2ff' : '#ecfdf5', color: result.mode === 'online' ? '#4338ca' : '#059669' }}>
                 {result.mode === 'online' ? (result.switched ? 'Switched to online' : 'Online') : 'In person'}
               </div>
@@ -251,10 +251,10 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
                 <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)', margin: '0 0 6px' }}>{invoice.verified ? 'Payment received' : invoice.message}</h2>
                 <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Invoice: {invoice.invoiceNo}</p>
                 {invoice.verified && <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginTop: 6 }}>{invoice.balance > 0 ? `Balance remaining: GHS ${invoice.balance.toFixed(2)}` : 'Your fees are fully paid.'}</p>}
-                {!invoice.verified && <p style={{ fontSize: 13, color: 'var(--ink-faint)', marginTop: 6 }}>You'll get a confirmation once it's verified.</p>}
+                {!invoice.verified && <p style={{ fontSize: 13, color: 'var(--ink-faint)', marginTop: 6 }}>You’ll get a confirmation once it’s verified.</p>}
               </>
             ) : (
-              <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>You're signed in. Enjoy your class!</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>You’re signed in. Enjoy your class!</h2>
             )}
             {result?.mode === 'online' && result?.zoomLink && (
               <a href={result.zoomLink} target="_blank" rel="noopener noreferrer" style={{ ...btn, background: '#2D8CFF', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', marginTop: 16 }}>Join the Zoom class</a>

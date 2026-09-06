@@ -2,7 +2,6 @@
 import { useState, useEffect } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
-import { BookOpen, CheckSquare } from 'lucide-react'
 import { formatDate } from '@/lib/utils'
 
 export default function TrainerClasses() {

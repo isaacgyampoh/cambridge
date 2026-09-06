@@ -2,7 +2,7 @@
 import { useState } from 'react'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, SectionLabel, Field, inputClass } from '@/components/ui'
-import { Plus, Trash2, MessageSquare, Clock, Zap, X, GripVertical } from 'lucide-react'
+import { X } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -140,7 +140,7 @@ export default function SequencesPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-5">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">{editing ? 'Edit sequence' : 'New sequence'}</h2>
-            <button onClick={() => setCreating(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setCreating(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-5">
@@ -164,7 +164,7 @@ export default function SequencesPage() {
                     Step {i + 1}
                   </div>
                   {steps.length > 1 && (
-                    <button onClick={() => removeStep(i)} className="text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
+                    <button type="button" onClick={() => removeStep(i)} className="text-[var(--ink-faint)] hover:text-[var(--danger)]" aria-label="Remove this step"><X size={14} aria-hidden="true" /></button>
                   )}
                 </div>
                 <div className="grid grid-cols-2 gap-3 mb-3">
@@ -183,7 +183,7 @@ export default function SequencesPage() {
                 </div>
                 <textarea value={st.message} onChange={e => updateStep(i, 'message', e.target.value)} rows={3}
                   placeholder="Hi {name}, just checking in..." className={inputClass + ' resize-none h-auto py-2.5'} />
-                <p className="text-[12px] text-[var(--ink-faint)] mt-1">Use {'{name}'} for the lead's first name.</p>
+                <p className="text-[12px] text-[var(--ink-faint)] mt-1">Use {'{name}'} for the lead’s first name.</p>
               </div>
             ))}
           </div>

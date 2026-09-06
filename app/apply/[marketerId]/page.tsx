@@ -6,7 +6,6 @@ import { useState, useEffect, use } from 'react'
 import type { Profile, Course } from '@/types'
 import { toast } from 'sonner'
 import Script from 'next/script'
-import { Check } from 'lucide-react'
 
 
 // Map a UTM source slug to a friendly platform label.
@@ -303,7 +302,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               <p className="text-[13px] font-semibold text-[var(--accent)] mb-3">Programme</p>
               <div className="grid grid-cols-1 gap-4 mb-6">
                 <div>
-                  <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Programme you're registering for *</label>
+                  <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-1.5">Programme you’re registering for *</label>
                   <select value={form.course_id} onChange={e => set('course_id', e.target.value)}
                     className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] bg-white">
                     <option value="">Select programme...</option>
@@ -458,7 +457,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
           <div className="w-14 h-14 rounded-full flex items-center justify-center mx-auto mb-4" style={{ background: "var(--accent-soft)" }}>
             <svg width="34" height="34" viewBox="0 0 40 40" fill="none"><path d="M8 20L16 28L32 12" stroke="var(--accent)" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round"/></svg>
           </div>
-          <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-1">You're registered, {firstName}!</h1>
+          <h1 className="font-display text-2xl font-semibold text-[var(--ink)] mb-1">You’re registered, {firstName}!</h1>
           <p className="text-sm text-[var(--ink-soft)]">Your admission letter is on its way by WhatsApp.</p>
         </div>
 
@@ -475,7 +474,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
             </div>
             <p className="text-center text-sm text-[var(--ink-soft)] mb-4">Would you like to pay now, or later?</p>
             <button onClick={() => setView('method')} className={btn + " bg-[var(--accent)] text-white mb-2.5"}>Pay now</button>
-            <button onClick={() => setView('done')} className={btn + " bg-[var(--line-soft)] text-[var(--ink-soft)]"}>I'll pay later</button>
+            <button onClick={() => setView('done')} className={btn + " bg-[var(--line-soft)] text-[var(--ink-soft)]"}>I’ll pay later</button>
           </>
         ) : view === 'method' ? (
           <>

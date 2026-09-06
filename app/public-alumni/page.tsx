@@ -81,7 +81,7 @@ export default async function PublicAlumniPage() {
 
                     {a.testimonial && (
                       <blockquote className="text-sm text-gray-600 italic mt-4 leading-relaxed border-l-4 border-blue-200 pl-4">
-                        "{a.testimonial}"
+                        ”{a.testimonial}”
                       </blockquote>
                     )}
 
@@ -129,7 +129,7 @@ export default async function PublicAlumniPage() {
                   )}
 
                   {a.testimonial && (
-                    <p className="text-xs text-gray-500 italic line-clamp-3">"{a.testimonial}"</p>
+                    <p className="text-xs text-gray-500 italic line-clamp-3">”{a.testimonial}”</p>
                   )}
                 </div>
               ))}

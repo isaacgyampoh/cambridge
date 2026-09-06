@@ -158,11 +158,73 @@ describe('the policy is not duplicated anywhere', () => {
       'first-run still issues an eight-digit PIN, which the four-box form cannot accept')
   })
 
-  test('the sign-in form renders exactly PIN_LENGTH boxes', () => {
-    const login = readFileSync('app/(auth)/login/page.tsx', 'utf8')
-    assert.match(login, /Array\.from\(\{ length: PIN_LENGTH \}\)/,
+  /** Source with prose removed — these files explain the rules they follow. */
+  const stripped = (path: string) =>
+    readFileSync(path, 'utf8')
+      .replace(/\/\*[\s\S]*?\*\//g, '')
+      .split('\n').filter(l => !l.trim().startsWith('//')).join('\n')
+
+  test('PIN entry is one component, driven by PIN_LENGTH', () => {
+    const control = stripped('components/ui/PinFields.tsx')
+
+    // The boxes come from the policy, not from a typed-out number.
+    assert.match(control, /length\s*=\s*PIN_LENGTH/,
       'the PIN boxes are not driven by PIN_LENGTH')
-    assert.ok(!/MAX_PIN|MIN_PIN/.test(login),
-      'the form still carries a variable PIN length')
+    assert.match(control, /Array\.from\(\{ length \}\)/,
+      'the boxes are not rendered from the length prop')
+    assert.ok(!/MAX_PIN|MIN_PIN/.test(control),
+      'the control still carries a variable PIN length')
+    assert.ok(!/\{\s*length:\s*[468]\s*\}|maxLength=\{[468]\}/.test(control),
+      'a digit count is hardcoded rather than taken from the policy')
+  })
+
+  test('nothing hand-rolls a second PIN input', () => {
+    /*
+     * There were four: sign-in, the emailed code, recovery, and change-PIN.
+     * The change-PIN one was declared INSIDE its component, so React remounted
+     * it on every keystroke and focus was lost after each digit — the PIN
+     * could not be typed straight through. One shared control at module scope
+     * is what makes that unrepeatable.
+     */
+    const offenders: string[] = []
+
+    for (const file of [
+      'app/(auth)/login/page.tsx',
+      'app/(portal)/admin/settings/change-pin/page.tsx',
+    ]) {
+      const src = stripped(file)
+      // A row of single-character inputs is the shape of a PIN field.
+      if (/maxLength=\{1\}/.test(src)) {
+        offenders.push(`${file} builds its own single-digit inputs`)
+      }
+      if (!/PinBoxes/.test(src)) {
+        offenders.push(`${file} does not use the shared PinBoxes`)
+      }
+    }
+
+    assert.deepEqual(offenders, [],
+      'PIN entry belongs to components/ui/PinFields:\n  ' + offenders.join('\n  '))
+  })
+
+  test('the emailed code uses the same control at its own length', () => {
+    const login = stripped('app/(auth)/login/page.tsx')
+    assert.match(login, /length=\{OTP_LENGTH\}/,
+      'the OTP boxes are not driven by OTP_LENGTH')
+  })
+
+  test('sign-in has no on-screen keypad', () => {
+    /*
+     * A keypad was built here once and removed: it is calculator furniture,
+     * and it takes entry away from the hardware keyboards, password managers
+     * and one-time-code autofill that the fields get for free. Prose stripped
+     * first, because the file explains exactly that.
+     */
+    const login = stripped('app/(auth)/login/page.tsx') + stripped('components/ui/PinFields.tsx')
+
+    assert.ok(!/keypad|KEYPAD|Keypad/.test(login),
+      'the sign-in form has grown an on-screen keypad again')
+    // The tell of a keypad: a rendered array of the digits themselves.
+    assert.ok(!/\['1',\s*'2',\s*'3'|\[1,\s*2,\s*3,\s*4,\s*5/.test(login),
+      'the sign-in form renders digit buttons')
   })
 })

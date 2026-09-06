@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Optional: attribute to a specific marketer by their code
-  let extra: Record<string, any> = {}
+  const extra: Record<string, any> = {}
   if (referrer_code) {
     const sb = createServiceClient()
     const { data: ref } = await sb.from('profiles').select('id').eq('marketer_code', referrer_code).maybeSingle()

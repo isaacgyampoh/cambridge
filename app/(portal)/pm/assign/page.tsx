@@ -176,12 +176,15 @@ export default function PMAssign() {
         </div>
         <div className="flex gap-2 flex-shrink-0">
           <div className="relative">
-            
+            <Search size={15} aria-hidden="true"
+              className="absolute left-2.5 top-1/2 -translate-y-1/2 text-[var(--ink-faint)]" />
             <input value={search} onChange={e => setSearch(e.target.value)}
               placeholder="Search" className="h-10 pl-8 pr-3 rounded-lg border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)] w-44" />
           </div>
-          <button onClick={refetch} className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
-            
+          <button type="button" onClick={refetch} aria-label="Refresh the list"
+            className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)]
+              text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
+            <RefreshCw size={16} aria-hidden="true" />
           </button>
         </div>
       </div>

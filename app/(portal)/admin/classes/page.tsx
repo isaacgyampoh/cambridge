@@ -3,7 +3,7 @@ import { useState } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import type { Batch, Course, Profile } from '@/types'
 import { toast } from 'sonner'
-import { Plus, X, GraduationCap, Calendar, Clock, User, MapPin, Send, Users } from 'lucide-react'
+import { X } from 'lucide-react'
 import Link from 'next/link'
 import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
@@ -169,7 +169,7 @@ export default function ClassesPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">New class</h2>
-            <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition"></button>
+            <button type="button" onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="space-y-4">
             <Field label="Class name" required>

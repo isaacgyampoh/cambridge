@@ -6,6 +6,7 @@ import { PageHeader, Card, Badge, inputClass } from '@/components/ui'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { STATUS_COLORS, STATUS_LABELS } from '@/lib/utils'
 import Link from 'next/link'
+import type { Course, Lead } from '@/types'
 
 /**
  * Per-course lead view. Shows every lead whose course_interest matches
@@ -26,16 +27,16 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
   const { code } = use(params)
   const decoded = decodeURIComponent(code)
 
-  const { data: courses } = useData<any>({ table: 'courses', select: 'id, name, code', limit: 200 })
-  const { data: leads, loading } = useData<any>({
+  const { data: courses } = useData<Course>({ table: 'courses', select: 'id, name, code', limit: 200 })
+  const { data: leads, loading } = useData<Lead>({
     table: 'leads',
     select: '*, assignee:assigned_to(full_name)',
     orderBy: 'created_at', orderAsc: false, limit: 1000,
   })
   const [search, setSearch] = useState('')
 
-  const course = courses.find((c: any) => (c.code || '').toLowerCase() === decoded.toLowerCase())
-    || courses.find((c: any) => (c.name || '').toLowerCase() === decoded.toLowerCase())
+  const course = courses.find((c) => (c.code || '').toLowerCase() === decoded.toLowerCase())
+    || courses.find((c) => (c.name || '').toLowerCase() === decoded.toLowerCase())
 
   const courseName = course?.name || decoded
   const courseCode = course?.code || decoded
@@ -49,7 +50,7 @@ export default function CourseLeadsPage({ params }: { params: Promise<{ code: st
     return ci.includes(n) || (n && n.includes(ci)) || ci === c || ci.includes(c)
   }
 
-  const courseLeads = leads.filter(matchesCourse).filter((l: any) => {
+  const courseLeads = leads.filter(matchesCourse).filter((l) => {
     if (!search) return true
     const q = search.toLowerCase()
     return (l.full_name || '').toLowerCase().includes(q) || (l.phone || '').includes(q)

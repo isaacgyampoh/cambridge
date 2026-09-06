@@ -150,7 +150,8 @@ export function ErrorState({
  */
 export function ConfirmDialog({
   open, title, message, confirmLabel = 'Confirm', cancelLabel = 'Cancel',
-  tone = 'danger', busy = false, onConfirm, onCancel,
+  tone = 'danger', busy = false, requirePhrase, notice = false, input,
+  onConfirm, onCancel,
 }: {
   open: boolean
   title: string
@@ -165,10 +166,59 @@ export function ConfirmDialog({
   cancelLabel?: string
   tone?: 'danger' | 'accent'
   busy?: boolean
-  onConfirm: () => void
+  /**
+   * Make the person TYPE this exact phrase before the action can be taken.
+   *
+   * For the handful of operations that cannot be undone and cannot be
+   * reconstructed — deleting every lead in the system, for instance. A
+   * confirm button alone is one mis-tap; a phrase has to be read and copied
+   * deliberately, which is the point.
+   *
+   * This replaces window.prompt(), which some mobile webviews refuse to show
+   * at all — there, the action was simply impossible with no explanation.
+   */
+  requirePhrase?: string
+  /**
+   * A message with nothing to decide — a diagnostic report, a result.
+   * One button, which dismisses. Replaces alert() for output that is too
+   * long or too structured for a toast.
+   */
+  notice?: boolean
+  /**
+   * Ask for a value as part of the confirmation — a payment reference, a name.
+   *
+   * The alternative in use was window.prompt(), which several screens relied
+   * on and which is refused outright by some mobile webviews. Its return of
+   * null on suppression is indistinguishable from a cancel, so those actions
+   * failed silently rather than reporting anything.
+   */
+  input?: {
+    label: string
+    placeholder?: string
+    /** Block the confirm button until something is entered. */
+    required?: boolean
+    inputMode?: 'text' | 'tel' | 'numeric' | 'email'
+  }
+  onConfirm: (value: string) => void
   onCancel: () => void
 }) {
   const ref = React.useRef<HTMLDialogElement>(null)
+  const [typed, setTyped] = React.useState('')
+
+  /*
+   * Clear the box each time the dialog opens, so a phrase typed for a
+   * previous confirmation cannot pre-authorise the next one.
+   *
+   * Adjusted during render rather than in an effect. React re-runs this
+   * component immediately with the new value, before anything is painted and
+   * before any child renders — so there is no flash of the stale text and no
+   * second commit, which an effect would cost.
+   */
+  const [wasOpen, setWasOpen] = React.useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) setTyped('')
+  }
 
   React.useEffect(() => {
     const el = ref.current
@@ -179,6 +229,9 @@ export function ConfirmDialog({
 
   if (!open) return null
 
+  const locked =
+    (Boolean(requirePhrase) && typed.trim() !== requirePhrase) ||
+    Boolean(input?.required && !typed.trim())
   const confirmTone = tone === 'danger'
     ? 'bg-[var(--danger)] text-white'
     : 'bg-[var(--accent)] text-white'
@@ -189,16 +242,61 @@ export function ConfirmDialog({
       className="backdrop:bg-black/40 bg-transparent p-0 m-auto max-w-[calc(100vw-32px)] w-[400px]">
       <div className="rounded-2xl bg-[var(--paper)] border border-[var(--line)] p-5 sm:p-6 shadow-[var(--shadow-overlay)] text-left">
         <h2 id="confirm-title" className="font-semibold text-[17px] text-[var(--ink)] mb-2">{title}</h2>
-        <div className="text-[14px] text-[var(--ink-soft)] leading-relaxed mb-6">{message}</div>
+        <div className="text-[14px] text-[var(--ink-soft)] leading-relaxed mb-5">{message}</div>
+
+        {input && (
+          <div className="mb-6">
+            <label htmlFor="confirm-input" className="block text-[13px] font-medium text-[var(--ink)] mb-2">
+              {input.label}
+            </label>
+            <input
+              id="confirm-input"
+              value={typed}
+              onChange={e => setTyped(e.target.value)}
+              placeholder={input.placeholder}
+              inputMode={input.inputMode}
+              autoComplete="off"
+              autoFocus
+              onKeyDown={e => { if (e.key === 'Enter' && !locked && !busy) onConfirm(typed) }}
+              className="w-full h-12 px-3.5 rounded-xl border bg-[var(--paper)] text-[15px]
+                text-[var(--ink)] border-[var(--line)]
+                focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)]"
+            />
+          </div>
+        )}
+
+        {requirePhrase && (
+          <div className="mb-6">
+            <label htmlFor="confirm-phrase" className="block text-[13px] text-[var(--ink-soft)] mb-2">
+              Type <code className="font-mono font-semibold text-[var(--ink)]">{requirePhrase}</code> to confirm
+            </label>
+            <input
+              id="confirm-phrase"
+              value={typed}
+              onChange={e => setTyped(e.target.value)}
+              autoComplete="off"
+              autoCapitalize="off"
+              spellCheck={false}
+              aria-describedby="confirm-phrase-state"
+              className="w-full h-12 px-3.5 rounded-xl border bg-[var(--paper)] font-mono text-[15px]
+                text-[var(--ink)] focus:outline-none focus:ring-4 focus:ring-[var(--danger-soft)]
+                border-[var(--line)] focus:border-[var(--danger)]"
+            />
+            <p id="confirm-phrase-state" className="sr-only" aria-live="polite">
+              {locked ? 'The phrase does not match yet.' : 'The phrase matches.'}
+            </p>
+          </div>
+        )}
         <div className="flex flex-col-reverse sm:flex-row sm:justify-end gap-2.5">
-          <button onClick={onCancel} disabled={busy}
+          {!notice && <button onClick={onCancel} disabled={busy}
             className="min-h-[44px] px-5 rounded-2xl border border-[var(--line)] bg-[var(--paper)]
               text-[14px] font-semibold text-[var(--ink)] hover:bg-[var(--line-soft)]
               disabled:opacity-50 transition-colors
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
             {cancelLabel}
-          </button>
-          <button onClick={onConfirm} disabled={busy} autoFocus
+          </button>}
+          <button onClick={() => onConfirm(typed)} disabled={busy || locked}
+            autoFocus={!requirePhrase && !input}
             className={`min-h-[44px] px-5 rounded-xl text-[14px] font-semibold
               disabled:opacity-60 transition-all hover:brightness-110
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-offset-2

@@ -2,8 +2,8 @@
 import { useState, useEffect } from 'react'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Spinner, EmptyState, Badge } from '@/components/ui'
-import { GraduationCap, ArrowRight, Plus } from 'lucide-react'
 import Link from 'next/link'
+import type { Course, Lead } from '@/types'
 
 /**
  * Course Leads hub — one card per course. Click a course to see all its
@@ -17,18 +17,39 @@ export default function CourseLeadsHub() {
   }, [])
   const isAdmin = role === 'super_admin'
 
-  const { data: courses, loading } = useData<any>({ table: 'courses', select: 'id, name, code, is_active', orderBy: 'name', orderAsc: true, limit: 200 })
-  const { data: leads } = useData<any>({ table: 'leads', select: 'id, course_interest, status', limit: 2000 })
+  const { data: courses, loading } = useData<Course>({ table: 'courses', select: 'id, name, code, is_active', orderBy: 'name', orderAsc: true, limit: 200 })
+  const { data: leads } = useData<Lead>({ table: 'leads', select: 'id, course_interest, status', limit: 2000 })
 
-  function matchesCourse(ci: string, course: any): boolean {
-    ci = (ci || '').toLowerCase().trim()
-    if (!ci) return false
-    const n = (course.name || '').toLowerCase()
-    const c = (course.code || '').toLowerCase()
-    return ci.includes(n) || (n && n.includes(ci)) || (c && (ci === c || ci.includes(c)))
+  /*
+   * `ci` is nullable: a lead can be created with no course of interest, and
+   * most imported ones are. The signature said `string`, which the untyped
+   * rows let through — the guard below was the only thing stopping it.
+   */
+  function matchesCourse(ci: string | null | undefined, course: Course): boolean {
+    const needle = (ci || '').toLowerCase().trim()
+    if (!needle) return false
+    return match(needle, course)
   }
 
-  const activeCourses = courses.filter((c: any) => c.is_active !== false)
+  /*
+   * Does this lead's stated interest refer to this course?
+   *
+   * The empty-string guards are not tidiness. `ci.includes('')` is TRUE for
+   * every string, so a course saved with no name — or no code — matched every
+   * lead in the system and reported the whole pipeline as interested in it.
+   * The previous version returned `'' | boolean` and only avoided the bug for
+   * `n` by accident of ordering.
+   */
+  function match(ci: string, course: Course): boolean {
+    const name = (course.name || '').toLowerCase().trim()
+    const code = (course.code || '').toLowerCase().trim()
+
+    if (name && (ci.includes(name) || name.includes(ci))) return true
+    if (code && (ci === code || ci.includes(code))) return true
+    return false
+  }
+
+  const activeCourses = courses.filter((c) => c.is_active !== false)
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
@@ -44,9 +65,9 @@ export default function CourseLeadsHub() {
           action={isAdmin ? <Link href="/admin/courses" className="inline-flex items-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium"> Add a course</Link> : undefined} />
       ) : (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-          {activeCourses.map((course: any) => {
-            const mine = leads.filter((l: any) => matchesCourse(l.course_interest, course))
-            const registered = mine.filter((l: any) => l.status === 'registered').length
+          {activeCourses.map(course => {
+            const mine = leads.filter((l) => matchesCourse(l.course_interest, course))
+            const registered = mine.filter(l => l.status === 'registered').length
             return (
               <Link key={course.id} href={`/admin/leads/course/${encodeURIComponent(course.code || course.name)}`}>
                 <Card hover className="p-5 h-full">

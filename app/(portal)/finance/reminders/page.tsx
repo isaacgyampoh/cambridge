@@ -73,7 +73,7 @@ export default function PaymentReminders() {
                     <p className="text-[13px] text-[var(--ink-faint)] pt-2">+ {preview.owingCount - preview.sample.length} more</p>
                   )}
                 </div>
-              ) : <p className="text-[14px] text-[var(--ink-soft)]">No outstanding balances. Everyone's paid up.</p>}
+              ) : <p className="text-[14px] text-[var(--ink-soft)]">No outstanding balances. Everyone’s paid up.</p>}
             </>
           )}
         </Card>

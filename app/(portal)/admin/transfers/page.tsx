@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
 import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState } from '@/components/ui'
-import { ArrowLeftRight, Check, X, Phone } from 'lucide-react'
 import { toast } from 'sonner'
 
 export default function TransfersPage() {
@@ -69,7 +68,7 @@ export default function TransfersPage() {
                       
                       <span>currently {r.owner?.full_name || 'unassigned'}</span>
                     </div>
-                    {r.reason && <p className="text-[var(--ink-soft)] mt-1.5">"{r.reason}"</p>}
+                    {r.reason && <p className="text-[var(--ink-soft)] mt-1.5">”{r.reason}”</p>}
                   </div>
                   <div className="flex gap-2">
                     <Button size="sm" disabled={acting === r.id} onClick={() => decide(r.id, 'approve')} >Approve transfer</Button>

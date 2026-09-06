@@ -1,11 +1,25 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { PageHeader, Card, Spinner, EmptyState } from '@/components/ui'
+import { useState, useEffect, useCallback } from 'react'
+import { PageHeader, Card, Button, Badge, Tabs, MobileList, ListRow, Avatar } from '@/components/ui'
+import { FileText, Sparkles } from 'lucide-react'
 import { toast } from 'sonner'
+
+type Report = {
+  id: string
+  marketer_name?: string | null
+  period_start: string
+  period_end: string
+  summary?: string | null
+  manual_note?: string | null
+  is_manual?: boolean
+  new_leads: number
+  converted: number
+  calls_made: number
+}
 
 export default function Reports() {
   const [period, setPeriod] = useState<'daily' | 'weekly' | 'monthly'>('weekly')
-  const [reports, setReports] = useState<any[]>([])
+  const [reports, setReports] = useState<Report[]>([])
   const [loading, setLoading] = useState(true)
   const [role, setRole] = useState('')
   const [generating, setGenerating] = useState(false)
@@ -15,18 +29,42 @@ export default function Reports() {
 
   const isManager = role === 'super_admin' || role === 'project_manager'
 
-  async function load() {
-    setLoading(true)
+  /*
+   * Fetching and applying are separate so the effect never sets state
+   * synchronously — see the note in hooks/useData. `load` keeps the spinner
+   * for the manual paths: filing a report, or generating one.
+   */
+  const fetchReports = useCallback(async (): Promise<Report[] | null> => {
     try {
       const d = await fetch(`/api/reports?period=${period}`).then(r => r.json())
-      setReports(d.reports || [])
-    } catch { setReports([]) }
-    finally { setLoading(false) }
-  }
+      return (d.reports || []) as Report[]
+    } catch {
+      return null
+    }
+  }, [period])
+
+  const apply = useCallback((rows: Report[] | null) => {
+    // A failed request is not "no reports yet" — that would read as though
+    // nobody had filed anything.
+    if (!rows) toast.error('Could not load the reports.')
+    setReports(rows || [])
+    setLoading(false)
+  }, [])
+
+  const load = useCallback(async () => {
+    setLoading(true)
+    apply(await fetchReports())
+  }, [apply, fetchReports])
+
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setRole(s.role) }).catch(() => {})
   }, [])
-  useEffect(() => { load() }, [period])
+
+  useEffect(() => {
+    let alive = true
+    fetchReports().then(rows => { if (alive) apply(rows) })
+    return () => { alive = false }
+  }, [fetchReports, apply])
 
   async function generateNow() {
     setGenerating(true)
@@ -57,18 +95,17 @@ export default function Reports() {
       <PageHeader eyebrow="Performance" title="Activity reports"
         description="Auto-generated from your activity — leads handled, contacted, converted, and calls made. You can also write your own report."
         actions={
-          <div className="flex gap-2">
-            <button onClick={() => setShowManual(s => !s)}
-              className="h-10 px-4 rounded-lg border border-[var(--line)] text-sm font-medium text-[var(--ink)] hover:bg-[var(--canvas)] transition">
-              Write my report
-            </button>
+          <>
+            <Button variant="secondary" onClick={() => setShowManual(v => !v)}>
+              <FileText size={16} aria-hidden="true" /> Write my report
+            </Button>
             {isManager && (
-              <button onClick={generateNow} disabled={generating}
-                className="h-10 px-4 rounded-lg bg-[var(--accent)] text-white text-sm font-semibold hover:brightness-110 disabled:opacity-50 transition">
+              <Button onClick={generateNow} disabled={generating}>
+                <Sparkles size={16} aria-hidden="true" />
                 {generating ? 'Generating…' : 'Generate now'}
-              </button>
+              </Button>
             )}
-          </div>
+          </>
         } />
 
       {showManual && (
@@ -88,41 +125,46 @@ export default function Reports() {
         </Card>
       )}
 
-      <div className="flex gap-1 mb-6 bg-[var(--line-soft)] rounded-xl p-1 w-fit">
-        {(['daily', 'weekly', 'monthly'] as const).map(p => (
-          <button key={p} onClick={() => setPeriod(p)}
-            className={`px-4 py-2 rounded-lg text-[14px] font-medium capitalize transition ${period === p ? 'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-soft)]'}`}>
-            {p}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        tabs={[
+          { key: 'daily', label: 'Daily' },
+          { key: 'weekly', label: 'Weekly' },
+          { key: 'monthly', label: 'Monthly' },
+        ]}
+        active={period}
+        onChange={k => { setLoading(true); setPeriod(k as typeof period) }}
+        label="Reporting period"
+        className="mb-5"
+      />
 
-      {loading ? <Spinner /> : reports.length === 0 ? (
-        <EmptyState title="No reports yet" description={`${period[0].toUpperCase() + period.slice(1)} reports appear here once the system generates them from activity.`} />
-      ) : (
-        <div className="space-y-3">
-          {reports.map(r => (
-            <Card key={r.id} className="p-5">
-              <div className="flex items-start justify-between gap-4 flex-wrap">
-                <div className="min-w-0">
-                  {r.marketer_name && <div className="font-display text-[15px] font-semibold text-[var(--ink)]">{r.marketer_name}</div>}
-                  <div className="text-[13px] text-[var(--ink-faint)]">{r.period_start} → {r.period_end}</div>
-                  <p className="text-[14px] text-[var(--ink-soft)] mt-2 leading-relaxed whitespace-pre-wrap">{r.is_manual && r.manual_note ? r.manual_note : r.summary}</p>
-                  {r.is_manual && <span className="inline-block mt-2 text-[11px] font-semibold text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-0.5 rounded-full">Written by staff</span>}
-                </div>
-                <div className="flex gap-4 flex-shrink-0">
-                  {[['Leads', r.new_leads], ['Converted', r.converted], ['Calls', r.calls_made]].map(([l, v]) => (
-                    <div key={l as string} className="text-center">
-                      <div className="font-display text-[20px] font-semibold text-[var(--ink)]">{v as number}</div>
-                      <div className="text-[12px] text-[var(--ink-faint)]">{l as string}</div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            </Card>
-          ))}
-        </div>
-      )}
+      <MobileList
+        rows={reports}
+        rowKey={r => r.id}
+        state={loading ? 'loading' : 'ready'}
+        emptyTitle="No reports yet"
+        emptyMessage={`${period[0].toUpperCase()}${period.slice(1)} reports appear here once the system generates them from activity.`}
+        renderRow={r => (
+          <ListRow
+            leading={r.marketer_name ? <Avatar name={r.marketer_name} size="md" /> : undefined}
+            title={r.marketer_name || 'Activity report'}
+            subtitle={`${r.period_start} → ${r.period_end}`}
+            status={r.is_manual ? <Badge tone="accent">Written by staff</Badge> : undefined}
+            meta={
+              <>
+                <span className="numeric">{r.new_leads} leads</span>
+                <span className="numeric">{r.converted} converted</span>
+                <span className="numeric">{r.calls_made} calls</span>
+              </>
+            }
+            subrow={
+              <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed whitespace-pre-wrap">
+                {r.is_manual && r.manual_note ? r.manual_note : r.summary}
+              </p>
+            }
+          />
+        )}
+      />
+
     </div>
   )
 }

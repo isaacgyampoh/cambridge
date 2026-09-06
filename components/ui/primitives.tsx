@@ -310,3 +310,97 @@ export function Pagination({
     </nav>
   )
 }
+
+/* ─────────────────────────────────────────────
+   Where a record has got to
+   ───────────────────────────────────────────── */
+
+export type ProgressStep = {
+  /** The stage, in the words the office uses. */
+  label: string
+  /** Extra detail — a date, an amount. Shown under the label. */
+  detail?: string
+}
+
+/**
+ * A record's journey, and how far along it is.
+ *
+ * ── WHY A COMPONENT AND NOT A BADGE ────────────────────────────────────────
+ *
+ * A registration passes through five stages, and every screen that showed one
+ * showed only the CURRENT stage as a badge. "Awaiting payment" tells you where
+ * something is stuck but not what happens next, so the answer to "what is left
+ * for this student?" meant knowing the process by heart.
+ *
+ * Stages already done are filled, the current one is ringed, the rest are
+ * outlined. That is three states carried by shape and fill rather than colour
+ * alone, so it survives being printed or screenshotted in a support thread.
+ *
+ * Horizontal on a wide screen; on a phone it becomes a vertical list, because
+ * five labels across 375px is five truncated words.
+ */
+export function ProgressSteps({
+  steps, current, className = '',
+}: {
+  steps: ProgressStep[]
+  /** Index of the stage in progress. Use steps.length when everything is done. */
+  current: number
+  className?: string
+}) {
+  return (
+    <ol className={`flex flex-col sm:flex-row sm:items-start gap-0 sm:gap-1 ${className}`}>
+      {steps.map((step, i) => {
+        const done = i < current
+        const active = i === current
+        const last = i === steps.length - 1
+
+        return (
+          <li key={step.label}
+            className="flex sm:flex-col sm:flex-1 sm:items-center gap-3 sm:gap-2 min-w-0">
+            {/* Marker and the rule joining it to the next one. */}
+            <div className="flex flex-col sm:flex-row sm:w-full items-center flex-shrink-0">
+              <span
+                aria-hidden="true"
+                className={`w-[18px] h-[18px] rounded-full flex-shrink-0 grid place-items-center
+                  border-2 transition-colors
+                  ${done
+                    ? 'bg-[var(--navy)] border-[var(--navy)]'
+                    : active
+                      ? 'bg-[var(--paper)] border-[var(--navy)] ring-4 ring-[var(--navy-soft)]'
+                      : 'bg-[var(--paper)] border-[var(--line)]'}`}
+              >
+                {done && (
+                  <svg viewBox="0 0 10 8" className="w-[10px] h-[8px]" fill="none">
+                    <path d="M1 4l2.5 2.5L9 1" stroke="#fff" strokeWidth="2"
+                      strokeLinecap="round" strokeLinejoin="round" />
+                  </svg>
+                )}
+              </span>
+
+              {!last && (
+                <span aria-hidden="true"
+                  className={`w-[2px] h-6 sm:w-full sm:h-[2px] sm:ml-1 flex-shrink-0
+                    ${done ? 'bg-[var(--navy)]' : 'bg-[var(--line)]'}`} />
+              )}
+            </div>
+
+            <div className={`min-w-0 pb-4 sm:pb-0 sm:text-center ${last ? 'pb-0' : ''}`}>
+              <div className={`text-[13px] leading-tight truncate sm:whitespace-normal
+                ${active ? 'font-semibold text-[var(--ink)]' : done ? 'font-medium text-[var(--ink)]' : 'text-[var(--ink-faint)]'}`}>
+                {step.label}
+              </div>
+              {step.detail && (
+                <div className="text-[12px] text-[var(--ink-faint)] mt-0.5 truncate sm:whitespace-normal">
+                  {step.detail}
+                </div>
+              )}
+              <span className="sr-only">
+                {done ? ' — done' : active ? ' — in progress' : ' — not started'}
+              </span>
+            </div>
+          </li>
+        )
+      })}
+    </ol>
+  )
+}

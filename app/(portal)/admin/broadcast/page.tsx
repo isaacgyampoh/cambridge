@@ -1,16 +1,43 @@
 'use client'
-import { useState, useEffect } from 'react'
+import React, { useState, useEffect, useCallback } from 'react'
 import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
-import { Send, Users, Clock, CheckCircle, XCircle, Plus, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
-import { Card, Button, Badge, Field, inputClass, SectionLabel, EmptyState, Spinner } from '@/components/ui'
-import { Video, Calendar, Megaphone, Link2 } from 'lucide-react'
+import {
+  PageHeader, Card, Button, Badge, Field, inputClass, SectionLabel,
+  Tabs, MobileList, ListRow,
+} from '@/components/ui'
+import { Send, Plus, X, Video, Calendar, Megaphone, Link2, Trash2 } from 'lucide-react'
 import { useConfirm } from '@/hooks/useConfirm'
 
-const LINK_TYPES: Record<string, { label: string; icon: any }> = {
+type Broadcast = {
+  id: string
+  title: string
+  message: string
+  status: string
+  channels: string[] | null
+  target_count: number
+  sent_count: number
+  failed_count: number
+  created_at: string
+}
+
+type PostedLink = {
+  id: string
+  title: string
+  url: string
+  audience: string
+  expires_at: string | null
+}
+
+type Batch = { id: string; name: string }
+
+/** The sub-filters a target type can carry. Was `any`, so a typo was silent. */
+type TargetFilters = { status?: string; source?: string; batch_id?: string }
+
+const LINK_TYPES: Record<string, { label: string; icon: React.ComponentType<{ size?: number }> }> = {
   zoom: { label: 'Online class / Zoom', icon: Video },
   info_session: { label: 'Info session', icon: Calendar },
   announcement: { label: 'Announcement', icon: Megaphone },
@@ -34,10 +61,10 @@ export default function BroadcastPage() {
   const { confirm, dialog } = useConfirm()
   const [tab, setTab] = useState<'message' | 'link'>('message')
 
-  const { data: broadcasts, loading, refetch: load } = useData<any>({
+  const { data: broadcasts, loading, refetch: load } = useData<Broadcast>({
     table: 'broadcasts', orderBy: 'created_at', orderAsc: false, limit: 20,
   })
-  const { data: batches } = useData<any>({
+  const { data: batches } = useData<Batch>({
     table: 'batches', select: 'id, name, courses(name)',
     filters: [{ col: 'status', op: 'eq', val: 'ongoing'}], limit: 100,
   })
@@ -46,20 +73,47 @@ export default function BroadcastPage() {
   const [sendingId, setSendingId] = useState<string | null>(null)
 
   // ── Post-a-link state ──
-  const [links, setLinks] = useState<any[]>([])
+  const [links, setLinks] = useState<PostedLink[]>([])
   const [linksLoading, setLinksLoading] = useState(true)
   const [posting, setPosting] = useState(false)
   const [linkForm, setLinkForm] = useState({ title: '', url: '', link_type: 'zoom', description: '', audience: 'all', expires_at: '' })
   const [sendToLeads, setSendToLeads] = useState(false)
   const [leadAudience, setLeadAudience] = useState<'active' | 'all'>('active')
 
-  async function loadLinks() {
-    setLinksLoading(true)
-    const d = await fetch('/api/links').then(r => r.json()).catch(() => ({ links: [] }))
-    setLinks(d.links || [])
+  /*
+   * Fetch only — no state is touched here.
+   *
+   * setLinksLoading(true) ran synchronously inside the effect below, which
+   * React 19 flags as a cascading render because it is a second render before
+   * the first has painted. The component already starts in its loading state,
+   * so the first paint is correct and only the result needs applying.
+   */
+  const fetchLinks = useCallback(async (): Promise<PostedLink[] | null> => {
+    try {
+      const d = await fetch('/api/links').then(r => r.json())
+      return (d.links || []) as PostedLink[]
+    } catch {
+      return null
+    }
+  }, [])
+
+  const applyLinks = useCallback((rows: PostedLink[] | null) => {
+    // A failed request is not an empty list: "no active links" would read as
+    // "nothing was ever posted".
+    if (!rows) toast.error('Could not load the posted links.')
+    setLinks(rows || [])
     setLinksLoading(false)
-  }
-  useEffect(() => { loadLinks() }, [])
+  }, [])
+
+  const loadLinks = useCallback(async () => {
+    applyLinks(await fetchLinks())
+  }, [applyLinks, fetchLinks])
+
+  useEffect(() => {
+    let alive = true
+    fetchLinks().then(rows => { if (alive) applyLinks(rows) })
+    return () => { alive = false }
+  }, [fetchLinks, applyLinks])
 
   async function postLink() {
     if (!linkForm.title.trim() || !linkForm.url.trim()) { toast.error('Add a title and the link'); return }
@@ -85,7 +139,7 @@ export default function BroadcastPage() {
       setLinkForm({ title: '', url: '', link_type: 'zoom', description: '', audience: 'all', expires_at: '' })
       setSendToLeads(false)
       loadLinks()
-    } catch (e: any) { toast.error(e.message) }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'That did not work.') }
     finally { setPosting(false) }
   }
 
@@ -113,13 +167,13 @@ export default function BroadcastPage() {
       }
       else toast.error(d.error || 'Could not send')
       load()
-    } catch (e: any) { toast.error(e.message) }
+    } catch (e) { toast.error(e instanceof Error ? e.message : 'That did not work.') }
     finally { setSendingId(null) }
   }
   const [preview, setPreview] = useState<{ count: number; names: string[] } | null>(null)
   const [form, setForm] = useState({
     title: '', message: '', channels: ['whatsapp'] as string[],
-    target_type: 'all_leads', target_filters: {} as any,
+    target_type: 'all_leads', target_filters: {} as TargetFilters,
     scheduled_at: '',
   })
 
@@ -171,47 +225,45 @@ export default function BroadcastPage() {
     { label: 'New course alert', text: 'Hello {{name}}! Cambridge Center of Excellence is launching a new course! Be among the first to enroll and take your career to the next level. Reply for details. '},
   ]
 
-  const STATUS_CONFIG: Record<string, string> = {
-    draft: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
-    sending: 'bg-[var(--accent-soft)] text-[var(--accent)]',
-    sent: 'bg-[var(--ok-soft)] text-[var(--ok)]',
-    failed: 'bg-[var(--danger-soft)] text-[var(--danger)]',
+  /* Meaning, not colour — Badge decides how a tone looks. */
+  const STATUS_TONE: Record<string, 'neutral' | 'accent' | 'success' | 'danger'> = {
+    draft: 'neutral', sending: 'accent', sent: 'success', failed: 'danger',
   }
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
-      <div className="mb-6">
-        <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Outreach</div>
-        <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Broadcast &amp; links</h1>
-        <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send a bulk message, or post a link that lands in every worker's My Links. One place for everything you push out.</p>
-      </div>
+      <PageHeader
+        eyebrow="Outreach"
+        title="Broadcast & links"
+        description="Send a bulk message, or post a link that lands in every worker's My Links."
+        actions={
+          tab === 'message'
+            ? <Button onClick={() => setModal(true)}><Plus size={16} aria-hidden="true" /> New broadcast</Button>
+            : undefined
+        }
+      />
 
-      <div className="flex gap-1 mb-6 border-b border-[var(--line)]">
-        {([['message', 'Send a message'], ['link', 'Post a link']] as ['message' | 'link', string][]).map(([k, label]) => (
-          <button key={k} onClick={() => setTab(k)}
-            className={`px-4 py-2.5 text-[14px] font-medium border-b-2 -mb-px transition ${tab === k ? 'border-[var(--accent)] text-[var(--accent)]' : 'border-transparent text-[var(--ink-faint)] hover:text-[var(--ink-soft)]'}`}>
-            {label}
-          </button>
-        ))}
-      </div>
+      <Tabs
+        tabs={[
+          { key: 'message', label: 'Send a message', count: broadcasts.length },
+          { key: 'link', label: 'Post a link', count: links.length },
+        ]}
+        active={tab}
+        onChange={k => setTab(k as 'message' | 'link')}
+        label="Outreach type"
+        className="mb-5"
+      />
 
       {tab === 'message' && (
       <div>
-      <div className="flex justify-end mb-5">
-        <button onClick={() => setModal(true)}
-          className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-[var(--shadow-raised)] flex-shrink-0">
-           New broadcast
-        </button>
-      </div>
-
       {/* Broadcast modal */}
       {(
         <Modal open={modal} onClose={() => setModal(false)} maxWidth="max-w-2xl">
           <div className="p-6">
             <div className="flex items-center justify-between mb-5">
               <h2 className="font-semibold text-[var(--ink)]">New Broadcast</h2>
-              <button onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"></button>
+              <button type="button" onClick={() => setModal(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
 
             <div className="space-y-4">
@@ -323,8 +375,10 @@ export default function BroadcastPage() {
             <div className="flex gap-2 mt-5">
               <button onClick={sendBroadcast} disabled={sending}
                 className="flex-1 h-12 bg-[var(--accent)] text-white rounded-lg text-sm font-medium disabled:opacity-50 hover:brightness-110 transition flex items-center justify-center gap-2">
-                
-                {sending ? 'Sending...': form.scheduled_at ? 'Schedule Broadcast': 'Send Now'}
+                {sending ? null : form.scheduled_at
+                  ? <Calendar size={16} aria-hidden="true" />
+                  : <Send size={16} aria-hidden="true" />}
+                {sending ? 'Sending…' : form.scheduled_at ? 'Schedule broadcast' : 'Send now'}
               </button>
               <button onClick={() => setModal(false)} className="flex-1 h-12 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold">Cancel</button>
             </div>
@@ -332,52 +386,47 @@ export default function BroadcastPage() {
         </Modal>
       )}
 
-      {/* Broadcasts list */}
-      {loading ? (
-        <div className="flex justify-center py-20"><div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full spin" /></div>
-      ) : (
-        <div className="space-y-3">
-          {broadcasts.map(b => (
-            <div key={b.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
-              <div className="flex items-start justify-between mb-3">
-                <div>
-                  <h3 className="font-medium text-[var(--ink)]">{b.title}</h3>
-                  <p className="text-sm text-[var(--ink-soft)] mt-0.5 line-clamp-2">{b.message}</p>
-                </div>
-                <span className={`text-xs font-bold px-3 py-1 rounded-full ml-3 flex-shrink-0 ${STATUS_CONFIG[b.status]}`}>
-                  {readableStatus(b.status)}
-                </span>
-              </div>
-              <div className="flex items-center gap-4 text-xs text-[var(--ink-faint)]">
-                <span className="flex items-center gap-1"> {b.target_count} targeted</span>
-                <span className="flex items-center gap-1 text-[var(--ok)]"> {b.sent_count} sent</span>
-                {b.failed_count > 0 && <span className="flex items-center gap-1 text-[var(--danger)]"> {b.failed_count} failed</span>}
-                <span className="flex items-center gap-1"> {formatDateTime(b.created_at)}</span>
-                <div className="flex gap-1 ml-auto items-center">
-                  {(b.channels || []).map((ch: string) => (
-                    <span key={ch} className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${ch === 'whatsapp'? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
-                      {ch}
-                    </span>
-                  ))}
-                  {(b.status === 'draft' || (b.failed_count > 0 && b.sent_count === 0)) && (
-                    <button onClick={() => sendNow(b.id)} disabled={sendingId === b.id}
-                      className="ml-2 px-3 py-1 rounded-lg bg-[var(--accent)] text-white text-[12px] font-semibold hover:brightness-110 disabled:opacity-50 transition">
-                      {sendingId === b.id ? 'Sending…' : 'Send now'}
-                    </button>
-                  )}
-                </div>
-              </div>
-            </div>
-          ))}
-          {broadcasts.length === 0 && (
-            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-              
-              <p className="font-medium">No broadcasts yet</p>
-              <p className="text-sm mt-1">Create your first bulk message campaign</p>
-            </div>
-          )}
-        </div>
-      )}
+      {/*
+        Broadcast history.
+
+        MobileList owns loading, empty and error, so a failed request can no
+        longer render as "no broadcasts yet" — which on this screen would read
+        as "nothing was ever sent".
+      */}
+      <MobileList
+        rows={broadcasts}
+        rowKey={b => b.id}
+        state={loading ? 'loading' : 'ready'}
+        emptyTitle="No broadcasts yet"
+        emptyMessage="Send a bulk message and it will be listed here with what happened to it."
+        renderRow={b => (
+          <ListRow
+            title={b.title}
+            subtitle={b.message}
+            status={<Badge tone={STATUS_TONE[b.status] || 'neutral'}>{readableStatus(b.status)}</Badge>}
+            meta={
+              <>
+                <span className="tabular-nums">{b.target_count} targeted</span>
+                <span className="tabular-nums text-[var(--ok)]">{b.sent_count} sent</span>
+                {b.failed_count > 0 && (
+                  <span className="tabular-nums text-[var(--danger)]">{b.failed_count} failed</span>
+                )}
+                {(b.channels || []).map((ch: string) => (
+                  <Badge key={ch} tone={ch === 'whatsapp' ? 'success' : 'accent'}>{ch}</Badge>
+                ))}
+                <span>{formatDateTime(b.created_at)}</span>
+              </>
+            }
+            actions={
+              (b.status === 'draft' || (b.failed_count > 0 && b.sent_count === 0)) ? (
+                <Button size="sm" disabled={sendingId === b.id} onClick={() => sendNow(b.id)}>
+                  {sendingId === b.id ? 'Sending…' : 'Send now'}
+                </Button>
+              ) : undefined
+            }
+          />
+        )}
+      />
       </div>
       )}
 
@@ -408,7 +457,7 @@ export default function BroadcastPage() {
 
             {linkForm.link_type === 'zoom' && (
               <div className="rounded-xl bg-[var(--accent-soft)] border border-[var(--accent)]/15 px-4 py-3">
-                <p className="text-sm text-[var(--ink)]">This online-class link goes to all marketers, and is <strong>automatically sent by WhatsApp to every online-registered student</strong> through their own marketer's line — no manual sharing needed.</p>
+                <p className="text-sm text-[var(--ink)]">This online-class link goes to all marketers, and is <strong>automatically sent by WhatsApp to every online-registered student</strong> through their own marketer’s line — no manual sharing needed.</p>
               </div>
             )}
             <Field label="Title" required>
@@ -450,23 +499,42 @@ export default function BroadcastPage() {
         </Card>
 
         <SectionLabel>Active links</SectionLabel>
-        {linksLoading ? <Spinner /> : links.length === 0 ? (
-          <EmptyState title="No active links" description="Post a link above and it appears here and in everyone's My Links." />
-        ) : (
-          <div className="space-y-2 mt-3">
-            {links.map((l: any) => (
-              <Card key={l.id} className="p-4 flex items-center gap-3">
-                <div className="min-w-0 flex-1">
-                  <div className="font-medium text-[var(--ink)] truncate">{l.title}</div>
-                  <div className="text-xs text-[var(--ink-faint)] truncate">{l.url}</div>
-                </div>
-                <Badge tone="neutral">{l.audience === 'all' ? 'Everyone' : l.audience === 'marketers' ? 'Marketers' : 'Staff'}</Badge>
-                {l.expires_at && <Badge tone="warning">Expires {new Date(l.expires_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}</Badge>}
-                <button onClick={() => removeLink(l.id)} className="p-2 text-[var(--ink-faint)] hover:text-[var(--danger)]">Remove</button>
-              </Card>
-            ))}
-          </div>
-        )}
+        <div className="mt-3">
+          <MobileList
+            rows={links}
+            rowKey={l => l.id}
+            state={linksLoading ? 'loading' : 'ready'}
+            emptyTitle="No active links"
+            emptyMessage="Post a link above and it appears here, and in everyone's My Links."
+            renderRow={l => (
+              <ListRow
+                title={l.title}
+                subtitle={l.url}
+                meta={
+                  <>
+                    <Badge tone="neutral">
+                      {l.audience === 'all' ? 'Everyone' : l.audience === 'marketers' ? 'Marketers' : 'Staff'}
+                    </Badge>
+                    {l.expires_at && (
+                      <Badge tone="warning">
+                        Expires {new Date(l.expires_at).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}
+                      </Badge>
+                    )}
+                  </>
+                }
+                actions={
+                  <button type="button" onClick={() => removeLink(l.id)}
+                    aria-label={`Remove the link ${l.title}`}
+                    className="inline-flex items-center gap-1.5 h-10 px-3 rounded-lg
+                      text-[13px] font-medium text-[var(--danger)]
+                      hover:bg-[var(--danger-soft)] transition-colors">
+                    <Trash2 size={15} aria-hidden="true" /> Remove
+                  </button>
+                }
+              />
+            )}
+          />
+        </div>
       </div>
       )}
     </div>

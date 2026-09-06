@@ -2,7 +2,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { broadcastClassReminder } from '@/lib/classReminderBroadcast'
-import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 

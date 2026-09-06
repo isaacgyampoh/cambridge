@@ -2,7 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useData } from '@/hooks/useData'
 import { formatGHS, formatDate } from '@/lib/utils'
-import { BookOpen, DollarSign, Calendar } from 'lucide-react'
+import { BookOpen, DollarSign } from 'lucide-react'
 
 export default function StudentDashboard() {
   const [myId, setMyId] = useState<string|null>(null)

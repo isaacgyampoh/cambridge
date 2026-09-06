@@ -2,7 +2,6 @@
 import { useState, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
-import { ArrowLeft, Upload, FileText, CheckCircle, XCircle, AlertTriangle, Download } from 'lucide-react'
 import Link from 'next/link'
 
 interface ParsedLead {

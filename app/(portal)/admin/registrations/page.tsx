@@ -4,8 +4,10 @@ import { useState, useMemo } from 'react'
 import { useData } from '@/hooks/useData'
 import {
   PageHeader, Card, Button, Search, Tabs, StatusBadge, Avatar,
-  MobileList, ListRow, Dialog, SectionHeader,
+  MobileList, ListRow, Dialog, SectionHeader, ProgressSteps,
 } from '@/components/ui'
+import { telHref, whatsappHref, mailtoHref } from '@/lib/ui/contact'
+import { Phone, MessageSquare, Mail } from 'lucide-react'
 import { exportToExcel } from '@/lib/utils/export'
 import { displayPhone } from '@/lib/ui/contact'
 import { describeStatus } from '@/lib/ui/status'
@@ -220,6 +222,77 @@ export default function AdminRegistrations() {
               <StatusBadge domain="classMode" value={selected.delivery} showDot />
               <StatusBadge domain="payment" value={selected.payment_status} />
             </div>
+
+            {/*
+              How far this registration has got.
+
+              Only the three stages THIS record decides are shown. Admission
+              rows are keyed on the lead, not on the application, so this
+              screen genuinely cannot see whether a letter has been issued —
+              and a fourth step that stayed permanently unfinished for an
+              already-admitted student would be worse than not showing one.
+              The admissions queue is where that part lives.
+            */}
+            <ProgressSteps
+              className="mb-6"
+              current={selected.payment_status === 'paid' ? 2 : 1}
+              steps={[
+                {
+                  label: 'Application',
+                  detail: new Date(selected.created_at)
+                    .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' }),
+                },
+                {
+                  label: 'Payment',
+                  detail: selected.payment_status === 'paid'
+                    ? (selected.payment_method || 'Received')
+                    : 'Not yet received',
+                },
+                {
+                  label: 'Admission',
+                  detail: selected.payment_status === 'paid'
+                    ? 'Being processed'
+                    : 'Starts once paid',
+                },
+              ]}
+            />
+
+            {/*
+              Reaching the student, from the record itself.
+
+              Every one of these comes from lib/ui/contact, so a number typed
+              with spaces still produces a link that opens, and a missing one
+              produces no button at all rather than a dead control.
+            */}
+            {(telHref(selected.phone) || whatsappHref(selected.phone) || mailtoHref(selected.email)) && (
+              <div className="flex flex-wrap gap-2 mb-6">
+                {telHref(selected.phone) && (
+                  <a href={telHref(selected.phone) as string}
+                    className="inline-flex items-center gap-2 h-11 px-4 rounded-xl
+                      bg-[var(--navy)] text-white text-[14px] font-semibold
+                      hover:brightness-110 transition">
+                    <Phone size={16} aria-hidden="true" /> Call
+                  </a>
+                )}
+                {whatsappHref(selected.phone) && (
+                  <a href={whatsappHref(selected.phone) as string}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-2 h-11 px-4 rounded-xl
+                      border border-[var(--line)] text-[var(--ink)] text-[14px] font-semibold
+                      hover:bg-[var(--canvas)] transition">
+                    <MessageSquare size={16} aria-hidden="true" /> WhatsApp
+                  </a>
+                )}
+                {mailtoHref(selected.email) && (
+                  <a href={mailtoHref(selected.email) as string}
+                    className="inline-flex items-center gap-2 h-11 px-4 rounded-xl
+                      border border-[var(--line)] text-[var(--ink)] text-[14px] font-semibold
+                      hover:bg-[var(--canvas)] transition">
+                    <Mail size={16} aria-hidden="true" /> Email
+                  </a>
+                )}
+              </div>
+            )}
 
             {[
               { title: 'Registration', rows: [

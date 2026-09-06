@@ -2,7 +2,7 @@
 import { uploadFile } from '@/lib/upload'
 import { useState, useRef } from 'react'
 import { CONFIG } from '@/lib/config'
-import { Upload, X, FileText, Image as ImageIcon, Check, Loader2 } from 'lucide-react'
+import { Upload, X, FileText, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 
 /**
@@ -80,7 +80,9 @@ export default function FileUpload({
             <div className="text-sm font-medium text-[var(--ink)]">File uploaded</div>
             <a href={preview} target="_blank" rel="noopener noreferrer" className="text-[11px] text-[var(--accent)] truncate block">View file</a>
           </div>
-          <button type="button" onClick={() => { setPreview(''); onUploaded('') }} className="p-1.5 text-[var(--ink-faint)] hover:text-red-500"><X size={16} /></button>
+          <button type="button" onClick={() => { setPreview(''); onUploaded('') }}
+            aria-label="Remove the uploaded file"
+            className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"><X size={16} aria-hidden="true" /></button>
         </div>
       ) : (
         <button type="button" onClick={() => inputRef.current?.click()} disabled={uploading}
@@ -92,7 +94,7 @@ export default function FileUpload({
       )}
 
       {!configured && (
-        <p className="text-[11px] text-amber-600 mt-2">File storage isn't connected yet. Add your Cloudinary keys to enable uploads.</p>
+        <p className="text-[11px] text-amber-600 mt-2">File storage isn’t connected yet. Add your Cloudinary keys to enable uploads.</p>
       )}
     </div>
   )

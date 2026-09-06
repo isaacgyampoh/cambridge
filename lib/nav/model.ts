@@ -354,17 +354,23 @@ export function tabsFor(role: string, portals: string[]): Tab[] {
     : []
 
   // Priority order: the work, then the money or the enrolment, then messages.
+  /*
+   * Three destinations beside Home, then More.
+   *
+   * Four tabs and an overflow is the shape a phone application takes because
+   * five labelled targets across 360px leaves about 68px each — enough for an
+   * icon and one short word. The order follows the working day: the people you
+   * are chasing, then the ones who enrolled.
+   */
   const candidates: Array<{ key: string; label: string; ids: string[]; icon: IconName }> = [
     { key: 'leads', label: 'Leads', ids: ['my_leads', 'leads', 'pm_leads'], icon: 'leads' },
-    { key: 'enrol', label: 'Admissions', ids: ['admissions', 'registrations'], icon: 'admissions' },
+    { key: 'students', label: 'Students', ids: ['admissions', 'registrations', 'academics', 'my_classes'], icon: 'admissions' },
     { key: 'finance', label: 'Finance', ids: ['finance', 'my_payments'], icon: 'finance' },
-    { key: 'classes', label: 'Classes', ids: ['my_classes', 'academics'], icon: 'academics' },
     { key: 'messages', label: 'Inbox', ids: ['messages'], icon: 'messages' },
-    { key: 'alerts', label: 'Alerts', ids: ['notifications'], icon: 'bell' },
   ]
 
   for (const c of candidates) {
-    if (tabs.length >= 4) break
+    if (tabs.length >= 3) break
     const hit = find(...c.ids)
     // A tab that goes where an existing tab already goes wastes one of four
     // slots. An accountant's home IS /finance, so their Finance entry would

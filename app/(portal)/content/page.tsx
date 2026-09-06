@@ -1,9 +1,9 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { readableStatus } from '@/lib/ui/status'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, textareaClass} from '@/components/ui'
+import { PageHeader, Card, Button, Badge, Spinner, EmptyState, textareaClass } from '@/components/ui'
 import FileUpload from '@/components/shared/FileUpload'
-import { Sparkles, Wand2, MessageSquare, Hash, Lightbulb, Copy, Save, Send, Trash2, Calendar, FileText } from 'lucide-react'
+import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 
@@ -110,7 +110,7 @@ export default function ContentStudio() {
 
             {/* Brief -> AI write */}
             <Card className="p-5">
-              <label className="text-[13px] font-medium text-[var(--ink-faint)]">What's the post about?</label>
+              <label className="text-[13px] font-medium text-[var(--ink-faint)]">What’s the post about?</label>
               <textarea value={brief} onChange={e => setBrief(e.target.value)} rows={2} placeholder="e.g. Promote the PMP April cohort — early-bird, limited seats"
                 className={textareaClass + ' mt-1.5 mb-3'} />
               <div className="flex flex-wrap gap-2">
@@ -203,7 +203,7 @@ function PostRow({ p, onLoad, onDelete }: any) {
           </div>
           <p className="text-sm text-[var(--ink-soft)] line-clamp-2">{p.body}</p>
         </div>
-        <button onClick={() => onDelete(p.id)} className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)] flex-shrink-0"></button>
+        <button type="button" onClick={() => onDelete(p.id)} className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)] flex-shrink-0" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
       </div>
     </Card>
   )

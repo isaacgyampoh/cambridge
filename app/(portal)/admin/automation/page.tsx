@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState } from 'react'
 import { PageHeader, Card, Button, Spinner, Badge } from '@/components/ui'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'

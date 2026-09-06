@@ -3,12 +3,15 @@ import { useState } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Button, Badge, Spinner, EmptyState, Field, inputClass } from '@/components/ui'
-import { MessageSquare, X, Plug, CheckCircle2 } from 'lucide-react'
+import { X } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
+import { useConfirm } from '@/hooks/useConfirm'
+import type { Profile } from '@/types'
 
 export default function WhatsAppLinesPage() {
-  const { data: staff, loading, refetch } = useData<any>({
+  const { ask, dialog } = useConfirm()
+  const { data: staff, loading, refetch } = useData<Profile>({
     table: 'profiles', select: 'id, full_name, role, phone, wasender_api_key, wasender_status, wasender_phone, wa_intro',
     filters: [{ col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', limit: 200,
@@ -69,10 +72,11 @@ export default function WhatsAppLinesPage() {
   const STATUS: Record<string, any> = {
     connected: 'success', connecting: 'warning', disconnected: 'danger', not_connected: 'muted',
   }
-  const connected = staff.filter((s: any) => s.wasender_status === 'connected').length
+  const connected = staff.filter((s) => s.wasender_status === 'connected').length
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
+      {dialog}
       <PageHeader
         eyebrow="Messaging"
         title="WhatsApp lines"
@@ -82,7 +86,17 @@ export default function WhatsAppLinesPage() {
             const st = await fetch('/api/whatsapp/status').then(r => r.json()).catch(() => null)
             if (!st || st.error) { toast.error(st?.error || 'Could not check'); return }
             if (!st.central_key_set) { toast.error(st.diagnosis); return }
-            const num = prompt(`WaSender is connected (key ${st.central_key_fingerprint}).\n\nEnter a phone number to send a real test message to:`)
+            const num = await ask({
+              title: 'Send a test message',
+              message: `WaSender is connected (key ${st.central_key_fingerprint}).`,
+              confirmLabel: 'Send test',
+              input: {
+                label: 'Phone number to message',
+                placeholder: 'e.g. 0244 000 000',
+                inputMode: 'tel',
+                required: true,
+              },
+            })
             if (!num) return
             toast.loading('Sending test…', { id: 'wa' })
             const r = await fetch('/api/whatsapp/status', {
@@ -100,7 +114,7 @@ export default function WhatsAppLinesPage() {
         <div className="flex items-start gap-3">
           
           <div className="text-sm text-[var(--accent)]">
-            <strong>How it works:</strong> in your WaSender account (wasenderapi.com) create a session for each person's number and scan the QR with their phone, then paste that session's API key here. Once connected, the system sends that person's lead messages through their own line. {connected} of {staff.length} connected.
+            <strong>How it works:</strong> in your WaSender account (wasenderapi.com) create a session for each person’s number and scan the QR with their phone, then paste that session’s API key here. Once connected, the system sends that person’s lead messages through their own line. {connected} of {staff.length} connected.
           </div>
         </div>
       </Card>
@@ -109,7 +123,7 @@ export default function WhatsAppLinesPage() {
         <EmptyState  title="No staff yet" description="Add staff members first, then connect their WhatsApp lines." />
       ) : (
         <div className="space-y-2 stagger">
-          {staff.map((s: any) => (
+          {staff.map((s) => (
             <Card key={s.id} className="p-4 flex items-center justify-between gap-4">
               <div className="flex items-center gap-3.5 min-w-0">
                 <div className="w-10 h-10 rounded-full bg-[var(--line-soft)] flex items-center justify-center text-[var(--ink-soft)] font-semibold flex-shrink-0">
@@ -124,7 +138,7 @@ export default function WhatsAppLinesPage() {
                 </div>
               </div>
               <div className="flex items-center gap-2 flex-shrink-0">
-                <Badge tone={STATUS[s.wasender_status] || 'muted'}>{(s.wasender_status || 'not connected').replace(/_/g, ' ')}</Badge>
+                <Badge tone={STATUS[s.wasender_status || ''] || 'muted'}>{(s.wasender_status || 'not connected').replace(/_/g, ' ')}</Badge>
                 {s.wasender_api_key && (
                   <Button size="sm" variant="ghost" onClick={() => testConnection(s.id)} disabled={testing}>Test</Button>
                 )}
@@ -140,7 +154,7 @@ export default function WhatsAppLinesPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-1">
               <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Connect WhatsApp</h2>
-              <button onClick={() => setEditing(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+              <button type="button" onClick={() => setEditing(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
             <p className="text-sm text-[var(--ink-soft)] mb-6">{editing.full_name}</p>
 

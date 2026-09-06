@@ -1,8 +1,7 @@
 'use client'
-import { useState } from 'react'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState } from '@/components/ui'
-import { Quote, Copy, Trash2, Link2 } from 'lucide-react'
+import { PageHeader, Card, Spinner, EmptyState } from '@/components/ui'
+import { Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { CONFIG } from '@/lib/config'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -51,8 +50,8 @@ export default function TestimonialsPage() {
         <p className="text-sm text-[var(--ink-soft)] mb-3">Copy this and send it to any student who has completed. They submit their testimonial themselves — it shows up below.</p>
         <div className="flex items-center gap-2">
           <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-4 py-2.5 text-sm text-[var(--ink-soft)] font-mono break-all">{collectionLink}</div>
-          <button onClick={() => { navigator.clipboard.writeText(collectionLink); toast.success('Collection link copied') }}
-            className="flex-shrink-0 p-2.5 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition"></button>
+          <button type="button" onClick={() => { navigator.clipboard.writeText(collectionLink); toast.success('Collection link copied') }}
+            className="flex-shrink-0 p-2.5 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition" aria-label="Copy"><Copy size={15} aria-hidden="true" /></button>
           <a href={`https://wa.me/?text=${encodeURIComponent(`We'd love your feedback on your programme at Cambridge Center of Excellence. Share your testimonial here: ${collectionLink}`)}`}
             target="_blank" rel="noopener noreferrer"
             className="flex-shrink-0 h-[42px] px-4 bg-[#25D366] text-white rounded-lg text-sm font-medium hover:opacity-90 transition flex items-center">WhatsApp</a>
@@ -78,12 +77,12 @@ export default function TestimonialsPage() {
                   {t.program_name && <div className="text-[12px] text-[var(--ink-faint)]">{t.program_name}</div>}
                 </div>
               </div>
-              <p className="text-sm text-[var(--ink-soft)] flex-1 mb-3">"{t.quote}"</p>
+              <p className="text-sm text-[var(--ink-soft)] flex-1 mb-3">”{t.quote}”</p>
               <div className="flex flex-wrap items-center gap-2">
                 <button onClick={() => toggle(t, 'approved')} className={`text-[12px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.approved ? 'bg-[var(--ok-soft)] text-[var(--ok)] ring-emerald-200' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.approved ? 'Approved' : 'Approve'}</button>
                 <button onClick={() => toggle(t, 'shared')} className={`text-[12px] font-medium px-2.5 py-1 rounded-full ring-1 ring-inset transition ${t.shared ? 'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/20' : 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]'}`}>{t.shared ? 'Shared' : 'Mark shared'}</button>
-                <button onClick={() => copyText(t)} title="Copy text" className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent)]"></button>
-                <button onClick={() => remove(t.id)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]"></button>
+                <button type="button" onClick={() => copyText(t)} title="Copy text" className="p-1.5 text-[var(--ink-faint)] hover:text-[var(--accent)]"><Copy size={15} aria-hidden="true" /></button>
+                <button type="button" onClick={() => remove(t.id)} className="ml-auto p-1.5 text-[var(--ink-faint)] hover:text-[var(--danger)]" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
               </div>
             </Card>
           ))}

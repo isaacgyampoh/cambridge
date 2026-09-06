@@ -3,7 +3,6 @@ import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS } from '@/lib/integrations/sms'
 import { CONFIG } from '@/lib/config'
-import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 

@@ -2,8 +2,11 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, Upload, UserPlus, ArrowRight, ChevronRight } from 'lucide-react'
-import { Skeleton, ErrorState, EmptyState } from '@/components/ui'
+import {
+  Plus, Upload, UserPlus, CalendarClock, Phone, MessageCircle, ChevronRight,
+} from 'lucide-react'
+import { Skeleton, ErrorState, EmptyState, Avatar } from '@/components/ui'
+import { telHref, whatsappHref, displayPhone } from '@/lib/ui/contact'
 
 /**
  * The dashboard body, shared by every role that has one.
@@ -16,15 +19,20 @@ import { Skeleton, ErrorState, EmptyState } from '@/components/ui'
  * admissions, admitted, active staff. All true, none of them actionable. A
  * total does not change between Monday and Friday in a way that tells anyone
  * anything, and a screen of numbers that never move is a screen people stop
- * reading. When every figure is presented as equally important, none of them
- * is.
+ * reading.
  *
- * So the hierarchy is explicit and there are only three levels:
+ * The hierarchy is explicit, and the second level is the one that matters:
  *
- *   1. What is waiting on you       — the largest thing on the page, and the
- *                                     only part with somewhere to go
- *   2. What happened today          — three small figures, for orientation
- *   3. What has been happening      — the activity feed
+ *   1. Today          — the day in four figures, in the app's own navy, so the
+ *                       top of the screen orients rather than instructs
+ *   2. Who is waiting — NAMED PEOPLE with a phone button, not a count. This is
+ *                       the change that makes the dashboard a place work
+ *                       happens instead of a signpost to a list. Ringing
+ *                       somebody back should not cost three taps and a search.
+ *   3. Needs attention— the remaining queues, as counts, because "12 payments
+ *                       to verify" genuinely is one job rather than twelve
+ *   4. Quick actions  — starting something new
+ *   5. Recent activity— what has been happening
  *
  * Nothing here is shown at zero. A dashboard full of zeroes trains people to
  * skim past it, and then the one that is not zero gets skimmed past too.
@@ -45,11 +53,22 @@ type Attention = {
   hint: string
 }
 
+type PriorityLead = {
+  id: string
+  name: string
+  phone: string | null
+  course: string | null
+  dueAt: string | null
+  overdue: boolean
+  href: string
+}
+
 type Summary = {
   scope: 'centre' | 'mine'
   today: { newLeads: number; registered: number; followUps: number }
   pipeline: { total: number; readyToJoin: number; unassigned: number }
   attention: Attention[]
+  priority: PriorityLead[]
   activity: Array<{ id: string; at: string; text: string; href?: string }>
   activityFailed: boolean
 }
@@ -83,6 +102,15 @@ function ago(iso: string): string {
   const days = Math.round(hours / 24)
   if (days < 7) return `${days}d ago`
   return new Date(iso).toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })
+}
+
+/** "2 days late" / "due today" — the phrase someone would actually say. */
+function dueLabel(iso: string | null, overdue: boolean): string {
+  if (!iso) return 'No date set'
+  if (!overdue) return 'Due today'
+  const days = Math.floor((Date.now() - new Date(iso).getTime()) / 86_400_000)
+  if (days <= 0) return 'Overdue'
+  return days === 1 ? '1 day late' : `${days} days late`
 }
 
 export default function Overview() {
@@ -126,21 +154,23 @@ export default function Overview() {
     ? [
         { label: 'Add a lead', href: '/marketer/leads/new', icon: Plus },
         { label: 'My leads', href: '/marketer/leads', icon: UserPlus },
-        { label: 'Follow-ups', href: '/marketer/activities', icon: ArrowRight },
+        { label: 'Follow-ups', href: '/marketer/activities', icon: CalendarClock },
+        { label: 'My activity', href: '/marketer/activities', icon: MessageCircle },
       ]
     : [
         { label: 'Add a lead', href: '/admin/leads/new', icon: Plus },
         { label: 'Import a list', href: '/admin/leads/import', icon: Upload },
         { label: 'All leads', href: '/admin/leads', icon: UserPlus },
+        { label: 'Admissions', href: '/admin/admissions', icon: CalendarClock },
       ]
 
   return (
     <div className="fade-in w-full max-w-5xl">
-      <header className="mb-6 sm:mb-8">
+      <header className="mb-5 sm:mb-6">
         <h1 className="t-display">{greeting}</h1>
         <p className="t-lead mt-1">
           {state === 'ready'
-            ? (data?.attention.length
+            ? (data?.priority.length || data?.attention.length
                 ? 'Here is what is waiting on you.'
                 : 'Nothing is waiting on you right now.')
             : 'Loading your day…'}
@@ -157,21 +187,133 @@ export default function Overview() {
 
       {state === 'loading' && (
         <div className="space-y-3">
-          <Skeleton className="h-[92px] rounded-2xl" />
-          <Skeleton className="h-[92px] rounded-2xl" />
-          <div className="grid grid-cols-3 gap-3 pt-3">
-            <Skeleton className="h-[74px] rounded-2xl" />
-            <Skeleton className="h-[74px] rounded-2xl" />
-            <Skeleton className="h-[74px] rounded-2xl" />
+          <Skeleton className="h-[104px] rounded-2xl" />
+          <Skeleton className="h-[76px] rounded-2xl" />
+          <Skeleton className="h-[76px] rounded-2xl" />
+          <div className="grid grid-cols-2 gap-3 pt-2">
+            <Skeleton className="h-[68px] rounded-2xl" />
+            <Skeleton className="h-[68px] rounded-2xl" />
           </div>
         </div>
       )}
 
       {state === 'ready' && data && (
         <>
-          {/* ── 1. What is waiting on you ─────────────────────────────── */}
+          {/*
+            ── 1. Today ────────────────────────────────────────────────────
+
+            The one navy surface on the page. It carries the day's shape and
+            nothing else: no actions, no links, no chrome competing with the
+            rows below it. Being the only filled block on the screen is what
+            makes it read as the header of the day rather than as another card
+            in a stack of cards.
+          */}
+          <section aria-labelledby="today-heading"
+            className="mb-6 rounded-2xl bg-[var(--navy)] text-white px-5 py-4 sm:px-6 sm:py-5">
+            <h2 id="today-heading"
+              className="t-overline text-white/55 mb-3.5">Today</h2>
+
+            <div className="grid grid-cols-3 gap-3">
+              {[
+                { label: 'New leads', value: data.today.newLeads },
+                { label: mine ? 'Registered' : 'Registrations', value: data.today.registered },
+                { label: 'Follow-ups', value: data.today.followUps },
+              ].map(stat => (
+                <div key={stat.label}>
+                  <div className="numeric text-[26px] sm:text-[28px] font-semibold leading-none">
+                    {stat.value}
+                  </div>
+                  <div className="text-[12px] text-white/55 mt-1.5 leading-tight">{stat.label}</div>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4 pt-3.5 border-t border-white/10 text-[12px] text-white/55">
+              {data.pipeline.total} {mine ? 'assigned to you' : 'leads in total'}
+              {' · '}{data.pipeline.readyToJoin} ready to join
+              {data.pipeline.unassigned > 0 && ` · ${data.pipeline.unassigned} unassigned`}
+            </div>
+          </section>
+
+          {/*
+            ── 2. Who is waiting ───────────────────────────────────────────
+
+            Named people, with the two buttons that actually get used. Both
+            are plain anchors to tel: and wa.me — no handler, no state, so
+            they work on a phone with the app backgrounded and cannot be
+            broken by a hydration failure.
+
+            A row without a number keeps its buttons out rather than showing
+            two dead controls: an imported lead with no phone is common, and a
+            call button that does nothing is worse than no button.
+          */}
+          {data.priority.length > 0 && (
+            <section className="mb-6" aria-labelledby="priority-heading">
+              <div className="flex items-baseline justify-between mb-2.5">
+                <h2 id="priority-heading" className="t-overline">Waiting on you</h2>
+                <Link href={mine ? '/marketer/activities' : '/admin/leads'}
+                  className="text-[12px] font-medium text-[var(--accent)] hover:underline">
+                  See all
+                </Link>
+              </div>
+
+              <ul className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] overflow-hidden
+                divide-y divide-[var(--line-soft)]">
+                {data.priority.map(lead => {
+                  const tel = telHref(lead.phone)
+                  const wa = whatsappHref(lead.phone)
+                  return (
+                    <li key={lead.id} className="flex items-center gap-3 px-3.5 py-3">
+                      <Link href={lead.href}
+                        className="flex items-center gap-3 min-w-0 flex-1 group
+                          focus-visible:outline-none focus-visible:ring-2
+                          focus-visible:ring-[var(--accent)] rounded-lg -m-1 p-1">
+                        <Avatar name={lead.name} size="md" />
+                        <span className="min-w-0 flex-1">
+                          <span className="block text-[14px] font-medium text-[var(--ink)] truncate
+                            group-hover:text-[var(--accent)] transition-colors">
+                            {lead.name}
+                          </span>
+                          <span className="block t-meta truncate mt-0.5">
+                            <span className={lead.overdue ? 'text-[var(--danger)] font-medium' : ''}>
+                              {dueLabel(lead.dueAt, lead.overdue)}
+                            </span>
+                            {lead.course && ` · ${lead.course}`}
+                          </span>
+                        </span>
+                      </Link>
+
+                      {tel && wa && (
+                        <span className="flex items-center gap-1.5 flex-shrink-0">
+                          <a href={tel} aria-label={`Call ${lead.name} on ${displayPhone(lead.phone)}`}
+                            className="w-10 h-10 grid place-items-center rounded-full
+                              bg-[var(--navy-soft)] text-[var(--navy)]
+                              hover:bg-[var(--navy-line)] transition-colors
+                              focus-visible:outline-none focus-visible:ring-2
+                              focus-visible:ring-[var(--accent)]">
+                            <Phone size={16} aria-hidden="true" />
+                          </a>
+                          <a href={wa} target="_blank" rel="noopener noreferrer"
+                            aria-label={`Message ${lead.name} on WhatsApp`}
+                            className="w-10 h-10 grid place-items-center rounded-full
+                              bg-[var(--navy-soft)] text-[var(--navy)]
+                              hover:bg-[var(--navy-line)] transition-colors
+                              focus-visible:outline-none focus-visible:ring-2
+                              focus-visible:ring-[var(--accent)]">
+                            <MessageCircle size={16} aria-hidden="true" />
+                          </a>
+                        </span>
+                      )}
+                    </li>
+                  )
+                })}
+              </ul>
+            </section>
+          )}
+
+          {/* ── 3. The remaining queues ─────────────────────────────────── */}
           {data.attention.length > 0 ? (
-            <section className="mb-9" aria-labelledby="attention-heading">
+            <section className="mb-6" aria-labelledby="attention-heading">
               <h2 id="attention-heading" className="t-overline mb-2.5">Needs attention</h2>
 
               <ul className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] overflow-hidden
@@ -205,8 +347,8 @@ export default function Overview() {
                 ))}
               </ul>
             </section>
-          ) : (
-            <section className="mb-9">
+          ) : data.priority.length === 0 && (
+            <section className="mb-6">
               <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] px-5 py-8 text-center">
                 <p className="text-[14px] font-medium text-[var(--ink)]">Nothing needs attention</p>
                 <p className="t-sub mt-1">
@@ -217,56 +359,31 @@ export default function Overview() {
           )}
 
           {/*
-            Today, as figures rather than cards.
+            ── 4. Starting something ───────────────────────────────────────
 
-            Three bordered boxes holding one number each is the pattern the
-            brief calls out. A row of figures separated by a rule says the same
-            thing in a quarter of the space and reads as a summary, which is
-            what it is.
+            A 2×2 grid on a phone: four targets a thumb can hit without aiming,
+            rather than a row of pills that wrap unpredictably at 320px.
           */}
-          <section className="mb-9" aria-labelledby="today-heading">
-            <h2 id="today-heading" className="t-overline mb-2.5">Today</h2>
-            <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)]
-              grid grid-cols-3 divide-x divide-[var(--line-soft)]">
-              {[
-                { label: 'New leads', value: data.today.newLeads },
-                { label: mine ? 'Registered' : 'Registrations', value: data.today.registered },
-                { label: 'Follow-ups', value: data.today.followUps },
-              ].map(stat => (
-                <div key={stat.label} className="px-4 py-3.5">
-                  <div className="numeric text-[20px] font-semibold leading-none text-[var(--ink)]">
-                    {stat.value}
-                  </div>
-                  <div className="t-meta mt-1.5">{stat.label}</div>
-                </div>
-              ))}
-            </div>
-            <p className="t-meta mt-2">
-              {data.pipeline.total} {mine ? 'assigned to you' : 'leads in total'}
-              {' · '}{data.pipeline.readyToJoin} ready to join
-            </p>
-          </section>
-
-          <section className="mb-9">
-            <h2 className="t-overline mb-2.5">Start something</h2>
-            <div className="flex flex-wrap gap-2">
+          <section className="mb-6">
+            <h2 className="t-overline mb-2.5">Quick actions</h2>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-2.5">
               {quickActions.map(action => {
                 const Icon = action.icon
                 return (
-                  <Link key={action.href} href={action.href}
-                    className="inline-flex items-center gap-2 h-10 px-3.5 rounded-lg border
+                  <Link key={action.label} href={action.href}
+                    className="flex flex-col justify-between gap-3 min-h-[76px] p-3.5 rounded-2xl border
                       border-[var(--line)] bg-[var(--paper)] text-[13px] font-medium text-[var(--ink)]
-                      hover:border-[var(--ink-faint)] transition-colors
+                      hover:border-[var(--navy-line)] hover:bg-[var(--navy-soft)] transition-colors
                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                    <Icon size={15} aria-hidden="true" className="text-[var(--ink-faint)]" />
-                    {action.label}
+                    <Icon size={18} aria-hidden="true" className="text-[var(--ink-faint)]" />
+                    <span className="leading-tight">{action.label}</span>
                   </Link>
                 )
               })}
             </div>
           </section>
 
-          {/* ── 4. What has been happening ────────────────────────────── */}
+          {/* ── 5. What has been happening ──────────────────────────────── */}
           <section aria-labelledby="activity-heading">
             <h2 id="activity-heading" className="t-overline mb-2.5">Recent activity</h2>
 

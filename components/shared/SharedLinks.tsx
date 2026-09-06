@@ -39,10 +39,16 @@ export default function SharedLinks() {
               </div>
               <div className="flex items-center gap-2">
                 <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line)] rounded-lg px-3 py-2 text-xs text-[var(--ink-soft)] font-mono break-all">{l.url}</div>
-                <button onClick={() => { navigator.clipboard.writeText(l.url); toast.success('Copied') }}
-                  className="flex-shrink-0 p-2 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition"><Copy size={15} /></button>
+                <button type="button" aria-label={`Copy the link for ${l.title || 'this resource'}`}
+                  onClick={() => { navigator.clipboard.writeText(l.url); toast.success('Copied') }}
+                  className="flex-shrink-0 p-2 bg-[var(--accent)] text-white rounded-lg hover:brightness-110 transition">
+                  <Copy size={15} aria-hidden="true" />
+                </button>
                 <a href={l.url} target="_blank" rel="noopener noreferrer"
-                  className="flex-shrink-0 p-2 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition"><ExternalLink size={15} /></a>
+                  aria-label={`Open ${l.title || 'this link'} in a new tab`}
+                  className="flex-shrink-0 p-2 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition">
+                  <ExternalLink size={15} aria-hidden="true" />
+                </a>
               </div>
               {l.poster?.full_name && <div className="text-[11px] text-[var(--ink-faint)] mt-2">Posted by {l.poster.full_name}</div>}
             </div>

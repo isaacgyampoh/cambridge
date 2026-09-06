@@ -4,9 +4,10 @@ import { useState, useEffect, useRef } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { toast } from 'sonner'
-import { Upload, FileText, Download, Trash2, Send, X } from 'lucide-react'
+import { Trash2, X } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
 import { CONFIG } from '@/lib/config'
+import { Badge } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
 import { useConfirm } from '@/hooks/useConfirm'
 
@@ -25,7 +26,7 @@ const DOC_TYPES = [
 const TEMPLATE_FIELDS = ['{{full_name}}', '{{email}}', '{{phone}}', '{{course}}', '{{batch}}', '{{date}}', '{{admission_number}}', '{{amount}}']
 
 export default function DocumentsPage() {
-  const { confirm, dialog } = useConfirm()
+  const { confirm, notify, dialog } = useConfirm()
   const { data: docs, loading, refetch: load } = useData<any>({
     table: 'documents', orderBy: 'created_at', orderAsc: false, limit: 200,
   })
@@ -198,20 +199,58 @@ export default function DocumentsPage() {
         </div>
         <button onClick={async () => {
           const d = await fetch('/api/admin/chat-style-check').then(r => r.json()).catch(() => null)
-          if (!d || d.error) return alert(d?.error || 'Could not check')
-          const lines = (d.samples || []).map((x: any) =>
-            `${x.beingUsed ? 'read' : 'NOT read'}  —  ${x.name} (${x.characters} characters)`).join('\n')
-          alert(`${d.advice}\n\n${lines || 'None uploaded yet.'}`)
+          if (!d || d.error) { toast.error(d?.error || 'Could not run that check.'); return }
+          const samples: Array<{ beingUsed: boolean; name: string; characters: number }> = d.samples || []
+          await notify({
+            title: 'Chat samples',
+            message: (
+              <>
+                <p className="mb-3">{d.advice}</p>
+                {samples.length === 0 ? <p>None uploaded yet.</p> : (
+                  <ul className="space-y-1.5">
+                    {samples.map((x, i) => (
+                      <li key={i} className="flex items-center gap-2">
+                        <Badge tone={x.beingUsed ? 'success' : 'muted'}>
+                          {x.beingUsed ? 'Read' : 'Not read'}
+                        </Badge>
+                        <span className="min-w-0 truncate">{x.name}</span>
+                        <span className="ml-auto text-[12px] text-[var(--ink-faint)] tabular-nums">
+                          {x.characters.toLocaleString()} chars
+                        </span>
+                      </li>
+                    ))}
+                  </ul>
+                )}
+              </>
+            ),
+          })
         }}
           className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition">
           Check chat samples
         </button>
         <button onClick={async () => {
           const d = await fetch('/api/admin/brochure-check').then(r => r.json()).catch(() => null)
-          if (!d || d.error) return alert(d?.error || 'Could not check')
-          const lines = (d.courses || []).map((r: any) =>
-            `${r.ok ? 'OK  ' : 'FAIL'}  ${r.course}  →  ${r.willSend || 'NOTHING'}`).join('\n')
-          alert(`${d.advice}\n\n${lines}`)
+          if (!d || d.error) { toast.error(d?.error || 'Could not run that check.'); return }
+          const courses: Array<{ ok: boolean; course: string; willSend?: string }> = d.courses || []
+          await notify({
+            title: 'Brochure routing',
+            message: (
+              <>
+                <p className="mb-3">{d.advice}</p>
+                <ul className="space-y-1.5">
+                  {courses.map((r, i) => (
+                    <li key={i} className="flex items-center gap-2">
+                      <Badge tone={r.ok ? 'success' : 'danger'}>{r.ok ? 'OK' : 'Failed'}</Badge>
+                      <span className="min-w-0 truncate">{r.course}</span>
+                      <span className="ml-auto text-[12px] text-[var(--ink-faint)] truncate max-w-[45%]">
+                        {r.willSend || 'sends nothing'}
+                      </span>
+                    </li>
+                  ))}
+                </ul>
+              </>
+            ),
+          })
         }}
           className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition ml-2">
           Check brochures
@@ -488,7 +527,7 @@ export default function DocumentsPage() {
           <div className="p-6 max-h-[85vh] flex flex-col">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-semibold text-[var(--ink)]">Send to Students</h2>
-              <button onClick={() => setSendModal(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]"></button>
+              <button type="button" onClick={() => setSendModal(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink-soft)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
             <p className="text-sm text-[var(--ink-faint)] mb-4">Select students to send <strong>{sendModal?.name}</strong> via email.</p>
 
@@ -574,10 +613,8 @@ export default function DocumentsPage() {
                   className="flex-1 flex items-center justify-center gap-1.5 h-9 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
                    Send
                 </button>
-                <button onClick={() => deleteDoc(doc.id, doc.file_url)}
-                  className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition">
-                  
-                </button>
+                <button type="button" onClick={() => deleteDoc(doc.id, doc.file_url)}
+                  className="h-9 w-9 flex items-center justify-center bg-[var(--danger-soft)] text-[var(--danger)] rounded-xl hover:bg-[var(--danger-soft)] transition" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
               </div>
             </div>
           ))}

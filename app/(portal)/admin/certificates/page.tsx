@@ -8,6 +8,7 @@ import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
 import { exportToExcel } from '@/lib/utils/export'
 import { CONFIG } from '@/lib/config'
+import { X } from 'lucide-react'
 
 type Certificate = {
   id: string
@@ -153,7 +154,7 @@ export default function CertificatesPage() {
           <div className="p-6">
             <div className="flex items-center justify-between mb-4">
               <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Issue certificate</h2>
-              <button onClick={() => setIssueFor(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+              <button type="button" onClick={() => setIssueFor(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4">
               <div className="text-sm font-semibold text-[var(--ink)]">{issueFor.full_name}</div>

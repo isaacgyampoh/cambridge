@@ -4,6 +4,7 @@ import { PageHeader, Card, Button, Badge, inputClass, Field } from '@/components
 import Modal from '@/components/shared/Modal'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
+import { X } from 'lucide-react'
 
 const PREP_STATUS = [
   { value: 'ongoing', label: 'Ongoing', tone: 'warning' as const },
@@ -187,7 +188,7 @@ export default function CoordinatorPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-4">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Add student to prep</h2>
-            <button onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+            <button type="button" onClick={() => setAddOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="max-h-80 overflow-y-auto -mx-2 px-2">
             {eligible.length === 0 ? (
@@ -214,7 +215,7 @@ export default function CoordinatorPage() {
                 <h2 className="font-display text-xl font-semibold text-[var(--ink)]">{edit.student_name}</h2>
                 <p className="text-xs text-[var(--ink-faint)]">{edit.program_name || edit.program_code}</p>
               </div>
-              <button onClick={() => setEdit(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
+              <button type="button" onClick={() => setEdit(null)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]" aria-label="Close"><X size={18} aria-hidden="true" /></button>
             </div>
             <div className="space-y-4">
               <div className="grid grid-cols-2 gap-4">
@@ -255,7 +256,7 @@ export default function CoordinatorPage() {
                   <p className="text-[13px] text-[var(--ink-soft)]">Sent to student: <span className="font-mono font-semibold text-[var(--ink)]">{edit.voucher_code}</span></p>
                 ) : (
                   <>
-                    <p className="text-[12px] text-[var(--ink-soft)] mb-2.5">When {(edit.student_name || 'the student').split(' ')[0]} is ready to write, request a voucher. Finance will buy it and it'll be sent automatically.</p>
+                    <p className="text-[12px] text-[var(--ink-soft)] mb-2.5">When {(edit.student_name || 'the student').split(' ')[0]} is ready to write, request a voucher. Finance will buy it and it’ll be sent automatically.</p>
                     <Button variant="secondary" disabled={saving}
                       onClick={async () => {
                         setSaving(true)

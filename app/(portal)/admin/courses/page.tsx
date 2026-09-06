@@ -4,7 +4,7 @@ import { useData, mutate } from '@/hooks/useData'
 import FileUpload from '@/components/shared/FileUpload'
 import type { Course } from '@/types'
 import { toast } from 'sonner'
-import { Plus, X, BookOpen, Pencil } from 'lucide-react'
+import { X } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass, textareaClass} from '@/components/ui'
 
@@ -61,7 +61,7 @@ export default function CoursesPage() {
         <div className="p-6">
           <div className="flex items-center justify-between mb-6">
             <h2 className="font-display text-xl font-semibold text-[var(--ink)]">{modal === 'new' ? 'New course' : 'Edit course'}</h2>
-            <button onClick={() => { setModal(null); setEditing(null) }} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition"></button>
+            <button type="button" onClick={() => { setModal(null); setEditing(null) }} className="text-[var(--ink-faint)] hover:text-[var(--ink)] transition" aria-label="Close"><X size={18} aria-hidden="true" /></button>
           </div>
           <div className="space-y-4">
             {fields.map(f => (

@@ -3,8 +3,10 @@ import { useState } from 'react'
 import { StatusBadge } from '@/components/ui'
 import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
-import { UserCheck, RefreshCw, MessageSquare } from 'lucide-react'
+import { MessageSquare, RefreshCw } from 'lucide-react'
 import { formatDateTime } from '@/lib/utils'
+import { whatsappHref } from '@/lib/ui/contact'
+import { BRAND } from '@/lib/brand'
 
 const S: Record<string, { label: string; color: string }> = {
   pending: { label: 'Pending', color: 'bg-[var(--warn-soft)] text-[var(--warn)]'},
@@ -70,10 +72,8 @@ export default function AdmissionProcess() {
           <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Admissions</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Process and track student admissions.</p>
         </div>
-        <button onClick={() => { refetchA(); refetchApp() }}
-          className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
-          
-        </button>
+        <button type="button" onClick={() => { refetchA(); refetchApp() }}
+          className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition" aria-label="Refresh"><RefreshCw size={16} aria-hidden="true" /></button>
       </div>
 
       {/* Stats */}
@@ -121,7 +121,7 @@ export default function AdmissionProcess() {
             <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-16 text-center">
               
               <p className="text-[var(--ink-faint)] text-sm font-medium">No admissions here</p>
-              <p className="text-[var(--ink-faint)] text-xs mt-1">Admissions are created when leads are marked "Ready to Join"</p>
+              <p className="text-[var(--ink-faint)] text-xs mt-1">Admissions are created when leads are marked ”Ready to Join”</p>
             </div>
           ) : (
             <div className="space-y-3">
@@ -177,11 +177,19 @@ export default function AdmissionProcess() {
                           Reject
                         </button>
                       )}
-                      {lead?.phone && (
-                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/[^0-9]/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name}, regarding your admission at Cambridge Center of Excellence...`)}`}
-                          target="_blank"rel="noopener noreferrer"
-                          className="px-3 py-1.5 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition flex items-center gap-1">
-                           WhatsApp
+                      {/*
+                        The number was normalised here with
+                        .replace(/[^0-9]/,'') — no /g flag, so it removed
+                        exactly ONE non-digit. "+233 24 123 4567" became
+                        "23324 123 4567" and the link opened to nothing.
+                      */}
+                      {whatsappHref(lead?.phone, `Hello ${lead?.full_name || ''}, regarding your admission at ${BRAND.name}.`) && (
+                        <a href={whatsappHref(lead?.phone, `Hello ${lead?.full_name || ''}, regarding your admission at ${BRAND.name}.`) as string}
+                          target="_blank" rel="noopener noreferrer"
+                          className="px-3 py-1.5 rounded-xl text-xs font-semibold transition
+                            border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--canvas)]
+                            flex items-center gap-1.5">
+                          <MessageSquare size={13} aria-hidden="true" /> WhatsApp
                         </a>
                       )}
                     </div>

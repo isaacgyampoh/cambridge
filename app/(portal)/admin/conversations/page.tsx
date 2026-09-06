@@ -1,8 +1,9 @@
 'use client'
+import { toast } from 'sonner'
 import { useState, useMemo, useEffect } from 'react'
-import { displayPhone } from '@/lib/ui/contact'
+import { displayPhone, telHref } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
-import { Spinner, EmptyState } from '@/components/ui'
+import { Spinner } from '@/components/ui'
 import { ChevronLeft, Search } from 'lucide-react'
 import { useConfirm } from '@/hooks/useConfirm'
 
@@ -164,7 +165,8 @@ export default function ConversationsPage() {
     <div className="flex flex-col h-full min-h-0">
       <div className="p-4 border-b border-[var(--line)]">
         <div className="flex items-center gap-2">
-          <button onClick={() => setStaffId(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
+          <button type="button" onClick={() => setStaffId(null)} aria-label="Back to the staff list"
+            className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} aria-hidden="true" /></button>
           <div className="min-w-0">
             <h2 className="font-display text-[15px] font-semibold text-[var(--ink)] truncate">{staff.name}</h2>
             <p className="text-[12px] text-[var(--ink-soft)] truncate">
@@ -200,13 +202,21 @@ export default function ConversationsPage() {
   const TranscriptPane = thread && (
     <div className="flex flex-col h-full min-h-0">
       <div className="p-4 border-b border-[var(--line)] flex items-center gap-2">
-        <button onClick={() => setPhone(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
+        <button type="button" onClick={() => setPhone(null)} aria-label="Back to the conversation list"
+          className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} aria-hidden="true" /></button>
         <div className="min-w-0 flex-1">
           <h2 className="font-display text-[15px] font-semibold text-[var(--ink)] truncate">{thread.name || shortPhone(thread.phone)}</h2>
           <p className="text-[12px] text-[var(--ink-soft)] truncate">
-            <a href={`tel:${thread.leadPhone || thread.phone}`} className="font-medium text-[var(--accent)]">
-              {shortPhone(thread.leadPhone || thread.phone)}
-            </a>
+            {/* telHref returns null for a missing number, so this renders as
+                text rather than as a link to "tel:undefined". */}
+            {telHref(thread.leadPhone || thread.phone) ? (
+              <a href={telHref(thread.leadPhone || thread.phone) as string}
+                className="font-medium text-[var(--accent)]">
+                {shortPhone(thread.leadPhone || thread.phone)}
+              </a>
+            ) : (
+              <span className="font-medium">{shortPhone(thread.leadPhone || thread.phone)}</span>
+            )}
             {thread.status ? ` · ${String(thread.status).replace(/_/g, ' ')}` : ''}
           </p>
         </div>
@@ -251,8 +261,8 @@ export default function ConversationsPage() {
         </div>
         <button onClick={async () => {
           const dry = await fetch('/api/admin/reattribute-chats').then(r => r.json()).catch(() => null)
-          if (!dry || dry.error) return alert(dry?.error || 'Could not check')
-          if (!dry.fixable) return alert('Nothing to move — every chat is already against the right person.')
+          if (!dry || dry.error) { toast.error(dry?.error || 'Could not check that.'); return }
+          if (!dry.fixable) { toast.info('Nothing to move — every chat is already against the right person.'); return }
           if (!await confirm({
             title: 'Move chats to their owners?',
             message: `${dry.fixable} chat${dry.fixable === 1 ? '' : 's'} will move from the central line to the marketer who owns that lead.`,
@@ -260,16 +270,16 @@ export default function ConversationsPage() {
             tone: 'accent',
           })) return
           const d = await fetch('/api/admin/reattribute-chats', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-          if (d.error) alert(d.error)
-          else { alert(`Moved ${d.fixed} chat${d.fixed === 1 ? '' : 's'}.`); location.reload() }
+          if (d.error) toast.error(d.error)
+          else { toast.success(`Moved ${d.fixed} chat${d.fixed === 1 ? '' : 's'}.`); location.reload() }
         }}
           className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Fix chat attribution
         </button>
         <button onClick={async () => {
           const st = await fetch('/api/admin/resume-ai').then(r => r.json()).catch(() => null)
-          if (!st || st.error) return alert(st?.error || 'Could not check')
-          if (!st.paused) return alert('The assistant is active on every lead.')
+          if (!st || st.error) { toast.error(st?.error || 'Could not check that.'); return }
+          if (!st.paused) { toast.info('The assistant is already active on every lead.'); return }
           if (!await confirm({
             title: 'Resume the assistant?',
             message: `It is currently paused on ${st.paused} lead${st.paused === 1 ? '' : 's'} and will start replying to all of them again.`,
@@ -277,8 +287,8 @@ export default function ConversationsPage() {
             tone: 'accent',
           })) return
           const d = await fetch('/api/admin/resume-ai', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-          if (d.error) alert(d.error)
-          else { alert(`Resumed on ${d.resumed} lead${d.resumed === 1 ? '' : 's'}.`); location.reload() }
+          if (d.error) toast.error(d.error)
+          else { toast.success(`Resumed on ${d.resumed} lead${d.resumed === 1 ? '' : 's'}.`); location.reload() }
         }}
           className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Resume assistant

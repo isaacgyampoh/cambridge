@@ -2,11 +2,12 @@
 import { useState, useEffect, use } from 'react'
 import { StatusBadge } from '@/components/ui'
 import { mutate } from '@/hooks/useData'
-import { formatDateTime, formatPhone, SOURCE_COLORS, STATUS_COLORS } from '@/lib/utils'
+import { formatDateTime, formatPhone, SOURCE_COLORS } from '@/lib/utils'
 import type { Lead, LeadActivity, LeadStatusLog, Profile } from '@/types'
 import { toast } from 'sonner'
-import { ArrowLeft, Phone, MessageSquare, Mail, MapPin, BookOpen, Clock } from 'lucide-react'
+import { Phone, MessageSquare, Mail, MapPin, BookOpen, Clock } from 'lucide-react'
 import Link from 'next/link'
+import { whatsappHref } from '@/lib/ui/contact'
 import CallButton from '@/components/shared/CallButton'
 
 const STATUSES = ['new','contacted','interested','follow_up','registered','not_interested','lost']
@@ -123,10 +124,14 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <div className="flex gap-2 mt-4 pt-4 border-t border-[var(--line-soft)]">
                 <CallButton leadId={id as string} phone={lead.phone} onLogged={() => load()}
                   className="flex items-center gap-1.5 px-3 py-2 bg-[var(--ok)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition disabled:opacity-60" />
-                <a href={`https://wa.me/${lead.phone.replace(/^0/, '233')}`} target="_blank"
-                  className="flex items-center gap-1.5 px-3 py-2 bg-[#25D366] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition">
-                   WhatsApp
-                </a>
+                {whatsappHref(lead.phone) && (
+                  <a href={whatsappHref(lead.phone) as string}
+                    target="_blank" rel="noopener noreferrer"
+                    className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold
+                      border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--canvas)] transition">
+                    <MessageSquare size={14} aria-hidden="true" /> WhatsApp
+                  </a>
+                )}
                 {lead.email && (
                   <a href={`mailto:${lead.email}`} className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-semibold hover:brightness-110 transition">
                      Email

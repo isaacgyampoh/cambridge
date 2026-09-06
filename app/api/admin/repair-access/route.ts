@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { ROLE_DEFAULTS, DUTIES } from '@/lib/access/portals'
+import { ROLE_DEFAULTS } from '@/lib/access/portals'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator']

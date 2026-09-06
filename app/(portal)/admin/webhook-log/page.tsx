@@ -1,7 +1,10 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
-import { PageHeader, Card, Badge, Spinner, EmptyState } from '@/components/ui'
+import { PageHeader, Card, Badge, Spinner, EmptyState, Button, inputClass } from '@/components/ui'
+import { useConfirm } from '@/hooks/useConfirm'
+import { canonicalContact } from '@/lib/ui/contact'
+import { toast } from 'sonner'
 
 const TONE: Record<string, any> = {
   replied: 'success', ignored_not_lead: 'warning', paused: 'neutral',
@@ -17,8 +20,21 @@ const LABEL: Record<string, string> = {
 }
 
 export default function WebhookLogPage() {
+  const { notify, dialog } = useConfirm()
   const [data, setData] = useState<any>(null)
   const [loading, setLoading] = useState(true)
+  /*
+   * The number to test against, as a field on the page.
+   *
+   * This was a window.prompt(). Beyond being unstyled and thread-blocking, a
+   * browser that has been told to suppress further dialogs returns null from
+   * it — and the handler treated null as "cancelled", so the button quietly
+   * did nothing forever. A field cannot be switched off by the browser, and
+   * it keeps the number between attempts, which matters when the whole point
+   * is to try the same number twice.
+   */
+  const [testPhone, setTestPhone] = useState('')
+  const [testing, setTesting] = useState(false)
   const load = () => {
     setLoading(true)
     fetch('/api/admin/inbound-log').then(r => r.json()).then(d => { setData(d); setLoading(false) }).catch(() => setLoading(false))
@@ -27,25 +43,74 @@ export default function WebhookLogPage() {
   const refetch = load
   const rows = data?.events || []
 
+  /*
+   * Send one synthetic inbound message and report every step.
+   *
+   * The result is a list of steps with a verdict — far too much for a toast,
+   * and it used to be printed with alert(), newlines and all. It is shown in
+   * the application's own dialog now, so it can be read, kept open beside the
+   * log below it, and copied.
+   */
+  async function runTest() {
+    const phone = canonicalContact(testPhone)
+    if (!phone) { toast.error('That is not a Ghanaian mobile number.'); return }
+
+    setTesting(true)
+    try {
+      const d = await fetch('/api/test/inbound', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone, message: 'Hello, I want to know more' }),
+      }).then(r => r.json()).catch(() => ({ error: 'The test request failed.' }))
+
+      if (d.error) { toast.error(d.error); return }
+
+      const steps: Array<{ ok: boolean; step: string; detail: string }> = d.steps || []
+      await notify({
+        title: d.verdict || 'Test complete',
+        confirmLabel: 'Close',
+        message: steps.length === 0 ? (
+          <p>The test ran but reported no steps.</p>
+        ) : (
+          <ol className="space-y-2.5">
+            {steps.map((st, i) => (
+              <li key={i} className="flex gap-2.5">
+                <Badge tone={st.ok ? 'success' : 'danger'}>{st.ok ? 'OK' : 'Failed'}</Badge>
+                <span className="min-w-0">
+                  <span className="block font-medium text-[var(--ink)]">{st.step}</span>
+                  <span className="block text-[13px] text-[var(--ink-soft)] break-words">{st.detail}</span>
+                </span>
+              </li>
+            ))}
+          </ol>
+        ),
+      })
+      refetch()
+    } finally {
+      setTesting(false)
+    }
+  }
+
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
+      {dialog}
       <PageHeader eyebrow="Diagnostics" title="Incoming WhatsApp"
         description="Every message WhatsApp delivers to the system, and what happened to it. If a lead says they got no reply, look here first."
-        actions={<>
-          <button onClick={async () => {
-            const num = prompt('Enter a LEAD phone number to test with (their number, not staff):')
-            if (!num) return
-            const d = await fetch('/api/test/inbound', {
-              method: 'POST', headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ phone: num.trim(), message: 'Hello, I want to know more' }),
-            }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-            if (d.error) return alert(d.error)
-            const lines = (d.steps || []).map((s: any) => `${s.ok ? 'OK  ' : 'FAIL'}  ${s.step}\n      ${s.detail}`).join('\n\n')
-            alert(`${d.verdict}\n\n${lines}`)
-            refetch()
-          }} className="h-10 px-4 rounded-xl bg-[var(--accent)] text-white text-[13px] font-semibold">Test a reply</button>
-          <button onClick={() => refetch()} className="h-10 px-4 rounded-2xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)]">Refresh</button>
-        </>} />
+        actions={
+          <div className="flex flex-wrap items-center gap-2">
+            <input
+              value={testPhone}
+              onChange={e => setTestPhone(e.target.value)}
+              placeholder="Lead's number, e.g. 0244 000 000"
+              aria-label="A lead's phone number to test a reply against"
+              inputMode="tel"
+              className={inputClass + ' w-[220px]'}
+            />
+            <Button disabled={testing || !canonicalContact(testPhone)} onClick={runTest}>
+              {testing ? 'Testing…' : 'Test a reply'}
+            </Button>
+            <Button variant="secondary" onClick={() => refetch()}>Refresh</Button>
+          </div>
+        } />
 
       {data && (
         <Card className="p-4 mb-5">

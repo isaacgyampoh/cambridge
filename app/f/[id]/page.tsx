@@ -46,7 +46,7 @@ export default function FlyerLanding({ params }: { params: Promise<{ id: string 
         ) : mode === 'choose' ? (
           <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
             <h1 className="font-display text-[17px] font-semibold text-[var(--ink)]">{flyer.title || 'Cambridge Center of Excellence'}</h1>
-            <p className="text-[14px] text-[var(--ink-soft)] mt-1.5 mb-5">{flyer.course ? `Interested in ${flyer.course}? ` : ''}Choose how you'd like to continue.</p>
+            <p className="text-[14px] text-[var(--ink-soft)] mt-1.5 mb-5">{flyer.course ? `Interested in ${flyer.course}? ` : ''}Choose how you’d like to continue.</p>
             <div className="space-y-2.5">
               <button onClick={() => setMode('interest')}
                 className="w-full h-12 rounded-xl bg-[var(--accent)] text-white font-semibold text-[15px] hover:brightness-110 transition">

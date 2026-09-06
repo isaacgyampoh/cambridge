@@ -2,19 +2,19 @@
 
 import { useState, useEffect, useRef, useMemo } from 'react'
 import { createPortal } from 'react-dom'
+import { useMounted } from '@/hooks/useMounted'
 import { useRouter } from 'next/navigation'
 import {
   Search, LayoutDashboard, TrendingUp, UserCheck, DollarSign,
   Radio, CalendarCheck, BookOpen, FolderOpen, BarChart3,
   GraduationCap, Users, Settings, CornerDownLeft, MessageSquare,
-  ClipboardList,
 } from 'lucide-react'
 
 interface Command {
   label: string
   sublabel?: string
   href: string
-  icon: any
+  icon: React.ComponentType<{ size?: number; className?: string }>
   keywords?: string
 }
 
@@ -48,9 +48,7 @@ export default function CommandPalette() {
   const [query, setQuery] = useState('')
   const [active, setActive] = useState(0)
   const inputRef = useRef<HTMLInputElement>(null)
-  const [mounted, setMounted] = useState(false)
-
-  useEffect(() => { setMounted(true) }, [])
+  const mounted = useMounted()
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => {
@@ -64,8 +62,23 @@ export default function CommandPalette() {
     return () => window.removeEventListener('keydown', onKey)
   }, [])
 
+  /*
+   * Opening clears the previous search.
+   *
+   * The clearing is adjusted during render, so the palette never paints one
+   * frame showing the last search before emptying it. Focus stays in an
+   * effect because it must happen after the input exists in the DOM.
+   */
+  const [wasOpen, setWasOpen] = useState(open)
+  if (open !== wasOpen) {
+    setWasOpen(open)
+    if (open) { setQuery(''); setActive(0) }
+  }
+
   useEffect(() => {
-    if (open) { setQuery(''); setActive(0); setTimeout(() => inputRef.current?.focus(), 50) }
+    if (!open) return
+    const t = setTimeout(() => inputRef.current?.focus(), 50)
+    return () => clearTimeout(t)
   }, [open])
 
   const results = useMemo(() => {
@@ -78,7 +91,18 @@ export default function CommandPalette() {
     )
   }, [query])
 
-  useEffect(() => { setActive(0) }, [query])
+  /*
+   * The highlighted row returns to the top whenever the query changes.
+   *
+   * Adjusted during render rather than in an effect: an effect would paint one
+   * frame with the previous row highlighted against the new results, which on
+   * a fast typist's second keystroke is a visible flicker on the wrong item.
+   */
+  const [lastQuery, setLastQuery] = useState(query)
+  if (query !== lastQuery) {
+    setLastQuery(query)
+    setActive(0)
+  }
 
   function go(href: string) { setOpen(false); router.push(href) }
 
@@ -109,7 +133,7 @@ export default function CommandPalette() {
             {/* Results */}
             <div className="max-h-[50vh] overflow-y-auto p-2">
               {results.length === 0 ? (
-                <div className="py-10 text-center text-sm text-[var(--ink-faint)]">No matches for "{query}"</div>
+                <div className="py-10 text-center text-sm text-[var(--ink-faint)]">No matches for ”{query}”</div>
               ) : results.map((c, i) => {
                 const Icon = c.icon
                 return (

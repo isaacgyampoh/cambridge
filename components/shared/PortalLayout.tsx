@@ -382,75 +382,106 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {sidebar({ wide: !railed })}
       </aside>
 
-      {/* Phone and tablet: the same navigation as a drawer, opened from More. */}
+      {/*
+        Phone and tablet: "More", as a sheet that rises from the bottom.
+
+        It used to be a drawer sliding in from the LEFT. That is the hamburger
+        pattern, and it was wrong for how this is opened: More is the fourth
+        item in the bottom tab bar, so the thing it opens appeared at the
+        opposite corner of the screen from the thumb that asked for it.
+
+        A sheet rises from where it was tapped, is dismissed by the same
+        gesture, and stops short of the top so the page behind stays visible —
+        which is what tells you this is a layer over the screen you were on
+        rather than a new one.
+      */}
       {drawerOpen && (
-        <div className="lg:hidden fixed inset-0 z-50">
+        <div className="lg:hidden fixed inset-0 z-50" role="dialog" aria-modal="true"
+          aria-label="All sections">
           <button type="button" aria-label="Close menu" onClick={() => setDrawerPath(null)}
             className="absolute inset-0 bg-black/40" />
-          <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] shadow-[var(--shadow-overlay)]">
+
+          <div className="absolute inset-x-0 bottom-0 max-h-[86vh] flex flex-col
+            rounded-t-3xl overflow-hidden bg-[var(--paper)]
+            shadow-[var(--shadow-overlay)] sheet-rise">
+            {/* The grabber. Signals "this pulls down" before anyone tries. */}
+            <div className="flex-shrink-0 pt-2.5 pb-1 grid place-items-center">
+              <span aria-hidden="true"
+                className="w-9 h-1 rounded-full bg-[var(--line)]" />
+            </div>
             {sidebar({ wide: true, inDrawer: true })}
           </div>
         </div>
       )}
 
       <div className="flex flex-col flex-1 min-w-0 overflow-hidden">
-        <header className="flex-shrink-0 bg-[var(--paper)] border-b border-[var(--line)]
-          flex items-center gap-2 px-3 sm:px-5 h-[60px] safe-t">
+        {/*
+          One bar, two personalities.
 
-          <button type="button" onClick={() => setDrawerPath(pathname)} aria-label="Open menu"
-            className="lg:hidden w-10 h-10 grid place-items-center text-[var(--ink-soft)]
-              hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
-            <Menu size={19} aria-hidden="true" />
-          </button>
+          On a phone it is the application's navy chrome carrying the brand and
+          the screen name — the thing that makes it read as an app rather than
+          a website. From lg up it becomes a quiet white strip, because the
+          sidebar is already carrying the identity and a second navy band would
+          just be decoration.
+        */}
+        <header className="flex-shrink-0 flex items-center gap-2 px-3 sm:px-5
+          h-[56px] lg:h-[60px] bg-[var(--navy)] lg:bg-[var(--paper)]
+          border-b border-transparent lg:border-[var(--line)] safe-t">
 
-          <button type="button" onClick={toggleRail}
-            aria-label={railed ? 'Widen the sidebar' : 'Narrow the sidebar'}
-            className="hidden lg:grid w-10 h-10 place-items-center text-[var(--ink-soft)]
-              hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
-            <Menu size={19} aria-hidden="true" />
-          </button>
-
-          {canGoBack && (
-            <button type="button" onClick={() => router.back()}
-              className="inline-flex items-center gap-1.5 min-h-[40px] px-2.5 rounded-xl text-[13px]
-                font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]
-                hover:bg-[var(--line-soft)] transition-colors flex-shrink-0">
-              <ArrowLeft size={16} aria-hidden="true" />
-              <span className="hidden sm:inline">Back</span>
+          {canGoBack ? (
+            <button type="button" onClick={() => router.back()} aria-label="Back"
+              className="w-10 h-10 grid place-items-center rounded-lg flex-shrink-0
+                text-white/90 lg:text-[var(--ink-soft)]
+                hover:bg-white/10 lg:hover:bg-[var(--line-soft)] transition-colors">
+              <ArrowLeft size={20} aria-hidden="true" />
+            </button>
+          ) : (
+            <button type="button" onClick={() => setDrawerPath(pathname)} aria-label="Open menu"
+              className="lg:hidden w-10 h-10 grid place-items-center rounded-lg flex-shrink-0
+                text-white/90 hover:bg-white/10 transition-colors">
+              <Menu size={20} aria-hidden="true" />
             </button>
           )}
 
-          {/* The page's name, from the navigation model — not from URL
-              segments, which produced "Admin / Leads / 4f3c8a91-…". */}
-          <span className="min-w-0 flex-1 text-[14px] font-medium text-[var(--ink)] truncate">
-            {pageTitle}
+          <button type="button" onClick={toggleRail}
+            aria-label={railed ? 'Widen the sidebar' : 'Narrow the sidebar'}
+            className="hidden lg:grid w-10 h-10 place-items-center rounded-lg
+              text-[var(--ink-soft)] hover:bg-[var(--line-soft)] transition-colors">
+            <Menu size={19} aria-hidden="true" />
+          </button>
+
+          <span className="min-w-0 flex-1 truncate text-[15px] lg:text-[14px] font-semibold
+            lg:font-medium text-white lg:text-[var(--ink)]">
+            {pageTitle || BRAND.shortName}
           </span>
 
           <button
             type="button"
             onClick={() => window.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', metaKey: true }))}
-            className="hidden sm:inline-flex items-center gap-2 h-10 pl-3 pr-2 rounded-2xl
-              border border-[var(--line)] text-[var(--ink-faint)] hover:border-[var(--ink-faint)]
-              hover:text-[var(--ink-soft)] transition-colors flex-shrink-0"
+            className="hidden sm:inline-flex items-center gap-2 h-9 pl-3 pr-2 rounded-lg flex-shrink-0
+              border border-white/15 lg:border-[var(--line)]
+              text-white/70 lg:text-[var(--ink-faint)]
+              hover:bg-white/10 lg:hover:bg-[var(--line-soft)] transition-colors"
           >
             <SearchIcon size={15} aria-hidden="true" />
             <span className="text-[13px]">Search</span>
-            <kbd className="text-[11px] font-semibold bg-[var(--line-soft)] px-1.5 py-0.5 rounded">⌘K</kbd>
+            <kbd className="text-[10px] font-semibold px-1.5 py-0.5 rounded
+              bg-white/10 lg:bg-[var(--line-soft)]">⌘K</kbd>
           </button>
 
-          <NotificationBell userId={profile?.id || null} />
+          <div className="text-white lg:text-[var(--ink-soft)] flex-shrink-0">
+            <NotificationBell userId={profile?.id || null} />
+          </div>
 
-          {/* A real menu rather than a decorative circle: signing out was
-              previously only reachable from the sidebar footer, which on a
-              phone meant opening the drawer and scrolling past every section. */}
           <div className="relative flex-shrink-0">
             <button type="button" onClick={() => setMenuPath(p => (p ? null : pathname))}
               aria-haspopup="menu" aria-expanded={profileMenu}
               aria-label={`Account: ${profile?.full_name || ''}`}
-              className="flex items-center gap-2 h-10 pl-1 pr-1 sm:pr-2 rounded-xl
-                hover:bg-[var(--line-soft)] transition-colors">
+              className="flex items-center gap-2 h-10 pl-1 pr-1 sm:pr-2 rounded-lg
+                hover:bg-white/10 lg:hover:bg-[var(--line-soft)] transition-colors">
               <Avatar name={profile?.full_name || ''} size="sm" />
-              <span className="hidden md:block text-[13px] font-semibold text-[var(--ink)] max-w-[120px] truncate">
+              <span className="hidden md:block text-[13px] font-medium max-w-[110px] truncate
+                text-white lg:text-[var(--ink)]">
                 {profile?.full_name?.split(' ')[0]}
               </span>
             </button>
@@ -461,8 +492,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   onClick={() => setMenuPath(null)} className="fixed inset-0 z-30 cursor-default" />
                 <div role="menu" aria-label="Account"
                   className="absolute right-0 mt-1 z-40 w-[230px] rounded-2xl bg-[var(--paper)]
-                    border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1">
-                  <div className="px-3.5 py-2.5 border-b border-[var(--line)]">
+                    border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1 sheet-in">
+                  <div className="px-3.5 py-2.5 border-b border-[var(--line-soft)]">
                     <div className="text-[13px] font-semibold text-[var(--ink)] truncate">
                       {profile?.full_name}
                     </div>
@@ -486,7 +517,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
         <main className="flex-1 overflow-y-auto overflow-x-hidden" style={{ background: 'var(--canvas)' }}>
           <div className="w-full px-4 py-5 sm:px-7 sm:py-7 lg:px-10 lg:py-9
-            pb-[calc(76px+env(safe-area-inset-bottom))] lg:pb-9 mx-auto max-w-[1500px]">
+            has-tabbar lg:pb-9 mx-auto max-w-[1500px]">
             {children}
           </div>
         </main>
@@ -495,8 +526,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             actually holds, plus More for everything else. Hidden from lg up,
             where the sidebar is standing. */}
         <nav aria-label="Main"
-          className="lg:hidden fixed bottom-0 inset-x-0 z-40 border-t border-[var(--line)]
-            bg-[var(--paper)]/95 backdrop-blur-sm pb-[env(safe-area-inset-bottom)]">
+          className="lg:hidden fixed bottom-0 inset-x-0 z-40 tab-bar">
           <div className="grid mx-auto max-w-lg"
             style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, minmax(0, 1fr))` }}>
             {tabs.map(tab => {
@@ -504,10 +534,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               const active = isActive(pathname, tab.href)
               return (
                 <Link key={tab.key} href={tab.href} aria-current={active ? 'page' : undefined}
-                  className={`flex flex-col items-center justify-center gap-1 min-h-[58px] py-2
+                  className={`flex flex-col items-center justify-center gap-1 min-h-[60px] py-2
                     transition-colors focus-visible:outline-none focus-visible:ring-2
-                    focus-visible:ring-inset focus-visible:ring-[var(--accent)]
-                    ${active ? 'text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>
+                    focus-visible:ring-inset focus-visible:ring-white/40
+                    ${active ? 'text-white' : 'text-white/45'}`}>
                   <Icon size={21} className="flex-shrink-0" aria-hidden="true" />
                   <span className="text-[11px] font-semibold leading-none truncate max-w-full px-0.5">
                     {tab.label}
@@ -516,9 +546,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
               )
             })}
             <button type="button" onClick={() => setDrawerPath(pathname)} aria-label="More sections"
-              className="flex flex-col items-center justify-center gap-1 min-h-[58px] py-2
-                text-[var(--ink-faint)] transition-colors focus-visible:outline-none
-                focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]">
+              className="flex flex-col items-center justify-center gap-1 min-h-[60px] py-2
+                text-white/45 transition-colors focus-visible:outline-none
+                focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40">
               <Menu size={21} className="flex-shrink-0" aria-hidden="true" />
               <span className="text-[11px] font-semibold leading-none">More</span>
             </button>

@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText, WA } from '@/lib/integrations/whatsapp'
-import { sendWelcomeEmail, sendAdmissionLetter, sendPaymentReceipt, sendClassReminder } from '@/lib/integrations/email'
+import { sendAdmissionLetter, sendPaymentReceipt, sendClassReminder } from '@/lib/integrations/email'
 
 const sb = () => createServiceClient()
 

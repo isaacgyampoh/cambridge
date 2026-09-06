@@ -3,17 +3,52 @@ import { useState } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import type { Lead } from '@/types'
+
+/**
+ * A lead as this screen selects it: the record plus the two names joined in.
+ *
+ * The rows were handled as `any` throughout, which is how `next_follow_up` —
+ * a column that does not exist — was read and written here without anything
+ * objecting. Naming the shape makes the compiler check the field names again.
+ */
+type LeadRow = Lead & {
+  assignee?: { full_name: string } | null
+  assigner?: { full_name: string } | null
+}
 import { formatDateTime } from '@/lib/utils'
 import Link from 'next/link'
 import {
   PageHeader, Card, Button, Badge, Spinner, EmptyState, Search, ActionMenu,
+  Tabs, MobileList, ListRow, Avatar,
 } from '@/components/ui'
+import { telHref, whatsappHref } from '@/lib/ui/contact'
+import { Phone, MessageCircle } from 'lucide-react'
 import { describeStatus } from '@/lib/ui/status'
+
+type BadgeTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'muted'
 import { exportToExcel } from '@/lib/utils/export'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 
-const STATUS_TONE: Record<string, any> = {
+/*
+ * The stages people actually sort leads by, as tabs.
+ *
+ * A select holding eight stages hides the shape of the pipeline: you cannot
+ * see that forty leads are sitting at "new" without opening it and reading.
+ * Four tabs carrying live counts put that on the screen, and the long tail
+ * stays in the stage filter beside them for the rarer cases.
+ *
+ * 'follow_up' groups with 'interested' because that is one conversation to
+ * the person doing the work, not two.
+ */
+const SEGMENTS: Array<{ key: string; label: string; match: (status: string) => boolean }> = [
+  { key: 'all',       label: 'All',        match: () => true },
+  { key: 'new',       label: 'New',        match: s => s === 'new' },
+  { key: 'contacted', label: 'Contacted',  match: s => s === 'contacted' },
+  { key: 'follow_up', label: 'Follow-up',  match: s => s === 'follow_up' || s === 'interested' },
+]
+
+const STATUS_TONE: Record<string, BadgeTone> = {
   new: 'neutral', contacted: 'accent', interested: 'accent', follow_up: 'warning',
   ready_to_join: 'success', registered: 'success', not_interested: 'muted', lost: 'danger',
 }
@@ -70,7 +105,7 @@ function PurgeSummary({
 
 export default function AdminLeads() {
   const { confirm, dialog } = useConfirm()
-  const { data: leads, loading, refetch } = useData<Lead>({
+  const { data: leads, loading, refetch } = useData<LeadRow>({
     table: 'leads',
     select: '*, assignee:assigned_to(full_name), assigner:assigned_by(full_name)',
     orderBy: 'created_at', orderAsc: false, limit: 500,
@@ -78,13 +113,28 @@ export default function AdminLeads() {
   const [search, setSearch] = useState('')
   const [sourceFilter, setSourceFilter] = useState('all')
   const [statusFilter, setStatusFilter] = useState('all')
+  const [segment, setSegment] = useState('all')
 
-  const filtered = leads.filter((l: any) => {
+  /*
+   * Search and the two selects narrow the pool; the segment then splits it.
+   * Counting on the pre-segment set is what lets each tab show how many leads
+   * it holds — counting after would make every tab show its own total.
+   */
+  const pool = leads.filter((l: LeadRow) => {
     const matchSearch = !search || [l.full_name, l.email, l.phone, l.course_interest].some(v => v?.toLowerCase().includes(search.toLowerCase()))
     const matchSource = sourceFilter === 'all' || l.source === sourceFilter
     const matchStatus = statusFilter === 'all' || l.status === statusFilter
     return matchSearch && matchSource && matchStatus
   })
+
+  const segments = SEGMENTS.map(seg => ({
+    key: seg.key,
+    label: seg.label,
+    count: pool.filter((l: LeadRow) => seg.match(l.status)).length,
+  }))
+
+  const activeSegment = SEGMENTS.find(s => s.key === segment) || SEGMENTS[0]
+  const filtered = pool.filter((l: LeadRow) => activeSegment.match(l.status))
 
   async function assignUnassigned() {
     // First check the pool so we can explain if nothing happens
@@ -171,8 +221,32 @@ export default function AdminLeads() {
   }
 
   async function clearAllLeads() {
-    const typed = prompt('This permanently deletes EVERY lead (and their activity/chat history) so you can import fresh. Students, staff and courses are NOT affected.\n\nType exactly:  DELETE ALL LEADS')
-    if (typed !== 'DELETE ALL LEADS') { if (typed !== null) toast.error('Confirmation did not match. Nothing deleted.'); return }
+    /*
+     * The one irreversible action on this screen, so it asks for the phrase
+     * to be typed rather than just clicked.
+     *
+     * This used window.prompt(). Some mobile webviews refuse to display one
+     * at all — and a browser that has been told to block further dialogs
+     * returns null silently — so on those devices the button did nothing and
+     * said nothing. The dialog is part of the application and cannot be
+     * suppressed out from under it.
+     */
+    if (!await confirm({
+      title: 'Delete every lead?',
+      confirmLabel: 'Delete all leads',
+      requirePhrase: 'DELETE ALL LEADS',
+      message: (
+        <>
+          <p className="mb-3">
+            This permanently removes every lead, along with their activity and
+            chat history, so you can import a fresh list.
+          </p>
+          <p className="mb-3">Students, staff and courses are not affected.</p>
+          <p className="font-medium text-[var(--ink)]">This cannot be undone.</p>
+        </>
+      ),
+    })) return
+
     toast.loading('Deleting all leads…', { id: 'clr' })
     const d = await fetch('/api/admin/clear-leads', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
@@ -183,7 +257,7 @@ export default function AdminLeads() {
   }
 
   async function exportExcel() {
-    const rows = filtered.map((l: any) => ({
+    const rows = filtered.map((l: LeadRow) => ({
       Name: l.full_name,
       Phone: displayPhone(l.phone) || '',
       Email: l.email || '',
@@ -198,7 +272,7 @@ export default function AdminLeads() {
   }
 
   async function exportCSV() {
-    const rows = filtered.map((l: any) => [
+    const rows = filtered.map((l: LeadRow) => [
       l.full_name, l.email || '', l.phone || '', l.source, l.status,
       l.course_interest || '', l.assignee?.full_name || '', formatDateTime(l.created_at)
     ].map(v => `"${v}"`).join(','))
@@ -288,35 +362,93 @@ export default function AdminLeads() {
         </select>
       </div>
 
-      <Card className="overflow-hidden">
-        {loading ? <Spinner /> : filtered.length === 0 ? (
+      <Tabs
+        tabs={segments}
+        active={segment}
+        onChange={setSegment}
+        label="Lead stages"
+        className="mb-4"
+      />
+
+      {loading ? (
+        <Card className="overflow-hidden"><Spinner /></Card>
+      ) : filtered.length === 0 ? (
+        <Card className="overflow-hidden">
           <div className="py-16">
-            <EmptyState  title="No leads match" description="Try adjusting your search or filters, or add a new lead." />
+            <EmptyState title="No leads match" description="Try adjusting your search or filters, or add a new lead." />
           </div>
-        ) : (
-          <>
-          {/* Mobile: tappable lead cards */}
-          <div className="sm:hidden divide-y divide-[var(--line-soft)]">
-            {filtered.map((l: any) => (
-              <Link key={l.id} href={`/admin/leads/${l.id}`} className="block p-4 active:bg-[var(--line-soft)] transition">
-                <div className="flex items-start justify-between gap-2">
-                  <div className="min-w-0">
-                    <div className="font-medium text-[15px] text-[var(--ink)] truncate">{l.full_name}</div>
-                    <div className="text-[13px] text-[var(--ink-soft)]">{displayPhone(l.phone) || '—'}</div>
-                  </div>
-                  <Badge tone={STATUS_TONE[l.status] || 'neutral'}>{l.status.replace(/_/g, ' ')}</Badge>
-                </div>
-                <div className="flex items-center gap-2 mt-2 flex-wrap">
-                  <Badge tone="neutral">{l.source}</Badge>
-                  {l.course_interest && <span className="text-[12px] text-[var(--ink-soft)] truncate">{l.course_interest}</span>}
-                  <span className="text-[12px] text-[var(--ink-faint)] ml-auto">{l.assignee?.full_name || <span className="text-[var(--warn)] font-medium">Unassigned</span>}</span>
-                </div>
-              </Link>
-            ))}
+        </Card>
+      ) : (
+        <>
+          {/*
+            Mobile: the same row this product uses everywhere.
+
+            Previously a bespoke card built from two Badges and three text
+            sizes — a fourth spelling of "a person in a list" alongside the
+            ones on admissions, students and follow-ups. ListRow is that
+            pattern, so the leads list now looks like the rest of the app
+            rather than like its own small application.
+
+            Call and WhatsApp are on the row itself. Ringing a lead was three
+            taps and a scroll; it is now one, which is the whole job of this
+            screen.
+          */}
+          <div className="sm:hidden">
+            <MobileList
+              rows={filtered}
+              rowKey={(l: LeadRow) => l.id}
+              emptyTitle="No leads match"
+              emptyMessage="Try a different stage, or adjust your search."
+              renderRow={(l: LeadRow) => {
+                const tel = telHref(l.phone)
+                const wa = whatsappHref(l.phone)
+                return (
+                  <ListRow
+                    href={`/admin/leads/${l.id}`}
+                    leading={<Avatar name={l.full_name || ''} size="md" />}
+                    title={l.full_name}
+                    subtitle={displayPhone(l.phone) || 'No phone number'}
+                    status={
+                      <Badge tone={STATUS_TONE[l.status] || 'neutral'}>
+                        {l.status.replace(/_/g, ' ')}
+                      </Badge>
+                    }
+                    meta={
+                      <>
+                        <span>{l.source}</span>
+                        {l.course_interest && <span className="truncate">{l.course_interest}</span>}
+                        <span className={l.assignee?.full_name ? '' : 'text-[var(--warn)] font-medium'}>
+                          {l.assignee?.full_name || 'Unassigned'}
+                        </span>
+                      </>
+                    }
+                    actions={tel && wa ? (
+                      <>
+                        <a href={tel} aria-label={`Call ${l.full_name}`}
+                          onClick={e => e.stopPropagation()}
+                          className="w-10 h-10 grid place-items-center rounded-full
+                            bg-[var(--navy-soft)] text-[var(--navy)]
+                            active:bg-[var(--navy-line)] transition-colors">
+                          <Phone size={16} aria-hidden="true" />
+                        </a>
+                        <a href={wa} target="_blank" rel="noopener noreferrer"
+                          aria-label={`Message ${l.full_name} on WhatsApp`}
+                          onClick={e => e.stopPropagation()}
+                          className="w-10 h-10 grid place-items-center rounded-full
+                            bg-[var(--navy-soft)] text-[var(--navy)]
+                            active:bg-[var(--navy-line)] transition-colors">
+                          <MessageCircle size={16} aria-hidden="true" />
+                        </a>
+                      </>
+                    ) : undefined}
+                  />
+                )
+              }}
+            />
           </div>
 
-          {/* Desktop: table */}
-          <div className="hidden sm:block overflow-x-auto">
+          {/* Desktop: a table, inside the one card it belongs in. */}
+          <Card className="hidden sm:block overflow-x-auto">
             <table className="w-full">
               <thead>
                 <tr className="border-b border-[var(--line)]">
@@ -326,7 +458,7 @@ export default function AdminLeads() {
                 </tr>
               </thead>
               <tbody>
-                {filtered.map((l: any) => (
+                {filtered.map((l: LeadRow) => (
                   <tr key={l.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
                     <td className="px-4 py-3">
                       <Link href={`/admin/leads/${l.id}`} className="font-medium text-sm text-[var(--ink)] hover:text-[var(--accent)] transition">{l.full_name}</Link>
@@ -342,10 +474,9 @@ export default function AdminLeads() {
                 ))}
               </tbody>
             </table>
-          </div>
-          </>
-        )}
-      </Card>
+          </Card>
+        </>
+      )}
     </div>
   )
 }
