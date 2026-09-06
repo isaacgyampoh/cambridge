@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifyStudent, STUDENT_COOKIE } from '@/lib/student/auth'
 import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { parseClassMode, classModeLabel } from '@/lib/classMode'
+import { classModeForLead } from '@/lib/registration/classModeForLead'
 
 export const runtime = 'nodejs'
 
@@ -162,7 +163,15 @@ export async function GET(req: NextRequest) {
 
   // The class mode, read once through the canonical parser so the portal can
   // never label a virtual student as in-person or the reverse.
-  const classMode = parseClassMode(fee?.delivery) ?? parseClassMode((batch as { class_type?: string } | null)?.class_type)
+  /*
+   * Resolved from the application that was actually PAID for, not from
+   * whichever row happens to come back first. A student who registered once
+   * for the physical class without paying, then again for the online class and
+   * paid, is enrolled online — and must be shown, and sent, online.
+   */
+  const classMode = (await classModeForLead(s.leadId))
+    ?? parseClassMode(fee?.delivery)
+    ?? parseClassMode((batch as { class_type?: string } | null)?.class_type)
 
   return NextResponse.json({
     student: {

@@ -321,10 +321,49 @@ async function deliverAdmissionLetter(args: {
     })
   }
 
+  /*
+   * Record WHICH letter was produced, on the admission row itself.
+   *
+   * The reported bug is an online registrant receiving the physical letter.
+   * Until now the only trace was a boolean, so a report of it could be neither
+   * confirmed nor disproved. Storing the mode, the template and the file makes
+   * the mismatch query in migration 0009 possible:
+   *
+   *   WHERE ad.class_mode <> a.delivery   -- must return no rows
+   *
+   * Written whether or not delivery later succeeds: what letter we generated
+   * and whether it arrived are separate facts.
+   */
+  const letterSource = doc
+    ? (doc.isTemplate ? 'uploaded_template' : 'uploaded')
+    : 'generated'
+
+  await sb.from('admissions').update({
+    class_mode: classMode,
+    letter_template_id: doc?.id ?? null,
+    letter_template_name: doc?.name ?? null,
+    letter_url: letterUrl,
+    letter_source: letterSource,
+    letter_generated_at: new Date().toISOString(),
+  }).eq('lead_id', leadId).then(() => {}, (e: unknown) => {
+    // Provenance is evidence, not the operation — never fail a letter over it.
+    console.error('[complete] could not record letter provenance:', e)
+  })
+
+  if (letterSource === 'generated') {
+    console.warn('[complete] no admission-letter template matched for course',
+      app.course_id, 'mode', classMode, '— used the built-in PDF')
+  }
+
   await recordAudit({
     action: 'admission.letter_generated', resource: 'admissions', resourceId: leadId,
     success: Boolean(letterUrl),
-    metadata: { classMode, matchedBy: doc?.matchedBy ?? 'generated', admissionNo },
+    metadata: {
+      classMode, admissionNo,
+      matchedBy: doc?.matchedBy ?? 'generated',
+      templateId: doc?.id ?? null,
+      letterSource,
+    },
   })
 
   const letterLine = letterUrl ? `\n\nYour admission letter:\n${letterUrl}` : ''

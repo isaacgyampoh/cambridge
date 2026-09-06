@@ -68,6 +68,9 @@ const SYNONYMS: Record<string, ClassMode> = {
   classroom: 'in_person',
   face_to_face: 'in_person',
   'face to face': 'in_person',
+  in_class: 'in_person',
+  'in class': 'in_person',
+  inclass: 'in_person',
 }
 
 /**
