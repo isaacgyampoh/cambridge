@@ -1,149 +1,173 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { GraduationCap, Briefcase, Star } from 'lucide-react'
+import { GraduationCap, Briefcase, ExternalLink } from 'lucide-react'
+import { BRAND } from '@/lib/brand'
+import type { Alumnus } from '@/types'
+
+/**
+ * The public alumni page.
+ *
+ * ── WHAT WAS WRONG ─────────────────────────────────────────────────────────
+ *
+ * A full-bleed green banner filled the first screen, and under it sat three
+ * figures: "0+ Graduates", "100% Certified", "5 Rating". Only the first came
+ * from anything — and it read "0+" because nobody has been published yet. The
+ * other two were typed in. A prospective student arriving here was shown a
+ * wall of colour and two numbers the institution had not earned.
+ *
+ * It is a light page now. Green appears on the course a person completed and
+ * on nothing else, so the eye goes to the people rather than to the
+ * decoration, and the count is stated only when there is a real one.
+ */
+
+/** "Manager at Acme", and nothing at all when neither is recorded. */
+function role(a: Alumnus): string | null {
+  // This was .join('at ') — no leading space — so it rendered "Managerat Acme".
+  const parts = [a.current_job_title, a.current_company].filter(Boolean)
+  if (!parts.length) return null
+  return parts.join(' at ')
+}
+
+function Portrait({ a, size }: { a: Alumnus; size: number }) {
+  return (
+    <span
+      className="rounded-full overflow-hidden flex-shrink-0 grid place-items-center
+        bg-[var(--brand-soft)] text-[var(--accent)] font-semibold"
+      style={{ width: size, height: size, fontSize: Math.round(size / 2.6) }}
+    >
+      {a.photo_url
+        // eslint-disable-next-line @next/next/no-img-element
+        ? <img src={a.photo_url} alt="" className="w-full h-full object-cover" />
+        : (a.full_name || '?').charAt(0)}
+    </span>
+  )
+}
+
+function Person({ a, featured }: { a: Alumnus; featured?: boolean }) {
+  const job = role(a)
+  return (
+    <article className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
+      <div className="flex items-center gap-3.5">
+        <Portrait a={a} size={featured ? 56 : 44} />
+        <div className="min-w-0">
+          <h3 className="font-semibold text-[var(--ink)] truncate
+            text-[16px] leading-snug">
+            {a.full_name}
+          </h3>
+          {a.course_completed && (
+            <p className="flex items-center gap-1.5 text-[13px] text-[var(--accent)] mt-0.5">
+              <GraduationCap size={13} aria-hidden="true" className="flex-shrink-0" />
+              <span className="truncate">{a.course_completed}</span>
+            </p>
+          )}
+        </div>
+      </div>
+
+      {job && (
+        <p className="flex items-center gap-1.5 text-[13px] text-[var(--ink-soft)] mt-3">
+          <Briefcase size={13} aria-hidden="true" className="flex-shrink-0" />
+          <span className="truncate">{job}</span>
+        </p>
+      )}
+
+      {a.testimonial && (
+        <blockquote className="text-[14px] text-[var(--ink-soft)] mt-3.5 leading-relaxed">
+          “{a.testimonial}”
+        </blockquote>
+      )}
+    </article>
+  )
+}
 
 export default async function PublicAlumniPage() {
   const sb = createServiceClient()
-  const { data: alumni } = await sb.from('alumni')
+  const { data } = await sb.from('alumni')
     .select('*')
     .eq('is_published', true)
     .order('is_featured', { ascending: false })
     .order('graduation_date', { ascending: false })
 
-  const featured = (alumni || []).filter((a: any) => a.is_featured)
-  const rest = (alumni || []).filter((a: any) => !a.is_featured)
+  const alumni = (data || []) as Alumnus[]
+  const featured = alumni.filter(a => a.is_featured)
+  const rest = alumni.filter(a => !a.is_featured)
 
   return (
-    <div className="min-h-screen bg-[var(--canvas)]">
-      {/* Hero */}
-      <div className="bg-[var(--accent)] text-white py-14 px-4">
-        <div className="max-w-4xl mx-auto text-center">
-          <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur mb-4">
-            <GraduationCap size={28} className="text-white" />
-          </div>
-          <h1 className="text-4xl font-black mb-3">Our Alumni</h1>
-          <p className="text-[var(--accent-line)] text-lg max-w-xl mx-auto">
-            Real people, real results. Meet the graduates of Cambridge Center of Excellence who are making an impact.
+    <div className="min-h-screen" style={{ background: 'var(--canvas)' }}>
+      <header className="px-5 pt-14 pb-10 sm:pt-20 sm:pb-12">
+        <div className="max-w-3xl mx-auto text-center">
+          <p className="t-overline mb-3">{BRAND.shortName}</p>
+          <h1 className="text-[28px] sm:text-[34px] font-semibold tracking-[-0.015em]
+            leading-tight text-[var(--ink)]">
+            Where our graduates are now
+          </h1>
+          <p className="text-[15px] sm:text-[16px] text-[var(--ink-soft)] mt-3
+            max-w-[46ch] mx-auto leading-relaxed">
+            Real people, real results — the people who studied here and what they
+            went on to do.
           </p>
-          <div className="flex items-center justify-center gap-8 mt-8">
-            <div className="text-center">
-              <div className="text-3xl font-black">{(alumni || []).length}+</div>
-              <div className="text-[var(--accent-line)] text-sm">Graduates</div>
-            </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div className="text-center">
-              <div className="text-3xl font-black">100%</div>
-              <div className="text-[var(--accent-line)] text-sm">Certified</div>
-            </div>
-            <div className="w-px h-10 bg-white/20" />
-            <div className="text-center">
-              <div className="text-3xl font-black">5</div>
-              <div className="text-[var(--accent-line)] text-sm">Rating</div>
-            </div>
-          </div>
+
+          {/* Stated only when there is something true to state. */}
+          {alumni.length > 0 && (
+            <p className="text-[13px] text-[var(--ink-faint)] mt-6">
+              <span className="numeric font-semibold text-[var(--ink)]">{alumni.length}</span>
+              {' '}{alumni.length === 1 ? 'story' : 'stories'} published
+            </p>
+          )}
         </div>
-      </div>
+      </header>
 
-      <div className="max-w-5xl mx-auto px-4 py-12">
-        {/* Featured alumni */}
-        {featured.length > 0 && (
-          <div className="mb-12">
-            <div className="flex items-center gap-2 mb-6">
-              <Star size={18} className="text-yellow-500"fill="currentColor" />
-              <h2 className="text-xl font-bold text-[var(--ink)]">Featured Success Stories</h2>
-            </div>
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              {featured.map((a: any) => (
-                <div key={a.id} className="bg-[var(--paper)] rounded-2xl border-2 border-yellow-200 overflow-hidden shadow-[var(--shadow-raised)]">
-                  <div className="bg-[var(--accent)] h-20 relative">
-                    <div className="absolute -bottom-8 left-6">
-                      <div className="w-16 h-16 rounded-2xl border-4 border-white overflow-hidden bg-[var(--accent-line)]">
-                        {a.photo_url
-                          ? <img src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
-                          : <div className="w-full h-full flex items-center justify-center text-[var(--accent)] font-bold text-2xl">{a.full_name.charAt(0)}</div>}
-                      </div>
-                    </div>
-                    <div className="absolute top-3 right-3 bg-yellow-400 rounded-full p-1.5">
-                      <Star size={14} className="text-yellow-900"fill="currentColor" />
-                    </div>
-                  </div>
-                  <div className="pt-10 px-6 pb-6">
-                    <h3 className="text-lg font-bold text-[var(--ink)]">{a.full_name}</h3>
-                    {(a.current_job_title || a.current_company) && (
-                      <div className="flex items-center gap-1.5 text-sm text-[var(--ink-soft)] mt-0.5">
-                        <Briefcase size={13} />
-                        {[a.current_job_title, a.current_company].filter(Boolean).join('at ')}
-                      </div>
-                    )}
-                    <div className="flex items-center gap-1.5 text-sm text-[var(--accent)] mt-0.5">
-                      <GraduationCap size={13} />
-                      {a.course_completed}
-                    </div>
-
-                    {a.testimonial && (
-                      <blockquote className="text-sm text-[var(--ink-soft)] italic mt-4 leading-relaxed border-l-4 border-[var(--accent-line)] pl-4">
-                        ”{a.testimonial}”
-                      </blockquote>
-                    )}
-
-                    {a.success_story && (
-                      <p className="text-sm text-[var(--ink-soft)] mt-3 leading-relaxed">{a.success_story}</p>
-                    )}
-
-                    {a.linkedin_url && (
-                      <a href={a.linkedin_url} target="_blank"
-                        className="inline-flex items-center gap-1.5 mt-4 text-xs font-semibold text-[var(--accent)] hover:text-[var(--accent-hover)] transition">
-                         View LinkedIn profile
-                      </a>
-                    )}
-                  </div>
+      <main className="max-w-5xl mx-auto px-5 pb-20">
+        {alumni.length === 0 ? (
+          <div className="text-center py-16">
+            <span aria-hidden="true"
+              className="w-12 h-12 rounded-2xl border border-[var(--line)] bg-[var(--paper)]
+                grid place-items-center mx-auto mb-4 text-[var(--ink-faint)]">
+              <GraduationCap size={20} strokeWidth={1.5} />
+            </span>
+            <p className="text-[15px] font-semibold text-[var(--ink)]">
+              Alumni stories are on their way
+            </p>
+            <p className="t-sub mt-1.5 max-w-[36ch] mx-auto">
+              As our first cohorts complete their programmes, their stories will
+              appear here.
+            </p>
+          </div>
+        ) : (
+          <>
+            {featured.length > 0 && (
+              <section className="mb-12">
+                <h2 className="t-overline mb-4">Featured</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                  {featured.map(a => <Person key={a.id} a={a} featured />)}
                 </div>
-              ))}
-            </div>
-          </div>
-        )}
+              </section>
+            )}
 
-        {/* All alumni */}
-        {rest.length > 0 && (
-          <div>
-            <h2 className="text-xl font-bold text-[var(--ink)] mb-6">All Graduates</h2>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
-              {rest.map((a: any) => (
-                <div key={a.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 shadow-[var(--shadow-raised)] hover:shadow-[var(--shadow-raised)] transition">
-                  <div className="flex items-center gap-3 mb-3">
-                    <div className="w-12 h-12 rounded-full overflow-hidden bg-[var(--accent-soft)] flex-shrink-0">
-                      {a.photo_url
-                        ? <img src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
-                        : <div className="w-full h-full flex items-center justify-center text-[var(--accent)] font-bold">{a.full_name.charAt(0)}</div>}
-                    </div>
-                    <div className="min-w-0">
-                      <div className="font-bold text-[var(--ink)] truncate">{a.full_name}</div>
-                      <div className="text-xs text-[var(--accent)]">{a.course_completed}</div>
-                    </div>
-                  </div>
-
-                  {(a.current_job_title || a.current_company) && (
-                    <div className="text-xs text-[var(--ink-soft)] flex items-center gap-1 mb-2">
-                      <Briefcase size={11} />
-                      {[a.current_job_title, a.current_company].filter(Boolean).join('at ')}
-                    </div>
-                  )}
-
-                  {a.testimonial && (
-                    <p className="text-xs text-[var(--ink-soft)] italic line-clamp-3">”{a.testimonial}”</p>
-                  )}
+            {rest.length > 0 && (
+              <section>
+                <h2 className="t-overline mb-4">
+                  {featured.length > 0 ? 'More graduates' : 'Our graduates'}
+                </h2>
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+                  {rest.map(a => <Person key={a.id} a={a} />)}
                 </div>
-              ))}
-            </div>
-          </div>
+              </section>
+            )}
+          </>
         )}
+      </main>
 
-        {(alumni || []).length === 0 && (
-          <div className="text-center py-20 text-[var(--ink-faint)]">
-            <GraduationCap size={48} className="mx-auto mb-4 opacity-30" />
-            <p className="text-lg font-medium">Alumni stories coming soon</p>
-          </div>
-        )}
-      </div>
+      <footer className="px-5 pb-10 text-center">
+        <a href="/apply"
+          className="inline-flex items-center gap-2 h-12 px-6 rounded-xl
+            bg-[var(--accent)] text-[var(--accent-ink)] text-[15px] font-semibold
+            hover:bg-[var(--accent-hover)] transition-colors">
+          Start your application
+          <ExternalLink size={16} aria-hidden="true" />
+        </a>
+        <p className="text-[12px] text-[var(--ink-faint)] mt-6">
+          {BRAND.name}
+        </p>
+      </footer>
     </div>
   )
 }

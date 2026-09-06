@@ -44,11 +44,11 @@ export async function broadcastInfoSession(sessionId: string) {
     try { if (channels.includes('sms')) ok = await sendSMS(lead.phone, msg) || ok } catch {}
     try {
       if (channels.includes('email') && lead.email) {
-        const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:28px 24px;color:#1F1416">
+        const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:28px 24px;color:#10231C">
           <p style="font-size:15px;line-height:1.6">Hi ${first},</p>
           <p style="font-size:15px;line-height:1.6">You're invited to <b>${s.title}</b> at Cambridge Center of Excellence on <b>${when}</b>.</p>
-          ${s.description ? `<p style="font-size:14px;color:#6B5B5E;line-height:1.6">${s.description}</p>` : ''}
-          <p style="margin:18px 0"><a href="${joinLink}" style="background:#3B1219;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px">Join the session</a></p>
+          ${s.description ? `<p style="font-size:14px;color:#5A6B64;line-height:1.6">${s.description}</p>` : ''}
+          <p style="margin:18px 0"><a href="${joinLink}" style="background:#0B3B2E;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px">Join the session</a></p>
           <p style="font-size:13px;color:#97a1b0">Or copy this link: ${joinLink}</p>
         </div>`
         ok = await sendEmail(lead.email, `You're invited: ${s.title} — Cambridge CE`, html, `You're invited to ${s.title} on ${when}. Join: ${joinLink}`) || ok

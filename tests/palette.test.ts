@@ -8,9 +8,9 @@ import { join } from 'node:path'
  *
  * ── WHAT WENT WRONG ────────────────────────────────────────────────────────
  *
- * The product was navy while the mark on it is a red seal, so the logo always
- * looked applied rather than belonging. Underneath that, three separate
- * palettes were live at the same time:
+ * The product has been through three palettes, and each time the same thing
+ * happened: globals.css moved and the places that are NOT a stylesheet did
+ * not. At the worst point four were live at once —
  *
  *   globals.css        navy      #16273f
  *   manifest.json      teal      #1a7a85   ← left over from an older design
@@ -25,11 +25,14 @@ import { join } from 'node:path'
  * The letter is worse than cosmetic: it is the most formal thing the centre
  * sends anybody, and it was arriving in a colour that appeared on nothing
  * else the institution owns.
+ *
+ * These tests are what stop it happening on the next palette.
  */
 
-const BRAND = '#3B1219'      // the dark surface
-const ACCENT = '#8C2F39'     // the crest red
-const PAPER = '#FBF9F6'      // warm ivory
+const BRAND = '#0B3B2E'      // the dark surface: app bar, tab bar
+const ACCENT = '#127A5A'     // the working green
+const PAPER = '#FFFFFF'      // surface
+const CANVAS = '#F6F8F7'     // page ground
 
 function sourceFiles(dir: string, out: string[] = []): string[] {
   for (const entry of readdirSync(dir)) {
@@ -53,11 +56,13 @@ describe('the palette is declared once and agreed everywhere', () => {
   test('globals.css defines the brand tokens', () => {
     const css = readFileSync('app/globals.css', 'utf8')
     assert.match(css, new RegExp(`--brand:\\s*${BRAND}`, 'i'),
-      '--brand is not the crest oxblood')
+      '--brand is not the deep forest green')
     assert.match(css, new RegExp(`--accent:\\s*${ACCENT}`, 'i'),
-      '--accent is not the crest red')
+      '--accent is not the working green')
     assert.match(css, new RegExp(`--paper:\\s*${PAPER}`, 'i'),
-      '--paper is not the warm ivory')
+      '--paper is not the surface white')
+    assert.match(css, new RegExp(`--canvas:\\s*${CANVAS}`, 'i'),
+      '--canvas is not the page ground')
   })
 
   test('the token is not named after the colour it holds', () => {
@@ -82,8 +87,8 @@ describe('the palette is declared once and agreed everywhere', () => {
     const manifest = JSON.parse(readFileSync('public/manifest.json', 'utf8'))
     assert.equal(manifest.theme_color, BRAND,
       'manifest.json theme_color does not match --brand')
-    assert.equal(manifest.background_color, PAPER,
-      'manifest.json background_color does not match --paper')
+    assert.equal(manifest.background_color, CANVAS,
+      'manifest.json background_color does not match --canvas')
 
     const layout = readFileSync('app/layout.tsx', 'utf8')
     assert.match(layout, new RegExp(`themeColor:\\s*'${BRAND}'`, 'i'),
@@ -107,9 +112,9 @@ describe('the palette is declared once and agreed everywhere', () => {
 
   test('screens use tokens, not Tailwind default colours', () => {
     /*
-     * Tailwind's default ramp is cool. Beside a warm ivory it reads as a
-     * printing error, and it also means a palette change stops working: these
-     * do not move when globals.css does.
+     * A palette change stops working the moment a screen hardcodes a colour:
+     * these do not move when globals.css does. That is how the product ended
+     * up with four live palettes at once.
      */
     const BANNED = /\b(?:bg|text|border|ring|from|to)-(?:gray|slate|zinc|neutral|stone|blue|indigo|purple|violet|fuchsia|pink|rose|orange|amber|lime|teal|cyan|sky)-\d{2,3}\b/g
 

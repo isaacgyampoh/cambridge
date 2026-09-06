@@ -106,10 +106,19 @@ export function ListRow({
     </>
   )
 
-  const shell = `block w-full text-left bg-[var(--paper)] border border-[var(--line)]
-    rounded-xl p-4 transition-colors
-    ${interactive ? 'hover:border-[var(--ink-faint)] active:bg-[var(--canvas)]' : ''}
-    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]`
+  /*
+   * A row in a list, not a card of its own.
+   *
+   * Each row used to be a bordered, rounded card with a gap beneath it, so a
+   * list of fifteen people was fifteen boxes — and those boxes sat inside the
+   * section's own card, which is the card-on-card stack that makes a screen
+   * feel busy before a single word is read. The list owns one border now and
+   * the rows are separated by a hairline.
+   */
+  const shell = `block w-full text-left bg-[var(--paper)] px-4 py-3.5 transition-colors
+    ${interactive ? 'hover:bg-[var(--canvas)] active:bg-[var(--line-soft)]' : ''}
+    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
+    focus-visible:ring-[var(--accent)]`
 
   if (href) return <a href={href} className={shell}>{body}</a>
   if (onClick) return <button type="button" onClick={onClick} className={shell}>{body}</button>
@@ -167,7 +176,8 @@ export function MobileList<T>({
   }
 
   return (
-    <ul className={`space-y-2.5 stagger ${className}`}>
+    <ul className={`stagger overflow-hidden rounded-2xl border border-[var(--line)]
+      bg-[var(--paper)] divide-y divide-[var(--line-soft)] ${className}`}>
       {rows.map(row => (
         <li key={rowKey(row)}>{renderRow(row)}</li>
       ))}

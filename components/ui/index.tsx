@@ -1,6 +1,7 @@
 'use client'
 
 import React from 'react'
+import { Inbox } from 'lucide-react'
 import Link from 'next/link'
 
 /* ─────────────────────────────────────────────
@@ -32,9 +33,21 @@ export function PageHeader({
       </div>
 
       {actions && (
+        /*
+         * The actions WRAP. They do not scroll sideways.
+         *
+         * This row used to bleed to the screen edge with `-mx-5 px-5` so it
+         * could scroll horizontally. The bleed is a fixed 20px while the page
+         * padding around it is 16px on a phone, 28px from sm and 40px from lg
+         * — it matched none of them, so the row was 8px wider than the page at
+         * mobile widths and misaligned at every other. Only `overflow-x-hidden`
+         * on the scroll container was hiding it.
+         *
+         * Wrapping is also the better behaviour: a horizontal scroller with no
+         * visible scrollbar hides actions with nothing to say they are there.
+         */
         <div className="flex items-center gap-2 flex-wrap lg:flex-nowrap lg:justify-end
-          -mx-5 px-5 lg:mx-0 lg:px-0 overflow-x-auto lg:overflow-visible pb-1 lg:pb-0
-          [&>*]:flex-shrink-0 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden">
+          lg:flex-shrink-0">
           {actions}
         </div>
       )}
@@ -61,10 +74,23 @@ export function Button({
   children, onClick, href, variant = 'primary', size = 'md', icon, disabled,
   type = 'button', className = '', block = false,
 }: BtnProps & { block?: boolean }) {
-  const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap select-none'
+  /*
+   * A disabled button stops looking like the action it performs.
+   *
+   * `opacity-40` on a solid green left a washed-out green pill that still read
+   * as "press me" — the strongest thing on a form, greyed slightly. Disabled
+   * now drops to a flat neutral, so the eye passes over it.
+   */
+  const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-xl transition-colors duration-150 whitespace-nowrap select-none disabled:pointer-events-none disabled:bg-[var(--line-soft)] disabled:text-[var(--ink-faint)] disabled:border-transparent disabled:shadow-none'
   const sizes = { sm: 'h-10 sm:h-9 px-4 sm:px-3.5 text-[13px] sm:text-[13px]', md: 'h-12 sm:h-11 px-5 text-[15px] sm:text-[14px]' }
+  /*
+   * One solid button per screen, and it is this one.
+   *
+   * Secondary and ghost stay quiet on purpose: if every action is filled, the
+   * person has to read all of them to find the one that matters.
+   */
   const variants = {
-    primary:   'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]',
+    primary:   'bg-[var(--accent)] text-[var(--accent-ink)] hover:bg-[var(--accent-hover)]',
     secondary: 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] hover:bg-[var(--canvas)]',
     ghost:     'text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]',
     danger:    'bg-[var(--paper)] text-[var(--danger)] border border-[var(--danger)]/25 hover:bg-[var(--danger-soft)]',
@@ -190,13 +216,22 @@ export function EmptyState({
      * title. A quiet circular mark carries the state without competing with
      * the content that will eventually replace it.
      */
-    <div className="py-12 px-6 text-center">
-      <span className="w-11 h-11 rounded-full bg-[var(--line-soft)] grid place-items-center mx-auto mb-4">
-        {icon || <span className="w-2 h-2 rounded-full bg-[var(--ink-faint)]" aria-hidden="true" />}
+    <div className="py-14 px-6 text-center">
+      {/*
+        A quiet outlined mark rather than a filled disc with a dot in it.
+        The dot read as something half-loaded — a placeholder that never
+        resolved — which is the one impression an empty state must not give.
+      */}
+      <span aria-hidden="true"
+        className="w-12 h-12 rounded-2xl border border-[var(--line)] bg-[var(--paper)]
+          grid place-items-center mx-auto mb-4 text-[var(--ink-faint)]">
+        {icon || <Inbox size={20} strokeWidth={1.5} />}
       </span>
-      <h3 className="text-[14px] font-medium text-[var(--ink)]">{title}</h3>
-      {description && <p className="t-sub mt-1.5 max-w-sm mx-auto">{description}</p>}
-      {action && <div className="mt-5 inline-flex">{action}</div>}
+      <h3 className="text-[15px] font-semibold text-[var(--ink)]">{title}</h3>
+      {description && (
+        <p className="t-sub mt-1.5 max-w-[34ch] mx-auto leading-relaxed">{description}</p>
+      )}
+      {action && <div className="mt-6 inline-flex">{action}</div>}
     </div>
   )
 }
@@ -210,16 +245,17 @@ export function Badge({
   children: React.ReactNode
   tone?: 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'muted'
 }) {
+  /* Shared with StatusBadge — see the note on TONE_CLASSES in primitives. */
   const tones = {
-    neutral: 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]',
-    accent:  'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/15',
-    success: 'bg-[var(--ok-soft)] text-[var(--ok)] ring-[var(--ok)]/15',
-    warning: 'bg-[var(--warn-soft)] text-[var(--warn)] ring-[var(--warn)]/15',
-    danger:  'bg-[var(--danger-soft)] text-[var(--danger)] ring-[var(--danger)]/15',
-    muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)] ring-[var(--line)]',
+    neutral: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+    accent:  'bg-[var(--brand-soft)] text-[var(--accent)]',
+    success: 'bg-[var(--brand-soft)] text-[var(--accent)]',
+    warning: 'bg-[var(--warn-soft)] text-[var(--warn)]',
+    danger:  'bg-[var(--danger-soft)] text-[var(--danger)]',
+    muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)]',
   }
   return (
-    <span className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-lg ring-1 ring-inset ${tones[tone]}`}>
+    <span className={`inline-flex items-center text-[11px] font-medium px-2.5 py-[3px] rounded-full ${tones[tone]}`}>
       {children}
     </span>
   )

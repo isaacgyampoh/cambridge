@@ -371,12 +371,16 @@ export default function Overview() {
                 const Icon = action.icon
                 return (
                   <Link key={action.label} href={action.href}
-                    className="flex flex-col justify-between gap-3 min-h-[76px] p-3.5 rounded-2xl border
+                    className="flex items-center gap-3 min-h-[56px] px-3.5 rounded-2xl border
                       border-[var(--line)] bg-[var(--paper)] text-[13px] font-medium text-[var(--ink)]
-                      hover:border-[var(--brand-line)] hover:bg-[var(--brand-soft)] transition-colors
+                      hover:bg-[var(--canvas)] transition-colors
                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                    <Icon size={18} aria-hidden="true" className="text-[var(--ink-faint)]" />
-                    <span className="leading-tight">{action.label}</span>
+                    <span aria-hidden="true"
+                      className="w-8 h-8 rounded-lg grid place-items-center flex-shrink-0
+                        bg-[var(--brand-soft)] text-[var(--accent)]">
+                      <Icon size={16} />
+                    </span>
+                    <span className="leading-tight min-w-0">{action.label}</span>
                   </Link>
                 )
               })}

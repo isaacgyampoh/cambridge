@@ -53,13 +53,13 @@ export const viewport: Viewport = {
    *
    * It was `var(--accent)`. The browser cannot resolve a CSS variable here, so
    * the tag was ignored and the phone fell back to the manifest — which still
-   * carried #1a7a85 from an old palette. That is why a teal band sat above the
+   * carried a colour from an older palette. That is why a teal band once sat above the
    * sign-in screen on iOS.
    *
    * Kept in step with --brand in globals.css and theme_color in
    * public/manifest.json; all three must say the same thing.
    */
-  themeColor: '#3B1219',
+  themeColor: '#0B3B2E',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

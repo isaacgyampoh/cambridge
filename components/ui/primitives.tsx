@@ -24,13 +24,25 @@ import { describeStatus, type StatusDomain, type Tone } from '@/lib/ui/status'
  * The single tone table. Badge, StatusBadge and anything else tinted read
  * from this, so a "warning" is the same colour wherever it appears.
  */
+/*
+ * Status, stated quietly.
+ *
+ * Every tone carried a 1px inset ring, which on a small pill reads as a
+ * border, and a bordered pill reads as a button — so a list of statuses
+ * looked like a row of things to press. The fill alone is enough to separate
+ * a status from the text around it.
+ *
+ * Neutral is the default on purpose: most statuses are not events. Only the
+ * three that genuinely need attention — awaiting, overdue, failed — take a
+ * colour, and they take a soft one.
+ */
 export const TONE_CLASSES: Record<Tone, string> = {
-  neutral: 'bg-[var(--line-soft)] text-[var(--ink-soft)] ring-[var(--line)]',
-  accent:  'bg-[var(--accent-soft)] text-[var(--accent)] ring-[var(--accent)]/15',
-  success: 'bg-[var(--ok-soft)] text-[var(--ok)] ring-[var(--ok)]/15',
-  warning: 'bg-[var(--warn-soft)] text-[var(--warn)] ring-[var(--warn)]/15',
-  danger:  'bg-[var(--danger-soft)] text-[var(--danger)] ring-[var(--danger)]/15',
-  muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)] ring-[var(--line)]',
+  neutral: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+  accent:  'bg-[var(--brand-soft)] text-[var(--accent)]',
+  success: 'bg-[var(--brand-soft)] text-[var(--accent)]',
+  warning: 'bg-[var(--warn-soft)] text-[var(--warn)]',
+  danger:  'bg-[var(--danger-soft)] text-[var(--danger)]',
+  muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)]',
 }
 
 /** A small solid dot in the tone's colour, for dense rows where a pill is too heavy. */
@@ -75,7 +87,7 @@ export function StatusBadge({
   return (
     <span
       title={hint}
-      className={`inline-flex items-center gap-1.5 font-medium rounded-lg ring-1 ring-inset whitespace-nowrap ${pad} ${TONE_CLASSES[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 font-medium rounded-full whitespace-nowrap ${pad} ${TONE_CLASSES[tone]} ${className}`}
     >
       {showDot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${TONE_DOT[tone]}`} aria-hidden="true" />}
       {label}
@@ -146,12 +158,25 @@ export function IconButton({
  * every session — a small thing that makes a list scannable, and impossible if
  * the colour is random or index-based.
  */
+/*
+ * One family, four depths.
+ *
+ * These were five semantic colours — accent, success, warning, gold, danger —
+ * so a list of people came out as a row of green, amber and red discs. That
+ * reads as STATUS: a red avatar looks like a problem with that person, and an
+ * amber one looks like a warning, when the colour only ever meant "their name
+ * hashes differently from yours".
+ *
+ * The tints below carry no meaning at all. They vary only enough to make a
+ * list scannable, and every one of them belongs to the same green-neutral
+ * family, so nothing in a row of people competes with the one green on the
+ * screen that does mean something.
+ */
 const AVATAR_TINTS = [
-  'bg-[var(--accent-soft)] text-[var(--accent)]',
-  'bg-[var(--ok-soft)] text-[var(--ok)]',
-  'bg-[var(--warn-soft)] text-[var(--warn)]',
-  'bg-[var(--gold-soft)] text-[var(--gold)]',
-  'bg-[var(--danger-soft)] text-[var(--danger)]',
+  'bg-[#E8F2ED] text-[#127A5A]',
+  'bg-[#EDF1EF] text-[#4A6B5E]',
+  'bg-[#E6EEEB] text-[#0B3B2E]',
+  'bg-[#F0F3F1] text-[#5A6B64]',
 ]
 
 export function initialsOf(name: string): string {

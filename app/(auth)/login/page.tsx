@@ -249,132 +249,54 @@ function LoginForm() {
   }, [])
 
   return (
-    <div className="min-h-[100dvh] w-full flex" style={{ background: 'var(--paper)' }}>
+    /*
+      ── THE SIGN-IN SCREEN ────────────────────────────────────────────────
+      One light surface, at every size.
 
-      {/*
-        The institutional panel.
+      It used to be a half-page of solid colour beside a form. That reads as a
+      marketing site, not as an application you open every morning: the colour
+      was doing the work that typography and space should do, and on a phone
+      the panel vanished entirely, so the two layouts had nothing in common.
 
-        A flat navy field carrying the mark and the name. No gradient, no glow,
-        no decorative geometry — the seriousness comes from the restraint, and
-        from the fact that nothing on it is trying to sell anything.
-      */}
-      <aside className="hidden lg:flex flex-col justify-between w-[42%] max-w-[560px] px-14 py-14"
-        style={{ background: 'var(--brand)' }}>
-        <div className="flex items-center gap-3.5">
-          <span className="w-11 h-11 rounded-xl bg-[var(--paper)] grid place-items-center overflow-hidden p-1.5">
-            {/* eslint-disable-next-line @next/next/no-img-element */}
-            <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
-          </span>
-          <span className="text-[var(--paper)] text-[15px] font-semibold tracking-[0.02em] uppercase">
-            {BRAND.shortName}
-          </span>
-        </div>
+      Now the SAME composition scales from 320px to a desktop — mark, greeting,
+      PIN, recovery — and grows only in measure and spacing. Green appears
+      exactly twice on this screen: the ring on the field you are filling, and
+      the recovery link. Nothing else is coloured, which is what makes those
+      two mean something.
+    */
+    <div className="min-h-[100dvh] w-full flex flex-col"
+      style={{ background: 'var(--canvas)' }}>
 
-        <div className="max-w-sm">
-          <p className="text-[var(--paper)] text-[26px] leading-[1.25] font-medium tracking-[-0.01em]">
-            {BRAND.tagline}
-          </p>
+      <main className="flex-1 w-full flex flex-col justify-center items-center
+        px-5 py-10 sm:px-6">
+        <div className="w-full max-w-[380px]">
 
-          {/*
-            What the panel says when it has something to say.
-
-            Standing figures if there are at least two real ones — a single
-            "3 programmes" on its own is thinner than saying nothing, and a row
-            of zeroes is worse again. This centre currently has courses but no
-            recorded graduates, so the fallback is not hypothetical: it is what
-            renders today.
-
-            The fallback is the three things the portal actually does. It is
-            always true, needs no request, and gives the panel weight without
-            claiming numbers that are not there yet.
-          */}
-          {shownStats.length >= 2 ? (
-            <dl className="mt-10 flex gap-9 fade-in">
-              {shownStats.map(x => (
-                <div key={x.label}>
-                  <dt className="sr-only">{x.label}</dt>
-                  <dd>
-                    <span className="block numeric text-[var(--paper)] text-[30px] font-semibold leading-none">
-                      {x.n.toLocaleString('en-GB')}
-                    </span>
-                    <span className="block text-[12px] text-[var(--paper)]/50 mt-2 tracking-[0.04em] uppercase">
-                      {x.label}
-                    </span>
-                  </dd>
-                </div>
-              ))}
-            </dl>
-          ) : (
-            <ul className="mt-10 space-y-3.5">
-              {[
-                'Every enquiry followed through to a decision',
-                'Registration, payment and admission in one record',
-                'One number, one conversation, one history',
-              ].map(line => (
-                <li key={line} className="flex gap-3 text-[var(--paper)]/70 text-[14px] leading-snug">
-                  <span aria-hidden="true"
-                    className="mt-[7px] w-1.5 h-1.5 rounded-full bg-[var(--paper)]/35 flex-shrink-0" />
-                  {line}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
-
-        <div className="flex items-center gap-4 text-[var(--paper)]/45 text-[12px]">
-          <span>Admissions</span>
-          <span className="w-1 h-1 rounded-full bg-[var(--paper)]/25" />
-          <span>Student management</span>
-          <span className="w-1 h-1 rounded-full bg-[var(--paper)]/25" />
-          <span>Communication</span>
-        </div>
-      </aside>
-
-      {/* The form. */}
-      <main className="flex-1 flex flex-col justify-center px-6 py-10 sm:py-14"
-        style={{ background: 'var(--paper)' }}>
-        <div className="w-full max-w-[340px] mx-auto">
-
-          {/*
-            On a phone the brand is the crest and the name.
-
-            The mark used to be `brightness-0 invert` on a filled brand square,
-            which flattens a detailed seal into a white silhouette — on the
-            device it rendered as a solid block with nothing legible in it. The
-            crest is shown as itself, on paper, exactly as the desktop panel
-            shows it.
-          */}
-          <div className="lg:hidden flex flex-col items-center mb-9">
-            <span className="w-16 h-16 rounded-2xl grid place-items-center p-2.5 mb-4
-              bg-[var(--paper)] border border-[var(--line)] shadow-[var(--shadow-raised)]">
+          {/* The mark. Its own colour is enough; it needs no tile behind it. */}
+          <div className="flex flex-col items-center mb-9 sm:mb-11">
+            <span className="w-[52px] h-[52px] grid place-items-center mb-4">
               {/* eslint-disable-next-line @next/next/no-img-element */}
               <img src={BRAND.logo} alt="" aria-hidden="true"
                 className="w-full h-full object-contain" />
             </span>
-            <h1 className="text-[13px] font-semibold tracking-[0.08em] uppercase text-[var(--ink-soft)]">
+            <h1 className="text-[12px] font-semibold tracking-[0.14em] uppercase text-[var(--ink-faint)]">
               {BRAND.shortName}
             </h1>
           </div>
 
           {step === 'pin' && (
             <>
-              <div className="mb-9 text-center lg:text-left">
-                <h2 className="text-[24px] font-semibold leading-tight text-[var(--ink)]">
+              <div className="mb-6 text-center">
+                <h2 className="text-[22px] sm:text-[24px] font-semibold leading-tight
+                  tracking-[-0.01em] text-[var(--ink)]">
                   Welcome back
                 </h2>
-                <p className="text-[var(--ink-soft)] text-[14px] mt-1.5">
-                  Sign in to continue to your account.
+                <p className="text-[var(--ink-soft)] text-[14px] mt-1.5 leading-snug">
+                  Sign in securely to continue.
                 </p>
               </div>
 
-              <p className="t-overline text-center lg:text-left mb-3.5">
-                Enter your {PIN_LENGTH}-digit PIN
-              </p>
-
-              <div className="lg:flex lg:justify-start">
-                <PinBoxes value={pin} onChange={setPin} onSubmit={submitPin} label="PIN" autoFocus
-                  masked autoSubmit disabled={loading} invalid={Boolean(error) && !loading} />
-              </div>
+              <PinBoxes value={pin} onChange={setPin} onSubmit={submitPin} label="PIN" autoFocus
+                masked autoSubmit disabled={loading} invalid={Boolean(error) && !loading} />
 
               {/*
                 No button. The fourth digit IS the action.
@@ -384,11 +306,10 @@ function LoginForm() {
                 inside PinBoxes, so a paste, autofill or a fast typist cannot
                 fire it twice.
               */}
-              <div className="h-5 mt-5 flex items-center justify-center lg:justify-start"
-                aria-live="polite">
+              <div className="h-5 mt-4 flex items-center justify-center" aria-live="polite">
                 {loading && (
                   <span className="inline-flex items-center gap-2 text-[13px] text-[var(--ink-soft)]">
-                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--brand)] rounded-full animate-spin" />
+                    <span className="w-3.5 h-3.5 border-2 border-[var(--line)] border-t-[var(--accent)] rounded-full animate-spin" />
                     Signing in…
                   </span>
                 )}
@@ -408,7 +329,7 @@ function LoginForm() {
                 </div>
               )}
 
-              <p className="text-[13px] text-[var(--ink-faint)] mt-7 text-center lg:text-left">
+              <p className="text-[13px] text-[var(--ink-soft)] mt-6 text-center">
                 Forgot your PIN?{' '}
                 <button
                   onClick={() => {
@@ -663,11 +584,21 @@ function LoginForm() {
             </>
           )}
 
-          <p className="text-[11px] text-[var(--ink-faint)] mt-12">
-            Cambridge Center of Excellence · {new Date().getFullYear()}
-          </p>
         </div>
       </main>
+
+      {/*
+        Pinned to the foot of the page rather than trailing the form.
+
+        It used to sit inside the centred column with mt-12, so it was
+        left-aligned against centred content and landed in the middle of the
+        screen with a void beneath it.
+      */}
+      <footer className="flex-shrink-0 pb-7 px-5 text-center safe-b">
+        <p className="text-[11px] text-[var(--ink-faint)]">
+          {BRAND.name} · {new Date().getFullYear()}
+        </p>
+      </footer>
     </div>
   )
 }

@@ -9,12 +9,12 @@ import { createServiceClient } from '@/lib/supabase/server'
  * arriving in a colour that appears nowhere else on the crest, the portal or
  * the site. These are the same values as --brand, --ink and --canvas.
  */
-const BRAND = rgb(0.231, 0.071, 0.098)     // #3B1219 oxblood
-const ACCENT = rgb(0.549, 0.184, 0.224)    // #8C2F39 crest red
-const INK = rgb(0.122, 0.078, 0.086)       // #1F1416
-const SOFT = rgb(0.420, 0.357, 0.369)      // #6B5B5E
-const FAINT = rgb(0.604, 0.545, 0.557)     // #9A8B8E
-const PANEL = rgb(0.957, 0.941, 0.918)     // #F4F0EA parchment
+const BRAND = rgb(0.043, 0.231, 0.180)     // #0B3B2E deep forest
+const ACCENT = rgb(0.071, 0.478, 0.353)    // #127A5A
+const INK = rgb(0.063, 0.137, 0.110)       // #10231C
+const SOFT = rgb(0.353, 0.420, 0.392)      // #5A6B64
+const FAINT = rgb(0.549, 0.604, 0.580)     // #8C9A94
+const PANEL = rgb(0.965, 0.973, 0.969)     // #F6F8F7
 
 interface LetterData {
   name: string

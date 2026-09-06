@@ -372,16 +372,23 @@ export function Tabs({
             // costing ten presses to skip past.
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.key)}
-            className={`flex-shrink-0 min-h-[42px] px-3.5 rounded-xl text-[13px] font-semibold
+            /*
+             * The selected tab was a solid green block. On a strip of five
+             * that is the heaviest thing on the screen, and it spends the
+             * product's one accent on saying "you are here" — which the tint
+             * and the weight already say. A soft fill reads as selected
+             * without shouting.
+             */
+            className={`flex-shrink-0 min-h-[42px] px-3.5 rounded-full text-[13px]
               transition-colors whitespace-nowrap
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
               ${selected
-                ? 'bg-[var(--accent)] text-white'
-                : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)]'}`}
+                ? 'bg-[var(--brand-soft)] text-[var(--accent)] font-semibold'
+                : 'text-[var(--ink-soft)] font-medium hover:bg-[var(--line-soft)]'}`}
           >
             {tab.label}
             {tab.count !== undefined && (
-              <span className={`ml-1.5 tabular-nums text-[12px] ${selected ? 'text-white/75' : 'text-[var(--ink-faint)]'}`}>
+              <span className={`ml-1.5 tabular-nums text-[12px] ${selected ? 'text-[var(--accent)]/60' : 'text-[var(--ink-faint)]'}`}>
                 {tab.count}
               </span>
             )}

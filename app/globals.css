@@ -15,56 +15,60 @@
 
 :root {
   /* ── Neutrals ────────────────────────────────────────────────────────────
-     A WARM ramp, not a cool one.
+     A near-neutral ramp with the faintest green cast, so that the one green
+     in the product looks like it belongs to the greys rather than sitting on
+     top of them. Text has three weights of emphasis and no more. */
+  --ink:        #10231C;   /* primary text — deep charcoal, green-shifted */
+  --ink-soft:   #5A6B64;   /* secondary text, descriptions */
+  --ink-faint:  #8C9A94;   /* metadata, captions, disabled */
 
-     These were cool greys built around a navy that no longer exists. Warm
-     neutrals are what let ivory read as ivory rather than as "white that
-     needs cleaning" — a cool grey beside a warm paper looks like a mistake. */
-  --ink:        #1F1416;   /* primary text — near-black, brown-shifted */
-  --ink-soft:   #6B5B5E;   /* secondary text, descriptions */
-  --ink-faint:  #9A8B8E;   /* metadata, captions, disabled */
-
-  --line:       #E7E0D8;   /* hairline borders */
-  --line-soft:  #F2ECE4;   /* dividers inside a surface */
-  --paper:      #FBF9F6;   /* raised surface — warm ivory */
-  --canvas:     #F4F0EA;   /* page ground — parchment */
+  --line:       #E4E9E6;   /* hairline borders */
+  --line-soft:  #EFF3F1;   /* dividers inside a surface */
+  --paper:      #FFFFFF;   /* surface: cards, sheets, the app's ground */
+  --canvas:     #F6F8F7;   /* page ground behind the surfaces */
 
   /* ── Brand ───────────────────────────────────────────────────────────────
-     Oxblood, taken from the crest.
+     ONE green, and it is spent carefully.
 
-     The product was navy while the mark on it is a red seal, so the two never
-     belonged to each other — the logo always looked applied rather than part
-     of the thing. The dark surface is now the deepest tone in that seal, and
-     the accent is the seal's own red.
+     It marks the primary action, the page you are on, and a success. It is
+     not a background, not a card fill, not decoration. The rule that keeps a
+     product calm is that the accent appears once or twice per screen — the
+     moment everything is green, nothing is.
 
-     Named --brand rather than --navy. The old names had to be renamed the
-     moment the palette moved, which is the argument for never naming a token
-     after the colour it currently holds. */
-  --brand:       #3B1219;   /* the dark surface: app bar, tab bar, panels */
-  --brand-deep:  #2A0C11;   /* pressed, and the deepest ground */
-  --brand-soft:  #F6EAEA;   /* tinted fill behind an icon or a chip */
-  --brand-line:  #E3C9CB;   /* a border in the brand family */
+     --brand is the deep tone used for a solid surface where one is genuinely
+     wanted (the sign-in mark, a filled primary button on a dark ground).
+     --accent is the working green: buttons, active tabs, links. */
+  --brand:       #0B3B2E;   /* deep forest — solid surfaces */
+  --brand-deep:  #072A21;   /* pressed */
+  --brand-soft:  #E8F2ED;   /* tinted fill behind an icon or a chip */
+  --brand-line:  #C4DACF;   /* a border in the brand family */
 
-  --accent:      #8C2F39;   /* the seal's red: primary action, current page */
-  --accent-hover:#73242D;
-  --accent-ink:  #FBF9F6;
+  --accent:      #127A5A;   /* the working green */
+  --accent-hover:#0E6249;
+  --accent-ink:  #FFFFFF;
   --accent-soft: var(--brand-soft);
   --accent-line: var(--brand-line);
 
-  /* Brass. For honours and awards only — never for state. */
-  --gold:       #B08442;
-  --gold-soft:  #F7EFE2;
+  /* Brass. Honours and awards only — never state, never decoration. */
+  --gold:       #9A7B33;
+  --gold-soft:  #F6F1E4;
 
   /* ── Semantic ────────────────────────────────────────────────────────────
-     State only. Never for distinguishing features from one another. */
-  --ok:          #2F6B4F;
-  --ok-soft:     #E7F0E9;
-  --warn:        #92671F;
-  --warn-soft:   #F8EEDC;
-  --danger:      #A32C35;   /* distinct from --accent: destructive, not brand */
-  --danger-soft: #F7E7E7;
-  --info:        #3D5A78;
-  --info-soft:   #ECF0F5;
+     State only. Never for distinguishing features from one another.
+
+     Success borrows the brand green deliberately: in this product a success
+     IS the brand doing its job, and a second unrelated green would be one
+     green too many. */
+  --ok:          var(--accent);
+  --ok-soft:     var(--brand-soft);
+  --warn:        #8A6320;
+  --warn-soft:   #FAF1DF;
+  --danger:      #B3261E;
+  --danger-soft: #FBEBEA;
+  /* Information is deliberately NOT a colour. A blue "info" chip competes
+     with the accent for attention and means less than the words in it. */
+  --info:        var(--ink-soft);
+  --info-soft:   var(--line-soft);
 
   /* ── Type scale ──────────────────────────────────────────────────────────
      Eight steps, each with a job. A page title is 22px on a phone: confidence

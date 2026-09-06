@@ -85,7 +85,7 @@ export function PinBoxes({
   }
 
   return (
-    <div className="flex gap-3 justify-center" role="group"
+    <div className="flex gap-2.5 sm:gap-3 justify-center" role="group"
       aria-label={`${label}, ${length} digits`}>
       {Array.from({ length }).map((_, i) => (
         <input
@@ -125,12 +125,30 @@ export function PinBoxes({
             focus(next.length)
           }}
           onFocus={e => e.target.select()}
-          className={`w-[52px] h-[56px] text-center text-[20px] font-medium rounded-xl
-            bg-[var(--paper)] text-[var(--ink)] caret-[var(--brand)]
-            border transition-colors duration-150
-            focus:outline-none focus:border-[var(--brand)] focus:ring-4 focus:ring-[var(--brand-soft)]
+          /*
+           * Sized in a clamp rather than fixed pixels.
+           *
+           * Four 52px boxes plus their gaps need 232px, which is most of a
+           * 320px screen once the page padding is taken off — and six of them,
+           * for the emailed code, did not fit at all. This grows with the
+           * viewport and stops at a comfortable size.
+           *
+           * The filled state is a quiet border change, not a colour fill.
+           * Green on this screen is spent on the ring of the field you are
+           * actually in, and nowhere else.
+           */
+          className={`w-[clamp(44px,13vw,54px)] h-[clamp(52px,15vw,60px)]
+            text-center text-[19px] font-semibold rounded-[14px]
+            bg-[var(--paper)] text-[var(--ink)] caret-[var(--accent)]
+            border transition-[border-color,box-shadow] duration-150
+            focus:outline-none focus:border-[var(--accent)]
+            focus:ring-[3px] focus:ring-[var(--accent)]/18
             disabled:opacity-50
-            ${invalid ? 'border-[var(--danger)]' : 'border-[var(--line)]'}`}
+            ${invalid
+              ? 'border-[var(--danger)]'
+              : value[i]
+                ? 'border-[var(--ink-faint)]'
+                : 'border-[var(--line)]'}`}
         />
       ))}
     </div>
