@@ -1,14 +1,27 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useData, mutate } from '@/hooks/useData'
-import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, Button, Field, inputClass, EmptyState, Sparkline } from '@/components/ui'
+import { PageHeader, Card, StatCard, Badge, SectionLabel, Button, Sparkline } from '@/components/ui'
 import { formatGHS } from '@/lib/utils'
-import { Trophy, Wallet, Users, Settings2, X, Award } from 'lucide-react'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 
 const RANK_TONE = (rank: string): any =>
   rank.startsWith('Omega') ? 'accent' : rank.startsWith('Titan') || rank.startsWith('Delta') ? 'success' : rank === 'Unranked' ? 'muted' : 'warning'
+
+type BoardRow = {
+  id: string
+  name: string
+  enrollments: number
+  points: number
+  trend?: number[]
+  rank: string
+  grossSalary: number
+  registrationCommission: number
+  nextRank?: string | null
+  pointsToNext?: number
+}
 
 export default function AdminRemuneration() {
   const [board, setBoard] = useState<any[]>([])
@@ -37,6 +50,53 @@ export default function AdminRemuneration() {
     catch (e: any) { toast.error(e.message) }
   }
 
+  const boardColumns: Column<BoardRow>[] = [
+    {
+      key: 'rank_no', header: '#', hideOnMobile: true,
+      render: m => {
+        const i = board.indexOf(m)
+        return (
+          <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-bold
+            ${i === 0 ? 'bg-[var(--gold)] text-white'
+              : i < 3 ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+              : 'text-[var(--ink-faint)]'}`}>
+            {i + 1}
+          </span>
+        )
+      },
+    },
+    { key: 'name', header: 'Marketer', primary: true, render: m => m.name },
+    {
+      key: 'enrollments', header: 'Enrollments', secondary: true,
+      render: m => `${m.enrollments} enrollments`,
+    },
+    {
+      key: 'points', header: 'Points', numeric: true,
+      render: m => <span className="font-semibold text-[var(--ink)]">{m.points}</span>,
+    },
+    {
+      key: 'trend', header: 'Trend', hideOnMobile: true,
+      render: m => m.trend && m.trend.some(v => v > 0)
+        ? <Sparkline data={m.trend} />
+        : <span className="text-[12px] text-[var(--ink-faint)]">—</span>,
+    },
+    { key: 'rank', header: 'Rank', render: m => <Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge> },
+    {
+      key: 'salary', header: 'Gross salary', numeric: true,
+      render: m => <span className="font-semibold">{formatGHS(m.grossSalary)}</span>,
+    },
+    {
+      key: 'commission', header: 'Commission', numeric: true,
+      render: m => <span className="text-[var(--ok)] font-medium">{formatGHS(m.registrationCommission)}</span>,
+    },
+    {
+      key: 'next', header: 'To next rank',
+      render: m => <span className="text-[var(--ink-faint)] text-[12px]">
+        {m.nextRank ? `${m.pointsToNext} to ${m.nextRank}` : 'Top rank'}
+      </span>,
+    },
+  ]
+
   return (
     <div className="fade-in w-full">
       <PageHeader
@@ -54,40 +114,15 @@ export default function AdminRemuneration() {
       </div>
 
       <SectionLabel>Leaderboard</SectionLabel>
-      {loading ? <Spinner /> : board.length === 0 ? (
-        <EmptyState  title="No marketers yet" description="Add marketing staff and credit enrollments to see standings." />
-      ) : (
-        <Card className="overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead><tr className="border-b border-[var(--line)]">
-                {['#', 'Marketer', 'Points', 'Trend', 'Rank', 'Gross salary', 'Reg. commission', 'To next rank'].map(h => (
-                  <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                ))}
-              </tr></thead>
-              <tbody>
-                {board.map((m, i) => (
-                  <tr key={m.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)]">
-                    <td data-label="#" className="px-4 py-3">
-                      <span className={`inline-flex items-center justify-center w-6 h-6 rounded-full text-[12px] font-bold ${i === 0 ? 'bg-[var(--gold)] text-white' : i < 3 ? 'bg-[var(--accent-soft)] text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>{i + 1}</span>
-                    </td>
-                    <td data-label="Marketer" className="px-4 py-3">
-                      <div className="text-sm font-medium text-[var(--ink)]">{m.name}</div>
-                      <div className="text-[12px] text-[var(--ink-faint)]">{m.enrollments} enrollments</div>
-                    </td>
-                    <td data-label="Points" className="px-4 py-3 font-display text-lg font-semibold text-[var(--ink)]">{m.points}</td>
-                    <td data-label="Trend" className="px-4 py-3">{m.trend && m.trend.some((v:number)=>v>0) ? <Sparkline data={m.trend} /> : <span className="text-[12px] text-[var(--ink-faint)]">—</span>}</td>
-                    <td data-label="Rank" className="px-4 py-3"><Badge tone={RANK_TONE(m.rank)}>{m.rank}</Badge></td>
-                    <td data-label="Gross salary" className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{formatGHS(m.grossSalary)}</td>
-                    <td data-label="Reg. commission" className="px-4 py-3 text-sm text-[var(--ok)] font-medium">{formatGHS(m.registrationCommission)}</td>
-                    <td data-label="To next rank" className="px-4 py-3 text-xs text-[var(--ink-faint)]">{m.nextRank ? `${m.pointsToNext} to ${m.nextRank}` : 'Top rank'}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </Card>
-      )}
+      <DataTable<BoardRow>
+        caption="Marketer standings"
+        state={loading ? 'loading' : 'ready'}
+        rows={board}
+        rowKey={m => m.id}
+        columns={boardColumns}
+        emptyTitle="No marketers yet"
+        emptyMessage="Add marketing staff and credit enrollments to see standings."
+      />
 
       {/* Rank ladder reference */}
       <SectionLabel>Rank ladder</SectionLabel>

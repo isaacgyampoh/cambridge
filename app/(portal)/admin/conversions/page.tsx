@@ -1,9 +1,18 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PageHeader, Card, StatCard, Spinner, Badge, EmptyState, Sparkline } from '@/components/ui'
-import { GraduationCap, TrendingUp, Target, Award } from 'lucide-react'
+import { PageHeader, Card, StatCard, Spinner, Badge, EmptyState } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 
 const MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec']
+
+type CourseConversion = {
+  id: string
+  name: string
+  code?: string | null
+  leads: number
+  registered: number
+  convRate: number
+}
 
 export default function ConversionsPage() {
   const now = new Date()
@@ -25,6 +34,36 @@ export default function ConversionsPage() {
   const periodLabel = month
     ? new Date(Number(month.slice(0,4)), Number(month.slice(5,7)) - 1, 1).toLocaleDateString('en-GH', { month: 'long', year: 'numeric' })
     : `${year} (full year)`
+
+  const conversionColumns: Column<CourseConversion>[] = [
+    { key: 'programme', header: 'Programme', primary: true, render: c => c.name },
+    { key: 'code', header: 'Code', secondary: true, render: c => c.code || '' },
+    {
+      key: 'leads', header: 'Leads', numeric: true,
+      render: c => <span className="font-semibold text-[var(--ink)]">{c.leads}</span>,
+    },
+    {
+      key: 'registered', header: 'Registered', numeric: true,
+      render: c => <span className="font-semibold text-[var(--ok)]">{c.registered}</span>,
+    },
+    {
+      key: 'rate', header: 'Conversion',
+      render: c => (
+        <span className="flex items-center gap-2">
+          <span className="w-20 h-2 rounded-full bg-[var(--line)] overflow-hidden shrink-0">
+            <span className="block h-full bg-[var(--accent)] rounded-full" style={{ width: `${c.convRate}%` }} />
+          </span>
+          <span className="font-medium text-[var(--ink-soft)]">{c.convRate}%</span>
+        </span>
+      ),
+    },
+    {
+      key: 'verdict', header: 'Health',
+      render: c => c.convRate >= 30 ? <Badge tone="success">Strong</Badge>
+        : c.convRate >= 15 ? <Badge tone="warning">Okay</Badge>
+        : <Badge tone="neutral">Low</Badge>,
+    },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -75,49 +114,14 @@ export default function ConversionsPage() {
             <div className="px-5 py-4 border-b border-[var(--line)]">
               <h3 className="font-semibold text-[var(--ink)]">By programme — {periodLabel}</h3>
             </div>
-            {data.byCourse.length === 0 || data.byCourse.every((c: any) => c.leads === 0) ? (
-              <EmptyState  title="No leads in this period"
-                description="When leads come in tagged with a programme, the breakdown shows here." />
-            ) : (
-              <div className="overflow-x-auto">
-                <table className="rtc w-full">
-                  <thead>
-                    <tr className="border-b border-[var(--line)]">
-                      {['Programme', 'Leads', 'Registered', 'Conversion', ''].map(h => (
-                        <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-5 py-3">{h}</th>
-                      ))}
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {data.byCourse.filter((c: any) => c.leads > 0).map((c: any) => (
-                      <tr key={c.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition">
-                        <td data-label="Programme" className="px-5 py-3.5">
-                          <div className="font-medium text-[var(--ink)]">{c.name}</div>
-                          {c.code && <div className="text-[12px] text-[var(--ink-faint)]">{c.code}</div>}
-                        </td>
-                        <td data-label="Leads" className="px-5 py-3.5 font-display text-lg font-semibold text-[var(--ink)]">{c.leads}</td>
-                        <td data-label="Registered" className="px-5 py-3.5">
-                          <span className="font-display text-lg font-semibold text-[var(--ok)]">{c.registered}</span>
-                        </td>
-                        <td data-label="Conversion" className="px-5 py-3.5">
-                          <div className="flex items-center gap-2">
-                            <div className="w-24 h-2 rounded-full bg-[var(--line)] overflow-hidden">
-                              <div className="h-full bg-[var(--accent)] rounded-full" style={{ width: `${c.convRate}%` }} />
-                            </div>
-                            <span className="text-sm font-medium text-[var(--ink-soft)]">{c.convRate}%</span>
-                          </div>
-                        </td>
-                        <td className="px-5 py-3.5">
-                          {c.convRate >= 30 ? <Badge tone="success">Strong</Badge>
-                            : c.convRate >= 15 ? <Badge tone="warning">Okay</Badge>
-                            : <Badge tone="danger">Low</Badge>}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            )}
+            <DataTable<CourseConversion>
+              caption="Conversion by programme"
+              rows={data.byCourse.filter((c: CourseConversion) => c.leads > 0)}
+              rowKey={c => c.id}
+              columns={conversionColumns}
+              emptyTitle="No leads in this period"
+              emptyMessage="When leads come in tagged with a programme, the breakdown shows here."
+            />
             {data.uncategorised > 0 && (
               <div className="px-5 py-3 text-xs text-[var(--ink-faint)] border-t border-[var(--line-soft)]">
                 {data.uncategorised} lead{data.uncategorised === 1 ? '' : 's'} not matched to a programme (no course interest set).
