@@ -35,7 +35,7 @@ const FILTERABLE = ['queued', 'sending', 'retrying', 'sent', 'failed'] as const
 // the screen and is then refused its data — a blank page with no explanation,
 // which is the failure this screen exists to remove. tests/apiAccess.test.ts
 // asserts the three agree.
-export const GET = withGuard({ portals: ['broadcast', 'messages', 'settings'] }, async (req) => {
+export const GET = withGuard({ portals: ['broadcast', 'settings'] }, async (req) => {
   const url = new URL(req.url)
   const phone = url.searchParams.get('phone')
   const status = url.searchParams.get('status')

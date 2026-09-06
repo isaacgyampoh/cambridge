@@ -1,8 +1,9 @@
 import { NextResponse, type NextRequest } from 'next/server'
 import { createClient as createSupabase } from '@supabase/supabase-js'
 import { createHash } from 'crypto'
-import { PORTAL_PATHS, ROLE_HOME, resolvePortals } from '@/lib/access/portals'
+import { ROLE_HOME, resolvePortals } from '@/lib/access/portals'
 import { canReachApi } from '@/lib/access/apiAccess'
+import { canReachPage } from '@/lib/access/pageAccess'
 
 /*
  * Route guard and security headers.
@@ -187,12 +188,9 @@ export async function proxy(request: NextRequest) {
           )
     }
 
-    const allowedPages = [
-      '/clock-in', '/reports', '/finance/reminders',
-      ...portals.flatMap((pid: string) => PORTAL_PATHS[pid] || []),
-    ]
-    const allowed = allowedPages.some(p => pathname === p || pathname.startsWith(p + '/'))
-    if (!allowed) return goto(ROLE_HOME[role] || '/login')
+    // The same predicate the navigation is built from, so a menu can never
+    // offer a link this would refuse. See lib/access/pageAccess.ts.
+    if (!canReachPage(pathname, role, portals)) return goto(ROLE_HOME[role] || '/login')
 
     return pass()
   } catch (e) {

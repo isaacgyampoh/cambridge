@@ -11,8 +11,37 @@
  *  - ROLE_HOME    : role -> where the user lands after login
  */
 
+/**
+ * Landing pages, matched EXACTLY — never as a prefix.
+ *
+ * ── WHY THIS IS SEPARATE ───────────────────────────────────────────────────
+ *
+ * These nine paths were entries in PORTAL_PATHS under the `dashboard` portal,
+ * which every role holds. Page access matches by prefix:
+ *
+ *     pathname === p || pathname.startsWith(p + '/')
+ *
+ * so listing '/admin' did not grant the admin home page. It granted every
+ * page beneath it. A student — whose only portals are `dashboard` and
+ * `my_payments` — could open /admin/settings, /admin/staff, /admin/finance
+ * and /admin/remuneration. So could a trainer, and so could a marketing
+ * officer.
+ *
+ * The data on those screens is fetched through /api, which IS scoped per
+ * portal, so the tables came back empty or refused. But the screens
+ * themselves rendered, along with their controls and structure — and any
+ * future page that reads its own data server-side would have leaked outright.
+ *
+ * A landing page is one page. It is matched as one page.
+ */
+export const PORTAL_EXACT_PATHS: Record<string, string[]> = {
+  dashboard: [
+    '/admin', '/pm', '/marketer', '/admission', '/finance',
+    '/receptionist', '/trainer', '/student', '/coordinator',
+  ],
+}
+
 export const PORTAL_PATHS: Record<string, string[]> = {
-  dashboard:   ['/admin', '/pm', '/marketer', '/admission', '/finance', '/receptionist', '/trainer', '/student', '/coordinator'],
   insights:    ['/admin/insights'],
   leads:       ['/admin/leads', '/admin/conversions', '/admin/transfers', '/admin/referrals'],
   my_leads:    ['/marketer', '/marketer/leads', '/admin/conversions', '/admin/leads/courses', '/admin/leads/course'],
@@ -41,7 +70,7 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   my_earnings: ['/marketer/earnings'],
   registrations: ['/finance/registrations'],
   clock_in:    ['/clock-in'],
-  messages:    ['/messages', '/admin/sms-delivery'],
+  messages:    ['/messages'],
   my_links:    ['/links'],
   my_attendance: ['/marketer/attendance'],
   prep:        ['/coordinator'],  settings:    ['/admin/settings', '/admin/automation', '/admin/webhook-log', '/admin/sms-delivery'],

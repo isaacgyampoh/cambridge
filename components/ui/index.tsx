@@ -261,3 +261,39 @@ export function SectionLabel({ children }: { children: React.ReactNode }) {
     </div>
   )
 }
+
+/* ─────────────────────────────────────────────
+   The rest of the design system
+   ─────────────────────────────────────────────
+
+   Re-exported here so a screen writes one import for the whole system:
+
+       import { PageHeader, Card, Input, StatusBadge } from '@/components/ui'
+
+   The alternative — four import lines from four files — is how screens drift
+   into hand-rolling a control rather than hunting for the one that exists. */
+
+export {
+  StatusBadge, IconButton, Avatar, SectionHeader, LoadingState, Pagination,
+  initialsOf, TONE_CLASSES, TONE_DOT,
+} from './primitives'
+
+export {
+  Input, SecretInput, Textarea, Select, Search, DateField, DateRange,
+  FormSection, FormActions,
+} from './forms'
+export type { InputPurpose, Option } from './forms'
+
+export { Dialog, BottomSheet, ActionMenu, Tabs, TabPanel } from './overlays'
+export type { SheetAction, TabItem } from './overlays'
+
+export { MobileList, ListRow, RowAction } from './MobileList'
+export type { ListRowProps } from './MobileList'
+
+export {
+  Skeleton, SkeletonText, SkeletonStat, SkeletonCard, SkeletonList,
+  ErrorState, ConfirmDialog,
+} from './states'
+
+export { DataTable } from './DataTable'
+export type { Column, DataTableProps } from './DataTable'

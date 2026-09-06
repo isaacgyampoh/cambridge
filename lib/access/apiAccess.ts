@@ -66,7 +66,7 @@ export const API_PORTALS: Record<string, string[]> = {
   // Read-only delivery diagnostics. Reachable by whoever runs the system as
   // well as whoever sends the messages: the person asked why a colleague
   // never got their text is usually not the person who sent it.
-  '/api/sms/delivery':       ['broadcast', 'messages', 'settings'],
+  '/api/sms/delivery':       ['broadcast', 'settings'],
   '/api/whatsapp':           ['wa_lines', 'conversations'],
 
   '/api/reports':            ['reports'],
