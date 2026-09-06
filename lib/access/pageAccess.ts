@@ -25,7 +25,13 @@ import { PORTAL_PATHS, PORTAL_EXACT_PATHS } from './portals.ts'
  *
  * Kept identical to the list proxy.ts applied before this was extracted.
  */
-export const ALWAYS_ALLOWED_PAGES = ['/clock-in', '/reports', '/finance/reminders']
+export const ALWAYS_ALLOWED_PAGES = [
+  '/clock-in', '/reports', '/finance/reminders',
+  // Notifications are the person's own records, scoped by user_id in the data
+  // policy. There is no portal that could sensibly gate them: a notification
+  // is addressed to you, so being signed in is the whole requirement.
+  '/notifications',
+]
 
 /** `/admin/leads` grants `/admin/leads/import`, but never `/admin/leadsomething`. */
 function matches(pathname: string, prefix: string): boolean {

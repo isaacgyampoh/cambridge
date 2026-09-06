@@ -30,7 +30,7 @@ export type IconName =
   | 'home' | 'leads' | 'admissions' | 'finance' | 'academics' | 'attendance'
   | 'documents' | 'staff' | 'messages' | 'broadcast' | 'insights' | 'reports'
   | 'settings' | 'clock' | 'links' | 'flyers' | 'prep' | 'alumni' | 'social'
-  | 'ai' | 'trophy' | 'workforce' | 'import' | 'sms'
+  | 'ai' | 'trophy' | 'workforce' | 'import' | 'sms' | 'bell'
 
 export type NavLink = {
   label: string
@@ -77,6 +77,7 @@ const CATALOGUE: CatalogueEntry[] = [
   { id: 'insights', label: 'Insights', icon: 'insights', href: '/admin/insights', section: 'top' },
   { id: 'reports', label: 'Reports', icon: 'reports', href: '/reports', section: 'top' },
   { id: 'messages', label: 'Messages', icon: 'messages', href: '/messages', section: 'top' },
+  { id: 'notifications', label: 'Notifications', icon: 'bell', href: '/notifications', section: 'top' },
 
   /* ── Growth ── */
   { id: 'leads', label: 'Leads', icon: 'leads', href: '/admin/leads', section: 'growth', children: [
@@ -303,6 +304,7 @@ export function tabsFor(role: string, portals: string[]): Tab[] {
     { key: 'finance', label: 'Finance', ids: ['finance', 'my_payments'], icon: 'finance' },
     { key: 'classes', label: 'Classes', ids: ['my_classes', 'academics'], icon: 'academics' },
     { key: 'messages', label: 'Inbox', ids: ['messages'], icon: 'messages' },
+    { key: 'alerts', label: 'Alerts', ids: ['notifications'], icon: 'bell' },
   ]
 
   for (const c of candidates) {

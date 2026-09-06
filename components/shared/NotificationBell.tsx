@@ -1,8 +1,9 @@
 'use client'
 
-import { useState, useEffect, useRef } from 'react'
+import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bell, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
+import Link from 'next/link'
 
 interface Notif {
   id: string
@@ -28,25 +29,39 @@ export default function NotificationBell({ userId }: { userId: string | null }) 
   const [items, setItems] = useState<Notif[]>([])
   const ref = useRef<HTMLDivElement>(null)
 
-  async function load() {
-    if (!userId) return
+  /**
+   * Fetch without touching state, so the caller decides when to apply it.
+   *
+   * This bell sits in the header of every screen, so a setState called
+   * synchronously inside its mount effect cascades a render of the whole shell
+   * on every navigation. Applying the result after the await avoids that, and
+   * the alive flag stops a slow response writing to an unmounted component.
+   */
+  const load = useCallback(async (): Promise<Notif[] | null> => {
+    if (!userId) return null
     const params = new URLSearchParams({
       table: 'notifications', select: '*',
       filters: JSON.stringify([{ col: 'user_id', op: 'eq', val: userId }]),
       orderBy: 'created_at', orderAsc: 'false', limit: '30',
     })
     try {
-      const d = await fetch(`/api/data?${params}`).then(r => r.ok ? r.json() : null)
-      setItems(d?.data || [])
-    } catch {}
-  }
+      const d = await fetch(`/api/data?${params}`).then(r => (r.ok ? r.json() : null))
+      return (d?.data || []) as Notif[]
+    } catch {
+      return null
+    }
+  }, [userId])
 
-  useEffect(() => { load() }, [userId])
   useEffect(() => {
     if (!userId) return
-    const t = setInterval(load, 30000)
-    return () => clearInterval(t)
-  }, [userId])
+    let alive = true
+
+    const refresh = () => { void load().then(rows => { if (alive && rows) setItems(rows) }) }
+
+    refresh()
+    const timer = setInterval(refresh, 30000)
+    return () => { alive = false; clearInterval(timer) }
+  }, [userId, load])
 
   useEffect(() => {
     const onClick = (e: MouseEvent) => { if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false) }
@@ -87,8 +102,12 @@ export default function NotificationBell({ userId }: { userId: string | null }) 
   return (
     <div className="relative" ref={ref}>
       <button onClick={() => setOpen(o => !o)}
-        className="relative p-2 text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors">
-        <Bell size={18} />
+        aria-label={unread > 0 ? `Notifications, ${unread} unread` : 'Notifications'}
+        aria-haspopup="menu" aria-expanded={open}
+        className="relative w-10 h-10 grid place-items-center text-[var(--ink-faint)]
+          hover:text-[var(--ink)] hover:bg-[var(--line-soft)] rounded-xl transition-colors
+          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+        <Bell size={18} aria-hidden="true" />
         {unread > 0 && (
           <span className="absolute top-1.5 right-1.5 min-w-[14px] h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
             {unread > 9 ? '9+' : unread}
@@ -126,6 +145,16 @@ export default function NotificationBell({ userId }: { userId: string | null }) 
               </button>
             ))}
           </div>
+
+          {/* The dropdown is a preview of the most recent thirty. Everything
+              older, and any way to filter, lives on the full page. */}
+          <Link href="/notifications" onClick={() => setOpen(false)}
+            className="block px-4 py-3 border-t border-[var(--line)] text-center text-[13px]
+              font-semibold text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-colors
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-inset
+              focus-visible:ring-[var(--accent)]">
+            See all notifications
+          </Link>
         </div>
       )}
     </div>

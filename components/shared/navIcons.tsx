@@ -1,7 +1,7 @@
 'use client'
 
 import {
-  LayoutDashboard, Users, UserCheck, DollarSign, BookOpen, GraduationCap,
+  LayoutDashboard, Users, UserCheck, DollarSign, BookOpen, GraduationCap, Bell,
   TrendingUp, ClipboardList, Settings, Radio, CalendarCheck, FolderOpen,
   BarChart3, Sparkles, MessageSquare, Trophy, Link2, Upload, Send,
 } from 'lucide-react'
@@ -22,5 +22,5 @@ export const NAV_ICONS: Record<IconName, React.ComponentType<{ size?: number; cl
   broadcast: Radio, insights: BarChart3, reports: ClipboardList,
   settings: Settings, clock: CalendarCheck, links: Link2, flyers: Sparkles,
   prep: ClipboardList, alumni: GraduationCap, social: Sparkles, ai: Sparkles,
-  trophy: Trophy, workforce: Users, import: Upload, sms: Send,
+  trophy: Trophy, workforce: Users, import: Upload, sms: Send, bell: Bell,
 }
