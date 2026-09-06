@@ -1,430 +1,491 @@
 'use client'
-import { useState, useEffect } from 'react'
-import { useData, mutate } from '@/hooks/useData'
-import { toast } from 'sonner'
-import { STATUS_COLORS, formatGHS } from '@/lib/utils'
-import { Phone, MessageSquare, ChevronDown, ChevronUp, Plus, Clock, ArrowLeftRight, X } from 'lucide-react'
-import Link from 'next/link'
-import CallButton from '@/components/shared/CallButton'
-import { useRouter } from 'next/navigation'
-import { changeLeadStatus } from '@/lib/leadStatus'
 
-const STATUSES = [
-  { key: 'contacted',     label: 'Contacted',      color: 'bg-[var(--accent-soft)] text-[var(--accent)]', needsComment: false },
-  { key: 'interested',    label: 'Interested',     color: 'bg-[var(--info-soft)] text-[var(--info)]',  needsComment: false, sendsLink: true },
-  { key: 'follow_up',     label: 'Follow Up',      color: 'bg-[var(--warn-soft)] text-[var(--warn)]',  needsComment: true },
-  { key: 'next_session',  label: 'Next Session',   color: 'bg-[var(--warn-soft)] text-[var(--warn)]',    needsComment: true },
-  { key: 'zuku',          label: 'Zuku',           color: 'bg-[var(--danger-soft)] text-[var(--danger)]',        needsComment: true, hint: 'Not qualified — give the reason' },
-  { key: 'defiled',       label: 'Defiled',        color: 'bg-[var(--gold-soft)] text-[var(--gold)]',  needsComment: true, hint: 'Stopped current class to join the next — why?' },
-  { key: 'conflicts',     label: 'Conflicts',      color: 'bg-[var(--danger-soft)] text-[var(--danger)]',      needsComment: true, hint: 'What is the conflict?' },
-  { key: 'deferred',      label: 'Deferred',       color: 'bg-[var(--line-soft)] text-[var(--ink-soft)]',    needsComment: true, hint: 'Give the reason for deferring' },
-  { key: 'done',          label: 'Done',           color: 'bg-emerald-100 text-[var(--ok)]', needsComment: false, hint: 'Completed the class' },
+import { useState, useEffect, useMemo, useCallback } from 'react'
+import { useRouter } from 'next/navigation'
+import { toast } from 'sonner'
+import { Phone, MessageCircle } from 'lucide-react'
+import { useData, mutate } from '@/hooks/useData'
+import { changeLeadStatus } from '@/lib/leadStatus'
+import { telHref, whatsappHref, displayPhone } from '@/lib/ui/contact'
+import { describeStatus } from '@/lib/ui/status'
+import {
+  PageHeader, Button, Search, Tabs, MobileList, ListRow, RowAction,
+  StatusBadge, Avatar, Dialog, Textarea, ActionMenu, Card,
+} from '@/components/ui'
+
+/**
+ * A marketer's leads.
+ *
+ * ── WHAT WAS WRONG ─────────────────────────────────────────────────────────
+ *
+ * The list was an accordion. Calling somebody took two taps — one to expand
+ * the card, one to press Call — and until you expanded it there was no way to
+ * tell a lead you had spoken to from one you had not. This is the screen a
+ * marketer spends the day in, on a phone, and its primary action was hidden.
+ *
+ * The status filter was eight small squares in a four-column grid: on a 375px
+ * screen those are about 40px wide with two words of label crushed into them.
+ * There was no search at all, so finding one person among two hundred meant
+ * scrolling.
+ *
+ * ── THE FOLLOW-UP FEATURE WAS DEAD ─────────────────────────────────────────
+ *
+ * Setting a follow-up wrote `next_follow_up` to the `leads` table. That column
+ * does not exist there — it belongs to `lead_activities`; leads has
+ * `follow_up_at`. The write therefore failed on every call, and the failure
+ * was swallowed by `.catch(() => {})`.
+ *
+ * The "due follow-ups" banner then READ the same phantom column, so it was
+ * always empty. The result was a feature that appeared to work — the toast
+ * said it had saved — and never did. Measured against production: 1 lead of
+ * 186 has a follow-up date, and that one was not set here.
+ *
+ * Both the write and the read now use `follow_up_at`, which is also what the
+ * dashboard counts, so a follow-up set here is a follow-up the dashboard
+ * shows.
+ */
+
+type Lead = {
+  id: string
+  full_name: string
+  phone: string | null
+  email: string | null
+  status: string
+  course_interest: string | null
+  follow_up_at: string | null
+  created_at: string
+  updated_at: string
+}
+
+/** Statuses a marketer can set from this screen, and what each one requires. */
+type StatusAction = {
+  key: string
+  needsComment: boolean
+  /** Marking this status also sends the registration link. */
+  sendsLink?: boolean
+  /** What to ask for when a comment is required. */
+  prompt?: string
+}
+
+const STATUS_ACTIONS: StatusAction[] = [
+  { key: 'contacted', needsComment: false },
+  { key: 'interested', needsComment: false, sendsLink: true },
+  { key: 'follow_up', needsComment: true, prompt: 'What needs following up, and when?' },
+  { key: 'next_session', needsComment: true, prompt: 'Which session will they join, and why the wait?' },
+  { key: 'zuku', needsComment: true, prompt: 'Why is this lead not qualified?' },
+  { key: 'defiled', needsComment: true, prompt: 'Why did they stop the current class to join the next?' },
+  { key: 'conflicts', needsComment: true, prompt: 'What is the conflict?' },
+  { key: 'deferred', needsComment: true, prompt: 'Give the reason for deferring' },
+  { key: 'done', needsComment: false },
 ]
+
+/** Statuses worth filtering by, in the order a marketer works through them. */
+const FILTERS = ['new', 'contacted', 'interested', 'follow_up', 'ready_to_join', 'registered'] as const
+
+function isOverdue(lead: Lead): boolean {
+  if (!lead.follow_up_at) return false
+  if (['registered', 'lost', 'not_interested'].includes(lead.status)) return false
+  return new Date(lead.follow_up_at) <= new Date()
+}
 
 export default function MarketerLeads() {
   const router = useRouter()
-  const [remun, setRemun] = useState<any>(null)
+  const [myId, setMyId] = useState<string | null>(null)
+  const [query, setQuery] = useState('')
+  const [tab, setTab] = useState('all')
 
-  useEffect(() => {
-    fetch('/api/remuneration?scope=me').then(r => r.ok ? r.json() : null).then(d => setRemun(d)).catch(() => {})
-  }, [])
-  const [myId, setMyId] = useState<string|null>(null)
-  const [expanded, setExpanded] = useState<string|null>(null)
-  const [filterStatus, setFilterStatus] = useState<string>('all')
-  const [updating, setUpdating] = useState<string|null>(null)
-  const [pendingStatus, setPendingStatus] = useState<{ leadId: string; status: string } | null>(null)
+  // The status change that is waiting on a comment.
+  const [pending, setPending] = useState<{ lead: Lead; status: string } | null>(null)
   const [comment, setComment] = useState('')
-  const [reqOpen, setReqOpen] = useState(false)
-  const [reqPhone, setReqPhone] = useState('')
-  const [reqReason, setReqReason] = useState('')
-  const [reqFound, setReqFound] = useState<any>(null)
-  const [reqBusy, setReqBusy] = useState(false)
+  const [saving, setSaving] = useState(false)
 
-  async function lookupLead() {
-    if (!reqPhone.trim()) return
-    setReqBusy(true); setReqFound(null)
-    try {
-      const d = await fetch('/api/leads/transfer', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'lookup', phone: reqPhone }),
-      }).then(r => r.json())
-      if (!d.found) { toast.error('No lead found with that number'); setReqBusy(false); return }
-      if (d.lead.mine) { toast.error('This lead is already yours'); setReqBusy(false); return }
-      setReqFound({ ...d.lead, assignee: { full_name: d.lead.owner_name } })
-    } catch { toast.error('Lookup failed') }
-    finally { setReqBusy(false) }
-  }
-
-  async function submitRequest() {
-    if (!reqFound) return
-    setReqBusy(true)
-    try {
-      const res = await fetch('/api/leads/transfer', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ action: 'request', leadId: reqFound.id, reason: reqReason }),
-      }).then(r => r.json())
-      if (res.error) throw new Error(res.error)
-      toast.success('Transfer request sent to the manager')
-      setReqOpen(false); setReqPhone(''); setReqReason(''); setReqFound(null)
-    } catch (e: any) { toast.error(e.message) }
-    finally { setReqBusy(false) }
-  }
+  const [transferOpen, setTransferOpen] = useState(false)
 
   useEffect(() => {
-    fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setMyId(s.userId) })
+    let alive = true
+    fetch('/api/auth/me')
+      .then(r => (r.ok ? r.json() : null))
+      .then(s => { if (alive && s?.valid) setMyId(s.userId) })
+      .catch(() => {})
+    return () => { alive = false }
   }, [])
 
-  const { data: leads, loading, refetch } = useData({
+  const { data: leads, state, refetch } = useData<Lead>({
     table: 'leads',
-    select: '*',
+    select: 'id, full_name, phone, email, status, course_interest, follow_up_at, created_at, updated_at',
     filters: myId ? [{ col: 'assigned_to', op: 'eq', val: myId }] : [],
     orderBy: 'updated_at',
     enabled: !!myId,
   })
 
-  // Step 1: marketer taps a status button
-  function pickStatus(leadId: string, newStatus: string) {
-    // Registration must go through the register flow (programme + points).
-    if (newStatus === 'registered') {
-      router.push(`/marketer/leads/${leadId}`)
-      return
-    }
-    const def = STATUSES.find(s => s.key === newStatus)
-    // Statuses that need a comment open a comment box first
-    if (def?.needsComment) {
-      setPendingStatus({ leadId, status: newStatus })
-      setComment('')
-      return
-    }
-    // Otherwise apply immediately
-    applyStatus(leadId, newStatus, '')
-  }
+  /* ── what the list shows ─────────────────────────────────────────────── */
 
-  // Step 2: apply the status (with comment if one was required/given)
-  async function applyStatus(leadId: string, newStatus: string, commentText: string) {
-    const def = STATUSES.find(s => s.key === newStatus)
-    if (def?.needsComment && !commentText.trim()) {
-      toast.error('Please add a comment so the PM understands why')
+  const overdue = useMemo(() => leads.filter(isOverdue), [leads])
+
+  const counts = useMemo(() => {
+    const out: Record<string, number> = { all: leads.length, overdue: overdue.length }
+    for (const lead of leads) out[lead.status] = (out[lead.status] || 0) + 1
+    return out
+  }, [leads, overdue])
+
+  const shown = useMemo(() => {
+    const needle = query.trim().toLowerCase()
+    return leads.filter(lead => {
+      if (tab === 'overdue' && !isOverdue(lead)) return false
+      if (tab !== 'all' && tab !== 'overdue' && lead.status !== tab) return false
+      if (!needle) return true
+      // Phone is searched in both spellings, so 0201234567 and 233201234567
+      // both find the same person.
+      return (
+        lead.full_name?.toLowerCase().includes(needle) ||
+        (lead.phone || '').includes(needle) ||
+        displayPhone(lead.phone).includes(needle) ||
+        (lead.course_interest || '').toLowerCase().includes(needle)
+      )
+    })
+  }, [leads, tab, query])
+
+  const tabs = useMemo(() => [
+    { key: 'all', label: 'All', count: counts.all },
+    ...(counts.overdue ? [{ key: 'overdue', label: 'Overdue', count: counts.overdue }] : []),
+    ...FILTERS.filter(s => counts[s]).map(s => ({
+      key: s, label: describeStatus('lead', s).label, count: counts[s],
+    })),
+  ], [counts])
+
+  /* ── changing a status ───────────────────────────────────────────────── */
+
+  const pickStatus = useCallback((lead: Lead, status: string) => {
+    // Registering credits remuneration points and needs a programme, so it
+    // goes through the full lead page rather than a menu item.
+    if (status === 'registered') { router.push(`/marketer/leads/${lead.id}`); return }
+
+    const def = STATUS_ACTIONS.find(s => s.key === status)
+    if (def?.needsComment) { setPending({ lead, status }); setComment(''); return }
+    void applyStatus(lead, status, '')
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [router])
+
+  async function applyStatus(lead: Lead, status: string, note: string) {
+    const def = STATUS_ACTIONS.find(s => s.key === status)
+    if (def?.needsComment && !note.trim()) {
+      toast.error('Please add a comment so the manager understands why')
       return
     }
-    setUpdating(leadId)
+
+    setSaving(true)
     try {
-      const result = await changeLeadStatus(leadId, newStatus)
+      const result = await changeLeadStatus(lead.id, status)
       if (result.error) { toast.error(result.error); return }
 
-      // Log the comment so PM/admin can see the reason
-      if (commentText.trim() && myId) {
-        await mutate('POST', 'lead_activities', {
-          lead_id: leadId, activity_type: 'note',
-          subject: `${def?.label || newStatus}`, description: commentText, created_by: myId,
-        })
+      if (note.trim() && myId) {
+        // The status has already changed, so a failure here is partial rather
+        // than total — and it is said out loud. A reason nobody can read is
+        // not a reason, and silently dropping it is how a manager ends up
+        // asking why a lead was disqualified with no answer on record.
+        try {
+          await mutate('POST', 'lead_activities', {
+            lead_id: lead.id, activity_type: 'note',
+            subject: describeStatus('lead', status).label,
+            description: note, created_by: myId,
+          })
+        } catch {
+          toast.error('Status updated, but your comment could not be saved.')
+        }
       }
 
-      // Set a follow-up reminder date for follow-up / next-session statuses
-      if (newStatus === 'follow_up' || newStatus === 'next_session') {
-        const days = newStatus === 'next_session' ? 7 : 2
-        const due = new Date(); due.setDate(due.getDate() + days)
-        await mutate('PATCH', 'leads', { next_follow_up: due.toISOString() }, [{ col: 'id', val: leadId }]).catch(() => {})
+      /*
+       * Set the reminder on the column that exists.
+       *
+       * This wrote `next_follow_up`, which is a column on lead_activities and
+       * not on leads, so it failed every time — and the failure was swallowed.
+       * `follow_up_at` is the column the dashboard counts, so a reminder set
+       * here now actually appears there.
+       */
+      if (status === 'follow_up' || status === 'next_session') {
+        const due = new Date()
+        due.setDate(due.getDate() + (status === 'next_session' ? 7 : 2))
+        try {
+          await mutate('PATCH', 'leads',
+            { follow_up_at: due.toISOString() },
+            [{ col: 'id', val: lead.id }])
+        } catch {
+          toast.error('Status updated, but the follow-up reminder was not saved.')
+        }
       }
 
-      // Interested -> auto-send the registration link via WhatsApp
       if (def?.sendsLink) {
-        const r = await fetch('/api/leads/send-link', {
+        const sent = await fetch('/api/leads/send-link', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ leadId }),
+          body: JSON.stringify({ leadId: lead.id }),
         }).then(r => r.json()).catch(() => null)
-        if (r?.success) toast.success('Marked Interested — registration link sent on WhatsApp')
-        else toast.success('Marked Interested — open the lead to send the link')
-      } else if (newStatus === 'ready_to_join') {
-        await fetch('/api/admissions', { method: 'POST', headers: { 'Content-Type': 'application/json'}, body: JSON.stringify({ leadId }) })
-        toast.success('Moved to Ready to Join — Admissions notified')
+        toast.success(sent?.success
+          ? 'Marked interested — registration link sent on WhatsApp'
+          : 'Marked interested — open the lead to send the link')
       } else {
-        toast.success(`Moved to ${def?.label || newStatus.replace(/_/g, ' ')}`)
+        toast.success(`Moved to ${describeStatus('lead', status).label}`)
       }
 
-      setPendingStatus(null)
+      setPending(null)
       setComment('')
-      setExpanded(null)
       refetch()
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not update that lead')
     } finally {
-      setUpdating(null)
+      setSaving(false)
     }
   }
 
-  const byStatus: Record<string, any[]> = {}
-  leads.forEach(l => { byStatus[l.status] = [...(byStatus[l.status]||[]), l] })
+  /* ── render ──────────────────────────────────────────────────────────── */
 
-  // Follow-ups due today or overdue
-  const todayEnd = new Date(); todayEnd.setHours(23, 59, 59, 999)
-  const dueFollowUps = leads.filter((l: any) =>
-    l.next_follow_up && new Date(l.next_follow_up) <= todayEnd &&
-    !['registered', 'lost', 'not_interested'].includes(l.status)
-  ).sort((a: any, b: any) => new Date(a.next_follow_up).getTime() - new Date(b.next_follow_up).getTime())
+  const pendingPrompt = pending
+    ? STATUS_ACTIONS.find(s => s.key === pending.status)?.prompt || 'Add your comment…'
+    : ''
 
-  const convertedCount = leads.filter(l => [ 'registered'].includes(l.status)).length
-  const convRate = leads.length ? Math.round((convertedCount / leads.length) * 100) : 0
+  return (
+    <div className="fade-in w-full max-w-3xl">
+      <PageHeader
+        eyebrow="My work"
+        title="My leads"
+        description="Everyone assigned to you. Call or message straight from the list."
+        actions={
+          <>
+            <Button href="/marketer/leads/new" size="sm">Add a lead</Button>
+            <Button variant="secondary" size="sm" onClick={() => setTransferOpen(true)}>
+              Request a transfer
+            </Button>
+          </>
+        }
+      />
 
-  const statusOrder = ['new','contacted','interested','follow_up','not_interested','lost','registered']
-  const COLORS: Record<string,string> = {
-    new:'bg-[var(--warn-soft)] text-[var(--warn)]', contacted:'bg-[var(--accent-soft)] text-[var(--accent)]',
-    interested:'bg-[var(--info-soft)] text-[var(--info)]', follow_up:'bg-[var(--warn-soft)] text-[var(--warn)]',
-    ready_to_join:'bg-[var(--ok-soft)] text-[var(--ok)]', registered:'bg-emerald-100 text-[var(--ok)]',
-    not_interested:'bg-[var(--danger-soft)] text-[var(--danger)]', lost:'bg-[var(--line-soft)] text-[var(--ink-soft)]',
+      {/* Overdue leads are the one thing worth interrupting the list for. */}
+      {overdue.length > 0 && tab !== 'overdue' && (
+        <Card className="p-4 mb-4 border-[var(--warn)]/30 bg-[var(--warn-soft)]">
+          <div className="flex items-center justify-between gap-3">
+            <p className="text-[14px] text-[var(--ink)] leading-snug">
+              <strong className="font-semibold">{overdue.length}</strong>{' '}
+              {overdue.length === 1 ? 'lead was' : 'leads were'} promised a call by now.
+            </p>
+            <Button size="sm" variant="secondary" onClick={() => setTab('overdue')}>
+              Show
+            </Button>
+          </div>
+        </Card>
+      )}
+
+      <div className="space-y-3 mb-4">
+        <Search value={query} onChange={setQuery}
+          placeholder="Search by name, phone or course" label="Search your leads" />
+        <Tabs tabs={tabs} active={tab} onChange={setTab} label="Filter by status" />
+      </div>
+
+      <MobileList
+        rows={shown}
+        rowKey={lead => lead.id}
+        state={state}
+        onRetry={refetch}
+        errorTitle="Could not load your leads"
+        errorMessage="This is not an empty list — the request failed. Try again."
+        emptyTitle={query || tab !== 'all' ? 'Nothing matches' : 'No leads assigned yet'}
+        emptyMessage={
+          query || tab !== 'all'
+            ? 'Try a different search, or clear the filter to see everyone.'
+            : 'Your manager will assign leads to you. They will appear here.'
+        }
+        emptyAction={
+          (query || tab !== 'all')
+            ? <Button variant="secondary" onClick={() => { setQuery(''); setTab('all') }}>Show everyone</Button>
+            : <Button href="/marketer/leads/new">Add a lead yourself</Button>
+        }
+        renderRow={lead => {
+          const tel = telHref(lead.phone)
+          const wa = whatsappHref(
+            lead.phone,
+            `Hello ${lead.full_name?.split(' ')[0] || ''}, this is Cambridge Center of Excellence.`
+          )
+          const overdueHere = isOverdue(lead)
+
+          return (
+            <ListRow
+              href={`/marketer/leads/${lead.id}`}
+              leading={<Avatar name={lead.full_name} />}
+              title={lead.full_name}
+              subtitle={displayPhone(lead.phone)}
+              status={<StatusBadge domain="lead" value={lead.status} />}
+              meta={
+                <>
+                  {lead.course_interest && <span className="truncate">{lead.course_interest}</span>}
+                  {lead.follow_up_at && (
+                    <span className={overdueHere ? 'text-[var(--warn)] font-semibold' : ''}>
+                      {overdueHere ? 'Follow-up overdue' : `Follow up ${new Date(lead.follow_up_at)
+                        .toLocaleDateString('en-GB', { day: 'numeric', month: 'short' })}`}
+                    </span>
+                  )}
+                </>
+              }
+              actions={
+                <>
+                  {/* The device does the work: tel: opens the dialler, wa.me
+                      opens WhatsApp. Both were previously two taps away. */}
+                  {tel && <RowAction label="Call" href={tel} tone="accent"
+                    icon={<Phone size={15} />} />}
+                  {wa && <RowAction label="WhatsApp" href={wa} external tone="success"
+                    icon={<MessageCircle size={15} />} />}
+                  <ActionMenu
+                    title={lead.full_name}
+                    actions={STATUS_ACTIONS.map(s => ({
+                      label: `Mark ${describeStatus('lead', s.key).label.toLowerCase()}`,
+                      onClick: () => pickStatus(lead, s.key),
+                      disabled: lead.status === s.key,
+                    })).concat([
+                      { label: 'Mark registered', onClick: () => pickStatus(lead, 'registered'), disabled: false },
+                      { label: 'Open full record', onClick: () => router.push(`/marketer/leads/${lead.id}`), disabled: false },
+                    ])}
+                  />
+                </>
+              }
+            />
+          )
+        }}
+      />
+
+      {/* A status that needs explaining asks for it, rather than silently
+          recording a change nobody can account for later. */}
+      <Dialog
+        open={Boolean(pending)}
+        onClose={() => { setPending(null); setComment('') }}
+        title={pending ? `Mark ${describeStatus('lead', pending.status).label.toLowerCase()}` : ''}
+        description={pending ? `${pending.lead.full_name} — your manager will see this reason.` : undefined}
+        footer={
+          <>
+            <Button variant="secondary" onClick={() => { setPending(null); setComment('') }}>
+              Cancel
+            </Button>
+            <Button
+              onClick={() => pending && applyStatus(pending.lead, pending.status, comment)}
+              disabled={saving || !comment.trim()}
+            >
+              {saving ? 'Saving…' : 'Save and update'}
+            </Button>
+          </>
+        }
+      >
+        <Textarea
+          label="Reason"
+          hint={pendingPrompt}
+          value={comment}
+          onChange={setComment}
+          rows={4}
+          maxLength={500}
+        />
+      </Dialog>
+
+      <TransferRequest open={transferOpen} onClose={() => setTransferOpen(false)} />
+    </div>
+  )
+}
+
+/* ─────────────────────────────────────────────
+   Requesting a lead somebody else owns
+   ───────────────────────────────────────────── */
+
+function TransferRequest({ open, onClose }: { open: boolean; onClose: () => void }) {
+  const [phone, setPhone] = useState('')
+  const [reason, setReason] = useState('')
+  const [found, setFound] = useState<{ id: string; full_name: string; owner?: string } | null>(null)
+  const [busy, setBusy] = useState(false)
+
+  async function lookup() {
+    if (!phone.trim()) return
+    setBusy(true); setFound(null)
+    try {
+      const d = await fetch('/api/leads/transfer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'lookup', phone }),
+      }).then(r => r.json())
+      if (d.error) { toast.error(d.error); return }
+      if (!d.lead) { toast.error('No lead found with that number'); return }
+      setFound(d.lead)
+    } catch {
+      toast.error('Could not reach the server. Check your connection.')
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  async function submit() {
+    if (!found) return
+    setBusy(true)
+    try {
+      const res = await fetch('/api/leads/transfer', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ action: 'request', leadId: found.id, reason }),
+      }).then(r => r.json())
+      if (res.error) throw new Error(res.error)
+      toast.success('Transfer request sent to your manager')
+      setPhone(''); setReason(''); setFound(null)
+      onClose()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not send that request')
+    } finally {
+      setBusy(false)
+    }
   }
 
   return (
-    <div className="fade-in w-full">
-      <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
-        <div>
-          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My leads</h1>
-          <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">{leads.length} assigned to you</p>
+    <Dialog
+      open={open}
+      onClose={onClose}
+      title="Request a transfer"
+      description="Ask for a lead that is currently assigned to someone else."
+      footer={
+        <>
+          <Button variant="secondary" onClick={onClose}>Cancel</Button>
+          <Button onClick={submit} disabled={!found || busy || !reason.trim()}>
+            {busy ? 'Sending…' : 'Send request'}
+          </Button>
+        </>
+      }
+    >
+      <div className="space-y-4">
+        <div className="flex gap-2 items-end">
+          <Search value={phone} onChange={setPhone} onSubmit={lookup}
+            placeholder="Their phone number" label="Lead phone number" className="flex-1" />
+          <Button variant="secondary" onClick={lookup} disabled={busy || !phone.trim()}>
+            {busy && !found ? 'Looking…' : 'Find'}
+          </Button>
         </div>
-        <div className="grid grid-cols-2 sm:flex sm:flex-wrap gap-2">
-          <Link href="/marketer/leads/new"
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition">
-             Add lead
-          </Link>
-          <Link href="/marketer/activities"
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-lg text-sm font-medium hover:brightness-95 transition">
-             Follow-ups
-          </Link>
-          <Link href="/marketer/link"
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
-            My link
-          </Link>
-          <button onClick={() => setReqOpen(true)}
-            className="inline-flex items-center justify-center gap-1.5 h-10 px-4 bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-sm font-medium hover:border-[var(--ink-faint)] transition">
-             Request a lead
-          </button>
-        </div>
+
+        {found && (
+          <>
+            <Card className="p-3.5">
+              <div className="flex items-center gap-3">
+                <Avatar name={found.full_name} size="sm" />
+                <div className="min-w-0">
+                  <div className="text-[14px] font-semibold text-[var(--ink)] truncate">
+                    {found.full_name}
+                  </div>
+                  {found.owner && (
+                    <div className="text-[12.5px] text-[var(--ink-faint)] truncate">
+                      Currently with {found.owner}
+                    </div>
+                  )}
+                </div>
+              </div>
+            </Card>
+
+            <Textarea
+              label="Why should this lead move to you?"
+              hint="Your manager reads this before deciding."
+              value={reason}
+              onChange={setReason}
+              rows={3}
+              maxLength={400}
+              required
+            />
+          </>
+        )}
       </div>
-
-      {/* Rank & earnings summary */}
-      {remun && (
-        <Link href="/marketer/earnings" className="block mb-6 group">
-          <div className="rounded-2xl bg-[var(--accent)] text-white p-5 sm:p-6 relative overflow-hidden">
-            <div className="absolute top-0 right-0 w-40 h-40 rounded-full bg-white/5 -mr-14 -mt-14" />
-            <div className="relative flex flex-wrap items-center justify-between gap-4">
-              <div>
-                <div className="text-[12px] text-white/55 mb-1">Your rank · {remun.year}</div>
-                <div className="font-display text-[26px] leading-none font-semibold">{remun.currentRank?.name || 'Unranked'}</div>
-                <div className="text-white/70 text-sm mt-1.5">{remun.totalPoints} points{remun.nextRank ? ` · ${remun.pointsToNext} to ${remun.nextRank.name}` : ''}</div>
-              </div>
-              <div className="flex gap-6">
-                <div>
-                  <div className="text-[12px] text-white/55">Salary</div>
-                  <div className="font-display text-xl font-semibold mt-1">{formatGHS(remun.grossSalary)}</div>
-                </div>
-                <div>
-                  <div className="text-[12px] text-white/55">Registration</div>
-                  <div className="font-display text-xl font-semibold mt-1">{formatGHS(remun.registrationCommission)}</div>
-                </div>
-                <div className="hidden sm:block">
-                  <div className="text-[12px] text-white/55">Conversion</div>
-                  <div className="font-display text-xl font-semibold mt-1">{convRate}%</div>
-                </div>
-              </div>
-            </div>
-            {remun.nextRank && (
-              <div className="relative mt-4 h-1.5 bg-white/15 rounded-full overflow-hidden">
-                <div className="h-full bg-white/80 rounded-full transition-all" style={{ width: `${remun.progressPct}%` }} />
-              </div>
-            )}
-          </div>
-        </Link>
-      )}
-
-      {/* Due follow-ups today */}
-      {dueFollowUps.length > 0 && (
-        <div className="mb-6 rounded-2xl border border-[var(--warn)]/20 bg-[var(--warn-soft)] p-4">
-          <div className="flex items-center gap-2 mb-3">
-            <span className="text-sm font-semibold text-[var(--warn)]">{dueFollowUps.length} follow-up{dueFollowUps.length === 1 ? '' : 's'} due today</span>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            {dueFollowUps.slice(0, 8).map((l: any) => (
-              <Link key={l.id} href={`/marketer/leads/${l.id}`}
-                className="inline-flex items-center gap-1.5 bg-white border border-[var(--warn)]/20 rounded-lg px-3 py-1.5 text-xs font-medium text-[var(--ink)] hover:border-amber-300 transition">
-                {l.full_name}
-                {l.phone && <span className="text-[var(--ink-faint)]">· {String(l.phone).replace(/^233/, '0')}</span>}
-              </Link>
-            ))}
-            {dueFollowUps.length > 8 && <span className="text-xs text-[var(--warn)] self-center">+{dueFollowUps.length - 8} more</span>}
-          </div>
-        </div>
-      )}
-
-      {/* Tap a status to filter the list below */}
-      <div className="grid grid-cols-4 lg:grid-cols-8 gap-2 mb-6">
-        <button onClick={() => setFilterStatus('all')}
-          className={`rounded-xl px-3 py-3 text-center transition ${filterStatus === 'all' ? 'ring-2 ring-[var(--accent)] bg-[var(--accent-soft)]' : 'bg-[var(--line-soft)]'}`}>
-          <div className="text-[22px] font-semibold leading-none font-display text-[var(--ink)]">{leads.length}</div>
-          <div className="text-[11px] font-medium leading-tight mt-1.5 text-[var(--ink-soft)]">All</div>
-        </button>
-        {statusOrder.filter(s => byStatus[s]?.length > 0).map(s => (
-          <button key={s} onClick={() => setFilterStatus(s)}
-            className={`rounded-xl px-3 py-3 text-center transition ${filterStatus === s ? 'ring-2 ring-[var(--accent)]' : ''} ${COLORS[s]}`}>
-            <div className="text-[22px] font-semibold leading-none font-display">{byStatus[s]?.length}</div>
-            <div className="text-[11px] font-medium capitalize leading-tight mt-1.5">{s.replace(/_/g, ' ')}</div>
-          </button>
-        ))}
-      </div>
-
-      {/* Lead list */}
-      {loading ? (
-        <div className="flex justify-center py-16">
-          <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />
-        </div>
-      ) : leads.length === 0 ? (
-        <div className="bg-[var(--paper)] rounded-xl border border-dashed border-[var(--line)] p-16 text-center text-[var(--ink-faint)]">
-          <p className="font-medium">No leads assigned yet</p>
-          <p className="text-sm mt-1">The project manager will assign leads to you</p>
-        </div>
-      ) : (
-        <div className="space-y-2">
-          {(() => {
-            const shown = filterStatus === 'all' ? leads : leads.filter(l => l.status === filterStatus)
-            if (shown.length === 0) return (
-              <div className="bg-[var(--paper)] rounded-xl border border-dashed border-[var(--line)] p-12 text-center text-[var(--ink-faint)]">
-                <p className="font-medium">No {filterStatus === 'all' ? '' : filterStatus.replace(/_/g, ' ')} leads</p>
-                <button onClick={() => setFilterStatus('all')} className="text-sm text-[var(--accent)] mt-1">Show all leads</button>
-              </div>
-            )
-            return shown.map(lead => {
-            const isExpanded = expanded === lead.id
-            return (
-              <div key={lead.id} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] overflow-hidden hover:border-[var(--ink-faint)] transition-colors">
-                {/* Header row */}
-                <div className="flex items-center px-4 py-3.5 cursor-pointer"
-                  onClick={() => setExpanded(isExpanded ? null : lead.id)}>
-                  <div className="w-10 h-10 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center text-[var(--accent)] font-semibold text-[15px] flex-shrink-0 mr-3">
-                    {lead.full_name?.charAt(0).toUpperCase()}
-                  </div>
-                  <div className="flex-1 min-w-0">
-                    <div className="font-medium text-[14px] text-[var(--ink)] truncate">{lead.full_name}</div>
-                    <div className="text-[13px] text-[var(--ink-faint)] truncate">{lead.phone}{lead.course_interest ? ` · ${lead.course_interest}` : ''}</div>
-                  </div>
-                  <span className={`text-[11px] font-medium px-2.5 py-1 rounded-full ml-2 flex-shrink-0 ${COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
-                    {lead.status?.replace(/_/g, ' ')}
-                  </span>
-                </div>
-
-                {/* Expanded actions */}
-                {isExpanded && (
-                  <div className="border-t border-[var(--line-soft)] bg-[var(--canvas)] px-4 py-3">
-                    {/* Quick contact */}
-                    {lead.phone && (
-                      <div className="flex gap-2 mb-3">
-                        <CallButton leadId={lead.id} phone={lead.phone} onLogged={() => refetch?.()}
-                          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[var(--accent)] text-white rounded-lg text-[13px] font-semibold hover:brightness-110 transition disabled:opacity-60" />
-                        <a href={`https://wa.me/${String(lead.phone).replace(/^0/,'233').replace(/\D/,'')}?text=${encodeURIComponent(`Hello ${lead.full_name?.split(' ')[0]}, this is from Cambridge Center of Excellence...`)}`}
-                          target="_blank" rel="noopener noreferrer"
-                          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[#25D366] text-white rounded-lg text-[13px] font-semibold hover:opacity-90 transition">
-                          WhatsApp
-                        </a>
-                        <Link href={`/marketer/leads/${lead.id}`}
-                          className="inline-flex items-center gap-1.5 px-3.5 h-9 bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] rounded-lg text-[13px] font-semibold hover:bg-[var(--canvas)] transition">
-                          Full view
-                        </Link>
-                      </div>
-                    )}
-
-                    {/* Comment box appears when a comment-required status is pending */}
-                    {pendingStatus && pendingStatus.leadId === lead.id ? (
-                      (() => {
-                        const ps = pendingStatus
-                        return (
-                      <div className="bg-white border border-[var(--accent)] rounded-lg p-3">
-                        <div className="text-xs font-semibold text-[var(--ink)] mb-1.5">
-                          {STATUSES.find(s => s.key === ps.status)?.label} — add a comment
-                        </div>
-                        <p className="text-[12px] text-[var(--ink-faint)] mb-2">Explain the reason so the PM and admin understand.</p>
-                        <textarea value={comment} onChange={e => setComment(e.target.value)} rows={3} autoFocus
-                          placeholder={
-                            ps.status === 'zuku' ? 'Why is this lead not qualified? (Zuku)' :
-                            ps.status === 'next_session' ? 'Which session will they join, and why the wait?' :
-                            ps.status === 'follow_up' ? 'What needs following up, and when?' :
-                            ps.status === 'defiled' ? 'Why did they stop the current class to join the next?' :
-                            ps.status === 'conflicts' ? 'What is the conflict?' :
-                            ps.status === 'deferred' ? 'Give the reason for deferring' :
-                            'Add your comment...'
-                          }
-                          className="w-full text-xs px-3 py-2 border border-[var(--line)] rounded-lg resize-none focus:outline-none focus:border-[var(--accent)] bg-white mb-2" />
-                        <div className="flex gap-2">
-                          <button disabled={updating === lead.id}
-                            onClick={() => applyStatus(lead.id, ps.status, comment)}
-                            className="flex-1 h-9 bg-[var(--accent)] text-white rounded-lg text-xs font-semibold hover:brightness-110 disabled:opacity-50 transition">
-                            {updating === lead.id ? 'Saving…' : 'Save & update'}
-                          </button>
-                          <button onClick={() => { setPendingStatus(null); setComment('') }}
-                            className="px-4 h-9 rounded-lg border border-[var(--line)] text-xs font-medium text-[var(--ink-soft)]">Cancel</button>
-                        </div>
-                      </div>
-                        )
-                      })()
-                    ) : (
-                      <div className="flex flex-wrap gap-1.5">
-                        <span className="text-[10px] font-bold text-[var(--ink-faint)] uppercase self-center mr-1">Move to:</span>
-                        {STATUSES.filter(s => s.key !== lead.status).map(s => (
-                          <button key={s.key} disabled={updating === lead.id}
-                            onClick={() => pickStatus(lead.id, s.key)}
-                            className={`text-[12px] font-semibold px-2.5 py-1 rounded-lg border border-transparent transition hover:opacity-80 disabled:opacity-40 ${s.color}`}>
-                            {s.label}
-                          </button>
-                        ))}
-                        {/* Register shortcut */}
-                        <button onClick={() => router.push(`/marketer/leads/${lead.id}`)}
-                          className="text-[12px] font-semibold px-2.5 py-1 rounded-lg bg-[var(--accent)] text-white transition hover:brightness-110">
-                          Register
-                        </button>
-                      </div>
-                    )}
-                  </div>
-                )}
-              </div>
-            )
-          })
-          })()}
-        </div>
-      )}
-
-      {/* Request a lead modal */}
-      {reqOpen && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/40" onClick={() => setReqOpen(false)}>
-          <div className="bg-white rounded-2xl max-w-md w-full p-6" onClick={e => e.stopPropagation()}>
-            <div className="flex items-center justify-between mb-4">
-              <h2 className="font-display text-xl font-semibold text-[var(--ink)]">Request a lead</h2>
-              <button onClick={() => setReqOpen(false)} className="text-[var(--ink-faint)] hover:text-[var(--ink)]"></button>
-            </div>
-            <p className="text-sm text-[var(--ink-soft)] mb-4">If a lead reached you but is assigned to someone else, enter their number to request the lead. Your manager will review it.</p>
-
-            <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-1.5">Lead's phone number</label>
-            <div className="flex gap-2 mb-4">
-              <input value={reqPhone} onChange={e => setReqPhone(e.target.value)} placeholder="024 000 0000"
-                className="flex-1 h-11 px-4 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
-              <button onClick={lookupLead} disabled={reqBusy}
-                className="h-11 px-4 bg-[var(--accent-soft)] text-[var(--accent)] rounded-xl text-sm font-medium disabled:opacity-50">Find</button>
-            </div>
-
-            {reqFound && (
-              <div className="rounded-xl bg-[var(--canvas)] p-4 mb-4">
-                <div className="font-semibold text-[var(--ink)]">{reqFound.full_name}</div>
-                <div className="text-xs text-[var(--ink-soft)] mt-0.5">
-                  {reqFound.assigned_to ? `Currently with ${reqFound.assignee?.full_name || 'another marketer'}` : 'Currently unassigned'}
-                </div>
-                <textarea value={reqReason} onChange={e => setReqReason(e.target.value)} rows={2}
-                  placeholder="Why should this lead be transferred to you?"
-                  className="w-full mt-3 px-3 py-2 rounded-lg border border-[var(--line)] text-sm resize-none focus:outline-none focus:border-[var(--accent)]" />
-                <button onClick={submitRequest} disabled={reqBusy}
-                  className="w-full mt-3 h-11 bg-[var(--accent)] text-white rounded-xl text-sm font-bold disabled:opacity-50">
-                  {reqBusy ? 'Sending…' : 'Send request to manager'}
-                </button>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-    </div>
+    </Dialog>
   )
 }
