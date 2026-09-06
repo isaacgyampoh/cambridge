@@ -4,8 +4,8 @@ import { useState, useEffect } from 'react'
 
 import type { Profile, Application } from '@/types'
 import { toast } from 'sonner'
-import { Copy, ExternalLink, TrendingUp } from 'lucide-react'
 import SharedLinks from '@/components/shared/SharedLinks'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 
 export default function MarketerLink() {
   const [profile, setProfile] = useState<Profile | null>(null)
@@ -86,6 +86,34 @@ export default function MarketerLink() {
     navigator.clipboard.writeText(appUrl)
     toast.success('Link copied!')
   }
+
+  const applicationColumns: Column<Application>[] = [
+    { key: 'name', header: 'Name', primary: true, render: a => a.full_name },
+    { key: 'email', header: 'Email', secondary: true, render: a => a.email || '—' },
+    {
+      key: 'course', header: 'Course',
+      render: a => (a as Application & { course?: { name?: string } }).course?.name || '—',
+    },
+    {
+      key: 'payment', header: 'Payment',
+      render: a => (
+        <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full
+          ${a.payment_status === 'paid'
+            ? 'bg-[var(--ok-soft)] text-[var(--ok)]'
+            : 'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
+          {a.payment_status}
+        </span>
+      ),
+    },
+    {
+      key: 'date', header: 'Date',
+      render: a => (
+        <span className="text-[var(--ink-faint)] text-[12px]">
+          {new Date(a.created_at).toLocaleDateString('en-GH')}
+        </span>
+      ),
+    },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -205,39 +233,14 @@ export default function MarketerLink() {
         <div className="px-5 py-4 border-b border-[var(--line)]">
           <h3 className="text-sm font-semibold text-[var(--ink)]">Registrations via your link</h3>
         </div>
-        {applications.length === 0 ? (
-          <div className="text-center py-12 text-[var(--ink-faint)]">
-            
-            <p className="text-sm">No registrations yet. Share your link with a ready lead.</p>
-          </div>
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead className="bg-[var(--line-soft)]">
-                <tr>
-                  {['Name','Email','Course','Payment','Date'].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {applications.map(a => (
-                  <tr key={a.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)]">
-                    <td data-label="Name" className="px-4 py-3 text-sm font-medium text-[var(--ink)]">{a.full_name}</td>
-                    <td data-label="Email" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{a.email}</td>
-                    <td data-label="Course" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{(a as any).course?.name || '—'}</td>
-                    <td data-label="Payment" className="px-4 py-3">
-                      <span className={`text-xs font-semibold px-2 py-0.5 rounded-full ${a.payment_status === 'paid' ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
-                        {a.payment_status}
-                      </span>
-                    </td>
-                    <td data-label="Date" className="px-4 py-3 text-xs text-[var(--ink-faint)]">{new Date(a.created_at).toLocaleDateString('en-GH')}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<Application>
+          caption="Registrations via your link"
+          rows={applications}
+          rowKey={a => a.id}
+          columns={applicationColumns}
+          emptyTitle="No registrations yet"
+          emptyMessage="Share your link with a ready lead and their registrations appear here."
+        />
       </div>
     </div>
   )

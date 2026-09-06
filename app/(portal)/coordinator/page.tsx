@@ -1,8 +1,8 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState, inputClass, Field } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, inputClass, Field } from '@/components/ui'
 import Modal from '@/components/shared/Modal'
-import { ClipboardList, Plus, Search, X, Users, Award, AlertTriangle } from 'lucide-react'
+import { DataTable, type Column } from '@/components/ui/DataTable'
 import { toast } from 'sonner'
 
 const PREP_STATUS = [
@@ -20,6 +20,16 @@ const FINAL = [
   { value: 'failed', label: 'Failed' },
   { value: 'not_taken', label: 'Not taken' },
 ]
+
+type PrepRecord = {
+  id: string
+  student_name: string
+  prep_status?: string | null
+  readiness?: string | null
+  exam_scheduled_date?: string | null
+  voucher_expiry_date?: string | null
+  final_status?: string | null
+}
 
 export default function CoordinatorPage() {
   const [data, setData] = useState<any>(null)
@@ -77,6 +87,40 @@ export default function CoordinatorPage() {
     passed: records.filter((r: any) => r.final_status === 'passed').length,
   }
 
+  const prepColumns: Column<PrepRecord>[] = [
+    { key: 'student', header: 'Student', primary: true, render: r => r.student_name },
+    {
+      key: 'prep', header: 'Prep',
+      render: r => {
+        const ps = PREP_STATUS.find(s => s.value === r.prep_status)
+        return ps ? <Badge tone={ps.tone}>{ps.label}</Badge> : null
+      },
+    },
+    {
+      key: 'readiness', header: 'Readiness',
+      render: r => {
+        const rd = READINESS.find(s => s.value === r.readiness)
+        return rd
+          ? <Badge tone={rd.tone}>{rd.label}</Badge>
+          : <span className="text-[var(--ink-faint)]">—</span>
+      },
+    },
+    { key: 'exam', header: 'Exam date', render: r => r.exam_scheduled_date || '—' },
+    { key: 'voucher', header: 'Voucher expiry', render: r => r.voucher_expiry_date || '—' },
+    {
+      key: 'final', header: 'Final',
+      render: r => r.final_status ? (
+        <span className={
+          r.final_status === 'passed' ? 'text-[var(--ok)] font-medium'
+            : r.final_status === 'failed' ? 'text-[var(--danger)] font-medium'
+            : 'text-[var(--ink-soft)]'
+        }>
+          {FINAL.find(f => f.value === r.final_status)?.label}
+        </span>
+      ) : <span className="text-[var(--ink-faint)]">—</span>,
+    },
+  ]
+
   return (
     <div className="fade-in w-full">
       <PageHeader
@@ -126,43 +170,16 @@ export default function CoordinatorPage() {
           </div>
         </div>
 
-        {loading ? <div className="p-8"><Spinner /></div> : filtered.length === 0 ? (
-          <EmptyState  title="No students in prep yet"
-            description={eligible.length > 0 ? 'Add a completed student to start tracking their exam prep.' : 'Students appear here once they complete their class.'}
-            action={eligible.length > 0 ? <Button onClick={() => setAddOpen(true)}>Add a student</Button> : undefined} />
-        ) : (
-          <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead>
-                <tr className="border-b border-[var(--line)]">
-                  {['Student', 'Prep', 'Readiness', 'Exam date', 'Voucher expiry', 'Final', ''].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-[0.08em] px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.map((r: any) => {
-                  const ps = PREP_STATUS.find(s => s.value === r.prep_status)
-                  const rd = READINESS.find(s => s.value === r.readiness)
-                  return (
-                    <tr key={r.id} className="border-b border-[var(--line-soft)] last:border-0 hover:bg-[var(--line-soft)] transition cursor-pointer" onClick={() => setEdit(r)}>
-                      <td data-label="Student" className="px-4 py-3">
-                        <div className="font-medium text-[var(--ink)]">{r.student_name}</div>
-                        <div className="text-[12px] text-[var(--ink-faint)]">{r.program_name || r.program_code}</div>
-                      </td>
-                      <td data-label="Prep" className="px-4 py-3">{ps && <Badge tone={ps.tone}>{ps.label}</Badge>}</td>
-                      <td data-label="Readiness" className="px-4 py-3">{rd ? <Badge tone={rd.tone}>{rd.label}</Badge> : <span className="text-[var(--ink-faint)] text-xs">—</span>}</td>
-                      <td data-label="Exam date" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.exam_scheduled_date || '—'}</td>
-                      <td data-label="Voucher expiry" className="px-4 py-3 text-sm text-[var(--ink-soft)]">{r.voucher_expiry_date || '—'}</td>
-                      <td data-label="Final" className="px-4 py-3 text-sm">{r.final_status ? <span className={r.final_status === 'passed' ? 'text-[var(--ok)] font-medium' : r.final_status === 'failed' ? 'text-[var(--danger)] font-medium' : 'text-[var(--ink-soft)]'}>{FINAL.find(f => f.value === r.final_status)?.label}</span> : <span className="text-[var(--ink-faint)]">—</span>}</td>
-                      <td className="px-4 py-3 text-xs text-[var(--accent)] font-medium">Edit</td>
-                    </tr>
-                  )
-                })}
-              </tbody>
-            </table>
-          </div>
-        )}
+        <DataTable<PrepRecord>
+          caption="Exam preparation"
+          state={loading ? 'loading' : 'ready'}
+          rows={filtered}
+          rowKey={r => r.id}
+          columns={prepColumns}
+          onRowClick={r => setEdit(r)}
+          emptyTitle="No students in preparation"
+          emptyMessage="Students appear here once they are entered for an exam."
+        />
       </Card>
 
       {/* Add student modal */}
