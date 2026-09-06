@@ -111,7 +111,40 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'That programme is not open for registration.' }, { status: 400 })
   }
 
-  const { data: app, error } = await sb.from('applications').insert({
+  /*
+   * Re-submission, not duplication.
+   *
+   * People fill this form more than once: they start a registration, do not
+   * pay, think again, and come back. Every one of those created a fresh row,
+   * so a lead accumulated applications that disagreed with each other. In
+   * production one person had:
+   *
+   *      4 Aug   in_person   pending   (abandoned)
+   *     10 Aug   online      PAID      (the real one)
+   *
+   * and any code reading "the application for this lead" without preferring
+   * the paid one generated a physical letter for somebody enrolled online.
+   * That is the wrong-admission-letter bug at its source.
+   *
+   * An UNPAID application from the same phone for the same programme is
+   * therefore updated in place rather than duplicated. A PAID one is never
+   * touched: that is a real enrolment and a second one is a genuine second
+   * registration, not a correction.
+   *
+   * This also makes the endpoint idempotent against a double-tapped submit
+   * button or a retried request on a flaky connection.
+   */
+  const canonicalPhone = body.phone.replace(/\D/g, '').replace(/^(233|0)/, '')
+  const { data: reusable } = await sb.from('applications')
+    .select('id, delivery, payment_status')
+    .eq('course_id', body.course_id)
+    .eq('payment_status', 'pending')
+    .ilike('phone', `%${canonicalPhone}`)
+    .order('created_at', { ascending: false })
+    .limit(1)
+    .maybeSingle()
+
+  const fields = {
     marketer_id: marketerId,
     full_name: body.full_name,
     first_name: body.first_name || null,
@@ -140,7 +173,16 @@ export async function POST(req: NextRequest) {
     utm_campaign: body.utm_campaign || null,
     utm_content: body.utm_content || null,
     landing_source: body.landing_source || null,
-  }).select('id').single()
+  }
+
+  const { data: app, error } = reusable
+    ? await sb.from('applications').update(fields).eq('id', reusable.id).select('id').single()
+    : await sb.from('applications').insert(fields).select('id').single()
+
+  if (reusable) {
+    console.info('[applications/submit] updated pending application', reusable.id,
+      reusable.delivery !== classMode ? `— class mode changed ${reusable.delivery} → ${classMode}` : '')
+  }
 
   if (error) {
     console.error('[applications/submit] insert failed:', error.message)
@@ -178,9 +220,14 @@ export async function POST(req: NextRequest) {
   })
 
   await recordAudit({
-    action: 'application.submitted', resource: 'applications', resourceId: app.id,
+    action: reusable ? 'application.resubmitted' : 'application.submitted',
+    resource: 'applications', resourceId: app.id,
     success: true,
-    metadata: { classMode, courseId: body.course_id, marketerId, leadId: link.leadId },
+    metadata: {
+      classMode, courseId: body.course_id, marketerId, leadId: link.leadId,
+      resubmission: Boolean(reusable),
+      previousClassMode: reusable && reusable.delivery !== classMode ? reusable.delivery : undefined,
+    },
     request: req,
   })
 

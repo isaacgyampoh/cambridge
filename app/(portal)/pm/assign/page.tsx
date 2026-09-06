@@ -6,6 +6,19 @@ import { SOURCE_COLORS, STATUS_COLORS } from '@/lib/utils'
 import { Users, TrendingUp, UserCheck, Clock, RefreshCw, Search } from 'lucide-react'
 import Link from 'next/link'
 import { Card, Badge, SectionLabel } from '@/components/ui'
+import { DataTable, type Column } from '@/components/ui/DataTable'
+
+type Lead = {
+  id: string
+  full_name: string
+  phone?: string | null
+  email?: string | null
+  source: string
+  course_interest?: string | null
+  status: string
+  created_at: string
+  assignee?: { full_name?: string } | null
+}
 
 export default function PMAssign() {
   const [filter, setFilter] = useState<'unassigned'|'all'|'today'>('unassigned')
@@ -21,7 +34,10 @@ export default function PMAssign() {
   const { data: marketers } = useData({
     table: 'profiles',
     select: 'id, full_name, email, phone',
-    filters: [{ col: 'role', op: 'eq', val: 'marketing_officer' }, { col: 'is_active', op: 'eq', val: true }],
+    // Was filtered to role = marketing_officer, so a PM could not assign to an
+    // admissions officer, coordinator or trainer who legitimately works leads.
+    // Eligibility is the my_leads portal, not one role name.
+    filters: [{ col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', orderAsc: true,
   })
 
@@ -69,6 +85,85 @@ export default function PMAssign() {
       l.phone?.includes(search) || l.email?.toLowerCase().includes(search.toLowerCase())
     return matchFilter && matchSearch
   })
+
+  /*
+   * Described once, rendered as a table on a desktop and as cards on a phone.
+   * The screen previously rendered a seven-column grid inside overflow-x-auto,
+   * which on a 375px screen means dragging sideways to read one lead.
+   */
+  const leadColumns: Column<Lead>[] = [
+    {
+      key: 'name', header: 'Lead', primary: true,
+      render: l => (
+        <Link href={`/pm/leads/${l.id}`}
+          className="font-semibold text-[var(--accent)] hover:underline
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded">
+          {l.full_name}
+        </Link>
+      ),
+    },
+    {
+      key: 'contact', header: 'Contact', secondary: true,
+      render: l => (
+        <>
+          <div>{l.phone?.replace(/^233/, '0') || '—'}</div>
+          {l.email && <div className="text-[var(--ink-faint)] text-[12px]">{l.email}</div>}
+        </>
+      ),
+    },
+    {
+      key: 'source', header: 'Source',
+      render: l => (
+        <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full capitalize
+          ${SOURCE_COLORS[l.source] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+          {l.source}
+        </span>
+      ),
+    },
+    {
+      key: 'course', header: 'Course',
+      render: l => <span className="text-[var(--ink-soft)]">{l.course_interest || '—'}</span>,
+    },
+    {
+      key: 'status', header: 'Status',
+      render: l => (
+        <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full
+          ${STATUS_COLORS[l.status] || 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+          {l.status?.replace(/_/g, ' ')}
+        </span>
+      ),
+    },
+    {
+      key: 'assign', header: 'Assign to',
+      render: l => l.assignee ? (
+        <span className="flex items-center gap-1.5">
+          <span className="w-5 h-5 rounded-full bg-[var(--accent)] grid place-items-center text-white text-[9px] font-bold shrink-0">
+            {l.assignee.full_name?.charAt(0)}
+          </span>
+          <span className="text-[var(--ink-soft)]">{l.assignee.full_name?.split(' ')[0]}</span>
+        </span>
+      ) : (
+        <select
+          onChange={e => { if (e.target.value) assignLead(l.id, e.target.value) }}
+          disabled={assigning === l.id} defaultValue=""
+          aria-label={`Assign ${l.full_name} to a member of staff`}
+          className="text-[13px] min-h-[40px] px-2 border border-[var(--line)] rounded-lg
+            bg-[var(--paper)] w-full max-w-[190px] disabled:opacity-50
+            focus:outline-none focus:border-[var(--accent)]">
+          <option value="" disabled>Assign to…</option>
+          {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+        </select>
+      ),
+    },
+    {
+      key: 'created', header: 'Added',
+      render: l => (
+        <span className="text-[var(--ink-faint)] text-[12px]">
+          {new Date(l.created_at).toLocaleDateString('en-GH', { day: 'numeric', month: 'short' })}
+        </span>
+      ),
+    },
+  ]
 
   return (
     <div className="fade-in w-full">
@@ -130,66 +225,14 @@ export default function PMAssign() {
           </div>
         ) : (
           <div className="overflow-x-auto">
-            <table className="rtc w-full">
-              <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
-                <tr>
-                  {['Lead','Contact','Source','Course','Status','Assign To','Date'].map(h => (
-                    <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {filtered.length === 0 ? (
-                  <tr><td data-label="Lead" colSpan={7} className="text-center py-16 text-[var(--ink-faint)]">
-                    
-                    <p>No leads in this view</p>
-                  </td></tr>
-                ) : filtered.map(lead => (
-                  <tr key={lead.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
-                    <td data-label="Lead" className="px-4 py-3">
-                      <Link href={`/pm/leads/${lead.id}`} className="font-semibold text-sm text-[var(--accent)] hover:underline">
-                        {lead.full_name}
-                      </Link>
-                    </td>
-                    <td data-label="Contact" className="px-4 py-3">
-                      <div className="text-xs text-[var(--ink-soft)]">{lead.phone || '—'}</div>
-                      <div className="text-[12px] text-[var(--ink-faint)]">{lead.email}</div>
-                    </td>
-                    <td data-label="Source" className="px-4 py-3">
-                      <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full capitalize ${SOURCE_COLORS[lead.source]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
-                        {lead.source}
-                      </span>
-                    </td>
-                    <td data-label="Course" className="px-4 py-3 text-xs text-[var(--ink-soft)] max-w-32 truncate">{lead.course_interest || '—'}</td>
-                    <td data-label="Status" className="px-4 py-3">
-                      <span className={`text-[12px] font-semibold px-2 py-0.5 rounded-full ${STATUS_COLORS[lead.status]||'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
-                        {lead.status?.replace(/_/g,' ')}
-                      </span>
-                    </td>
-                    <td data-label="Assign To" className="px-4 py-3">
-                      {(lead as any).assignee ? (
-                        <div className="flex items-center gap-1.5">
-                          <div className="w-5 h-5 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-[9px] font-bold">
-                            {(lead as any).assignee.full_name?.charAt(0)}
-                          </div>
-                          <span className="text-xs text-[var(--ink-soft)]">{(lead as any).assignee.full_name?.split(' ')[0]}</span>
-                        </div>
-                      ) : (
-                        <select onChange={e => { if(e.target.value) assignLead(lead.id, e.target.value) }}
-                          disabled={assigning === lead.id} defaultValue=""
-                          className="text-xs px-2 py-1.5 border border-[var(--line)] rounded-lg bg-white focus:outline-none focus:border-[var(--accent)] disabled:opacity-50 max-w-36">
-                          <option value="" disabled>Assign to...</option>
-                          {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
-                        </select>
-                      )}
-                    </td>
-                    <td data-label="Date" className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">
-                      {new Date(lead.created_at).toLocaleDateString('en-GH', { day:'numeric', month:'short' })}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+            <DataTable<Lead>
+              caption="Leads awaiting assignment"
+              rows={filtered}
+              rowKey={l => l.id}
+              columns={leadColumns}
+              emptyTitle="No leads in this view"
+              emptyMessage="Change the filter above, or wait for new leads to arrive."
+            />
           </div>
         )}
       </div>
