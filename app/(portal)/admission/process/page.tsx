@@ -1,5 +1,6 @@
 'use client'
 import { useState } from 'react'
+import { StatusBadge } from '@/components/ui'
 import { useData, mutate } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { UserCheck, RefreshCw, MessageSquare } from 'lucide-react'
@@ -20,7 +21,10 @@ export default function AdmissionProcess() {
 
   const { data: admissions, loading: loadA, refetch: refetchA } = useData({
     table: 'admissions',
-    select: '*, lead:lead_id(full_name,phone,email,course_interest), course:course_id(name)',
+    // class_mode is carried so the letter being issued can be checked against
+    // the mode the student actually registered for, on the screen where the
+    // letter is issued.
+    select: '*, class_mode, lead:lead_id(full_name,phone,email,course_interest), course:course_id(name)',
     orderBy: 'created_at',
   })
 
@@ -131,6 +135,10 @@ export default function AdmissionProcess() {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
                           <span className="font-semibold text-[var(--ink)] text-sm">{lead?.full_name || 'Unknown'}</span>
+                          {/* The mode this admission is FOR. This screen issues
+                              the admission letter, and until now the one fact
+                              that decides which letter goes out was not on it. */}
+                          <StatusBadge domain="classMode" value={a.class_mode} size="sm" showDot />
                           {a.admission_number && (
                             <span className="text-[10px] font-mono bg-[var(--line-soft)] text-[var(--ink-faint)] px-1.5 py-0.5 rounded">{a.admission_number}</span>
                           )}
@@ -204,9 +212,10 @@ export default function AdmissionProcess() {
                       <div className="text-[15px] font-semibold text-[var(--ink)] truncate">{app.full_name}</div>
                       <div className="text-[12px] text-[var(--ink-faint)] truncate">{app.phone} · {app.email}</div>
                     </div>
-                    <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full flex-shrink-0 ${app.payment_status==='paid'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>{app.payment_status}</span>
+                    <StatusBadge domain="payment" value={app.payment_status} size="sm" />
                   </div>
                   <div className="flex items-center gap-2 mt-2 flex-wrap text-[12px] text-[var(--ink-soft)]">
+                    <StatusBadge domain="classMode" value={app.delivery} size="sm" showDot />
                     <span>{app.course?.name || '—'}</span>
                     <span className="text-[var(--ink-faint)] ml-auto">{app.marketer?.full_name || 'Direct'}</span>
                   </div>
@@ -219,14 +228,14 @@ export default function AdmissionProcess() {
               <table className="w-full">
                 <thead className="bg-[var(--line-soft)] border-b border-[var(--line-soft)]">
                   <tr>
-                    {['Name','Email','Phone','Course','Payment','Marketer','Date'].map(h => (
+                    {['Name','Email','Phone','Course','Class mode','Payment','Marketer','Date'].map(h => (
                       <th key={h} className="text-left text-[12px] font-semibold text-[var(--ink-faint)] uppercase tracking-wide px-4 py-3">{h}</th>
                     ))}
                   </tr>
                 </thead>
                 <tbody>
                   {applications.length === 0 ? (
-                    <tr><td colSpan={7} className="text-center py-12 text-[var(--ink-faint)] text-sm">No applications yet</td></tr>
+                    <tr><td colSpan={8} className="text-center py-12 text-[var(--ink-faint)] text-sm">No applications yet</td></tr>
                   ) : applications.map(app => (
                     <tr key={app.id} className="border-t border-[var(--line-soft)] hover:bg-[var(--line-soft)] transition-colors">
                       <td className="px-4 py-3 text-sm font-semibold text-[var(--ink)]">{app.full_name}</td>
@@ -234,9 +243,10 @@ export default function AdmissionProcess() {
                       <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.phone}</td>
                       <td className="px-4 py-3 text-xs text-[var(--ink-soft)]">{app.course?.name || '—'}</td>
                       <td className="px-4 py-3">
-                        <span className={`text-[12px] font-bold px-2 py-0.5 rounded-full ${app.payment_status==='paid'?'bg-[var(--ok-soft)] text-[var(--ok)]':'bg-[var(--warn-soft)] text-[var(--warn)]'}`}>
-                          {app.payment_status}
-                        </span>
+                        <StatusBadge domain="classMode" value={app.delivery} size="sm" />
+                      </td>
+                      <td className="px-4 py-3">
+                        <StatusBadge domain="payment" value={app.payment_status} size="sm" />
                       </td>
                       <td className="px-4 py-3 text-xs text-[var(--ink-faint)]">{app.marketer?.full_name || 'Direct'}</td>
                       <td className="px-4 py-3 text-[12px] text-[var(--ink-faint)]">{new Date(app.created_at).toLocaleDateString('en-GH')}</td>

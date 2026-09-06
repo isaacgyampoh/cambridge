@@ -1,10 +1,11 @@
 'use client'
 import { useData, mutate } from '@/hooks/useData'
+import { displayPhone } from '@/lib/ui/contact'
 import { useState } from 'react'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
 import { UserCheck, Phone, Mail } from 'lucide-react'
-import { PageHeader, Card, Button, Badge, Spinner, EmptyState } from '@/components/ui'
+import { PageHeader, Card, Button, Badge, Spinner, EmptyState, StatusBadge } from '@/components/ui'
 
 const S: Record<string, { label: string; tone: any }> = {
   pending: { label: 'Pending', tone: 'warning' },
@@ -19,7 +20,9 @@ export default function AdminAdmissions() {
   const [acting, setActing] = useState<string | null>(null)
   const { data, loading, refetch } = useData<any>({
     table: 'admissions',
-    select: '*, lead:lead_id(full_name,phone,email,course_interest,assigned_to,assignee:assigned_to(full_name)), course:course_id(name)',
+    // The mode this admission is for — the field that decides which letter
+    // the student is sent, and which appeared on none of these screens.
+    select: '*, class_mode, lead:lead_id(full_name,phone,email,course_interest,assigned_to,assignee:assigned_to(full_name)), course:course_id(name)',
     orderBy: 'created_at', orderAsc: false, limit: 300,
   })
 
@@ -91,10 +94,16 @@ export default function AdminAdmissions() {
                       {lead?.full_name?.charAt(0) || '?'}
                     </div>
                     <div className="min-w-0">
-                      <div className="font-medium text-[var(--ink)]">{lead?.full_name || 'Unknown'}</div>
+                      <div className="flex items-center gap-2 flex-wrap">
+                        <span className="font-medium text-[var(--ink)]">{lead?.full_name || 'Unknown'}</span>
+                        {/* Which letter this student is due. This is the queue
+                            the letter is issued from, and the field that
+                            decides it was not shown anywhere on the screen. */}
+                        <StatusBadge domain="classMode" value={a.class_mode} size="sm" showDot />
+                      </div>
                       <div className="text-sm text-[var(--ink-soft)]">{a.course?.name || lead?.course_interest || 'No course set'}</div>
                       <div className="flex flex-wrap gap-x-4 gap-y-1 mt-2 text-xs text-[var(--ink-faint)]">
-                        {lead?.phone && <span className="flex items-center gap-1.5">{lead.phone.replace(/^233/, '0')}</span>}
+                        {lead?.phone && <span className="flex items-center gap-1.5">{displayPhone(lead.phone)}</span>}
                         {lead?.email && <span className="flex items-center gap-1.5">{lead.email}</span>}
                         <span>{formatDateTime(a.created_at)}</span>
                         {lead?.assignee?.full_name && <span className="flex items-center gap-1.5 text-[var(--accent)] font-medium">Registered by {lead.assignee.full_name.split(' ')[0]}</span>}
