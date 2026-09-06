@@ -127,7 +127,7 @@ export default function SettingsPage() {
             role="switch" aria-checked={autoAssign} disabled={savingToggle}
             onClick={() => toggleAutoAssign(!autoAssign)}
             className={`relative w-12 h-7 rounded-full flex-shrink-0 transition-colors ${autoAssign ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'} disabled:opacity-60`}>
-            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-sm transition-transform ${autoAssign ? 'translate-x-5' : ''}`} />
+            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${autoAssign ? 'translate-x-5' : ''}`} />
           </button>
         </div>
       </Card>

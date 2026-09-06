@@ -17,8 +17,8 @@ export default function AdmissionDashboard() {
   return (
     <div className="fade-in w-full">
       <div className="mb-8">
-        <h1 className="font-display text-[28px] sm:text-[32px] font-semibold text-[var(--ink)]">{name ? `Welcome, ${name}` : 'Admissions'}</h1>
-        <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">The admissions pipeline at a glance.</p>
+        <h1 className="font-display text-[24px] sm:text-[24px] font-semibold text-[var(--ink)]">{name ? `Welcome, ${name}` : 'Admissions'}</h1>
+        <p className="text-[var(--ink-soft)] text-[15px] mt-1.5">Applications and admissions in progress.</p>
       </div>
 
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-4">

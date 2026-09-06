@@ -73,7 +73,7 @@ export default function Reports() {
 
       {showManual && (
         <Card className="p-6 mb-5">
-          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-1">Write your {period} report</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-1">Write your {period} report</h3>
           <p className="text-[13px] text-[var(--ink-soft)] mb-3">Anything you want your PM to know — wins, challenges, plans. This is filed alongside the automatic figures.</p>
           <textarea value={manualNote} onChange={e => setManualNote(e.target.value)} rows={5}
             placeholder="e.g. Closed 3 PMP registrations this week. Two leads asked about scholarships — following up Monday…"
@@ -91,7 +91,7 @@ export default function Reports() {
       <div className="flex gap-1 mb-6 bg-[var(--line-soft)] rounded-xl p-1 w-fit">
         {(['daily', 'weekly', 'monthly'] as const).map(p => (
           <button key={p} onClick={() => setPeriod(p)}
-            className={`px-4 py-2 rounded-lg text-[14px] font-medium capitalize transition ${period === p ? 'bg-[var(--paper)] text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}>
+            className={`px-4 py-2 rounded-lg text-[14px] font-medium capitalize transition ${period === p ? 'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-soft)]'}`}>
             {p}
           </button>
         ))}
@@ -105,7 +105,7 @@ export default function Reports() {
             <Card key={r.id} className="p-5">
               <div className="flex items-start justify-between gap-4 flex-wrap">
                 <div className="min-w-0">
-                  {r.marketer_name && <div className="font-display text-[16px] font-semibold text-[var(--ink)]">{r.marketer_name}</div>}
+                  {r.marketer_name && <div className="font-display text-[15px] font-semibold text-[var(--ink)]">{r.marketer_name}</div>}
                   <div className="text-[13px] text-[var(--ink-faint)]">{r.period_start} → {r.period_end}</div>
                   <p className="text-[14px] text-[var(--ink-soft)] mt-2 leading-relaxed whitespace-pre-wrap">{r.is_manual && r.manual_note ? r.manual_note : r.summary}</p>
                   {r.is_manual && <span className="inline-block mt-2 text-[11px] font-semibold text-[var(--accent)] bg-[var(--accent-soft)] px-2 py-0.5 rounded-full">Written by staff</span>}
@@ -113,7 +113,7 @@ export default function Reports() {
                 <div className="flex gap-4 flex-shrink-0">
                   {[['Leads', r.new_leads], ['Converted', r.converted], ['Calls', r.calls_made]].map(([l, v]) => (
                     <div key={l as string} className="text-center">
-                      <div className="font-display text-[22px] font-semibold text-[var(--ink)]">{v as number}</div>
+                      <div className="font-display text-[20px] font-semibold text-[var(--ink)]">{v as number}</div>
                       <div className="text-[12px] text-[var(--ink-faint)]">{l as string}</div>
                     </div>
                   ))}

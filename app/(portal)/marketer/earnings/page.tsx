@@ -54,7 +54,7 @@ export default function MarketerEarnings() {
              Current rank
           </div>
           <div className="flex flex-wrap items-end gap-4 mb-1">
-            <div className="font-display text-[40px] leading-none font-semibold">{rank?.name || 'Unranked'}</div>
+            <div className="font-display text-[24px] leading-none font-semibold">{rank?.name || 'Unranked'}</div>
             <div className="text-white/80 text-lg mb-0.5">{formatGHS(data.grossSalary)}<span className="text-white/50 text-sm"> / year</span></div>
           </div>
           <div className="text-white/60 text-sm">{data.totalPoints} points earned in {data.year}</div>

@@ -255,7 +255,7 @@ export default function StaffPage() {
                   <div className="space-y-3">
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] font-bold text-[var(--ink-faint)]">Phone (Login)</div>
+                        <div className="text-[11px] font-bold text-[var(--ink-faint)]">Phone (Login)</div>
                         <div className="text-sm font-semibold text-[var(--ink)]">{creds.phone}</div>
                       </div>
                       <button onClick={() => copyText(creds.phone, 'Phone')}
@@ -266,7 +266,7 @@ export default function StaffPage() {
 
                     <div className="bg-white rounded-xl p-3 flex items-center justify-between">
                       <div>
-                        <div className="text-[10px] font-bold text-[var(--ink-faint)]">Initial PIN</div>
+                        <div className="text-[11px] font-bold text-[var(--ink-faint)]">Initial PIN</div>
                         <div className="text-2xl font-bold tracking-[0.3em] text-[var(--accent)]">{creds.initial_pin}</div>
                       </div>
                       <button onClick={() => copyText(creds.initial_pin, 'PIN')}
@@ -312,7 +312,7 @@ export default function StaffPage() {
                   {/* Email */}
                   <div>
                     <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">
-                      Email <span className="text-[10px] text-[var(--danger)] normal-case font-normal">(required — for login codes &amp; documents)</span>
+                      Email <span className="text-[11px] text-[var(--danger)] normal-case font-normal">(required — for login codes &amp; documents)</span>
                     </label>
                     <div className="relative">
                       
@@ -325,7 +325,7 @@ export default function StaffPage() {
                   {/* Phone */}
                   <div>
                     <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">
-                      Phone Number * <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(used for WhatsApp notifications in their name)</span>
+                      Phone Number * <span className="text-[11px] text-[var(--ink-faint)] normal-case font-normal">(used for WhatsApp notifications in their name)</span>
                     </label>
                     <div className="relative">
                       
@@ -348,7 +348,7 @@ export default function StaffPage() {
                     </div>
                     <div>
                       <label className="block text-xs font-bold text-[var(--ink-faint)] mb-1.5">
-                        Initial PIN <span className="text-[10px] text-[var(--ink-faint)] normal-case font-normal">(blank = last 4 of phone)</span>
+                        Initial PIN <span className="text-[11px] text-[var(--ink-faint)] normal-case font-normal">(blank = last 4 of phone)</span>
                       </label>
                       <div className="relative">
                         
@@ -428,7 +428,7 @@ export default function StaffPage() {
                               className={`w-full flex items-center gap-3 text-left px-4 py-3 rounded-xl border transition ${
                                 on ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] hover:border-[var(--ink-faint)]'
                               }`}>
-                              <span className={`w-5 h-5 rounded-md border-2 flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--line)]'}`}>
+                              <span className={`w-5 h-5 rounded-lg border-2 flex items-center justify-center flex-shrink-0 ${on ? 'bg-[var(--accent)] border-[var(--accent)]' : 'border-[var(--line)]'}`}>
                                 {on && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="3"><path d="M20 6 9 17l-5-5"/></svg>}
                               </span>
                               <span>
@@ -518,7 +518,7 @@ export default function StaffPage() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">People</div>
-          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Staff</h1>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Staff</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{staff.length} team members across all roles</p>
         </div>
         <div className="flex items-center gap-2">
@@ -592,7 +592,7 @@ export default function StaffPage() {
             </button>
           )}
           <button onClick={openModal}
-            className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm">
+            className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-[var(--shadow-raised)]">
              Add staff
           </button>
         </div>
@@ -752,7 +752,7 @@ export default function StaffPage() {
                       {openMenu === s.id && (
                         <>
                           <div className="fixed inset-0 z-10" onClick={() => setOpenMenu(null)} />
-                          <div className="absolute right-4 top-12 z-20 w-52 bg-[var(--paper)] rounded-xl border border-[var(--line)] shadow-[0_8px_30px_rgba(26,34,48,0.12)] py-1.5">
+                          <div className="absolute right-4 top-12 z-20 w-52 bg-[var(--paper)] rounded-xl border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1.5">
                             <a href={`/admin/staff/${s.id}`}
                               className="block px-4 py-2.5 text-[13px] text-[var(--ink)] hover:bg-[var(--canvas)] transition">Edit details &amp; access</a>
                             <button onClick={() => {
@@ -827,10 +827,10 @@ export default function StaffPage() {
               <div className="text-[12px] font-semibold text-[var(--ink-soft)] mb-1.5">
                 Recovery PIN — shown once
               </div>
-              <div className="font-display text-[28px] font-semibold tracking-[0.3em] text-[var(--accent)] tabular-nums">
+              <div className="font-display text-[24px] font-semibold tracking-[0.3em] text-[var(--accent)] tabular-nums">
                 {issuedRecovery}
               </div>
-              <p className="text-[12.5px] text-[var(--ink-soft)] mt-2 leading-relaxed">
+              <p className="text-[12px] text-[var(--ink-soft)] mt-2 leading-relaxed">
                 This is what lets them reset their own PIN later without asking you.
                 They will also need a code sent to their {BRAND.shortName} email, so
                 this alone cannot sign anyone in. Write it down now — it is not stored

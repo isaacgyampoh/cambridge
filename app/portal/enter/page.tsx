@@ -1,5 +1,6 @@
 'use client'
 import { useEffect, useState, Suspense } from 'react'
+import { KeyRound } from 'lucide-react'
 import { useSearchParams, useRouter } from 'next/navigation'
 
 function Enter() {
@@ -24,16 +25,18 @@ function Enter() {
       <div style={{ textAlign: 'center', maxWidth: 340 }}>
         {!error ? (
           <>
-            <div style={{ width: 40, height: 40, border: '3px solid #dbe9eb', borderTopColor: '#1a7a85', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
-            <p style={{ color: '#5a6675', fontSize: 15 }}>Signing you in…</p>
+            <div style={{ width: 40, height: 40, border: '3px solid #dbe9eb', borderTopColor: 'var(--accent)', borderRadius: '50%', margin: '0 auto 16px', animation: 'spin 0.8s linear infinite' }} />
+            <p style={{ color: 'var(--ink-soft)', fontSize: 15 }}>Signing you in…</p>
             <style>{`@keyframes spin{to{transform:rotate(360deg)}}`}</style>
           </>
         ) : (
           <>
-            <div style={{ fontSize: 40, marginBottom: 12 }}>🔑</div>
-            <h1 style={{ fontSize: 19, color: '#1a2230', marginBottom: 8 }}>Link expired</h1>
-            <p style={{ color: '#5a6675', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>{error}</p>
-            <a href="/portal/login" style={{ display: 'inline-block', background: '#1a7a85', color: '#fff', textDecoration: 'none', padding: '12px 22px', borderRadius: 10, fontWeight: 600, fontSize: 14 }}>Get a new link</a>
+            <div className="w-12 h-12 rounded-xl bg-[var(--accent-soft)] grid place-items-center mx-auto mb-3">
+              <KeyRound size={22} className="text-[var(--accent)]" aria-hidden="true" />
+            </div>
+            <h1 style={{ fontSize: 19, color: 'var(--ink)', marginBottom: 8 }}>Link expired</h1>
+            <p style={{ color: 'var(--ink-soft)', fontSize: 14, lineHeight: 1.6, marginBottom: 20 }}>{error}</p>
+            <a href="/portal/login" style={{ display: 'inline-block', background: 'var(--accent)', color: '#fff', textDecoration: 'none', padding: '12px 22px', borderRadius: 10, fontWeight: 600, fontSize: 14 }}>Get a new link</a>
           </>
         )}
       </div>

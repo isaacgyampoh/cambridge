@@ -96,14 +96,14 @@ export default function CommandPalette() {
         <div className="fixed inset-0 z-[10001] flex items-start justify-center pt-[12vh] px-4"
           style={{ backgroundColor: 'rgba(20,20,22,0.4)', backdropFilter: 'blur(2px)' }}
           onClick={(e) => { if (e.target === e.currentTarget) setOpen(false) }}>
-          <div className="w-full max-w-lg bg-white rounded-2xl shadow-2xl overflow-hidden border border-[var(--line)]">
+          <div className="w-full max-w-lg bg-white rounded-2xl shadow-[var(--shadow-overlay)] overflow-hidden border border-[var(--line)]">
             {/* Search input */}
             <div className="flex items-center gap-3 px-4 border-b border-[var(--line)]" style={{ height: 56 }}>
               <Search size={18} className="text-[var(--ink-faint)] flex-shrink-0" />
               <input ref={inputRef} value={query} onChange={e => setQuery(e.target.value)} onKeyDown={onInputKey}
                 placeholder="Search pages and actions…"
                 className="flex-1 bg-transparent text-[15px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none" />
-              <kbd className="text-[10px] font-semibold text-[var(--ink-faint)] bg-[var(--line-soft)] px-1.5 py-0.5 rounded">ESC</kbd>
+              <kbd className="text-[11px] font-semibold text-[var(--ink-faint)] bg-[var(--line-soft)] px-1.5 py-0.5 rounded">ESC</kbd>
             </div>
 
             {/* Results */}
@@ -115,7 +115,7 @@ export default function CommandPalette() {
                 return (
                   <button key={c.href} onClick={() => go(c.href)} onMouseEnter={() => setActive(i)}
                     className={`flex items-center gap-3 w-full px-3 py-2.5 rounded-lg text-left transition ${i === active ? 'bg-[var(--accent-soft)]' : 'hover:bg-[var(--line-soft)]'}`}>
-                    <div className={`w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0 ${i === active ? 'bg-[var(--accent)] text-white' : 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
+                    <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${i === active ? 'bg-[var(--accent)] text-white' : 'bg-[var(--line-soft)] text-[var(--ink-soft)]'}`}>
                       <Icon size={15} />
                     </div>
                     <div className="flex-1 min-w-0">

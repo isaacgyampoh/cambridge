@@ -259,7 +259,7 @@ export default function AdminRegistrations() {
                     <div key={String(label)}
                       className="flex items-baseline justify-between gap-4 px-4 py-2.5">
                       <dt className="text-[13px] text-[var(--ink-faint)] flex-shrink-0">{label}</dt>
-                      <dd className="text-[13.5px] font-medium text-[var(--ink)] text-right break-words min-w-0">
+                      <dd className="text-[13px] font-medium text-[var(--ink)] text-right break-words min-w-0">
                         {value || <span className="text-[var(--ink-faint)] font-normal">Not given</span>}
                       </dd>
                     </div>

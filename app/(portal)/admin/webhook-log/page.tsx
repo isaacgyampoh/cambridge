@@ -43,14 +43,14 @@ export default function WebhookLogPage() {
             const lines = (d.steps || []).map((s: any) => `${s.ok ? 'OK  ' : 'FAIL'}  ${s.step}\n      ${s.detail}`).join('\n\n')
             alert(`${d.verdict}\n\n${lines}`)
             refetch()
-          }} className="h-10 px-4 rounded-xl bg-[var(--accent)] text-white text-[13.5px] font-semibold">Test a reply</button>
-          <button onClick={() => refetch()} className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)]">Refresh</button>
+          }} className="h-10 px-4 rounded-xl bg-[var(--accent)] text-white text-[13px] font-semibold">Test a reply</button>
+          <button onClick={() => refetch()} className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)]">Refresh</button>
         </>} />
 
       {data && (
         <Card className="p-4 mb-5">
-          <div className="text-[13.5px] text-[var(--ink)] font-medium mb-2">{data.verdict}</div>
-          <div className="text-[12.5px] text-[var(--ink-soft)] space-y-0.5">
+          <div className="text-[13px] text-[var(--ink)] font-medium mb-2">{data.verdict}</div>
+          <div className="text-[12px] text-[var(--ink-soft)] space-y-0.5">
             <div>From leads in 24h: <b>{data.last24h?.messagesFromLeads ?? 0}</b> · sent by us: <b>{data.last24h?.messagesWeSent ?? 0}</b></div>
             <div>WaSender key: <b>{data.setup?.wasenderKey}</b> · AI key: <b>{data.setup?.openaiKey}</b></div>
             <div className="break-all">Webhook URL: <b>{data.setup?.webhookUrl}</b></div>
@@ -67,15 +67,15 @@ export default function WebhookLogPage() {
             <Card key={r.at + String(r.phone)} className="p-4">
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <div className="font-medium text-[var(--ink)] text-[14.5px]">
+                  <div className="font-medium text-[var(--ink)] text-[14px]">
                     {r.phone ? displayPhone(String(r.phone)) : 'unknown'}
                   </div>
-                  {r.text && <div className="text-[13.5px] text-[var(--ink-soft)] mt-1 line-clamp-2">{r.text}</div>}
+                  {r.text && <div className="text-[13px] text-[var(--ink-soft)] mt-1 line-clamp-2">{r.text}</div>}
                   {r.detail && <div className="text-[12px] text-[var(--ink-faint)] mt-1.5 break-all">{r.detail}</div>}
                 </div>
                 <div className="text-right flex-shrink-0">
                   <Badge tone={TONE[r.outcome] || 'neutral'}>{LABEL[r.outcome] || r.outcome}</Badge>
-                  <div className="text-[11.5px] text-[var(--ink-faint)] mt-1.5">
+                  <div className="text-[11px] text-[var(--ink-faint)] mt-1.5">
                     {new Date(r.at).toLocaleString('en-GB', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })}
                   </div>
                 </div>

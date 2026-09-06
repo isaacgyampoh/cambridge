@@ -109,14 +109,14 @@ export default function NotificationBell({ userId }: { userId: string | null }) 
           focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
         <Bell size={18} aria-hidden="true" />
         {unread > 0 && (
-          <span className="absolute top-1.5 right-1.5 min-w-[14px] h-3.5 bg-red-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center px-0.5">
+          <span className="absolute top-1.5 right-1.5 min-w-[14px] h-3.5 bg-red-500 text-white text-[11px] font-bold rounded-full flex items-center justify-center px-0.5">
             {unread > 9 ? '9+' : unread}
           </span>
         )}
       </button>
 
       {open && (
-        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-2xl border border-[var(--line)] z-[200] overflow-hidden">
+        <div className="absolute right-0 mt-2 w-80 bg-white rounded-xl shadow-[var(--shadow-overlay)] border border-[var(--line)] z-[200] overflow-hidden">
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)]">
             <span className="text-sm font-semibold text-[var(--ink)]">Notifications</span>
             {unread > 0 && (

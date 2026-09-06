@@ -75,7 +75,7 @@ export default function PortalDemo() {
   const [state, setState] = useState('owing')
   return (
     <div>
-      <div style={{ background: '#1a2230', color: '#fff', padding: '10px 12px', fontFamily: 'Inter, system-ui, sans-serif' }}>
+      <div style={{ background: 'var(--ink)', color: '#fff', padding: '10px 12px', fontFamily: 'Inter, system-ui, sans-serif' }}>
         <div style={{ fontSize: 11, opacity: 0.7, marginBottom: 7, textAlign: 'center' }}>
           Demo — sample student, nothing is saved. Switch between what a student sees:
         </div>
@@ -84,7 +84,7 @@ export default function PortalDemo() {
             <button key={t.k} onClick={() => setState(t.k)}
               style={{
                 border: 'none', borderRadius: 8, padding: '7px 12px', fontSize: 12, fontWeight: 600, cursor: 'pointer',
-                background: state === t.k ? '#1a7a85' : 'rgba(255,255,255,.12)', color: '#fff',
+                background: state === t.k ? 'var(--accent)' : 'rgba(255,255,255,.12)', color: '#fff',
               }}>{t.label}</button>
           ))}
         </div>

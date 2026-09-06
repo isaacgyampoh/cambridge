@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useMemo, useCallback } from 'react'
+import { BRAND } from '@/lib/brand'
 import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
@@ -185,10 +186,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
       {sections.map((section, i) => (
         <div key={section.id} className={i > 0 ? 'mt-5' : ''}>
           {section.title && wide && (
-            <h2 className="px-3 pb-1.5 text-[10.5px] font-semibold uppercase tracking-[0.1em]
-              text-[var(--ink-faint)] select-none">
-              {section.title}
-            </h2>
+            <h2 className="px-3 pb-1.5 t-overline select-none">{section.title}</h2>
           )}
           {section.title && !wide && i > 0 && (
             <div className="mx-3 mb-2.5 border-t border-[var(--line)]" aria-hidden="true" />
@@ -201,11 +199,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             const childActive = item.children?.some(c => isActive(pathname, c.href))
             const active = selfActive || childActive
 
-            const rowClass = `w-full flex items-center rounded-xl transition-colors mb-0.5
-              ${wide ? 'gap-3 px-3 py-2.5' : 'justify-center py-3'}
+            const rowClass = `w-full flex items-center rounded-lg transition-colors mb-px
+              ${wide ? 'gap-2.5 px-3 py-2' : 'justify-center py-2.5'}
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
               ${active
-                ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-semibold'
+                ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium'
                 : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`
 
             if (item.children?.length) {
@@ -218,10 +216,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                     title={wide ? undefined : item.label}
                     className={rowClass}
                   >
-                    <Icon size={19} className="flex-shrink-0" aria-hidden="true" />
+                    <Icon size={17} className="flex-shrink-0" aria-hidden="true" />
                     {wide && (
                       <>
-                        <span className="flex-1 text-left text-[14px] truncate">{item.label}</span>
+                        <span className="flex-1 text-left text-[13px] truncate">{item.label}</span>
                         <ChevronDown size={14} aria-hidden="true"
                           className={`opacity-50 transition-transform ${open ? 'rotate-180' : ''}`} />
                       </>
@@ -235,11 +233,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                           key={child.href}
                           href={child.href}
                           aria-current={isActive(pathname, child.href) ? 'page' : undefined}
-                          className={`block px-3 py-2 rounded-lg text-[13px] transition-colors
+                          className={`block px-3 py-1.5 rounded-lg text-[13px] transition-colors
                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
                             ${isActive(pathname, child.href)
-                              ? 'text-[var(--accent)] font-semibold bg-[var(--accent-soft)]'
-                              : 'text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)] font-medium'}`}
+                              ? 'text-[var(--accent)] font-medium'
+                              : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}
                         >
                           {child.label}
                         </Link>
@@ -253,8 +251,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             return (
               <Link key={item.id} href={item.href} title={wide ? undefined : item.label}
                 aria-current={selfActive ? 'page' : undefined} className={rowClass}>
-                <Icon size={19} className="flex-shrink-0" aria-hidden="true" />
-                {wide && <span className="text-[14px] truncate">{item.label}</span>}
+                <Icon size={17} className="flex-shrink-0" aria-hidden="true" />
+                {wide && <span className="text-[13px] truncate">{item.label}</span>}
               </Link>
             )
           })}
@@ -274,10 +272,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         </span>
         {wide && (
           <span className="min-w-0 flex-1">
-            <span className="block font-display text-[14px] font-semibold text-[var(--ink)] truncate leading-tight">
-              Cambridge
+            <span className="block text-[13px] font-semibold text-[var(--ink)] truncate leading-tight">
+              {BRAND.shortName}
             </span>
-            <span className="block text-[10.5px] text-[var(--ink-faint)] truncate">{roleLabel}</span>
+            <span className="block t-meta truncate">{roleLabel}</span>
           </span>
         )}
         {inDrawer && (
@@ -297,10 +295,10 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             <div className="flex items-center gap-2.5 px-2 py-1.5 mb-1.5">
               <Avatar name={profile?.full_name || ''} size="sm" />
               <span className="min-w-0 flex-1">
-                <span className="block text-[12.5px] font-semibold text-[var(--ink)] truncate">
+                <span className="block text-[12px] font-semibold text-[var(--ink)] truncate">
                   {profile?.full_name}
                 </span>
-                <span className="block text-[10.5px] text-[var(--ink-faint)] truncate">{roleLabel}</span>
+                <span className="block text-[11px] text-[var(--ink-faint)] truncate">{roleLabel}</span>
               </span>
             </div>
             <InstallButton />
@@ -356,7 +354,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         <div className="lg:hidden fixed inset-0 z-50">
           <button type="button" aria-label="Close menu" onClick={() => setDrawerPath(null)}
             className="absolute inset-0 bg-black/40" />
-          <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] shadow-2xl">
+          <div className="absolute inset-y-0 left-0 w-[280px] max-w-[85vw] shadow-[var(--shadow-overlay)]">
             {sidebar({ wide: true, inDrawer: true })}
           </div>
         </div>
@@ -381,7 +379,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {canGoBack && (
             <button type="button" onClick={() => router.back()}
-              className="inline-flex items-center gap-1.5 min-h-[40px] px-2.5 rounded-xl text-[13.5px]
+              className="inline-flex items-center gap-1.5 min-h-[40px] px-2.5 rounded-xl text-[13px]
                 font-medium text-[var(--ink-soft)] hover:text-[var(--ink)]
                 hover:bg-[var(--line-soft)] transition-colors flex-shrink-0">
               <ArrowLeft size={16} aria-hidden="true" />
@@ -391,7 +389,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
           {/* The page's name, from the navigation model — not from URL
               segments, which produced "Admin / Leads / 4f3c8a91-…". */}
-          <span className="min-w-0 flex-1 font-display text-[15px] font-semibold text-[var(--ink)] truncate">
+          <span className="min-w-0 flex-1 text-[14px] font-medium text-[var(--ink)] truncate">
             {pageTitle}
           </span>
 
@@ -404,7 +402,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           >
             <SearchIcon size={15} aria-hidden="true" />
             <span className="text-[13px]">Search</span>
-            <kbd className="text-[10px] font-semibold bg-[var(--line-soft)] px-1.5 py-0.5 rounded">⌘K</kbd>
+            <kbd className="text-[11px] font-semibold bg-[var(--line-soft)] px-1.5 py-0.5 rounded">⌘K</kbd>
           </button>
 
           <NotificationBell userId={profile?.id || null} />
@@ -430,20 +428,20 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   onClick={() => setMenuPath(null)} className="fixed inset-0 z-30 cursor-default" />
                 <div role="menu" aria-label="Account"
                   className="absolute right-0 mt-1 z-40 w-[230px] rounded-xl bg-[var(--paper)]
-                    border border-[var(--line)] shadow-lg py-1">
+                    border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1">
                   <div className="px-3.5 py-2.5 border-b border-[var(--line)]">
-                    <div className="text-[13.5px] font-semibold text-[var(--ink)] truncate">
+                    <div className="text-[13px] font-semibold text-[var(--ink)] truncate">
                       {profile?.full_name}
                     </div>
                     <div className="text-[12px] text-[var(--ink-faint)] truncate">{roleLabel}</div>
                   </div>
                   <Link role="menuitem" href="/admin/settings/change-pin"
-                    className="flex items-center gap-2.5 px-3.5 py-3 text-[13.5px] text-[var(--ink)]
+                    className="flex items-center gap-2.5 px-3.5 py-3 text-[13px] text-[var(--ink)]
                       hover:bg-[var(--line-soft)] transition-colors">
                     <Shield size={15} aria-hidden="true" /> Change PIN
                   </Link>
                   <button role="menuitem" type="button" onClick={logout}
-                    className="w-full flex items-center gap-2.5 px-3.5 py-3 text-[13.5px]
+                    className="w-full flex items-center gap-2.5 px-3.5 py-3 text-[13px]
                       text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors">
                     <LogOut size={15} aria-hidden="true" /> Sign out
                   </button>
@@ -478,7 +476,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                     focus-visible:ring-inset focus-visible:ring-[var(--accent)]
                     ${active ? 'text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>
                   <Icon size={21} className="flex-shrink-0" aria-hidden="true" />
-                  <span className="text-[10.5px] font-semibold leading-none truncate max-w-full px-0.5">
+                  <span className="text-[11px] font-semibold leading-none truncate max-w-full px-0.5">
                     {tab.label}
                   </span>
                 </Link>
@@ -489,7 +487,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 text-[var(--ink-faint)] transition-colors focus-visible:outline-none
                 focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-[var(--accent)]">
               <Menu size={21} className="flex-shrink-0" aria-hidden="true" />
-              <span className="text-[10.5px] font-semibold leading-none">More</span>
+              <span className="text-[11px] font-semibold leading-none">More</span>
             </button>
           </div>
         </nav>

@@ -225,7 +225,7 @@ export default function ImportLeadsPage() {
             <div className="h-full bg-[var(--accent)] transition-[width] duration-300 ease-out"
               style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
           </div>
-          <p className="text-[12.5px] text-[var(--ink-faint)] mt-3 leading-relaxed">
+          <p className="text-[12px] text-[var(--ink-faint)] mt-3 leading-relaxed">
             Sent in batches so a long list cannot time out. Please keep this page open.
           </p>
         </div>
@@ -356,7 +356,7 @@ export default function ImportLeadsPage() {
           {/* Right — preview */}
           <div className="space-y-4">
             {parsed.length === 0 ? (
-              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-12 text-center text-[var(--ink-faint)] shadow-sm">
+              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-12 text-center text-[var(--ink-faint)] shadow-[var(--shadow-raised)]">
                 
                 <p className="font-medium">Preview will appear here</p>
                 <p className="text-sm mt-1">Upload or paste your CSV data</p>
@@ -382,7 +382,7 @@ export default function ImportLeadsPage() {
                 </div>
 
                 {/* Preview table */}
-                <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
+                <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-[var(--shadow-raised)]">
                   <div className="px-4 py-3 border-b border-[var(--line-soft)] flex items-center justify-between">
                     <span className="text-sm font-semibold text-[var(--ink)]">Preview</span>
                     <span className="text-xs text-[var(--ink-faint)]">Showing first 20 rows</span>
@@ -393,14 +393,14 @@ export default function ImportLeadsPage() {
                     each column landed in the right field before importing, and
                     a grid with headers is exactly the tool for that. Cards
                     would break the column alignment that makes a mis-mapped
-                    import visible at a glance.
+                    import recorded against its reference.
                   */}
                   <div className="overflow-x-auto max-h-80 overflow-y-auto">
                     <table className="rtc w-full">
                       <thead className="bg-[var(--line-soft)] sticky top-0">
                         <tr>
                           {['', 'Name', 'Phone', 'Email', 'Course', 'Source'].map(h => (
-                            <th key={h} className="text-left text-[10px] font-bold text-[var(--ink-faint)] uppercase tracking-wide px-3 py-2">{h}</th>
+                            <th key={h} className="text-left text-[11px] font-bold text-[var(--ink-faint)] uppercase tracking-wide px-3 py-2">{h}</th>
                           ))}
                         </tr>
                       </thead>
@@ -416,7 +416,7 @@ export default function ImportLeadsPage() {
                             <td data-label="Email" className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-32 truncate">{row.email || '—'}</td>
                             <td data-label="Course" className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-28 truncate">{row.course_interest || '—'}</td>
                             <td data-label="Source" className="px-3 py-2">
-                              <span className="text-[10px] font-bold px-1.5 py-0.5 rounded-full capitalize bg-[var(--line-soft)] text-[var(--ink-soft)]">{row.source}</span>
+                              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full capitalize bg-[var(--line-soft)] text-[var(--ink-soft)]">{row.source}</span>
                             </td>
                           </tr>
                         ))}

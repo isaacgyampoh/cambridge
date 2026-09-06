@@ -99,10 +99,9 @@ function FriendForm({ code, marketerCode }: { code: string | null; marketerCode:
 function Shell({ title, subtitle, children }: { title: string; subtitle: string; children: React.ReactNode }) {
   return (
     <div className="min-h-screen" style={{ background: 'var(--canvas)' }}>
-      <div className="relative overflow-hidden" style={{ background: 'linear-gradient(155deg, #14636c 0%, #1a7a85 60%, #17707a 100%)' }}>
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 85% 0%, rgba(255,255,255,0.10), transparent 60%)' }} />
+      <div className="relative overflow-hidden" style={{ background: 'var(--accent)' }}>
         <div className="relative max-w-md mx-auto px-4 pt-10 pb-20 text-center">
-          <div className="inline-flex w-14 h-14 rounded-2xl bg-white overflow-hidden p-1.5 mb-4 shadow-lg">
+          <div className="inline-flex w-14 h-14 rounded-2xl bg-white overflow-hidden p-1.5 mb-4 shadow-[var(--shadow-overlay)]">
             <img src="/brand/logo.png" alt="Cambridge" className="w-full h-full object-contain" />
           </div>
           <h1 className="font-display text-white text-[24px] font-semibold tracking-[-0.02em]">{title}</h1>
@@ -110,7 +109,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
         </div>
       </div>
       <div className="max-w-md mx-auto px-4 -mt-12 pb-14 relative">
-        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] shadow-[0_4px_24px_rgba(26,34,48,0.06)] p-6">{children}</div>
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] shadow-[var(--shadow-raised)] p-6">{children}</div>
       </div>
     </div>
   )

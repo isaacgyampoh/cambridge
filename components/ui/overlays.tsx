@@ -63,7 +63,7 @@ export function Dialog({
         fixed bottom-0 sm:static max-h-[92dvh]`}
     >
       <div className="flex flex-col max-h-[92dvh] rounded-t-2xl sm:rounded-2xl
-        bg-[var(--paper)] border border-[var(--line)] shadow-2xl text-left overflow-hidden">
+        bg-[var(--paper)] border border-[var(--line)] shadow-[var(--shadow-overlay)] text-left overflow-hidden">
 
         {/* A drag handle on phones: it reads as a sheet that can be dismissed,
             which is the convention people already know from native apps. */}
@@ -77,7 +77,7 @@ export function Dialog({
               {title}
             </h2>
             {description && (
-              <p id={descId} className="text-[13.5px] text-[var(--ink-soft)] mt-1 leading-relaxed">
+              <p id={descId} className="text-[13px] text-[var(--ink-soft)] mt-1 leading-relaxed">
                 {description}
               </p>
             )}
@@ -157,7 +157,7 @@ export function BottomSheet({
         sm:m-auto sm:w-[380px] sm:static"
     >
       <div className="rounded-t-2xl sm:rounded-2xl bg-[var(--paper)] border border-[var(--line)]
-        shadow-2xl overflow-hidden safe-b">
+        shadow-[var(--shadow-overlay)] overflow-hidden safe-b">
         <div className="sm:hidden pt-2.5 pb-1 flex justify-center" aria-hidden="true">
           <span className="w-9 h-1 rounded-full bg-[var(--line)]" />
         </div>
@@ -185,9 +185,9 @@ export function BottomSheet({
             >
               {action.icon && <span className="flex-shrink-0" aria-hidden="true">{action.icon}</span>}
               <span className="min-w-0">
-                <span className="block text-[14.5px] font-medium truncate">{action.label}</span>
+                <span className="block text-[14px] font-medium truncate">{action.label}</span>
                 {action.hint && (
-                  <span className="block text-[12.5px] text-[var(--ink-faint)] truncate">{action.hint}</span>
+                  <span className="block text-[12px] text-[var(--ink-faint)] truncate">{action.hint}</span>
                 )}
               </span>
             </button>
@@ -196,7 +196,7 @@ export function BottomSheet({
 
         <div className="border-t border-[var(--line)] p-3">
           <button type="button" onClick={onClose}
-            className="w-full min-h-[46px] rounded-xl bg-[var(--canvas)] text-[14.5px]
+            className="w-full min-h-[46px] rounded-xl bg-[var(--canvas)] text-[14px]
               font-semibold text-[var(--ink-soft)] hover:bg-[var(--line-soft)] transition-colors
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
             Cancel
@@ -287,7 +287,7 @@ export function ActionMenu({
       {open && (
         <div role="menu" aria-label={label}
           className={`absolute z-30 mt-1 min-w-[200px] rounded-xl bg-[var(--paper)]
-            border border-[var(--line)] shadow-lg py-1 ${align === 'right' ? 'right-0' : 'left-0'}`}>
+            border border-[var(--line)] shadow-[var(--shadow-overlay)] py-1 ${align === 'right' ? 'right-0' : 'left-0'}`}>
           {actions.map(action => (
             <button
               key={action.label}
@@ -295,7 +295,7 @@ export function ActionMenu({
               type="button"
               disabled={action.disabled}
               onClick={() => { action.onClick(); close() }}
-              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-[13.5px]
+              className={`w-full flex items-center gap-2.5 px-3.5 py-2.5 text-left text-[13px]
                 transition-colors disabled:opacity-40 disabled:pointer-events-none
                 focus-visible:outline-none focus-visible:bg-[var(--line-soft)]
                 ${action.tone === 'danger'
@@ -372,7 +372,7 @@ export function Tabs({
             // costing ten presses to skip past.
             tabIndex={selected ? 0 : -1}
             onClick={() => onChange(tab.key)}
-            className={`flex-shrink-0 min-h-[42px] px-3.5 rounded-xl text-[13.5px] font-semibold
+            className={`flex-shrink-0 min-h-[42px] px-3.5 rounded-xl text-[13px] font-semibold
               transition-colors whitespace-nowrap
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
               ${selected

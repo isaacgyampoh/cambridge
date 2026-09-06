@@ -53,12 +53,12 @@ export default function PaymentReminders() {
       <div className="grid grid-cols-1 lg:grid-cols-[minmax(0,1fr)_380px] gap-5 items-start">
         {/* Who owes */}
         <Card className="p-6">
-          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-1">Outstanding balances</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-1">Outstanding balances</h3>
           <p className="text-[13px] text-[var(--ink-soft)] mb-4">Students with an unpaid balance right now.</p>
           {loading ? <Spinner /> : (
             <>
               <div className="flex items-baseline gap-2 mb-4">
-                <span className="font-display text-[32px] font-semibold text-[var(--ink)]">{preview?.owingCount ?? 0}</span>
+                <span className="font-display text-[24px] font-semibold text-[var(--ink)]">{preview?.owingCount ?? 0}</span>
                 <span className="text-[14px] text-[var(--ink-soft)]">students owe GHS {(preview?.totalOwed ?? 0).toLocaleString()}</span>
               </div>
               {preview?.sample?.length > 0 ? (
@@ -80,7 +80,7 @@ export default function PaymentReminders() {
 
         {/* Send panel */}
         <Card className="p-6">
-          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">Send reminders</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">Send reminders</h3>
           <div className="space-y-4">
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Send by</label>

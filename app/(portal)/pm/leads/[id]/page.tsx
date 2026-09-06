@@ -156,12 +156,12 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 {activities.map(a => (
                   <div key={a.id} className="flex gap-3">
                     <div className="w-7 h-7 rounded-full bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0 mt-0.5">
-                      <span className="text-[10px] font-bold text-[var(--accent)]">{a.activity_type.charAt(0).toUpperCase()}</span>
+                      <span className="text-[11px] font-bold text-[var(--accent)]">{a.activity_type.charAt(0).toUpperCase()}</span>
                     </div>
                     <div className="flex-1 min-w-0">
                       <div className="text-xs font-semibold text-[var(--ink)]">{a.subject}</div>
                       {a.description && <div className="text-xs text-[var(--ink-faint)] mt-0.5">{a.description}</div>}
-                      <div className="text-[10px] text-[var(--ink-faint)] mt-0.5">{formatDateTime(a.created_at)} · {(a as any).creator?.full_name || 'System'}</div>
+                      <div className="text-[11px] text-[var(--ink-faint)] mt-0.5">{formatDateTime(a.created_at)} · {(a as any).creator?.full_name || 'System'}</div>
                     </div>
                   </div>
                 ))}

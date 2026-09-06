@@ -63,11 +63,11 @@ export function ListRow({
           </div>
 
           {subtitle && (
-            <div className="text-[13.5px] text-[var(--ink-soft)] mt-0.5 break-words">{subtitle}</div>
+            <div className="text-[13px] text-[var(--ink-soft)] mt-0.5 break-words">{subtitle}</div>
           )}
 
           {meta && (
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[12.5px] text-[var(--ink-faint)]">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-1 mt-1.5 text-[12px] text-[var(--ink-faint)]">
               {meta}
             </div>
           )}
@@ -93,7 +93,7 @@ export function ListRow({
   )
 
   const shell = `block w-full text-left bg-[var(--paper)] border border-[var(--line)]
-    rounded-2xl p-4 transition-colors
+    rounded-xl p-4 transition-colors
     ${interactive ? 'hover:border-[var(--ink-faint)] active:bg-[var(--canvas)]' : ''}
     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]`
 

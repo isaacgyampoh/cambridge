@@ -138,7 +138,7 @@ export default function ConversationsPage() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {staffList.length === 0 ? (
-          <p className="p-4 text-[13.5px] text-[var(--ink-soft)]">No WhatsApp lines connected yet.</p>
+          <p className="p-4 text-[13px] text-[var(--ink-soft)]">No WhatsApp lines connected yet.</p>
         ) : staffList.map((s: any) => (
           <button key={s.id} onClick={() => { setStaffId(s.id); setPhone(null) }}
             className={`w-full text-left px-4 py-3 flex items-center gap-3 border-l-2 transition ${
@@ -147,7 +147,7 @@ export default function ConversationsPage() {
                 : 'border-l-transparent hover:bg-[var(--line-soft)]'}`}>
             <Avatar name={s.name} on={s.connected} />
             <div className="min-w-0 flex-1">
-              <div className="font-medium text-[var(--ink)] text-[14.5px] truncate">{s.name}</div>
+              <div className="font-medium text-[var(--ink)] text-[14px] truncate">{s.name}</div>
               <div className="text-[12px] text-[var(--ink-faint)] truncate">
                 {s.line ? shortPhone(s.line) : (s.id === 'unassigned' ? 'Central number' : 'No line connected')}
                 {s.threadCount ? ` · ${s.threadCount} chatting` : ' · no chats yet'}
@@ -166,7 +166,7 @@ export default function ConversationsPage() {
         <div className="flex items-center gap-2">
           <button onClick={() => setStaffId(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
           <div className="min-w-0">
-            <h2 className="font-display text-[16px] font-semibold text-[var(--ink)] truncate">{staff.name}</h2>
+            <h2 className="font-display text-[15px] font-semibold text-[var(--ink)] truncate">{staff.name}</h2>
             <p className="text-[12px] text-[var(--ink-soft)] truncate">
               {staff.line ? `Sending from ${shortPhone(staff.line)}` : 'No number linked'}
               {staff.connected ? ' · connected' : ''}
@@ -176,7 +176,7 @@ export default function ConversationsPage() {
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto">
         {threads.length === 0 ? (
-          <p className="p-4 text-[13.5px] text-[var(--ink-soft)]">No conversations on this line yet.</p>
+          <p className="p-4 text-[13px] text-[var(--ink-soft)]">No conversations on this line yet.</p>
         ) : threads.map((t: any) => {
           const lastMsg = t.messages[0]
           const preview = lastMsg?.incoming_text || lastMsg?.reply_text || ''
@@ -185,10 +185,10 @@ export default function ConversationsPage() {
               className={`w-full text-left px-4 py-3 border-l-2 transition ${
                 phone === t.phone ? 'bg-[var(--accent-soft)] border-l-[var(--accent)]' : 'border-l-transparent hover:bg-[var(--line-soft)]'}`}>
               <div className="flex items-baseline justify-between gap-2">
-                <span className="font-medium text-[var(--ink)] text-[14.5px] truncate">{t.name || shortPhone(t.phone)}</span>
+                <span className="font-medium text-[var(--ink)] text-[14px] truncate">{t.name || shortPhone(t.phone)}</span>
                 <span className="text-[11px] text-[var(--ink-faint)] flex-shrink-0">{fmtTime(t.last)}</span>
               </div>
-              <div className="text-[12.5px] text-[var(--ink-soft)] mt-0.5 font-medium">{shortPhone(t.leadPhone || t.phone)}</div>
+              <div className="text-[12px] text-[var(--ink-soft)] mt-0.5 font-medium">{shortPhone(t.leadPhone || t.phone)}</div>
               {preview && <div className="text-[13px] text-[var(--ink-soft)] mt-1 line-clamp-1">{preview}</div>}
             </button>
           )
@@ -202,8 +202,8 @@ export default function ConversationsPage() {
       <div className="p-4 border-b border-[var(--line)] flex items-center gap-2">
         <button onClick={() => setPhone(null)} className="lg:hidden text-[var(--ink-soft)]"><ChevronLeft size={18} /></button>
         <div className="min-w-0 flex-1">
-          <h2 className="font-display text-[16px] font-semibold text-[var(--ink)] truncate">{thread.name || shortPhone(thread.phone)}</h2>
-          <p className="text-[12.5px] text-[var(--ink-soft)] truncate">
+          <h2 className="font-display text-[15px] font-semibold text-[var(--ink)] truncate">{thread.name || shortPhone(thread.phone)}</h2>
+          <p className="text-[12px] text-[var(--ink-soft)] truncate">
             <a href={`tel:${thread.leadPhone || thread.phone}`} className="font-medium text-[var(--accent)]">
               {shortPhone(thread.leadPhone || thread.phone)}
             </a>
@@ -212,7 +212,7 @@ export default function ConversationsPage() {
         </div>
         {thread.leadId && (
           <a href={`/marketer/leads/${thread.leadId}`}
-            className="text-[12.5px] font-semibold text-[var(--accent)] flex-shrink-0">Open lead</a>
+            className="text-[12px] font-semibold text-[var(--accent)] flex-shrink-0">Open lead</a>
         )}
       </div>
       <div className="flex-1 min-h-0 overflow-y-auto p-4 space-y-3" style={{ background: 'var(--canvas)' }}>
@@ -221,7 +221,7 @@ export default function ConversationsPage() {
           return (
             <div key={i} className={`flex ${mine ? 'justify-end' : 'justify-start'}`}>
               <div className="max-w-[80%]">
-                <div className={`text-[10px] font-semibold uppercase tracking-wide mb-1 ${mine ? 'text-right' : ''} ${
+                <div className={`text-[11px] font-semibold uppercase tracking-wide mb-1 ${mine ? 'text-right' : ''} ${
                   t.who === 'ai' ? 'text-[var(--accent)]' : t.who === 'staff' ? 'text-[var(--ok)]' : 'text-[var(--ink-faint)]'}`}>
                   {t.who === 'lead' ? (thread.name || 'Lead') : t.who === 'staff' ? `${staff.name} (typed)` : 'Assistant'}
                 </div>
@@ -229,7 +229,7 @@ export default function ConversationsPage() {
                   t.who === 'lead' ? 'bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)] rounded-tl-sm'
                     : t.who === 'staff' ? 'bg-[var(--ok-soft)] text-[var(--ink)] rounded-tr-sm'
                       : 'bg-[var(--accent)] text-white rounded-tr-sm'}`}>{t.text}</div>
-                <div className={`text-[10.5px] text-[var(--ink-faint)] mt-1 ${mine ? 'text-right' : ''}`}>{fmtTime(t.at)}</div>
+                <div className={`text-[11px] text-[var(--ink-faint)] mt-1 ${mine ? 'text-right' : ''}`}>{fmtTime(t.at)}</div>
               </div>
             </div>
           )
@@ -244,8 +244,8 @@ export default function ConversationsPage() {
       {dialog}
       <div className="mb-4 lg:mb-5 flex flex-col sm:flex-row sm:items-start sm:justify-between gap-3">
         <div>
-          <h1 className="font-display text-[22px] sm:text-[26px] font-semibold text-[var(--ink)]">Conversations</h1>
-          <p className="text-[13.5px] sm:text-[14px] text-[var(--ink-soft)] mt-1">
+          <h1 className="font-display text-[20px] sm:text-[24px] font-semibold text-[var(--ink)]">Conversations</h1>
+          <p className="text-[13px] sm:text-[14px] text-[var(--ink-soft)] mt-1">
             Every WhatsApp chat, grouped by the staff line it goes through.
           </p>
         </div>
@@ -263,7 +263,7 @@ export default function ConversationsPage() {
           if (d.error) alert(d.error)
           else { alert(`Moved ${d.fixed} chat${d.fixed === 1 ? '' : 's'}.`); location.reload() }
         }}
-          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
+          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Fix chat attribution
         </button>
         <button onClick={async () => {
@@ -280,7 +280,7 @@ export default function ConversationsPage() {
           if (d.error) alert(d.error)
           else { alert(`Resumed on ${d.resumed} lead${d.resumed === 1 ? '' : 's'}.`); location.reload() }
         }}
-          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
+          className="h-10 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] flex-shrink-0">
           Resume assistant
         </button>
       </div>
@@ -292,14 +292,14 @@ export default function ConversationsPage() {
         <div className="border-r border-[var(--line)] min-w-0 min-h-0 overflow-hidden">
           {staff ? ThreadPane : (
             <div className="h-full flex items-center justify-center p-6 text-center">
-              <p className="text-[13.5px] text-[var(--ink-faint)]">Select a staff line</p>
+              <p className="text-[13px] text-[var(--ink-faint)]">Select a staff line</p>
             </div>
           )}
         </div>
         <div className="min-w-0 min-h-0 overflow-hidden">
           {thread ? TranscriptPane : (
             <div className="h-full flex items-center justify-center p-6 text-center" style={{ background: 'var(--canvas)' }}>
-              <p className="text-[13.5px] text-[var(--ink-faint)]">
+              <p className="text-[13px] text-[var(--ink-faint)]">
                 {staff ? 'Select a conversation' : 'Choose a line to see its conversations'}
               </p>
             </div>

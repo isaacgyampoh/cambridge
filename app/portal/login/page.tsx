@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import { Smartphone } from 'lucide-react'
 
 export default function StudentLogin() {
   // Never scroll on a sign-in screen
@@ -32,9 +33,9 @@ export default function StudentLogin() {
       {/* Brand canvas: teal field, arcs radiating from the badge, white sheet */}
       <div aria-hidden style={{ position: 'absolute', inset: 0, pointerEvents: 'none', userSelect: 'none', overflow: 'hidden' }}>
         <div style={{ position: 'absolute', insetInline: 0, top: 0, height: '46%',
-          background: 'linear-gradient(165deg, #0d4a52 0%, #145f68 40%, #1a7a85 100%)' }} />
+          background: 'var(--accent)' }} />
         <div style={{ position: 'absolute', insetInline: 0, top: 0, height: '46%',
-          background: 'radial-gradient(135% 90% at 88% -18%, rgba(255,255,255,.22), transparent 58%)' }} />
+          background: 'transparent' }} />
         {[168, 250, 340, 440].map((d, i) => (
           <div key={d} style={{
             position: 'absolute', width: d, height: d, left: '50%', top: '46%',
@@ -55,24 +56,26 @@ export default function StudentLogin() {
           }}>
             <img src="/brand/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
           </div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#1a2230' }}>Student Portal</h1>
-          <p style={{ fontSize: 14, color: '#5a6675', marginTop: 4 }}>Cambridge Center of Excellence</p>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>Student Portal</h1>
+          <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginTop: 4 }}>Cambridge Center of Excellence</p>
         </div>
         {sent ? (
           <div style={{ background: '#fff', border: '1px solid #eaedf1', borderRadius: 14, padding: 24, textAlign: 'center' }}>
-            <div style={{ fontSize: 34, marginBottom: 10 }}>📲</div>
-            <p style={{ fontSize: 15, color: '#1a2230', lineHeight: 1.6 }}>
+            <div className="w-12 h-12 rounded-xl bg-[var(--accent-soft)] grid place-items-center mx-auto mb-3">
+              <Smartphone size={22} className="text-[var(--accent)]" aria-hidden="true" />
+            </div>
+            <p style={{ fontSize: 15, color: 'var(--ink)', lineHeight: 1.6 }}>
               If that number is registered with us, we've sent your portal link on WhatsApp. Tap it to sign in.
             </p>
-            <button onClick={() => setSent(false)} style={{ marginTop: 16, background: 'none', border: 'none', color: '#1a7a85', fontSize: 14, fontWeight: 600 }}>Use a different number</button>
+            <button onClick={() => setSent(false)} style={{ marginTop: 16, background: 'none', border: 'none', color: 'var(--accent)', fontSize: 14, fontWeight: 600 }}>Use a different number</button>
           </div>
         ) : (
           <div style={{ background: '#fff', border: '1px solid #eaedf1', borderRadius: 14, padding: 22 }}>
-            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: '#5a6675', marginBottom: 7 }}>Your phone number</label>
+            <label style={{ display: 'block', fontSize: 13, fontWeight: 500, color: 'var(--ink-soft)', marginBottom: 7 }}>Your phone number</label>
             <input value={phone} onChange={e => setPhone(e.target.value)} placeholder="024 123 4567" inputMode="tel"
               style={{ width: '100%', height: 46, padding: '0 14px', borderRadius: 10, border: '1px solid #eaedf1', fontSize: 16, boxSizing: 'border-box' }} />
             <button onClick={send} disabled={busy}
-              style={{ width: '100%', height: 46, marginTop: 14, background: '#1a7a85', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600 }}>
+              style={{ width: '100%', height: 46, marginTop: 14, background: 'var(--accent)', color: '#fff', border: 'none', borderRadius: 10, fontSize: 15, fontWeight: 600 }}>
               {busy ? 'Sending…' : 'Send my link'}
             </button>
             <p style={{ fontSize: 12, color: '#97a1b0', marginTop: 12, lineHeight: 1.5, textAlign: 'center' }}>

@@ -96,7 +96,7 @@ export default function FinanceReports() {
         <div className="flex items-end gap-1 h-32">
           {Object.entries(data.daily).slice(-30).map(([date, amount]: any) => (
             <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
-              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[var(--ink)] text-white text-[10px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 transition">
+              <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[var(--ink)] text-white text-[11px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 transition">
                 {date.slice(5)}: GHS {amount.toFixed(0)}
               </div>
               <div className="w-full bg-[var(--accent)] rounded-t transition-all hover:bg-[var(--accent)]"
@@ -104,7 +104,7 @@ export default function FinanceReports() {
             </div>
           ))}
         </div>
-        <div className="flex justify-between text-[10px] text-[var(--ink-faint)] mt-1">
+        <div className="flex justify-between text-[11px] text-[var(--ink-faint)] mt-1">
           <span>{Object.keys(data.daily)[0]?.slice(5)}</span>
           <span>{Object.keys(data.daily).slice(-1)[0]?.slice(5)}</span>
         </div>

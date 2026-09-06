@@ -83,7 +83,7 @@ export default function FinancePage() {
         <StatCard label="Total revenue" value={formatGHS(totalRevenue)} sub="collected to date"  accent />
         <StatCard label="Today" value={formatGHS(todayRev)}  />
         <StatCard label="Transactions" value={paidPayments.length} sub="paid"  />
-        <StatCard label="Outstanding" value={formatGHS(outstanding)} sub={outstanding > 0 ? 'across invoices' : 'all settled'}  />
+        <StatCard label="Outstanding" value={formatGHS(outstanding)} sub={outstanding > 0 ? 'Across all invoices' : 'Nothing outstanding'}  />
       </div>
 
       <Modal open={showModal} onClose={() => setShowModal(false)} maxWidth="max-w-sm">
@@ -127,7 +127,7 @@ export default function FinancePage() {
       <div className="flex gap-1 mb-4 bg-[var(--line-soft)] rounded-lg p-1 w-fit">
         {[{ k: 'payments', l: `Payments (${payments.length})` }, { k: 'invoices', l: `Invoices (${invoices.length})` }].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 h-8 rounded-md text-[13px] font-medium transition ${tab === t.k ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-8 rounded-lg text-[13px] font-medium transition ${tab === t.k ? 'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {t.l}
           </button>
         ))}

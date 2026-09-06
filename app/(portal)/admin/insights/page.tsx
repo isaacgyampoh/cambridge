@@ -9,7 +9,7 @@ import { formatGHS } from '@/lib/utils'
 import { TrendingUp, DollarSign, Target, Users } from 'lucide-react'
 
 const ACCENT = 'var(--accent)'
-const SOURCE_COLORS = ['var(--accent)', '#5b9ee0', '#1a5fae', '#86bdf0', '#3d6b9e', '#94a3b8']
+const SOURCE_COLORS = ['var(--accent)', '#5b9ee0', '#1a5fae', '#86bdf0', '#3d6b9e', 'var(--ink-faint)']
 
 export default function InsightsPage() {
   const [data, setData] = useState<any>(null)
@@ -40,7 +40,7 @@ export default function InsightsPage() {
           <div className="flex gap-1 bg-[var(--line-soft)] rounded-lg p-1">
             {[7, 30, 90].map(d => (
               <button key={d} onClick={() => setDays(d)}
-                className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition ${days === d ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+                className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition ${days === d ? 'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
                 {d}d
               </button>
             ))}

@@ -183,7 +183,7 @@ export default function BroadcastPage() {
       {dialog}
       <div className="mb-6">
         <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Outreach</div>
-        <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Broadcast &amp; links</h1>
+        <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Broadcast &amp; links</h1>
         <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send a bulk message, or post a link that lands in every worker's My Links. One place for everything you push out.</p>
       </div>
 
@@ -200,7 +200,7 @@ export default function BroadcastPage() {
       <div>
       <div className="flex justify-end mb-5">
         <button onClick={() => setModal(true)}
-          className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-sm flex-shrink-0">
+          className="inline-flex items-center gap-2 h-10 px-4 bg-[var(--accent)] text-white rounded-lg text-sm font-medium hover:brightness-110 transition shadow-[var(--shadow-raised)] flex-shrink-0">
            New broadcast
         </button>
       </div>
@@ -355,13 +355,13 @@ export default function BroadcastPage() {
                 <span className="flex items-center gap-1"> {formatDateTime(b.created_at)}</span>
                 <div className="flex gap-1 ml-auto items-center">
                   {(b.channels || []).map((ch: string) => (
-                    <span key={ch} className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${ch === 'whatsapp'? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
+                    <span key={ch} className={`px-2 py-0.5 rounded-full text-[11px] font-bold ${ch === 'whatsapp'? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
                       {ch}
                     </span>
                   ))}
                   {(b.status === 'draft' || (b.failed_count > 0 && b.sent_count === 0)) && (
                     <button onClick={() => sendNow(b.id)} disabled={sendingId === b.id}
-                      className="ml-2 px-3 py-1 rounded-md bg-[var(--accent)] text-white text-[12px] font-semibold hover:brightness-110 disabled:opacity-50 transition">
+                      className="ml-2 px-3 py-1 rounded-lg bg-[var(--accent)] text-white text-[12px] font-semibold hover:brightness-110 disabled:opacity-50 transition">
                       {sendingId === b.id ? 'Sending…' : 'Send now'}
                     </button>
                   )}
@@ -428,7 +428,7 @@ export default function BroadcastPage() {
               <label className="flex items-center gap-3 cursor-pointer">
                 <button type="button" role="switch" aria-checked={sendToLeads} onClick={() => setSendToLeads(s => !s)}
                   className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${sendToLeads ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
-                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${sendToLeads ? 'translate-x-5' : ''}`} />
+                  <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${sendToLeads ? 'translate-x-5' : ''}`} />
                 </button>
                 <div>
                   <div className="text-sm font-medium text-[var(--ink)]">Also send this link to leads</div>

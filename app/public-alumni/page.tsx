@@ -15,7 +15,7 @@ export default async function PublicAlumniPage() {
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Hero */}
-      <div className="bg-gradient-to-br from-blue-900 via-blue-800 to-slate-900 text-white py-16 px-4">
+      <div className="bg-[var(--accent)] text-white py-14 px-4">
         <div className="max-w-4xl mx-auto text-center">
           <div className="inline-flex items-center justify-center w-14 h-14 rounded-2xl bg-white/20 backdrop-blur mb-4">
             <GraduationCap size={28} className="text-white" />
@@ -53,8 +53,8 @@ export default async function PublicAlumniPage() {
             </div>
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
               {featured.map((a: any) => (
-                <div key={a.id} className="bg-white rounded-3xl border-2 border-yellow-200 overflow-hidden shadow-sm">
-                  <div className="bg-gradient-to-r from-blue-600 to-blue-700 h-20 relative">
+                <div key={a.id} className="bg-white rounded-2xl border-2 border-yellow-200 overflow-hidden shadow-[var(--shadow-raised)]">
+                  <div className="bg-[var(--accent)] h-20 relative">
                     <div className="absolute -bottom-8 left-6">
                       <div className="w-16 h-16 rounded-2xl border-4 border-white overflow-hidden bg-blue-200">
                         {a.photo_url
@@ -108,7 +108,7 @@ export default async function PublicAlumniPage() {
             <h2 className="text-xl font-bold text-gray-900 mb-6">All Graduates</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
               {rest.map((a: any) => (
-                <div key={a.id} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-sm hover:shadow-md transition">
+                <div key={a.id} className="bg-white rounded-2xl border border-gray-200 p-5 shadow-[var(--shadow-raised)] hover:shadow-[var(--shadow-raised)] transition">
                   <div className="flex items-center gap-3 mb-3">
                     <div className="w-12 h-12 rounded-full overflow-hidden bg-blue-100 flex-shrink-0">
                       {a.photo_url

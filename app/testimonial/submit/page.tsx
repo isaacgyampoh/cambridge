@@ -44,8 +44,8 @@ function SubmitForm() {
     return (
       <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center', padding: '48px 24px' }}>
         <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 64, height: 64, objectFit: 'contain', margin: '0 auto 16px' }} />
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1a2230', margin: '0 0 8px' }}>Thank you!</h1>
-        <p style={{ color: '#4a5568', fontSize: 15 }}>Your testimonial has been received. We may feature it on our social pages.</p>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)', margin: '0 0 8px' }}>Thank you!</h1>
+        <p style={{ color: 'var(--ink-soft)', fontSize: 15 }}>Your testimonial has been received. We may feature it on our social pages.</p>
       </div>
     )
   }
@@ -54,11 +54,11 @@ function SubmitForm() {
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '32px 20px' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
         <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 60, height: 60, objectFit: 'contain', margin: '0 auto 12px' }} />
-        <h1 style={{ fontSize: 22, fontWeight: 600, color: '#1a2230', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Share your experience</h1>
-        <p style={{ color: '#4a5568', fontSize: 14 }}>We'd love to hear how your programme went. Your words may be featured on our socials.</p>
+        <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Share your experience</h1>
+        <p style={{ color: 'var(--ink-soft)', fontSize: 14 }}>We'd love to hear how your programme went. Your words may be featured on our socials.</p>
       </div>
 
-      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid #e6eaf0', padding: 24 }}>
+      <div style={{ background: '#fff', borderRadius: 16, border: '1px solid var(--line)', padding: 24 }}>
         <Field label="Your name *">
           <input value={form.student_name} onChange={e => set('student_name', e.target.value)} placeholder="Full name" style={inp} />
         </Field>
@@ -78,7 +78,7 @@ function SubmitForm() {
               <button type="button" onClick={() => set('image_url', '')} style={{ background: 'none', border: 'none', color: '#d85a30', fontSize: 13, cursor: 'pointer' }}>Remove</button>
             </div>
           ) : (
-            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 10, border: '1px dashed #cbd5e1', fontSize: 14, color: '#4a5568', cursor: 'pointer' }}>
+            <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, height: 44, borderRadius: 10, border: '1px dashed #cbd5e1', fontSize: 14, color: 'var(--ink-soft)', cursor: 'pointer' }}>
               {uploading ? 'Uploading…' : 'Tap to add a photo'}
               <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadPhoto(f) }} />
             </label>
@@ -89,12 +89,12 @@ function SubmitForm() {
           {submitting ? 'Sending…' : 'Send my testimonial'}
         </button>
       </div>
-      <p style={{ textAlign: 'center', color: '#94a3b8', fontSize: 12, marginTop: 20 }}>Cambridge Center of Excellence</p>
+      <p style={{ textAlign: 'center', color: 'var(--ink-faint)', fontSize: 12, marginTop: 20 }}>Cambridge Center of Excellence</p>
     </div>
   )
 }
 
-const inp: React.CSSProperties = { width: '100%', height: 44, padding: '0 14px', borderRadius: 10, border: '1px solid #e6eaf0', fontSize: 14, outline: 'none', boxSizing: 'border-box' }
+const inp: React.CSSProperties = { width: '100%', height: 44, padding: '0 14px', borderRadius: 10, border: '1px solid var(--line)', fontSize: 14, outline: 'none', boxSizing: 'border-box' }
 
 function Field({ label, children }: { label: string; children: React.ReactNode }) {
   return (
@@ -107,7 +107,7 @@ function Field({ label, children }: { label: string; children: React.ReactNode }
 
 export default function TestimonialSubmitPage() {
   return (
-    <div style={{ minHeight: '100vh', background: '#f5f8fc', fontFamily: 'Inter, sans-serif' }}>
+    <div style={{ minHeight: '100vh', background: 'var(--canvas)', fontFamily: 'Inter, sans-serif' }}>
       <Toaster position="top-center" />
       <Suspense fallback={null}><SubmitForm /></Suspense>
     </div>

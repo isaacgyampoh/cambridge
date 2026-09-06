@@ -180,13 +180,13 @@ export default function ImportDetail({ params }: { params: Promise<{ reference: 
               <dd className={`font-display text-[24px] leading-none font-semibold tabular-nums ${stat.tone}`}>
                 {stat.value}
               </dd>
-              <dt className="text-[12.5px] text-[var(--ink-soft)] mt-1">{stat.label}</dt>
+              <dt className="text-[12px] text-[var(--ink-soft)] mt-1">{stat.label}</dt>
             </div>
           ))}
         </dl>
 
         <div className="mt-4 pt-3.5 border-t border-[var(--line-soft)] grid grid-cols-1 sm:grid-cols-2
-          gap-x-4 gap-y-1.5 text-[12.5px] text-[var(--ink-faint)]">
+          gap-x-4 gap-y-1.5 text-[12px] text-[var(--ink-faint)]">
           <span>Started {when(record.started_at)}</span>
           <span>Finished {when(record.finished_at)}</span>
         </div>
@@ -205,7 +205,7 @@ export default function ImportDetail({ params }: { params: Promise<{ reference: 
       <SectionHeader title="Rows" count={rows.length} />
 
       {truncated && (
-        <p className="text-[12.5px] text-[var(--ink-faint)] mb-3">
+        <p className="text-[12px] text-[var(--ink-faint)] mb-3">
           Showing the first 500 rows of this import.
         </p>
       )}

@@ -60,7 +60,7 @@ export default function ReferralsAdmin() {
       </div>
 
       <Card className="p-6">
-        <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">Top referrers</h3>
+        <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">Top referrers</h3>
         <DataTable<ReferralCode>
           caption="Top referrers"
           rows={data.codes || []}

@@ -74,7 +74,7 @@ export default function AdminAdmissions() {
       <div className="flex gap-1 mb-5 bg-[var(--line-soft)] rounded-lg p-1 w-fit overflow-x-auto max-w-full">
         {tabs.map(t => (
           <button key={t.k} onClick={() => setFilter(t.k)}
-            className={`px-3 h-8 rounded-md text-[13px] font-medium whitespace-nowrap transition ${filter === t.k ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-3 h-8 rounded-lg text-[13px] font-medium whitespace-nowrap transition ${filter === t.k ? 'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {t.l}
           </button>
         ))}
@@ -135,9 +135,9 @@ export default function AdminAdmissions() {
                       <div className="inline-flex items-center gap-1">
                         <span className="text-[12px] text-[var(--ink-faint)]">Scholarship:</span>
                         <button disabled={acting === a.id} onClick={() => setScholarship(a.id, 'full')}
-                          className="text-[12px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Full</button>
+                          className="text-[12px] font-medium px-2 py-1 rounded-lg border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Full</button>
                         <button disabled={acting === a.id} onClick={() => setScholarship(a.id, 'partial')}
-                          className="text-[12px] font-medium px-2 py-1 rounded-md border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Partial</button>
+                          className="text-[12px] font-medium px-2 py-1 rounded-lg border border-[var(--line)] text-[var(--ink-soft)] hover:border-[var(--accent)] hover:text-[var(--accent)] transition">Partial</button>
                       </div>
                     )}
                   </div>

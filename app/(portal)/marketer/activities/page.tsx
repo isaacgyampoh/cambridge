@@ -129,7 +129,7 @@ export default function ActivitiesPage() {
                         className="font-semibold text-[var(--ink)] hover:text-[var(--accent)] transition">
                         {lead?.full_name}
                       </Link>
-                      {isOverdue && <span className="text-[10px] font-bold bg-[var(--danger-soft)] text-[var(--danger)] px-2 py-0.5 rounded-full">OVERDUE</span>}
+                      {isOverdue && <span className="text-[11px] font-bold bg-[var(--danger-soft)] text-[var(--danger)] px-2 py-0.5 rounded-full">OVERDUE</span>}
                     </div>
                     {lead?.course_interest && <div className="text-xs text-[var(--accent)] mb-1"> {lead.course_interest}</div>}
                     {item.reason && <div className="text-xs text-[var(--ink-faint)] mb-2 line-clamp-2">{item.reason}</div>}
@@ -159,7 +159,7 @@ export default function ActivitiesPage() {
                     <div className="flex gap-1">
                       {[1, 4, 24].map(h => (
                         <button key={h} onClick={() => snooze(item.id, h)}
-                          className="flex-1 px-1.5 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg text-[10px] font-semibold hover:bg-[var(--line)] transition">
+                          className="flex-1 px-1.5 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg text-[11px] font-semibold hover:bg-[var(--line)] transition">
                           +{h}h
                         </button>
                       ))}

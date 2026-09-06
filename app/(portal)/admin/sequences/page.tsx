@@ -118,7 +118,7 @@ export default function SequencesPage() {
                   </div>
                   <button onClick={() => toggleActive(seq)}
                     className={`relative w-11 h-6 rounded-full transition-colors flex-shrink-0 ${seq.is_active ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
-                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-sm transition-transform ${seq.is_active ? 'translate-x-5' : ''}`} />
+                    <span className={`absolute top-1 left-1 w-4 h-4 rounded-full bg-white shadow-[var(--shadow-raised)] transition-transform ${seq.is_active ? 'translate-x-5' : ''}`} />
                   </button>
                 </div>
                 <div className="flex items-center gap-2 mb-4">

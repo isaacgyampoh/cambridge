@@ -108,13 +108,13 @@ export default function MarketerHome() {
               { label: 'Points', value: String(stats?.points ?? 0), sub: 'Toward your rank' },
             ].map(stat => (
               <Card key={stat.label} className="p-4">
-                <div className="font-display text-[22px] sm:text-[26px] leading-none font-semibold
+                <div className="font-display text-[20px] sm:text-[24px] leading-none font-semibold
                   text-[var(--ink)] tabular-nums truncate">
                   {stat.value}
                 </div>
-                <div className="text-[12.5px] text-[var(--ink-soft)] mt-1.5 leading-snug">{stat.label}</div>
+                <div className="text-[12px] text-[var(--ink-soft)] mt-1.5 leading-snug">{stat.label}</div>
                 {stat.sub && (
-                  <div className="text-[11.5px] text-[var(--ink-faint)] mt-0.5 leading-snug">{stat.sub}</div>
+                  <div className="text-[11px] text-[var(--ink-faint)] mt-0.5 leading-snug">{stat.sub}</div>
                 )}
               </Card>
             ))}

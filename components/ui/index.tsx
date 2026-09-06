@@ -19,15 +19,13 @@ export function PageHeader({
     <div className="flex flex-col sm:flex-row sm:items-start justify-between gap-3 sm:gap-4 mb-5 sm:mb-7">
       <div>
         {eyebrow && (
-          <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-1">
-            {eyebrow}
-          </div>
+          <div className="t-overline mb-1.5">{eyebrow}</div>
         )}
-        <h1 className="font-display text-[22px] sm:text-[28px] font-semibold text-[var(--ink)] leading-tight">
+        <h1 className="font-display text-[20px] sm:text-[24px] font-semibold text-[var(--ink)] leading-tight">
           {title}
         </h1>
         {description && (
-          <p className="text-[var(--ink-soft)] text-[14px] sm:text-[15px] mt-1.5 sm:mt-2 max-w-2xl leading-relaxed">{description}</p>
+          <p className="t-lead mt-1 max-w-2xl">{description}</p>
         )}
       </div>
       {actions && (
@@ -57,11 +55,11 @@ type BtnProps = {
 export function Button({
   children, onClick, href, variant = 'primary', size = 'md', icon, disabled, type = 'button', className = '',
 }: BtnProps) {
-  const base = 'inline-flex items-center justify-center gap-2 font-semibold rounded-xl transition-all duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap select-none'
-  const sizes = { sm: 'h-10 sm:h-9 px-4 sm:px-3.5 text-[13.5px] sm:text-[13px]', md: 'h-12 sm:h-11 px-5 text-[15px] sm:text-[14px]' }
+  const base = 'inline-flex items-center justify-center gap-2 font-medium rounded-lg transition-colors duration-150 disabled:opacity-40 disabled:pointer-events-none whitespace-nowrap select-none'
+  const sizes = { sm: 'h-10 sm:h-9 px-4 sm:px-3.5 text-[13px] sm:text-[13px]', md: 'h-12 sm:h-11 px-5 text-[15px] sm:text-[14px]' }
   const variants = {
-    primary:   'bg-[var(--accent)] text-white hover:brightness-[1.08] active:brightness-95 shadow-[0_1px_2px_rgba(26,122,133,0.25)]',
-    secondary: 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] hover:border-[var(--ink-faint)] hover:bg-[var(--canvas)]',
+    primary:   'bg-[var(--accent)] text-white hover:bg-[var(--accent-hover)]',
+    secondary: 'bg-[var(--paper)] text-[var(--ink)] border border-[var(--line)] hover:bg-[var(--canvas)]',
     ghost:     'text-[var(--ink-soft)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]',
     danger:    'bg-[var(--paper)] text-[var(--danger)] border border-[var(--danger)]/25 hover:bg-[var(--danger-soft)]',
   }
@@ -85,8 +83,8 @@ export function Card({
   return (
     <div
       onClick={onClick}
-      className={`bg-[var(--paper)] border border-[var(--line)] rounded-2xl sm:rounded-2xl
-        ${hover ? 'transition-all duration-200 hover:shadow-[0_2px_12px_rgba(26,34,48,0.06)] hover:border-[var(--line-soft)] cursor-pointer' : ''}
+      className={`bg-[var(--paper)] border border-[var(--line)] rounded-xl
+        ${hover ? 'transition-colors duration-150 hover:border-[var(--ink-faint)] cursor-pointer' : ''}
         ${className}`}>
       {children}
     </div>
@@ -125,13 +123,13 @@ export function StatCard({
       </div>
       <div className="flex items-end justify-between gap-3">
         <div>
-          <div className={`font-display text-[30px] leading-none font-semibold ${accent ? 'text-white' : 'text-[var(--ink)]'}`}>
+          <div className={`font-display text-[24px] leading-none font-semibold ${accent ? 'text-white' : 'text-[var(--ink)]'}`}>
             {value}
           </div>
           {(sub || trend) && (
             <div className="flex items-center gap-2 mt-2">
               {trend && (
-                <span className={`inline-flex items-center text-[12px] font-semibold px-1.5 py-0.5 rounded-md
+                <span className={`inline-flex items-center text-[12px] font-semibold px-1.5 py-0.5 rounded-lg
                   ${accent ? 'bg-white/15 text-white' : trend.up ? 'bg-[var(--ok-soft)] text-[var(--ok)]' : 'bg-[var(--danger-soft)] text-[var(--danger)]'}`}>
                   {trend.up ? '+' : '-'}{trend.value}
                 </span>
@@ -178,10 +176,10 @@ export function EmptyState({
   action?: React.ReactNode
 }) {
   return (
-    <div className="rounded-2xl border border-dashed border-[var(--line)] bg-[var(--canvas)] py-16 px-6 text-center">
-      <h3 className="font-display text-[17px] font-semibold text-[var(--ink)]">{title}</h3>
-      {description && <p className="text-[14px] text-[var(--ink-soft)] mt-2 max-w-sm mx-auto leading-relaxed">{description}</p>}
-      {action && <div className="mt-6">{action}</div>}
+    <div className="rounded-xl border border-[var(--line)] bg-[var(--paper)] py-12 px-6 text-center">
+      <h3 className="text-[14px] font-medium text-[var(--ink)]">{title}</h3>
+      {description && <p className="t-sub mt-1.5 max-w-sm mx-auto">{description}</p>}
+      {action && <div className="mt-5">{action}</div>}
     </div>
   )
 }
@@ -204,7 +202,7 @@ export function Badge({
     muted:   'bg-[var(--line-soft)] text-[var(--ink-faint)] ring-[var(--line)]',
   }
   return (
-    <span className={`inline-flex items-center text-[11px] font-semibold px-2.5 py-1 rounded-full ring-1 ring-inset ${tones[tone]}`}>
+    <span className={`inline-flex items-center text-[11px] font-medium px-2 py-0.5 rounded-lg ring-1 ring-inset ${tones[tone]}`}>
       {children}
     </span>
   )
@@ -234,11 +232,11 @@ export function Field({
 }
 
 export const inputClass =
-  'w-full h-12 sm:h-11 px-4 sm:px-3.5 rounded-xl border border-[var(--line)] bg-white text-[16px] sm:text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
+  'w-full h-12 sm:h-11 px-4 sm:px-3.5 rounded-lg border border-[var(--line)] bg-white text-[15px] sm:text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
 
 // For multi-line inputs — same look as inputClass but auto-height with comfortable padding.
 export const textareaClass =
-  'w-full px-4 sm:px-3.5 py-3 rounded-xl border border-[var(--line)] bg-white text-[16px] sm:text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
+  'w-full px-4 sm:px-3.5 py-3 rounded-lg border border-[var(--line)] bg-white text-[15px] sm:text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
 
 /* ─────────────────────────────────────────────
    Spinner
@@ -257,7 +255,7 @@ export function Spinner({ className = '' }: { className?: string }) {
 export function SectionLabel({ children }: { children: React.ReactNode }) {
   return (
     <div className="mb-4">
-      <span className="text-[15px] font-semibold text-[var(--ink)]">{children}</span>
+      <span className="t-overline">{children}</span>
     </div>
   )
 }

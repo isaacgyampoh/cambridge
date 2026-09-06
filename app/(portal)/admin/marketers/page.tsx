@@ -196,13 +196,13 @@ export default function MarketerPerformancePage() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Team</div>
-          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Marketer performance</h1>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Marketer performance</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Conversion, activity and revenue attributed to each marketer.</p>
         </div>
         <div className="flex gap-1 bg-[var(--line-soft)] rounded-lg p-1">
           {[{v:'7',l:'7d'},{v:'30',l:'30d'},{v:'90',l:'90d'}].map(r => (
             <button key={r.v} onClick={() => setRange(r.v)}
-              className={`px-3 py-1.5 rounded-md text-[13px] font-medium transition ${range === r.v ? 'bg-white text-[var(--ink)] shadow-sm' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+              className={`px-3 py-1.5 rounded-lg text-[13px] font-medium transition ${range === r.v ? 'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
               {r.l}
             </button>
           ))}
@@ -219,7 +219,7 @@ export default function MarketerPerformancePage() {
         ].map(k => (
           <div key={k.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
             <div className="text-[13px] font-medium text-[var(--ink-faint)]">{k.label}</div>
-            <div className={`font-display text-[30px] leading-none font-semibold mt-3 ${k.tone}`}>{k.value}</div>
+            <div className={`font-display text-[24px] leading-none font-semibold mt-3 ${k.tone}`}>{k.value}</div>
           </div>
         ))}
       </div>
@@ -228,16 +228,16 @@ export default function MarketerPerformancePage() {
       <div className="grid grid-cols-3 gap-4 mb-8">
         <div className="bg-[var(--accent)] rounded-xl p-5 text-white">
           <div className="text-[13px] font-medium text-white/70">Total leads</div>
-          <div className="font-display text-[30px] leading-none font-semibold mt-3">{summary.totalLeads}</div>
+          <div className="font-display text-[24px] leading-none font-semibold mt-3">{summary.totalLeads}</div>
         </div>
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
           <div className="text-[13px] font-medium text-[var(--ink-faint)]">Converted</div>
-          <div className="font-display text-[30px] leading-none font-semibold mt-3 text-[var(--ink)]">{summary.totalConverted}</div>
+          <div className="font-display text-[24px] leading-none font-semibold mt-3 text-[var(--ink)]">{summary.totalConverted}</div>
           <div className="text-xs text-[var(--ink-faint)] mt-1.5">{summary.totalLeads ? Math.round(summary.totalConverted/summary.totalLeads*100) : 0}% conversion</div>
         </div>
         <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
           <div className="text-[13px] font-medium text-[var(--ink-faint)]">Revenue attributed</div>
-          <div className="font-display text-[30px] leading-none font-semibold mt-3 text-[var(--ink)]">{formatGHS(summary.totalRevenue)}</div>
+          <div className="font-display text-[24px] leading-none font-semibold mt-3 text-[var(--ink)]">{formatGHS(summary.totalRevenue)}</div>
         </div>
       </div>
 
@@ -262,7 +262,7 @@ export default function MarketerPerformancePage() {
                 `Hi ${selected.full_name.split(' ')[0]}, we haven't seen any activity in ${selected.daysSinceActivity} days. Please update your leads.`,
               ].map((t, i) => (
                 <button key={i} onClick={() => setAlertMsg(t)}
-                  className="text-[10px] px-2 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition text-left">
+                  className="text-[11px] px-2 py-1 bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-lg hover:bg-[var(--line)] transition text-left">
                   Template {i + 1}
                 </button>
               ))}
@@ -288,7 +288,7 @@ export default function MarketerPerformancePage() {
       {/* How leads are shared — so the tiers are not misread */}
       <div className="bg-[var(--accent-soft)] border border-[var(--accent)]/15 rounded-xl p-4 mb-5">
         <div className="text-[13px] font-semibold text-[var(--ink)] mb-1.5">How shared leads are split</div>
-        <p className="text-[12.5px] text-[var(--ink-soft)] leading-relaxed">
+        <p className="text-[12px] text-[var(--ink-soft)] leading-relaxed">
           Leads nobody introduced are shared by weight. Each <b>high performer counts 45</b>,
           each <b>mid 35</b>, each <b>low or support 20</b>. So a high performer receives about
           1.3 leads for every 1 a mid performer gets, and 2.25 for every 1 a low performer gets.
@@ -309,7 +309,7 @@ export default function MarketerPerformancePage() {
                     <div>
                       <div className="font-semibold text-[var(--ink)]">{m.full_name}</div>
                       <div className="text-xs text-[var(--ink-faint)]">{m.email}</div>
-                      <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full border mt-1 inline-block ${sc.color}`}>{sc.label}</span>
+                      <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full border mt-1 inline-block ${sc.color}`}>{sc.label}</span>
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
@@ -375,7 +375,7 @@ export default function MarketerPerformancePage() {
                   ].map(s => (
                     <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-[var(--danger-soft)]': 'bg-[var(--line-soft)]'}`}>
                       <div className={`text-xl font-bold ${(s as any).alert ? 'text-[var(--danger)]': 'text-[var(--ink)]'}`}>{s.value}</div>
-                      <div className="text-[10px] text-[var(--ink-faint)] mt-0.5">{s.label}</div>
+                      <div className="text-[11px] text-[var(--ink-faint)] mt-0.5">{s.label}</div>
                     </div>
                   ))}
                 </div>
@@ -402,7 +402,7 @@ export default function MarketerPerformancePage() {
                         { color: 'bg-yellow-400', label: 'Contacted'},
                         { color: 'bg-[var(--line)]', label: 'New'},
                       ].map(l => (
-                        <div key={l.label} className="flex items-center gap-1 text-[9px] text-[var(--ink-faint)]">
+                        <div key={l.label} className="flex items-center gap-1 text-[11px] text-[var(--ink-faint)]">
                           <div className={`w-2 h-2 rounded-full ${l.color}`} />
                           {l.label}
                         </div>

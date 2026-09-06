@@ -107,10 +107,10 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
     finally { setUploading(false) }
   }
 
-  const wrap: React.CSSProperties = { minHeight: '100vh', background: '#f5f8fc', fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px' }
-  const card: React.CSSProperties = { maxWidth: 440, width: '100%', background: '#fff', borderRadius: 18, border: '1px solid #e6eaf0', padding: 26 }
+  const wrap: React.CSSProperties = { minHeight: '100vh', background: 'var(--canvas)', fontFamily: 'Inter, sans-serif', display: 'flex', alignItems: 'flex-start', justifyContent: 'center', padding: '24px 16px' }
+  const card: React.CSSProperties = { maxWidth: 440, width: '100%', background: '#fff', borderRadius: 18, border: '1px solid var(--line)', padding: 26 }
   const btn: React.CSSProperties = { width: '100%', height: 48, borderRadius: 12, border: 'none', fontSize: 15, fontWeight: 600, cursor: 'pointer' }
-  const inp: React.CSSProperties = { width: '100%', height: 48, padding: '0 14px', borderRadius: 12, border: '1px solid #e6eaf0', fontSize: 15, outline: 'none', boxSizing: 'border-box' }
+  const inp: React.CSSProperties = { width: '100%', height: 48, padding: '0 14px', borderRadius: 12, border: '1px solid var(--line)', fontSize: 15, outline: 'none', boxSizing: 'border-box' }
 
   return (
     <div style={wrap}>
@@ -118,14 +118,14 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
       <div style={card}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
           <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 10px' }} />
-          <div style={{ fontSize: 13, color: '#94a3b8' }}>Cambridge Center of Excellence</div>
-          <h1 style={{ fontSize: 20, fontWeight: 600, color: '#1a2230', margin: '4px 0 0' }}>Class sign-in</h1>
+          <div style={{ fontSize: 13, color: 'var(--ink-faint)' }}>Cambridge Center of Excellence</div>
+          <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', margin: '4px 0 0' }}>Class sign-in</h1>
         </div>
 
         {error && <div style={{ background: '#fef2f2', color: '#dc2626', fontSize: 13, padding: '10px 12px', borderRadius: 10, marginBottom: 14 }}>{error}</div>}
 
         {step === 'locating' && (
-          <p style={{ textAlign: 'center', color: '#4a5568', fontSize: 14 }}>Checking your location…</p>
+          <p style={{ textAlign: 'center', color: 'var(--ink-soft)', fontSize: 14 }}>Checking your location…</p>
         )}
 
         {step === 'name' && (
@@ -135,24 +135,24 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
             <button onClick={() => signIn(false)} disabled={busy} style={{ ...btn, background: 'var(--accent)', color: '#fff', opacity: busy ? 0.6 : 1 }}>
               {busy ? 'Signing in…' : 'Sign in'}
             </button>
-            {geoError && <p style={{ fontSize: 11, color: '#94a3b8', marginTop: 10, textAlign: 'center' }}>Location is off. If you're in class, please enable location so we can sign you in.</p>}
+            {geoError && <p style={{ fontSize: 11, color: 'var(--ink-faint)', marginTop: 10, textAlign: 'center' }}>Location is off. If you're in class, please enable location so we can sign you in.</p>}
           </>
         )}
 
         {step === 'offer_online' && (
           <>
-            <p style={{ color: '#4a5568', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>You don't appear to be at the class venue. Are you joining online today?</p>
+            <p style={{ color: 'var(--ink-soft)', fontSize: 14, marginBottom: 16, textAlign: 'center' }}>You don't appear to be at the class venue. Are you joining online today?</p>
             <button onClick={() => signIn(true)} disabled={busy} style={{ ...btn, background: 'var(--accent)', color: '#fff', marginBottom: 10, opacity: busy ? 0.6 : 1 }}>
               {busy ? 'Switching…' : 'Yes, I\'m joining online'}
             </button>
-            <button onClick={() => { setStep('name'); setError('') }} style={{ ...btn, background: '#f1f5f9', color: '#4a5568' }}>Back</button>
+            <button onClick={() => { setStep('name'); setError('') }} style={{ ...btn, background: '#f1f5f9', color: 'var(--ink-soft)' }}>Back</button>
           </>
         )}
 
         {step === 'signed' && result && (
           <>
             <div style={{ textAlign: 'center', marginBottom: 18 }}>
-              <div style={{ fontSize: 15, color: '#1a2230', fontWeight: 600 }}>You're signed in, {result.studentName?.split(' ')[0]}!</div>
+              <div style={{ fontSize: 15, color: 'var(--ink)', fontWeight: 600 }}>You're signed in, {result.studentName?.split(' ')[0]}!</div>
               <div style={{ display: 'inline-block', marginTop: 8, fontSize: 12, fontWeight: 600, padding: '4px 12px', borderRadius: 999, background: result.mode === 'online' ? '#eef2ff' : '#ecfdf5', color: result.mode === 'online' ? '#4338ca' : '#059669' }}>
                 {result.mode === 'online' ? (result.switched ? 'Switched to online' : 'Online') : 'In person'}
               </div>
@@ -164,7 +164,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
                   Join the Zoom class
                 </a>
               ) : (
-                <p style={{ fontSize: 13, color: '#94a3b8', textAlign: 'center', marginBottom: 16 }}>The Zoom link will be shared by your coordinator.</p>
+                <p style={{ fontSize: 13, color: 'var(--ink-faint)', textAlign: 'center', marginBottom: 16 }}>The Zoom link will be shared by your coordinator.</p>
               )
             )}
 
@@ -179,24 +179,24 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
             )}
             {Array.isArray(result?.materials) && result.materials.length > 0 && (
               <div style={{ marginTop: 18, marginBottom: 16, textAlign: 'left', background: '#f0f7f8', borderRadius: 12, padding: 14 }}>
-                <div style={{ fontSize: 13, fontWeight: 700, color: '#1a7a85', marginBottom: 8 }}>Your course materials</div>
+                <div style={{ fontSize: 13, fontWeight: 700, color: 'var(--accent)', marginBottom: 8 }}>Your course materials</div>
                 {result.materials.map((m: any, i: number) => (
                   <a key={i} href={m.url} target="_blank" rel="noopener noreferrer"
-                    style={{ display: 'block', fontSize: 13, color: '#1a2230', textDecoration: 'none', padding: '7px 0', borderTop: i ? '1px solid #dbe9eb' : 'none' }}>
-                    📄 {m.name}
+                    style={{ display: 'block', fontSize: 13, color: 'var(--ink)', textDecoration: 'none', padding: '7px 0', borderTop: i ? '1px solid #dbe9eb' : 'none' }}>
+                    {m.name}
                   </a>
                 ))}
-                <div style={{ fontSize: 11, color: '#5a6675', marginTop: 8 }}>More materials unlock as you continue your payments.</div>
+                <div style={{ fontSize: 11, color: 'var(--ink-soft)', marginTop: 8 }}>More materials unlock as you continue your payments.</div>
               </div>
             )}
-            <button onClick={() => setStep('done')} style={{ ...btn, background: '#f1f5f9', color: '#4a5568' }}>Done</button>
+            <button onClick={() => setStep('done')} style={{ ...btn, background: '#f1f5f9', color: 'var(--ink-soft)' }}>Done</button>
           </>
         )}
 
         {step === 'pay_amount' && (
           <>
             <label style={{ fontSize: 12, fontWeight: 600, color: '#6b7280', textTransform: 'uppercase' }}>How much are you paying?</label>
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: '4px 0 8px' }}>You can pay all or part of your GHS {result.balance.toFixed(2)} balance.</p>
+            <p style={{ fontSize: 12, color: 'var(--ink-faint)', margin: '4px 0 8px' }}>You can pay all or part of your GHS {result.balance.toFixed(2)} balance.</p>
             <input type="number" value={payAmount} onChange={e => setPayAmount(e.target.value)} style={{ ...inp, marginBottom: 16 }} />
             <button onClick={() => { if (Number(payAmount) > 0) { setError(''); setStep('pay_method') } else setError('Enter an amount') }} style={{ ...btn, background: 'var(--accent)', color: '#fff' }}>Continue</button>
           </>
@@ -204,25 +204,25 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
 
         {step === 'pay_method' && (
           <>
-            <p style={{ fontSize: 14, color: '#4a5568', marginBottom: 14, textAlign: 'center' }}>Paying GHS {Number(payAmount).toFixed(2)} — choose a method</p>
-            <button onClick={payMomo} disabled={busy} style={{ ...btn, background: '#ffcc00', color: '#1a2230', marginBottom: 10 }}>Mobile Money (MoMo)</button>
+            <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginBottom: 14, textAlign: 'center' }}>Paying GHS {Number(payAmount).toFixed(2)} — choose a method</p>
+            <button onClick={payMomo} disabled={busy} style={{ ...btn, background: '#ffcc00', color: 'var(--ink)', marginBottom: 10 }}>Mobile Money (MoMo)</button>
             <button onClick={() => setStep('bank')} style={{ ...btn, background: '#1e3a8a', color: '#fff', marginBottom: 10 }}>Bank transfer</button>
             {result.allowCash && (
-              <button onClick={() => recordPayment('cash', Number(payAmount))} disabled={busy} style={{ ...btn, background: '#f1f5f9', color: '#4a5568' }}>Cash (pay at the desk)</button>
+              <button onClick={() => recordPayment('cash', Number(payAmount))} disabled={busy} style={{ ...btn, background: '#f1f5f9', color: 'var(--ink-soft)' }}>Cash (pay at the desk)</button>
             )}
-            {!result.allowCash && <p style={{ fontSize: 11, color: '#94a3b8', textAlign: 'center', marginTop: 4 }}>Online students pay by MoMo or bank only.</p>}
+            {!result.allowCash && <p style={{ fontSize: 11, color: 'var(--ink-faint)', textAlign: 'center', marginTop: 4 }}>Online students pay by MoMo or bank only.</p>}
           </>
         )}
 
         {step === 'bank' && (
           <>
-            <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 14, fontSize: 14, color: '#1a2230' }}>
+            <div style={{ background: '#f8fafc', borderRadius: 12, padding: 16, marginBottom: 14, fontSize: 14, color: 'var(--ink)' }}>
               <div style={{ fontWeight: 600, marginBottom: 6 }}>Bank transfer details</div>
               <div>Bank: <strong>{CONFIG.bankName}</strong></div>
               <div>Account name: <strong>{CONFIG.bankAccountName}</strong></div>
               <div>Account: <strong>{CONFIG.bankAccountNumber}</strong></div>
               {CONFIG.bankBranch && <div>Branch: <strong>{CONFIG.bankBranch}</strong></div>}
-              <div style={{ fontSize: 12, color: '#94a3b8', marginTop: 6 }}>Transfer GHS {Number(payAmount).toFixed(2)}, then upload your screenshot below. The accountant will verify it.</div>
+              <div style={{ fontSize: 12, color: 'var(--ink-faint)', marginTop: 6 }}>Transfer GHS {Number(payAmount).toFixed(2)}, then upload your screenshot below. The accountant will verify it.</div>
             </div>
             {screenshot ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
@@ -230,7 +230,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
                 <span style={{ fontSize: 13, color: '#059669' }}>Screenshot attached</span>
               </div>
             ) : (
-              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1px dashed #cbd5e1', fontSize: 14, color: '#4a5568', cursor: 'pointer', marginBottom: 12 }}>
+              <label style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', height: 46, borderRadius: 12, border: '1px dashed #cbd5e1', fontSize: 14, color: 'var(--ink-soft)', cursor: 'pointer', marginBottom: 12 }}>
                 {uploading ? 'Uploading…' : 'Upload payment screenshot'}
                 <input type="file" accept="image/*" style={{ display: 'none' }} onChange={e => { const f = e.target.files?.[0]; if (f) uploadShot(f) }} />
               </label>
@@ -248,13 +248,13 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
             </div>
             {invoice ? (
               <>
-                <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1a2230', margin: '0 0 6px' }}>{invoice.verified ? 'Payment received' : invoice.message}</h2>
-                <p style={{ fontSize: 13, color: '#4a5568' }}>Invoice: {invoice.invoiceNo}</p>
-                {invoice.verified && <p style={{ fontSize: 14, color: '#4a5568', marginTop: 6 }}>{invoice.balance > 0 ? `Balance remaining: GHS ${invoice.balance.toFixed(2)}` : 'Your fees are fully paid.'}</p>}
-                {!invoice.verified && <p style={{ fontSize: 13, color: '#94a3b8', marginTop: 6 }}>You'll get a confirmation once it's verified.</p>}
+                <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)', margin: '0 0 6px' }}>{invoice.verified ? 'Payment received' : invoice.message}</h2>
+                <p style={{ fontSize: 13, color: 'var(--ink-soft)' }}>Invoice: {invoice.invoiceNo}</p>
+                {invoice.verified && <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginTop: 6 }}>{invoice.balance > 0 ? `Balance remaining: GHS ${invoice.balance.toFixed(2)}` : 'Your fees are fully paid.'}</p>}
+                {!invoice.verified && <p style={{ fontSize: 13, color: 'var(--ink-faint)', marginTop: 6 }}>You'll get a confirmation once it's verified.</p>}
               </>
             ) : (
-              <h2 style={{ fontSize: 18, fontWeight: 600, color: '#1a2230' }}>You're signed in. Enjoy your class!</h2>
+              <h2 style={{ fontSize: 18, fontWeight: 600, color: 'var(--ink)' }}>You're signed in. Enjoy your class!</h2>
             )}
             {result?.mode === 'online' && result?.zoomLink && (
               <a href={result.zoomLink} target="_blank" rel="noopener noreferrer" style={{ ...btn, background: '#2D8CFF', color: '#fff', display: 'flex', alignItems: 'center', justifyContent: 'center', textDecoration: 'none', marginTop: 16 }}>Join the Zoom class</a>

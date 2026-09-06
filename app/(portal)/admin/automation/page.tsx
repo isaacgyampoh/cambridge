@@ -74,7 +74,7 @@ export default function AutomationPage() {
                       {r ? <Badge tone={failed ? 'danger' : 'success'}>{failed ? 'Failed' : 'OK'}</Badge>
                          : <Badge tone="neutral">Not yet run</Badge>}
                     </div>
-                    <div className="text-[12.5px] text-[var(--ink-soft)] mt-1">{l.desc}</div>
+                    <div className="text-[12px] text-[var(--ink-soft)] mt-1">{l.desc}</div>
                     <div className="text-[12px] text-[var(--ink-faint)] mt-1">
                       Runs {l.every} · last {ago(r?.last_run_at)}
                     </div>
@@ -94,7 +94,7 @@ export default function AutomationPage() {
       )}
 
       {neverRun.length > 0 && !loading && (
-        <p className="text-[12.5px] text-[var(--ink-faint)] mt-4">
+        <p className="text-[12px] text-[var(--ink-faint)] mt-4">
           Tasks showing “Not yet run” simply have not fired since the scheduler was set up.
         </p>
       )}

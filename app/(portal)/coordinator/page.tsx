@@ -156,7 +156,7 @@ export default function CoordinatorPage() {
             <button
               onClick={() => { navigator.clipboard.writeText(refLink); setCopied(true); setTimeout(() => setCopied(false), 1600) }}
               className="text-[13px] font-semibold px-3 py-2 rounded-lg bg-[var(--accent)] text-white hover:brightness-110 transition flex-shrink-0">
-              {copied ? 'Copied ✓' : 'Copy'}
+              {copied ? 'Copied' : 'Copy'}
             </button>
           </div>
         </Card>
@@ -264,7 +264,7 @@ export default function CoordinatorPage() {
                         if (d.success) { toast.success('Voucher requested — finance has been notified'); setEdit({ ...edit, _voucher_requested: true }) }
                         else toast.error(d.error || 'Could not request voucher')
                       }}>
-                      {edit._voucher_requested ? 'Requested ✓' : 'Request voucher code'}
+                      {edit._voucher_requested ? 'Requested' : 'Request voucher code'}
                     </Button>
                   </>
                 )}

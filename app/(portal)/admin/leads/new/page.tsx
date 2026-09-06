@@ -116,7 +116,7 @@ export default function NewLeadPage() {
         <div className="xl:col-span-2 space-y-5">
 
           {/* Personal info */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Personal Information</h2>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {FIELDS.map(f => (
@@ -148,7 +148,7 @@ export default function NewLeadPage() {
           </div>
 
           {/* Course interest */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Course Interest</h2>
             <select value={form.course_interest} onChange={e => set('course_interest', e.target.value)}
               className="w-full h-11 px-4 rounded-xl border border-[var(--line)] text-sm bg-white focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
@@ -158,7 +158,7 @@ export default function NewLeadPage() {
           </div>
 
           {/* Notes */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Notes</h2>
             <textarea value={form.notes} onChange={e => set('notes', e.target.value)} rows={4}
               placeholder="Any additional info about this lead..."
@@ -170,7 +170,7 @@ export default function NewLeadPage() {
         <div className="space-y-5">
 
           {/* Source */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Lead Source</h2>
             <div className="space-y-2">
               {SOURCES.map(s => (
@@ -191,7 +191,7 @@ export default function NewLeadPage() {
           </div>
 
           {/* Assign to marketer */}
-          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+          <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
             <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Assign To (optional)</h2>
             <p className="text-xs text-[var(--ink-faint)] mb-3">If assigned now, marketer gets notified via SMS & WhatsApp</p>
             <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}

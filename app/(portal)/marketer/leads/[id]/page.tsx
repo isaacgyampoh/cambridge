@@ -229,7 +229,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                 {lead.full_name.charAt(0).toUpperCase()}
               </div>
               <div className="min-w-0 flex-1">
-                <h1 className="font-display text-[22px] font-semibold text-[var(--ink)] truncate">{lead.full_name}</h1>
+                <h1 className="font-display text-[20px] font-semibold text-[var(--ink)] truncate">{lead.full_name}</h1>
                 <div className="flex gap-2 mt-1.5 flex-wrap">
                   <StatusBadge domain="lead" value={lead.status} />
                   <span className={`text-[12px] font-medium px-2.5 py-1 rounded-full ${SOURCE_COLORS[lead.source]}`}>{lead.source}</span>
@@ -237,13 +237,13 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                     <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">{lead.course_interest}</span>
                   )}
                   {lead.city && (
-                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--line-soft)] text-[var(--ink-soft)]">📍 {lead.city}</span>
+                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-lg bg-[var(--line-soft)] text-[var(--ink-soft)]">{lead.city}</span>
                   )}
                   {lead.profession && (
                     <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--accent-soft)] text-[var(--accent)]">{lead.profession}</span>
                   )}
                   {lead.education_level && (
-                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-full bg-[var(--line-soft)] text-[var(--ink-soft)]">🎓 {lead.education_level}</span>
+                    <span className="text-[12px] font-medium px-2.5 py-1 rounded-lg bg-[var(--line-soft)] text-[var(--ink-soft)]">{lead.education_level}</span>
                   )}
                 </div>
               </div>

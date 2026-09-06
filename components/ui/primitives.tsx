@@ -70,12 +70,12 @@ export function StatusBadge({
   className?: string
 }) {
   const { label, tone, hint } = describeStatus(domain, value)
-  const pad = size === 'sm' ? 'text-[10.5px] px-2 py-0.5' : 'text-[11px] px-2.5 py-1'
+  const pad = size === 'sm' ? 'text-[11px] px-1.5 py-0.5' : 'text-[11px] px-2 py-0.5'
 
   return (
     <span
       title={hint}
-      className={`inline-flex items-center gap-1.5 font-semibold rounded-full ring-1 ring-inset whitespace-nowrap ${pad} ${TONE_CLASSES[tone]} ${className}`}
+      className={`inline-flex items-center gap-1.5 font-medium rounded-lg ring-1 ring-inset whitespace-nowrap ${pad} ${TONE_CLASSES[tone]} ${className}`}
     >
       {showDot && <span className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${TONE_DOT[tone]}`} aria-hidden="true" />}
       {label}
@@ -218,7 +218,7 @@ export function SectionHeader({
   return (
     <div className={`flex items-start justify-between gap-3 mb-3 ${className}`}>
       <div className="min-w-0">
-        <h2 className="font-display text-[16px] sm:text-[17px] font-semibold text-[var(--ink)] flex items-center gap-2">
+        <h2 className="font-display text-[15px] sm:text-[17px] font-semibold text-[var(--ink)] flex items-center gap-2">
           <span className="truncate">{title}</span>
           {count !== undefined && (
             <span className="text-[12px] font-semibold text-[var(--ink-faint)] tabular-nums flex-shrink-0">
@@ -290,7 +290,7 @@ export function Pagination({
 
   const from = (page - 1) * pageSize + 1
   const to = Math.min(page * pageSize, total)
-  const btn = `h-11 px-4 rounded-xl border border-[var(--line)] text-[13.5px] font-semibold
+  const btn = `h-11 px-4 rounded-xl border border-[var(--line)] text-[13px] font-semibold
     text-[var(--ink-soft)] bg-[var(--paper)] transition-colors
     hover:border-[var(--ink-faint)] disabled:opacity-40 disabled:pointer-events-none
     focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]`
@@ -301,7 +301,7 @@ export function Pagination({
       <button type="button" className={btn} onClick={() => onChange(page - 1)} disabled={page <= 1}>
         Previous
       </button>
-      <span className="text-[12.5px] text-[var(--ink-soft)] tabular-nums text-center" aria-live="polite">
+      <span className="text-[12px] text-[var(--ink-soft)] tabular-nums text-center" aria-live="polite">
         {from}–{to} of {total}
       </span>
       <button type="button" className={btn} onClick={() => onChange(page + 1)} disabled={page >= pages}>

@@ -35,8 +35,8 @@ export default function StudentDashboard() {
     <div className="fade-in w-full">
       {/* Welcome banner */}
       <div className="bg-[var(--accent)] rounded-xl p-6 mb-6 text-white">
-        <div className="text-[12px] text-white/60 mb-1">Welcome back</div>
-        <div className="font-display text-[26px] font-semibold">{myName.split(' ')[0] || 'Student'}</div>
+        <div className="text-[12px] text-white/60 mb-1">Student portal</div>
+        <div className="font-display text-[24px] font-semibold">{myName.split(' ')[0] || 'Student'}</div>
         <div className="text-xs text-white/60 mt-1">Cambridge Center of Excellence</div>
       </div>
 
@@ -58,7 +58,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Classes */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 mb-4 shadow-sm">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 mb-4 shadow-[var(--shadow-raised)]">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">My Classes</h3>
         {enrollments.length === 0 ? (
           <p className="text-sm text-[var(--ink-faint)] text-center py-6">Not enrolled in any classes yet</p>
@@ -83,7 +83,7 @@ export default function StudentDashboard() {
       </div>
 
       {/* Invoices */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">My Invoices</h3>
         {invoices.length === 0 ? (
           <p className="text-sm text-[var(--ink-faint)] text-center py-6">No invoices yet</p>

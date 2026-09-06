@@ -200,7 +200,7 @@ export default function DocumentsPage() {
           const d = await fetch('/api/admin/chat-style-check').then(r => r.json()).catch(() => null)
           if (!d || d.error) return alert(d?.error || 'Could not check')
           const lines = (d.samples || []).map((x: any) =>
-            `${x.beingUsed ? '✓ read' : '✗ not read'}  —  ${x.name} (${x.characters} characters)`).join('\n')
+            `${x.beingUsed ? 'read' : 'NOT read'}  —  ${x.name} (${x.characters} characters)`).join('\n')
           alert(`${d.advice}\n\n${lines || 'None uploaded yet.'}`)
         }}
           className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition">
@@ -210,7 +210,7 @@ export default function DocumentsPage() {
           const d = await fetch('/api/admin/brochure-check').then(r => r.json()).catch(() => null)
           if (!d || d.error) return alert(d?.error || 'Could not check')
           const lines = (d.courses || []).map((r: any) =>
-            `${r.ok ? '✓' : '✗'}  ${r.course}  →  ${r.willSend || 'NOTHING'}`).join('\n')
+            `${r.ok ? 'OK  ' : 'FAIL'}  ${r.course}  →  ${r.willSend || 'NOTHING'}`).join('\n')
           alert(`${d.advice}\n\n${lines}`)
         }}
           className="h-10 px-4 rounded-lg border border-[var(--line)] text-[13px] font-semibold text-[var(--ink-soft)] hover:border-[var(--ink-faint)] transition ml-2">
@@ -355,7 +355,7 @@ export default function DocumentsPage() {
         return (
           <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5 mb-6">
             <h3 className="text-[14px] font-semibold text-[var(--ink)] mb-1">Course materials</h3>
-            <p className="text-[12.5px] text-[var(--ink-soft)] mb-4">
+            <p className="text-[12px] text-[var(--ink-soft)] mb-4">
               What each programme has, and the payment that releases it. Students read these inside
               the portal only, so they cannot be downloaded or passed on.
             </p>
@@ -367,7 +367,7 @@ export default function DocumentsPage() {
                 return (
                   <div key={co.id} className="flex items-start justify-between gap-3 py-2 border-b border-[var(--line-soft)] last:border-0">
                     <div className="min-w-0">
-                      <div className="text-[13.5px] font-medium text-[var(--ink)]">{co.name}</div>
+                      <div className="text-[13px] font-medium text-[var(--ink)]">{co.name}</div>
                       {all.length > 0 ? (
                         <div className="text-[12px] text-[var(--ink-faint)] mt-1 space-y-0.5">
                           {all.slice(0, 6).map((m: any) => (
@@ -553,9 +553,9 @@ export default function DocumentsPage() {
                       className="text-[12px] font-semibold text-[var(--accent)] mr-3">Position fields</button>
                   )}
                   {doc.is_template && (
-                    <span className="text-[10px] font-bold bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded-full">Template</span>
+                    <span className="text-[11px] font-bold bg-[var(--accent-soft)] text-[var(--accent)] px-2 py-0.5 rounded-full">Template</span>
                   )}
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLORS[doc.type] || TYPE_COLORS.other}`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ${TYPE_COLORS[doc.type] || TYPE_COLORS.other}`}>
                     {DOC_TYPES.find(t => t.value === doc.type)?.label || doc.type}
                   </span>
                 </div>
@@ -563,7 +563,7 @@ export default function DocumentsPage() {
 
               <h3 className="font-semibold text-[var(--ink)] mb-0.5 text-sm">{doc.name}</h3>
               {doc.description && <p className="text-xs text-[var(--ink-faint)] mb-2 line-clamp-2">{doc.description}</p>}
-              <p className="text-[10px] text-[var(--ink-faint)] mb-4">{formatDateTime(doc.created_at)} · {doc.file_name}</p>
+              <p className="text-[11px] text-[var(--ink-faint)] mb-4">{formatDateTime(doc.created_at)} · {doc.file_name}</p>
 
               <div className="flex gap-2">
                 <a href={doc.file_url} target="_blank" rel="noopener noreferrer"

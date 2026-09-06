@@ -105,7 +105,7 @@ function Button({ children, onClick, tone = 'accent', disabled, type = 'button' 
   }
   return (
     <button type={type} onClick={onClick} disabled={disabled}
-      className={`w-full min-h-[52px] rounded-xl text-[15.5px] font-bold inline-flex items-center
+      className={`w-full min-h-[52px] rounded-xl text-[15px] font-bold inline-flex items-center
         justify-center gap-2.5 transition-all disabled:opacity-45 disabled:pointer-events-none
         focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
         focus-visible:ring-offset-2 ${tones[tone]}`}>
@@ -123,7 +123,7 @@ function Notice({ text, tone, onClose }: { text: string; tone: 'warn' | 'danger'
   }
   return (
     <div role="status" aria-live="polite"
-      className={`rounded-xl border px-4 py-3 mb-3.5 text-[13.5px] leading-relaxed flex gap-3 ${tones[tone]}`}>
+      className={`rounded-xl border px-4 py-3 mb-3.5 text-[13px] leading-relaxed flex gap-3 ${tones[tone]}`}>
       <span className="flex-1">{text}</span>
       <button onClick={onClose} aria-label="Dismiss"
         className="font-bold opacity-60 hover:opacity-100 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-current rounded px-1">
@@ -289,8 +289,8 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     <>
       {installEvt && (
         <Card tone="accent">
-          <div className="font-bold text-[14.5px] text-[var(--ink)]">Install your portal</div>
-          <p className="text-[13.5px] text-[var(--ink-soft)] mt-1.5 mb-3.5 leading-relaxed">
+          <div className="font-bold text-[14px] text-[var(--ink)]">Install your portal</div>
+          <p className="text-[13px] text-[var(--ink-soft)] mt-1.5 mb-3.5 leading-relaxed">
             Add it to your home screen so it opens like an app.
           </p>
           <Button onClick={() => { installEvt.prompt(); setInstallEvt(null) }}>Install</Button>
@@ -298,12 +298,12 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
       )}
       {showIos && !installEvt && (
         <Card tone="accent">
-          <div className="font-bold text-[14.5px] text-[var(--ink)]">Add to your home screen</div>
-          <p className="text-[13.5px] text-[var(--ink-soft)] mt-1.5 leading-relaxed">
+          <div className="font-bold text-[14px] text-[var(--ink)]">Add to your home screen</div>
+          <p className="text-[13px] text-[var(--ink-soft)] mt-1.5 leading-relaxed">
             In Safari, tap <b>Share</b> at the bottom of the screen, then choose <b>Add to Home Screen</b>.
           </p>
           <button onClick={() => setIosHintDismissed(true)}
-            className="text-[var(--accent)] text-[13.5px] font-bold mt-2.5 focus-visible:outline-none focus-visible:underline">
+            className="text-[var(--accent)] text-[13px] font-bold mt-2.5 focus-visible:outline-none focus-visible:underline">
             Got it
           </button>
         </Card>
@@ -318,7 +318,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     if (s.cohortEnded) return (
       <div className="rounded-xl border border-[var(--danger)]/25 bg-[var(--danger-soft)] p-4">
         <div className="text-[14px] font-bold text-[var(--danger)]">This class has ended</div>
-        <p className="text-[13.5px] text-[var(--ink-soft)] mt-2 leading-relaxed">
+        <p className="text-[13px] text-[var(--ink-soft)] mt-2 leading-relaxed">
           Your group finished{s.endDate ? ` on ${longDate(s.endDate)}` : ''}, so the class link is no longer
           available. To rejoin, please contact the administration to be placed in a new group.
         </p>
@@ -330,7 +330,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
         <Button tone="ok" onClick={joinClass} disabled={joining}>
           {Icons.video}{joining ? 'Opening…' : 'Join class'}
         </Button>
-        <p className="text-[12.5px] text-[var(--ink-faint)] text-center mt-2.5">
+        <p className="text-[12px] text-[var(--ink-faint)] text-center mt-2.5">
           Opens Zoom on your phone or laptop.
         </p>
       </>
@@ -339,7 +339,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     return (
       <div className="rounded-xl border border-[var(--warn)]/25 bg-[var(--warn-soft)] p-4">
         <div className="text-[14px] font-bold text-[var(--warn)]">Payment required to join</div>
-        <p className="text-[13.5px] text-[var(--ink-soft)] mt-2 mb-3.5 leading-relaxed">
+        <p className="text-[13px] text-[var(--ink-soft)] mt-2 mb-3.5 leading-relaxed">
           Pay at least <b className="text-[var(--ink)]">{ghs(s.minTopUp || 0)}</b> to unlock
           session {s.sessionNumber}. You may pay more.
         </p>
@@ -352,14 +352,14 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     <>
       <div className="flex items-baseline justify-between mb-3">
         <div>
-          <div className="text-[26px] font-semibold text-[var(--ink)] leading-none tabular-nums">
+          <div className="text-[24px] font-semibold text-[var(--ink)] leading-none tabular-nums">
             {ghs(f.balance)}
           </div>
-          <div className="text-[12.5px] text-[var(--ink-faint)] mt-1.5">
+          <div className="text-[12px] text-[var(--ink-faint)] mt-1.5">
             {f.balance > 0 ? 'still to pay' : 'fully paid — thank you'}
           </div>
         </div>
-        <div className="text-right text-[12.5px] text-[var(--ink-soft)]">
+        <div className="text-right text-[12px] text-[var(--ink-soft)]">
           <div className="tabular-nums">{ghs(f.paid)} paid</div>
           <div className="tabular-nums text-[var(--ink-faint)]">of {ghs(f.total)}</div>
         </div>
@@ -383,9 +383,9 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
           <Label>Next class</Label>
           {d?.batch ? (
             <>
-              <div className="text-[17.5px] font-bold text-[var(--ink)]">{d.batch.name}</div>
+              <div className="text-[17px] font-bold text-[var(--ink)]">{d.batch.name}</div>
               {d.batch.schedule && (
-                <div className="text-[13.5px] text-[var(--ink-soft)] mt-1">{d.batch.schedule}</div>
+                <div className="text-[13px] text-[var(--ink-soft)] mt-1">{d.batch.schedule}</div>
               )}
               {s && !s.cohortEnded && (
                 <div className="text-[13px] text-[var(--ink-faint)] mt-2">
@@ -412,15 +412,15 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
             <div className="flex items-center gap-3">
               <span className="text-[var(--ok)]">{Icons.award}</span>
               <div className="flex-1 min-w-0">
-                <div className="text-[14.5px] font-bold text-[var(--ink)] truncate">
+                <div className="text-[14px] font-bold text-[var(--ink)] truncate">
                   {d.certificate.course_name || 'Certificate'}
                 </div>
                 {d.certificate.certificate_number && (
-                  <div className="text-[12.5px] text-[var(--ink-soft)]">{d.certificate.certificate_number}</div>
+                  <div className="text-[12px] text-[var(--ink-soft)]">{d.certificate.certificate_number}</div>
                 )}
               </div>
               <a href={d.certificate.final_url} target="_blank" rel="noopener noreferrer"
-                className="text-[13.5px] font-bold text-[var(--ok)] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ok)] rounded px-1">
+                className="text-[13px] font-bold text-[var(--ok)] underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ok)] rounded px-1">
                 Open
               </a>
             </div>
@@ -434,8 +434,8 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
         <Label>Your class</Label>
         {d?.batch ? (
           <>
-            <div className="text-[17.5px] font-bold text-[var(--ink)]">{d.batch.name}</div>
-            {d.course && <div className="text-[13.5px] text-[var(--ink-soft)] mt-1">{d.course}</div>}
+            <div className="text-[17px] font-bold text-[var(--ink)]">{d.batch.name}</div>
+            {d.course && <div className="text-[13px] text-[var(--ink-soft)] mt-1">{d.course}</div>}
             <div className="mt-3">
               {d.batch.schedule && <Row label="Schedule" value={d.batch.schedule} />}
               {d.batch.startDate && <Row label="Starts" value={longDate(d.batch.startDate)} />}
@@ -462,10 +462,10 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
               focus-visible:ring-[var(--accent)] hover:bg-[var(--line-soft)] px-1 transition-colors">
             <span className="text-[var(--accent)] shrink-0">{Icons.doc}</span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[14.5px] font-semibold text-[var(--ink)] truncate">{m.name}</span>
-              {m.section && <span className="block text-[12.5px] text-[var(--ink-faint)]">Section {m.section}</span>}
+              <span className="block text-[14px] font-semibold text-[var(--ink)] truncate">{m.name}</span>
+              {m.section && <span className="block text-[12px] text-[var(--ink-faint)]">Section {m.section}</span>}
             </span>
-            <span className="text-[12.5px] font-bold text-[var(--accent)]">Open</span>
+            <span className="text-[12px] font-bold text-[var(--accent)]">Open</span>
           </button>
         ))}
 
@@ -473,8 +473,8 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
           <div key={`locked-${i}`} className="flex items-center gap-3 py-3 border-b border-[var(--line-soft)] last:border-0 opacity-70">
             <span className="text-[var(--ink-faint)] shrink-0">{Icons.lock}</span>
             <span className="flex-1 min-w-0">
-              <span className="block text-[14.5px] font-semibold text-[var(--ink-soft)] truncate">{m.name}</span>
-              <span className="block text-[12.5px] text-[var(--ink-faint)]">
+              <span className="block text-[14px] font-semibold text-[var(--ink-soft)] truncate">{m.name}</span>
+              <span className="block text-[12px] text-[var(--ink-faint)]">
                 Unlocks after {ghs(m.unlockAt || 0)} paid
               </span>
             </span>
@@ -500,9 +500,9 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
               onChange={e => setAmount(e.target.value)}
               placeholder={s?.minTopUp ? String(s.minTopUp) : '0.00'}
               className="w-full h-[52px] px-4 rounded-xl border-2 border-[var(--line)] bg-[var(--paper)]
-                text-[16px] text-[var(--ink)] mb-3 focus:outline-none focus:border-[var(--accent)] transition-colors" />
+                text-[15px] text-[var(--ink)] mb-3 focus:outline-none focus:border-[var(--accent)] transition-colors" />
             {s?.minTopUp ? (
-              <p className="text-[12.5px] text-[var(--ink-faint)] mb-3">
+              <p className="text-[12px] text-[var(--ink-faint)] mb-3">
                 At least {ghs(s.minTopUp)} to unlock the next session. You may pay more.
               </p>
             ) : null}
@@ -516,8 +516,8 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
           {d?.payments?.map((p, i) => (
             <div key={i} className="flex items-center justify-between gap-3 py-3 border-b border-[var(--line-soft)] last:border-0">
               <div className="min-w-0">
-                <div className="text-[14.5px] font-semibold text-[var(--ink)] tabular-nums">{ghs(p.amount)}</div>
-                <div className="text-[12.5px] text-[var(--ink-faint)]">
+                <div className="text-[14px] font-semibold text-[var(--ink)] tabular-nums">{ghs(p.amount)}</div>
+                <div className="text-[12px] text-[var(--ink-faint)]">
                   {longDate(p.created_at)}{p.method ? ` · ${p.method}` : ''}
                 </div>
               </div>
@@ -553,8 +553,8 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
               className="flex items-center gap-3 py-3 min-h-[52px] rounded-lg px-1 hover:bg-[var(--line-soft)]
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] transition-colors">
               <span className="text-[var(--accent)] shrink-0">{Icons.doc}</span>
-              <span className="flex-1 text-[14.5px] font-semibold text-[var(--ink)]">Admission letter</span>
-              <span className="text-[12.5px] font-bold text-[var(--accent)]">Open</span>
+              <span className="flex-1 text-[14px] font-semibold text-[var(--ink)]">Admission letter</span>
+              <span className="text-[12px] font-bold text-[var(--accent)]">Open</span>
             </a>
           ) : (
             <Empty>
@@ -565,7 +565,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
 
         <Card>
           <Label>Signing out</Label>
-          <p className="text-[13.5px] text-[var(--ink-soft)] mb-3.5 leading-relaxed">
+          <p className="text-[13px] text-[var(--ink-soft)] mb-3.5 leading-relaxed">
             You will need your sign-in link to get back in. If you lose it, contact the office.
           </p>
           <Button tone="ghost" onClick={async () => {
@@ -587,17 +587,17 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
       <nav aria-label="Portal sections"
         className="hidden lg:flex lg:flex-col lg:w-64 lg:shrink-0 lg:border-r lg:border-[var(--line)] lg:bg-[var(--paper)] lg:p-4">
         <div className="px-3 py-4 mb-2">
-          <div className="text-[11.5px] uppercase tracking-[0.06em] text-[var(--ink-faint)] font-semibold">
+          <div className="text-[11px] uppercase tracking-[0.06em] text-[var(--ink-faint)] font-semibold">
             Cambridge CE
           </div>
-          <div className="text-[16px] font-semibold text-[var(--ink)] mt-1 leading-snug">
+          <div className="text-[15px] font-semibold text-[var(--ink)] mt-1 leading-snug">
             {d?.student?.name || 'Student portal'}
           </div>
         </div>
         {TABS.map(t => (
           <button key={t.k} onClick={() => setTab(t.k)}
             aria-current={tab === t.k ? 'page' : undefined}
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-[14.5px] font-semibold mb-1
+            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold mb-1
               transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
               ${tab === t.k
                 ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
@@ -609,12 +609,12 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
 
       <div className="flex-1 min-w-0">
         {/* Header */}
-        <header className="bg-gradient-to-br from-[var(--accent)] to-[#125c66] text-white px-5 pt-5 pb-6 lg:pb-5">
+        <header className="bg-[var(--accent)] text-white px-5 pt-5 pb-6 lg:pb-5">
           <div className="max-w-[640px] mx-auto lg:max-w-none">
-            <div className="text-[11.5px] uppercase tracking-[0.05em] opacity-80 lg:hidden">
+            <div className="text-[11px] uppercase tracking-[0.05em] opacity-80 lg:hidden">
               Cambridge Center of Excellence
             </div>
-            <h1 className="text-[22px] font-bold mt-1.5 tracking-[-0.01em] lg:mt-0">
+            <h1 className="text-[20px] font-bold mt-1.5 tracking-[-0.01em] lg:mt-0">
               {tab === 'home' ? `Hello, ${first}` : TITLES[tab]}
             </h1>
             {d?.course && <div className="text-[13px] opacity-90 mt-1">{d.course}</div>}
@@ -641,7 +641,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
                 focus-visible:ring-inset focus-visible:ring-[var(--accent)]
                 ${tab === t.k ? 'text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>
               {t.icon}
-              <span className="text-[10.5px] font-semibold leading-none">{t.label}</span>
+              <span className="text-[11px] font-semibold leading-none">{t.label}</span>
             </button>
           ))}
         </div>

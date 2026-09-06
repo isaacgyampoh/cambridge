@@ -182,15 +182,26 @@ const CATALOGUE: CatalogueEntry[] = [
   ]},
 ]
 
+/*
+ * Sections named for the work, not for the org chart.
+ *
+ * "Growth", "Enrolment" and "Academics" describe departments. Somebody looking
+ * for the import screen does not think "that is a growth function" — they
+ * think "I am working with leads". Grouping by workflow means the label
+ * predicts what is inside it.
+ *
+ * Workspace is unlabelled: it is where you already are, and a heading over the
+ * first two items is decoration.
+ */
 const SECTION_TITLES: Record<string, string | null> = {
   top: null,
-  growth: 'Growth',
-  enrolment: 'Enrolment',
+  growth: 'Workspace',
+  enrolment: 'Admissions',
   finance: 'Finance',
   academics: 'Academics',
-  messaging: 'Messaging',
-  team: 'Team',
-  system: 'Content & system',
+  messaging: 'Communication',
+  team: 'Operations',
+  system: 'Settings',
 }
 
 const SECTION_ORDER = ['top', 'growth', 'enrolment', 'finance', 'academics', 'messaging', 'team', 'system']

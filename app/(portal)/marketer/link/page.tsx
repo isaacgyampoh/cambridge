@@ -120,7 +120,7 @@ export default function MarketerLink() {
     <div className="fade-in w-full">
       <div className="mb-8">
         <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">My work</div>
-        <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">My links</h1>
+        <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">My links</h1>
         <p className="text-[var(--ink-soft)] text-sm mt-1.5">Your registration link is always here. Other links shared by the office appear above it and update automatically.</p>
       </div>
 
@@ -131,7 +131,7 @@ export default function MarketerLink() {
       {sessionJoins.total > 0 && (
         <div className="bg-[var(--accent-soft)] border border-[var(--accent)]/15 rounded-xl p-5 mb-5">
           <div className="flex items-baseline gap-2">
-            <span className="text-[26px] font-semibold text-[var(--accent)]">{sessionJoins.total}</span>
+            <span className="text-[24px] font-semibold text-[var(--accent)]">{sessionJoins.total}</span>
             <span className="text-[14px] text-[var(--ink)]">people joined info sessions through your link</span>
           </div>
           {sessionJoins.sessions.length > 0 && (
@@ -224,7 +224,7 @@ export default function MarketerLink() {
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-5">
             <div className="text-[13px] font-medium text-[var(--ink-faint)]">{s.label}</div>
-            <div className="font-display text-[26px] font-semibold text-[var(--ink)] mt-2 leading-none">{s.value}</div>
+            <div className="font-display text-[24px] font-semibold text-[var(--ink)] mt-2 leading-none">{s.value}</div>
           </div>
         ))}
       </div>

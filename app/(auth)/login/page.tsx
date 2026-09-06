@@ -83,7 +83,7 @@ function PinBoxes({
             color: value[i] ? '#fff' : 'var(--ink)',
             transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
           }}
-          className="w-[clamp(52px,16vw,64px)] h-[clamp(58px,18vw,70px)] text-center text-[24px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
+          className="w-[clamp(52px,16vw,64px)] h-[clamp(58px,18vw,70px)] text-center text-[24px] font-display font-semibold rounded-2xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-[var(--shadow-raised)] focus:ring-4 focus:ring-[var(--accent-soft)]"
         />
       ))}
     </div>
@@ -408,100 +408,58 @@ function LoginForm() {
   }, [])
 
   return (
-    <div className="h-[100dvh] lg:min-h-screen w-full flex overflow-hidden lg:overflow-auto" style={{ background: 'var(--paper)' }}>
+    <div className="min-h-[100dvh] w-full flex" style={{ background: 'var(--canvas)' }}>
 
-      {/* Left panel — branding */}
-      <div className="hidden lg:flex flex-col justify-between flex-1 relative overflow-hidden px-14 py-12"
-        style={{ background: 'linear-gradient(155deg, #14636c 0%, #1a7a85 55%, #17707a 100%)' }}>
-        {/* depth: soft radial glow */}
-        <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 85% 0%, rgba(255,255,255,0.10), transparent 60%)' }} />
-        <div className="absolute -bottom-32 -left-24 w-[420px] h-[420px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(255,255,255,0.05), transparent 70%)' }} />
+      {/*
+        The brand panel.
 
-        {/* top — mark */}
-        <div className="relative">
-          <div className="flex items-center gap-3">
-            <div className="w-12 h-12 rounded-2xl bg-white flex items-center justify-center overflow-hidden p-1 shadow-lg">
-              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
-            </div>
-            <div className="text-white text-[15px] font-semibold tracking-tight">Cambridge Center of Excellence</div>
-          </div>
+        A flat institutional field — no gradient, no radial glow, no decorative
+        arcs. The previous version carried all three plus a marketing paragraph
+        ("Where every lead becomes a graduate"), which is the language of a
+        landing page, not of a tool people sign into forty times a week.
+      */}
+      <aside
+        className="hidden lg:flex flex-col justify-between flex-1 px-14 py-12"
+        style={{ background: 'var(--accent)' }}
+      >
+        <div className="flex items-center gap-3">
+          <span className="w-10 h-10 rounded-lg bg-white grid place-items-center overflow-hidden p-1.5">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
+          </span>
+          <span className="text-white text-[15px] font-semibold tracking-tight">{BRAND.name}</span>
         </div>
 
-        {/* middle — statement */}
-        <div className="relative max-w-md">
-          <div className="text-white/50 text-[13px] font-medium mb-4 tracking-wide uppercase">Staff portal</div>
-          <h1 className="font-display text-white text-[44px] leading-[1.08] font-semibold mb-5 tracking-[-0.02em]">
-            Where every lead becomes a graduate.
-          </h1>
-          <p className="text-white/65 text-[15px] leading-relaxed">
-            One place for your team to nurture leads, register students, track admissions and manage the work — built around how Cambridge actually runs.
+        <div className="max-w-sm">
+          <p className="text-white/60 t-overline mb-3">{BRAND.portalName}</p>
+          <p className="text-white text-[17px] leading-snug">
+            Leads, registrations, admissions and fees for {BRAND.shortName}.
           </p>
         </div>
 
-        {/* bottom — quiet feature line */}
-        <div className="relative flex items-center gap-5 text-white/55 text-[13px] font-medium">
-          <span>CRM &amp; pipeline</span>
-          <span className="w-1 h-1 rounded-full bg-white/30" />
-          <span>Admissions</span>
-          <span className="w-1 h-1 rounded-full bg-white/30" />
-          <span>Finance</span>
-          <span className="w-1 h-1 rounded-full bg-white/30" />
-          <span>Messaging</span>
-        </div>
-      </div>
+        <p className="text-white/45 text-[12px]">
+          Authorised staff only.
+        </p>
+      </aside>
 
-      {/* Right panel — login */}
-      <div className="relative flex flex-col items-center flex-1 px-6 pt-[calc(46vh-47px)] pb-8 lg:pt-10 lg:justify-center overflow-hidden" style={{ background: 'var(--canvas)' }}>
-        {/* ── Mobile: a composed brand canvas. Everything is anchored to the
-             badge so it reads as deliberate, not as a cropped image. ── */}
-        <div className="lg:hidden pointer-events-none absolute inset-0 select-none overflow-hidden" aria-hidden="true">
-          {/* the field */}
-          <div className="absolute inset-x-0 top-0" style={{
-            height: '46%',
-            background: 'linear-gradient(165deg, #0d4a52 0%, #145f68 40%, #1a7a85 100%)',
-          }} />
-          {/* light from the upper right, giving the field depth */}
-          <div className="absolute inset-x-0 top-0" style={{
-            height: '46%',
-            background: 'radial-gradient(135% 90% at 88% -18%, rgba(255,255,255,.22), transparent 58%)',
-          }} />
+      {/* The form. */}
+      <main className="flex-1 flex flex-col items-center justify-center px-5 py-10 sm:py-14">
+        <div className="w-full max-w-[380px]">
 
-          {/* concentric arcs centred exactly on the badge, so the composition
-              radiates from the mark instead of drifting off-screen */}
-          {[168, 250, 340, 440].map((d, i) => (
-            <div key={d} className="absolute rounded-full" style={{
-              width: d, height: d,
-              left: '50%', top: '46%',
-              transform: 'translate(-50%, -50%)',
-              border: `1px solid rgba(255,255,255,${0.16 - i * 0.033})`,
-            }} />
-          ))}
-
-          {/* the sheet */}
-          <div className="absolute inset-x-0 bottom-0" style={{
-            top: '46%',
-            background: 'var(--paper)',
-            borderTopLeftRadius: 30, borderTopRightRadius: 30,
-            boxShadow: '0 -14px 34px -16px rgba(7,42,47,.32)',
-          }} />
-        </div>
-
-        <div className="relative w-full max-w-[360px] text-center lg:text-left">
-
-          {/* Mobile logo */}
-          <div className="lg:hidden mb-7 flex flex-col items-center">
-            <div className="w-[94px] h-[94px] rounded-full bg-white flex items-center justify-center p-3 mb-4"
-              style={{ boxShadow: '0 14px 34px -12px rgba(9,52,58,.45), 0 0 0 1px rgba(9,52,58,.06)' }}>
-              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
-            </div>
-            <h1 className="font-display text-[var(--ink)] text-[20px] font-semibold leading-snug px-4 text-center">Cambridge Center of Excellence</h1>
-            <p className="text-[var(--ink-faint)] text-[13px] mt-1">Staff portal</p>
+          {/* On a phone the brand is a mark and a name, nothing more. */}
+          <div className="lg:hidden flex flex-col items-center mb-9">
+            <span className="w-14 h-14 rounded-xl bg-[var(--paper)] border border-[var(--line)] grid place-items-center p-2.5 mb-3">
+              {/* eslint-disable-next-line @next/next/no-img-element */}
+              <img src={BRAND.logo} alt="" aria-hidden="true" className="w-full h-full object-contain" />
+            </span>
+            <h1 className="t-title text-center">{BRAND.name}</h1>
+            <p className="t-meta mt-1">{BRAND.portalName}</p>
           </div>
 
           {step === 'pin' && (
             <>
               <div className="mb-8">
-                <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Welcome back</h2>
+                <h2 className="t-display mb-1.5">Sign in</h2>
                 <p className="text-[var(--ink-soft)] text-sm">
                   Enter your {PIN_LENGTH}-digit PIN to continue.
                 </p>
@@ -567,7 +525,7 @@ function LoginForm() {
           {step === 'otp' && (
             <>
               <div className="mb-8">
-                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Check your email</h2>
+                <h2 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Check your email</h2>
                 <p className="text-[var(--ink-soft)] text-sm">We sent a {OTP_LENGTH}-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
               </div>
 
@@ -590,7 +548,7 @@ function LoginForm() {
                       color: v ? '#fff' : 'var(--ink)',
                       transition: 'background-color 0.15s ease, border-color 0.15s ease, color 0.15s ease',
                     }}
-                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[20px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
+                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[17px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-[var(--shadow-raised)] focus:ring-4 focus:ring-[var(--accent-soft)]"
                   />
                 ))}
               </div>
@@ -645,7 +603,7 @@ function LoginForm() {
           {step === 'recover-pin' && (
             <>
               <div className="mb-8">
-                <h2 className="font-display text-[24px] sm:text-[28px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
+                <h2 className="font-display text-[24px] sm:text-[24px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
                   Reset your PIN
                 </h2>
                 <p className="text-[var(--ink-soft)] text-sm">
@@ -692,7 +650,7 @@ function LoginForm() {
           {step === 'recover-otp' && (
             <>
               <div className="mb-8">
-                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
+                <h2 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
                   Check your email
                 </h2>
                 <p className="text-[var(--ink-soft)] text-sm">
@@ -716,7 +674,7 @@ function LoginForm() {
                       borderColor: v ? 'var(--accent)' : 'var(--line)',
                       color: v ? '#fff' : 'var(--ink)',
                     }}
-                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[20px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-sm focus:ring-4 focus:ring-[var(--accent-soft)]"
+                    className="w-[clamp(38px,11vw,48px)] h-[clamp(50px,14vw,58px)] text-center text-[17px] font-display font-semibold rounded-xl border-2 focus:outline-none focus:border-[var(--accent)] caret-transparent shadow-[var(--shadow-raised)] focus:ring-4 focus:ring-[var(--accent-soft)]"
                   />
                 ))}
               </div>
@@ -747,7 +705,7 @@ function LoginForm() {
           {step === 'recover-new' && (
             <>
               <div className="mb-8">
-                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
+                <h2 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
                   Choose a new PIN
                 </h2>
                 <p className="text-[var(--ink-soft)] text-sm">
@@ -795,7 +753,7 @@ function LoginForm() {
           {step === 'set-pin' && (
             <>
               <div className="mb-8">
-                <h2 className="font-display text-[26px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Set your PIN</h2>
+                <h2 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Set your PIN</h2>
                 <p className="text-[var(--ink-soft)] text-sm">Choose a PIN only you know. Four to eight digits — longer is safer.</p>
               </div>
 
@@ -837,7 +795,7 @@ function LoginForm() {
             Cambridge Center of Excellence · {new Date().getFullYear()}
           </p>
         </div>
-      </div>
+      </main>
     </div>
   )
 }

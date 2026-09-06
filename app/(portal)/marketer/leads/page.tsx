@@ -476,7 +476,7 @@ function TransferRequest({ open, onClose }: { open: boolean; onClose: () => void
                     {found.full_name}
                   </div>
                   {found.owner && (
-                    <div className="text-[12.5px] text-[var(--ink-faint)] truncate">
+                    <div className="text-[12px] text-[var(--ink-faint)] truncate">
                       Currently with {found.owner}
                     </div>
                   )}

@@ -34,18 +34,18 @@ export default function FlyerLanding({ params }: { params: Promise<{ id: string 
     <div className="min-h-screen" style={{ background: 'var(--canvas)' }}>
       <div className="max-w-md mx-auto px-4 py-8">
         {/* Flyer image */}
-        <div className="rounded-2xl overflow-hidden border border-[var(--line)] shadow-[0_4px_24px_rgba(26,34,48,0.08)] mb-5 bg-white">
+        <div className="rounded-2xl overflow-hidden border border-[var(--line)] shadow-[var(--shadow-raised)] mb-5 bg-white">
           <img src={flyer.image_url} alt={flyer.title || 'Cambridge Center of Excellence'} className="w-full object-contain" />
         </div>
 
         {done ? (
           <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 text-center">
-            <h2 className="font-display text-[20px] font-semibold text-[var(--ink)]">Thank you!</h2>
+            <h2 className="font-display text-[17px] font-semibold text-[var(--ink)]">Thank you!</h2>
             <p className="text-[14px] text-[var(--ink-soft)] mt-2">{flyer.marketer_name || 'A course advisor'} will reach out to you shortly with all the details.</p>
           </div>
         ) : mode === 'choose' ? (
           <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
-            <h1 className="font-display text-[20px] font-semibold text-[var(--ink)]">{flyer.title || 'Cambridge Center of Excellence'}</h1>
+            <h1 className="font-display text-[17px] font-semibold text-[var(--ink)]">{flyer.title || 'Cambridge Center of Excellence'}</h1>
             <p className="text-[14px] text-[var(--ink-soft)] mt-1.5 mb-5">{flyer.course ? `Interested in ${flyer.course}? ` : ''}Choose how you'd like to continue.</p>
             <div className="space-y-2.5">
               <button onClick={() => setMode('interest')}
@@ -62,7 +62,7 @@ export default function FlyerLanding({ params }: { params: Promise<{ id: string 
           </div>
         ) : (
           <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6">
-            <h2 className="font-display text-[18px] font-semibold text-[var(--ink)] mb-1">Leave your details</h2>
+            <h2 className="font-display text-[17px] font-semibold text-[var(--ink)] mb-1">Leave your details</h2>
             <p className="text-[13px] text-[var(--ink-soft)] mb-4">{flyer.marketer_name || 'Our team'} will reach out to you.</p>
             <div className="space-y-3">
               <Field label="Full name" value={form.full_name} onChange={v => setForm(f => ({ ...f, full_name: v }))} placeholder="Your name" />

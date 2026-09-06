@@ -1,33 +1,118 @@
 @import "tailwindcss";
 
-/* ─────────────────────────────────────────────
-   Design tokens — Cambridge Center of Excellence
-   A restrained institutional system.
-   ───────────────────────────────────────────── */
-:root {
-  --ink:        #1a2230;   /* primary text — soft near-black */
-  --ink-soft:   #5a6675;   /* secondary text — calm gray */
-  --ink-faint:  #97a1b0;   /* tertiary / captions */
-  --line:       #eaedf1;   /* hairline borders — very light */
-  --line-soft:  #f2f4f7;   /* subtle dividers */
-  --paper:      #ffffff;   /* cards */
-  --canvas:     #fafbfc;   /* page background — clean near-white */
-  --accent:     #1a7a85;   /* muted teal — calm, modern */
-  --accent-ink: #ffffff;
-  --accent-soft:#e7f3f4;   /* accent tint backgrounds */
-  --gold:       #b08a3e;   /* refined antique gold — honours only */
-  --gold-soft:  #f6efe1;
+/* ═════════════════════════════════════════════════════════════════════════
+   CAMBRIDGE — DESIGN TOKENS
+   
+   One scale for everything. The interface previously used sixteen distinct
+   arbitrary font sizes (13px, 13.5px, 12.5px, 10.5px …) and eight border
+   radii, each picked per component. That absence of a system is what makes an
+   interface read as generated rather than designed: nothing lines up, because
+   nothing was ever measured against anything else.
+   
+   Hierarchy here comes from type, weight and space — not from colour. A screen
+   should be legible in greyscale.
+   ═════════════════════════════════════════════════════════════════════════ */
 
-  /* Muted semantic status — soft pills, nothing bright */
-  --ok:         #2f7a5a;
-  --ok-soft:    #e9f2ed;
-  --warn:       #b07d2b;
-  --warn-soft:  #f7f0e2;
-  --danger:     #b3453e;
-  --danger-soft:#f7eae9;
-  --info:       #1a7a85;
-  --info-soft:  #e7f3f4;
+:root {
+  /* ── Neutrals ────────────────────────────────────────────────────────────
+     A single cool-grey ramp. Text sits at three weights of emphasis and no
+     more; a fourth invariably becomes decoration. */
+  --ink:        #16202e;   /* primary text */
+  --ink-soft:   #56616f;   /* secondary text, descriptions */
+  --ink-faint:  #8b95a3;   /* metadata, captions, disabled */
+
+  --line:       #e4e8ed;   /* hairline borders */
+  --line-soft:  #f0f2f5;   /* dividers inside a surface */
+  --paper:      #ffffff;   /* raised surface */
+  --canvas:     #f8f9fb;   /* page ground */
+
+  /* ── Brand ───────────────────────────────────────────────────────────────
+     ONE brand colour. It marks the primary action, the current location, and
+     nothing else. A second accent exists only for honours and certificates,
+     where the institution genuinely means something different. */
+  --accent:      #14636c;
+  --accent-hover:#0f4f57;
+  --accent-ink:  #ffffff;
+  --accent-soft: #e8f1f2;
+  --accent-line: #b9d5d8;
+
+  --gold:       #96742f;
+  --gold-soft:  #f5efe3;
+
+  /* ── Semantic ────────────────────────────────────────────────────────────
+     Reserved for state. Never for categorising features — a screen where
+     every module has its own colour is a screen with no hierarchy. */
+  --ok:          #2c6b4f;
+  --ok-soft:     #e9f1ec;
+  --warn:        #96682a;
+  --warn-soft:   #f6efe3;
+  --danger:      #a63d37;
+  --danger-soft: #f7eae9;
+  --info:        var(--accent);
+  --info-soft:   var(--accent-soft);
+
+  /* ── Type scale ──────────────────────────────────────────────────────────
+     Eight steps, and every one has a job. A page title is 24px, not 32:
+     confidence in an administrative tool comes from restraint, not size. */
+  --text-display: 24px;   /* page title */
+  --text-title:   17px;   /* section title, dialog title */
+  --text-lead:    15px;   /* page description, emphasised body */
+  --text-body:    14px;   /* default */
+  --text-sub:     13px;   /* secondary, table cells, dense UI */
+  --text-meta:    12px;   /* metadata, captions, helper text */
+  --text-micro:   11px;   /* labels, badges, overlines */
+
+  --leading-tight: 1.25;
+  --leading-snug:  1.4;
+  --leading-body:  1.55;
+
+  /* ── Spacing ─────────────────────────────────────────────────────────────
+     A 4px grid. Anything not on it is a mistake, not a decision. */
+  --space-1: 4px;
+  --space-2: 8px;
+  --space-3: 12px;
+  --space-4: 16px;
+  --space-5: 20px;
+  --space-6: 24px;
+  --space-8: 32px;
+  --space-10: 40px;
+
+  /* ── Radius ──────────────────────────────────────────────────────────────
+     Three values. Controls, surfaces, and circles. Eight different radii is
+     how an interface stops looking deliberate. */
+  --radius-control: 8px;   /* buttons, inputs, badges, menu items */
+  --radius-surface: 12px;  /* cards, dialogs, panels */
+  --radius-full:    999px; /* avatars, dots */
+
+  /* ── Elevation ───────────────────────────────────────────────────────────
+     Borders carry structure; shadow is used sparingly and only where
+     something genuinely floats above the page. */
+  --shadow-raised:  0 1px 2px rgba(22, 32, 46, 0.04);
+  --shadow-overlay: 0 8px 28px -8px rgba(22, 32, 46, 0.18);
 }
+
+/* ── Type utilities ────────────────────────────────────────────────────────
+   Named for their role, so a screen asks for "a page title" rather than
+   picking a pixel value and a weight independently of every other screen. */
+.t-display { font-size: var(--text-display); line-height: var(--leading-tight); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
+.t-title   { font-size: var(--text-title);   line-height: var(--leading-snug);  font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
+.t-lead    { font-size: var(--text-lead);    line-height: var(--leading-body);  color: var(--ink-soft); }
+.t-body    { font-size: var(--text-body);    line-height: var(--leading-body);  color: var(--ink); }
+.t-sub     { font-size: var(--text-sub);     line-height: var(--leading-snug);  color: var(--ink-soft); }
+.t-meta    { font-size: var(--text-meta);    line-height: var(--leading-snug);  color: var(--ink-faint); }
+.t-micro   { font-size: var(--text-micro);   line-height: 1.3; font-weight: 600; color: var(--ink-faint); }
+
+/* An overline: the small uppercase label above a group. Used sparingly. */
+.t-overline {
+  font-size: var(--text-micro);
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+/* Figures in tables and metrics line up only if the digits are tabular. */
+.numeric { font-variant-numeric: tabular-nums; }
 
 *, *::before, *::after {
   box-sizing: border-box;

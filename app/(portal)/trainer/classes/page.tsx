@@ -74,7 +74,7 @@ export default function TrainerClasses() {
     <div className="fade-in w-full">
       <div className="mb-8">
         <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Teaching</div>
-        <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Trainer portal</h1>
+        <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Trainer portal</h1>
         <p className="text-[var(--ink-soft)] text-sm mt-1.5">Manage your classes and record attendance.</p>
       </div>
 
@@ -119,10 +119,10 @@ export default function TrainerClasses() {
                     className="h-9 px-3 rounded-xl border border-[var(--line)] text-sm focus:outline-none focus:border-[var(--accent)]" />
                 </div>
 
-                <div className="flex gap-2 mb-3 text-[10px] font-bold text-[var(--ink-faint)]">
+                <div className="flex gap-2 mb-3 text-[11px] font-bold text-[var(--ink-faint)]">
                   {ATT_OPTS.map(o => (
                     <span key={o.key} className="flex items-center gap-1">
-                      <span className={`w-3 h-3 rounded-sm ${o.color}`} />{o.key}
+                      <span className={`w-3 h-3 rounded-lg ${o.color}`} />{o.key}
                     </span>
                   ))}
                 </div>

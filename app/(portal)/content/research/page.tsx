@@ -74,7 +74,7 @@ function StrategyTab() {
           <div className="flex items-center justify-center h-64"><Spinner /></div>
         ) : result ? (
           <div>
-            <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">{resultTitle}</h3>
+            <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">{resultTitle}</h3>
             <div className="text-[14px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed">{result}</div>
           </div>
         ) : (
@@ -129,7 +129,7 @@ function CompetitorsTab() {
               <Card key={c.id} className="p-5">
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <h3 className="font-display text-[16px] font-semibold text-[var(--ink)]">{c.name}</h3>
+                    <h3 className="font-display text-[15px] font-semibold text-[var(--ink)]">{c.name}</h3>
                     {c.handle && <p className="text-[13px] text-[var(--ink-faint)]">{c.handle} · {c.platform}</p>}
                     {c.notes && <p className="text-[13px] text-[var(--ink-soft)] mt-1">{c.notes}</p>}
                     <div className="flex gap-2 mt-3">
@@ -146,7 +146,7 @@ function CompetitorsTab() {
       </div>
 
       <Card className="p-6">
-        <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">Add a competitor</h3>
+        <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">Add a competitor</h3>
         <div className="space-y-3">
           <input className={inputClass} placeholder="Name (e.g. a training institute)" value={form.name} onChange={e => setForm(f => ({ ...f, name: e.target.value }))} />
           <input className={inputClass} placeholder="Handle / page (optional)" value={form.handle} onChange={e => setForm(f => ({ ...f, handle: e.target.value }))} />
@@ -187,7 +187,7 @@ function ShadowTab() {
   return (
     <div className="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
       <Card className="p-6">
-        <h3 className="font-display text-[16px] font-semibold text-[var(--ink)]">Found a post that's working?</h3>
+        <h3 className="font-display text-[15px] font-semibold text-[var(--ink)]">Found a post that's working?</h3>
         <p className="text-[14px] text-[var(--ink-soft)] mt-1 mb-3 leading-relaxed">Paste a competitor's post or ad. You'll get what makes it work, and a stronger Cambridge version — the hook, caption, format and best time to post.</p>
         <textarea value={adText} onChange={e => setAdText(e.target.value)} rows={12} placeholder="Paste the competitor's post or ad copy here…"
           className={inputClass + ' resize-none h-auto py-3'} />

@@ -128,7 +128,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
       </div>
 
       {/* Staff card */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-4 mb-5 flex items-center gap-4 shadow-sm">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-4 mb-5 flex items-center gap-4 shadow-[var(--shadow-raised)]">
         <div className="w-12 h-12 rounded-full bg-[var(--accent)] flex items-center justify-center text-white text-lg font-bold flex-shrink-0">
           {staff.full_name?.charAt(0)}
         </div>
@@ -163,7 +163,7 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         {groups.map(group => {
           const portalsInGroup = group.ids.map(portalOption).filter(Boolean)
           return (
-            <div key={group.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
+            <div key={group.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-[var(--shadow-raised)]">
               <div className="px-4 py-3 border-b border-[var(--line-soft)] bg-[var(--line-soft)]">
                 <span className="text-xs font-bold text-[var(--ink-faint)]">{group.label}</span>
               </div>

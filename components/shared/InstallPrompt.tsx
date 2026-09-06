@@ -27,7 +27,7 @@ export default function InstallPrompt() {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[360px] z-[70] bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-2xl p-4 fade-in">
+    <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[360px] z-[70] bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-[var(--shadow-overlay)] p-4 fade-in">
       <div className="flex items-start gap-3">
         <div className="w-11 h-11 rounded-xl bg-white border border-[var(--line)] flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
           <img src="/brand/logo.png" alt="" className="w-full h-full object-contain" />

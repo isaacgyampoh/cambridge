@@ -120,8 +120,8 @@ export default function KnowledgeBasePage() {
                       <div className="text-sm text-[var(--ink-soft)] mt-1 whitespace-pre-line">{e.answer}</div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
+                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
+                      <button onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
                     </div>
                   </div>
                 </Card>
@@ -146,8 +146,8 @@ export default function KnowledgeBasePage() {
                       <div className="text-sm text-[var(--ink)] whitespace-pre-line">{e.answer}</div>
                     </div>
                     <div className="flex gap-1 flex-shrink-0">
-                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
-                      <button onClick={() => del(e.id)} className="p-1.5 rounded-md text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
+                      <button onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]"></button>
+                      <button onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]"></button>
                     </div>
                   </div>
                 </Card>

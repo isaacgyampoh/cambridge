@@ -194,13 +194,12 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
       <div className="min-h-screen" style={{ background: "var(--canvas)" }}>
         {/* Branded hero */}
-        <div className="relative overflow-hidden" style={{ background: 'linear-gradient(155deg, #14636c 0%, #1a7a85 60%, #17707a 100%)' }}>
-          <div className="absolute inset-0" style={{ background: 'radial-gradient(120% 80% at 85% 0%, rgba(255,255,255,0.10), transparent 60%)' }} />
+        <div className="relative overflow-hidden" style={{ background: 'var(--accent)' }}>
           <div className="relative max-w-2xl mx-auto px-4 pt-10 pb-24 text-center">
-            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-white overflow-hidden p-1.5 shadow-lg">
+            <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-white overflow-hidden p-1.5 shadow-[var(--shadow-overlay)]">
               <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
             </div>
-            <h1 className="font-display text-white text-[26px] sm:text-[30px] font-semibold tracking-[-0.02em]">Cambridge Center of Excellence</h1>
+            <h1 className="font-display text-white text-[24px] sm:text-[24px] font-semibold tracking-[-0.02em]">Cambridge Center of Excellence</h1>
             <p className="text-white/70 text-[15px] mt-2 max-w-md mx-auto leading-relaxed">Take the next step in your career. Complete your registration below to secure your place.</p>
             {marketer && (
               <div className="inline-flex items-center gap-2 mt-4 bg-white/10 rounded-full px-3.5 py-1.5">
@@ -214,8 +213,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
         <div className="max-w-2xl mx-auto px-4 -mt-16 pb-14 relative">
 
           {step === 1 && (
-            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] shadow-[0_4px_24px_rgba(26,34,48,0.06)] p-6 lg:p-8">
-              <h2 className="font-display text-[19px] font-semibold text-[var(--ink)] mb-1">Complete your registration</h2>
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] shadow-[var(--shadow-raised)] p-6 lg:p-8">
+              <h2 className="font-display text-[17px] font-semibold text-[var(--ink)] mb-1">Complete your registration</h2>
               <p className="text-[14px] text-[var(--ink-soft)] mb-6">Please fill in your information accurately.</p>
 
               {/* Name */}
@@ -352,7 +351,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               </div>
 
               <button onClick={submitForm} disabled={submitting}
-                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-[1.08] disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-[0_1px_2px_rgba(26,122,133,0.25)]">
+                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-[1.08] disabled:opacity-50 transition flex items-center justify-center gap-2 shadow-[var(--shadow-raised)]">
                 {submitting
                   ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full spin" />Submitting…</>
                   : form.payment_method === 'paystack' ? 'Continue to Payment' : 'Submit Application'
@@ -373,7 +372,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
               <p className="text-[var(--ink-faint)] mb-2">Registration fee: <span className="font-bold text-[var(--ink)]">GHS 200</span></p>
               <p className="text-sm text-[var(--ink-faint)] mb-8">Complete payment to submit your application</p>
               <button onClick={payWithPaystack}
-                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-[1.08] transition shadow-[0_1px_2px_rgba(26,122,133,0.25)]">
+                className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-[1.08] transition shadow-[var(--shadow-raised)]">
                 Pay GHS 200 via Paystack
               </button>
               <p className="text-xs text-[var(--ink-faint)] mt-4">Secured by Paystack · Mobile Money & Card accepted</p>
@@ -483,7 +482,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
             <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Amount to pay</label>
             <p className="text-[11px] text-[var(--ink-faint)] mb-2">You can pay all or part of GHS {Number(fee.balance).toFixed(2)}.</p>
             <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full h-12 px-4 rounded-xl border border-[var(--line)] text-[15px] mb-4 outline-none" />
-            <button onClick={payMomo} disabled={busy} className={btn + " mb-2.5"} style={{ background: '#ffcc00', color: '#1a2230' }}>Mobile Money (MoMo)</button>
+            <button onClick={payMomo} disabled={busy} className={btn + " mb-2.5"} style={{ background: '#ffcc00', color: 'var(--ink)' }}>Mobile Money (MoMo)</button>
             <button onClick={() => setView('bank')} className={btn + " text-white"} style={{ background: '#1e3a8a' }}>Bank transfer</button>
           </>
         ) : view === 'bank' ? (
@@ -516,7 +515,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
               </>
             ) : (
               <>
-                <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">All set, {firstName}!</h2>
+                <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">Registration received, {firstName}</h2>
                 <p className="text-sm text-[var(--ink-soft)]">You can pay your fees anytime. Our team will share the details.</p>
               </>
             )}

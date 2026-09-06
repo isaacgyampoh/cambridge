@@ -151,12 +151,12 @@ export default function SmsDeliveryPage() {
               tone: health.retrying > 0 ? 'text-[var(--warn)]' : undefined },
           ].map(stat => (
             <Card key={stat.label} className="p-4">
-              <div className={`font-display text-[26px] leading-none font-semibold tabular-nums
+              <div className={`font-display text-[24px] leading-none font-semibold tabular-nums
                 ${stat.tone || 'text-[var(--ink)]'}`}>
                 {stat.value}
               </div>
-              <div className="text-[12.5px] text-[var(--ink-soft)] mt-1.5">{stat.label}</div>
-              <div className="text-[11.5px] text-[var(--ink-faint)] mt-0.5 leading-snug">{stat.sub}</div>
+              <div className="text-[12px] text-[var(--ink-soft)] mt-1.5">{stat.label}</div>
+              <div className="text-[11px] text-[var(--ink-faint)] mt-0.5 leading-snug">{stat.sub}</div>
             </Card>
           ))}
         </div>
@@ -233,11 +233,11 @@ export default function SmsDeliveryPage() {
 
             <div className="mb-4"><StatusBadge domain="sms" value={row.status} /></div>
 
-            <p className="text-[14.5px] text-[var(--ink)] leading-relaxed mb-4">{row.diagnosis}</p>
+            <p className="text-[14px] text-[var(--ink)] leading-relaxed mb-4">{row.diagnosis}</p>
 
             <div className="rounded-xl bg-[var(--canvas)] border border-[var(--line)] p-3 mb-4">
               <div className="text-[12px] font-medium text-[var(--ink-faint)] mb-1">The message itself</div>
-              <p className="text-[13.5px] text-[var(--ink-soft)] leading-relaxed whitespace-pre-wrap break-words">
+              <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed whitespace-pre-wrap break-words">
                 {row.message}
               </p>
             </div>

@@ -138,7 +138,7 @@ export default function PMAssign() {
       key: 'assign', header: 'Assign to',
       render: l => l.assignee ? (
         <span className="flex items-center gap-1.5">
-          <span className="w-5 h-5 rounded-full bg-[var(--accent)] grid place-items-center text-white text-[9px] font-bold shrink-0">
+          <span className="w-5 h-5 rounded-full bg-[var(--accent)] grid place-items-center text-white text-[11px] font-bold shrink-0">
             {l.assignee.full_name?.charAt(0)}
           </span>
           <span className="text-[var(--ink-soft)]">{l.assignee.full_name?.split(' ')[0]}</span>
@@ -171,7 +171,7 @@ export default function PMAssign() {
       <div className="flex flex-col sm:flex-row sm:items-end justify-between gap-4 mb-8">
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Pipeline</div>
-          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Lead inbox</h1>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Lead inbox</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Manage and assign incoming leads.</p>
         </div>
         <div className="flex gap-2 flex-shrink-0">
@@ -199,7 +199,7 @@ export default function PMAssign() {
               <div className={`text-[13px] font-medium ${s.accent ? 'text-white/70' : 'text-[var(--ink-faint)]'}`}>{s.label}</div>
               <s.icon size={17} className={s.accent ? 'text-white/50' : 'text-[var(--ink-faint)]'} />
             </div>
-            <div className={`font-display text-[28px] font-semibold mt-3 leading-none ${s.accent ? 'text-white' : 'text-[var(--ink)]'}`}>{s.value}</div>
+            <div className={`font-display text-[24px] font-semibold mt-3 leading-none ${s.accent ? 'text-white' : 'text-[var(--ink)]'}`}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -212,14 +212,14 @@ export default function PMAssign() {
           { key: 'all', label: `All (${stats.total})` },
         ].map(f => (
           <button key={f.key} onClick={() => setFilter(f.key as any)}
-            className={`px-4 h-8 rounded-md text-[13px] font-medium transition ${filter===f.key?'bg-white text-[var(--ink)] shadow-sm':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-8 rounded-lg text-[13px] font-medium transition ${filter===f.key?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {f.label}
           </button>
         ))}
       </div>
 
       {/* Table */}
-      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-[var(--shadow-raised)]">
         {loading ? (
           <div className="flex justify-center py-16">
             <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />

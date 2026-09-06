@@ -102,10 +102,10 @@ export function DataTable<T>({
                 <dl className="mt-3 grid grid-cols-2 gap-x-3 gap-y-2">
                   {details.map(col => (
                     <div key={col.key} className="min-w-0">
-                      <dt className="text-[10.5px] uppercase tracking-[0.08em] text-[var(--ink-faint)] font-semibold">
+                      <dt className="text-[11px] uppercase tracking-[0.08em] text-[var(--ink-faint)] font-semibold">
                         {col.header}
                       </dt>
-                      <dd className="text-[13.5px] text-[var(--ink)] mt-0.5 truncate">
+                      <dd className="text-[13px] text-[var(--ink)] mt-0.5 truncate">
                         {col.render(row)}
                       </dd>
                     </div>
@@ -142,7 +142,7 @@ export function DataTable<T>({
             <tr className="border-b border-[var(--line)]">
               {columns.map(col => (
                 <th key={col.key} scope="col"
-                  className={`px-4 py-3 text-[10.5px] font-semibold uppercase tracking-[0.08em]
+                  className={`px-4 py-3 text-[11px] font-semibold uppercase tracking-[0.08em]
                     text-[var(--ink-faint)] whitespace-nowrap
                     ${col.numeric ? 'text-right' : 'text-left'}`}>
                   {col.header}

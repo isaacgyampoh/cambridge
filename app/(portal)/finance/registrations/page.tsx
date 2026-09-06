@@ -139,7 +139,7 @@ export default function FinanceRegistrations() {
                       <span className="font-semibold text-[var(--ink)]">{formatGHS(m.unpaidCommission)}</span>
                     </div>
                     <button onClick={() => markPaid(m.id, m.name, m.unpaidCommission)} disabled={payingId === m.id}
-                      className="inline-flex items-center gap-1 h-7 px-2.5 rounded-md bg-[var(--accent)] text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition">
+                      className="inline-flex items-center gap-1 h-7 px-2.5 rounded-lg bg-[var(--accent)] text-white text-xs font-medium hover:brightness-110 disabled:opacity-50 transition">
                        {payingId === m.id ? 'Saving…' : 'Mark paid'}
                     </button>
                   </>

@@ -5,10 +5,10 @@ import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 
 const KINDS = [
-  { value: 'tip', label: 'Exam tip', emoji: '💡' },
-  { value: 'question', label: 'Practice question', emoji: '📝' },
+  { value: 'tip', label: 'Exam tip' },
+  { value: 'question', label: 'Practice question' },
   { value: 'exam_info', label: 'Exam information', emoji: 'ℹ️' },
-  { value: 'encouragement', label: 'Encouragement', emoji: '🌟' },
+  { value: 'encouragement', label: 'Encouragement' },
 ]
 
 export default function PrepContentPage() {
@@ -87,7 +87,7 @@ export default function PrepContentPage() {
         <div className="flex gap-1 mb-5 bg-[var(--line-soft)] rounded-xl p-1 w-fit">
           {programs.map(p => (
             <button key={p.code} onClick={() => setProgram(p.code)}
-              className={`px-4 py-2 rounded-lg text-[14px] font-medium transition ${program === p.code ? 'bg-[var(--paper)] text-[var(--ink)] shadow-sm' : 'text-[var(--ink-soft)]'}`}>
+              className={`px-4 py-2 rounded-lg text-[14px] font-medium transition ${program === p.code ? 'bg-[var(--paper)] text-[var(--ink)] shadow-[var(--shadow-raised)]' : 'text-[var(--ink-soft)]'}`}>
               {p.name}
             </button>
           ))}

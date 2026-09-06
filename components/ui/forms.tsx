@@ -25,11 +25,11 @@ import { Search as SearchIcon, X, ChevronDown, Eye, EyeOff } from 'lucide-react'
    ───────────────────────────────────────────── */
 
 const base =
-  'w-full rounded-xl border bg-white text-[var(--ink)] placeholder:text-[var(--ink-faint)] ' +
+  'w-full rounded-lg border bg-white text-[var(--ink)] placeholder:text-[var(--ink-faint)] ' +
   'transition-shadow focus:outline-none focus:ring-4 disabled:opacity-60 disabled:bg-[var(--canvas)]'
 
 /** 16px on phones is not a style choice: iOS zooms the page in below it. */
-const sizing = 'h-12 sm:h-11 px-4 sm:px-3.5 text-[16px] sm:text-[14px]'
+const sizing = 'h-12 sm:h-11 px-4 sm:px-3.5 text-[15px] sm:text-[14px]'
 
 const ok = 'border-[var(--line)] focus:border-[var(--accent)] focus:ring-[var(--accent-soft)]'
 const bad = 'border-[var(--danger)] focus:border-[var(--danger)] focus:ring-[var(--danger-soft)]'
@@ -86,7 +86,7 @@ function FieldShell({
       </label>
 
       {chrome.hint && !chrome.error && (
-        <p id={hintId} className="text-[12.5px] text-[var(--ink-faint)] mb-1.5 leading-snug">
+        <p id={hintId} className="text-[12px] text-[var(--ink-faint)] mb-1.5 leading-snug">
           {chrome.hint}
         </p>
       )}
@@ -97,7 +97,7 @@ function FieldShell({
         // role="alert" so the reason is announced when it appears, rather than
         // being silent text next to a field the user has already left.
         <p id={errorId} role="alert"
-          className="text-[12.5px] text-[var(--danger)] mt-1.5 leading-snug">
+          className="text-[12px] text-[var(--danger)] mt-1.5 leading-snug">
           {chrome.error}
         </p>
       )}
@@ -260,10 +260,10 @@ export function Textarea({
         required={chrome.required}
         aria-invalid={chrome.error ? true : undefined}
         aria-describedby={describedBy}
-        className={`${base} ${chrome.error ? bad : ok} px-4 sm:px-3.5 py-3 text-[16px] sm:text-[14px] leading-relaxed resize-y`}
+        className={`${base} ${chrome.error ? bad : ok} px-4 sm:px-3.5 py-3 text-[15px] sm:text-[14px] leading-relaxed resize-y`}
       />
       {maxLength && (
-        <p className="text-[11.5px] text-[var(--ink-faint)] mt-1 text-right tabular-nums">
+        <p className="text-[11px] text-[var(--ink-faint)] mt-1 text-right tabular-nums">
           {value.length}/{maxLength}
         </p>
       )}
@@ -353,7 +353,7 @@ export function Search({
         onKeyDown={e => { if (e.key === 'Enter' && onSubmit) onSubmit() }}
         placeholder={placeholder}
         autoFocus={autoFocus}
-        className={`${base} ${ok} h-12 sm:h-11 pl-10 ${value ? 'pr-12' : 'pr-4'} text-[16px] sm:text-[14px]
+        className={`${base} ${ok} h-12 sm:h-11 pl-10 ${value ? 'pr-12' : 'pr-4'} text-[15px] sm:text-[14px]
           [&::-webkit-search-cancel-button]:hidden`}
       />
       {value && (

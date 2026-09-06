@@ -89,7 +89,7 @@ export default function BrandKit() {
         {/* RIGHT: brand assets */}
         <Card className="p-6">
           <div className="mb-4 flex items-center justify-between">
-            <h2 className="font-display font-semibold text-[var(--ink)] text-[16px]">Brand assets</h2>
+            <h2 className="font-display font-semibold text-[var(--ink)] text-[15px]">Brand assets</h2>
             <div className="w-44"><FileUpload onUploaded={addAsset} label="Add logo / graphic" folder="cce/brand" /></div>
           </div>
 

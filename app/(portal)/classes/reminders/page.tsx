@@ -96,7 +96,7 @@ export default function ClassReminders() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)]">{r.batch?.name || 'Class'}</h3>
+                          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)]">{r.batch?.name || 'Class'}</h3>
                           <Badge tone={r.status === 'sent' ? 'success' : r.status === 'cancelled' ? 'danger' : 'accent'}>{readableStatus(r.status)}</Badge>
                         </div>
                         <p className="text-[13px] text-[var(--ink-soft)] mt-1">Class: {when}</p>
@@ -118,7 +118,7 @@ export default function ClassReminders() {
         </div>
 
         <Card className="p-6">
-          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">Schedule a reminder</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">Schedule a reminder</h3>
           {batches.length === 0 ? (
             <p className="text-[14px] text-[var(--ink-soft)]">No active classes with a Zoom link. Add a Zoom link to a class first.</p>
           ) : (

@@ -70,7 +70,7 @@ export default function MyFlyers() {
       <div className="grid grid-cols-1 lg:grid-cols-[340px_minmax(0,1fr)] gap-5 items-start">
         {/* Upload */}
         <Card className="p-6">
-          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">Upload a flyer</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">Upload a flyer</h3>
           <div className="space-y-3">
             <input className={inputClass} placeholder="Title (e.g. PMP March Intake)" value={form.title} onChange={e => setForm(f => ({ ...f, title: e.target.value }))} />
             <select className={inputClass} value={form.course} onChange={e => setForm(f => ({ ...f, course: e.target.value }))}>

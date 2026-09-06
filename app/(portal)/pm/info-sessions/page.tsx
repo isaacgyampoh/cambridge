@@ -101,7 +101,7 @@ export default function InfoSessions() {
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
                         <div className="flex items-center gap-2">
-                          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)]">{s.title}</h3>
+                          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)]">{s.title}</h3>
                           <Badge tone={s.status === 'sent' ? 'success' : s.status === 'cancelled' ? 'danger' : 'accent'}>{readableStatus(s.status)}</Badge>
                         </div>
                         <p className="text-[13px] text-[var(--ink-soft)] mt-1">Session: {when}</p>
@@ -125,7 +125,7 @@ export default function InfoSessions() {
           {/* Attendance leaderboard — who drove the most joins */}
           {attendance.length > 0 && (
             <div className="mt-6">
-              <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-3">Who drove attendance</h3>
+              <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-3">Who drove attendance</h3>
               <div className="space-y-3">
                 {attendance.map((sess: any) => (
                   <Card key={sess.session_id} className="p-5">
@@ -158,7 +158,7 @@ export default function InfoSessions() {
 
         {/* Schedule form */}
         <Card className="p-6">
-          <h3 className="font-display text-[16px] font-semibold text-[var(--ink)] mb-4">Schedule a session</h3>
+          <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">Schedule a session</h3>
           <div className="space-y-4">
             <Field label="Title"><input className={inputClass} placeholder="PMP Info Session" value={form.title} onChange={e => set('title', e.target.value)} /></Field>
             <Field label="Meeting link"><input className={inputClass} placeholder="https://zoom.us/j/..." value={form.link} onChange={e => set('link', e.target.value)} /></Field>

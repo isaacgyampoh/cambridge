@@ -144,14 +144,14 @@ export default function ConversionsPage() {
                         <div className="absolute bottom-0 left-0 right-0 rounded-t bg-[var(--accent)]" style={{ height: `${m.leads ? (m.registered/m.leads)*100 : 0}%` }} title={`${m.registered} registered`} />
                       </div>
                     </div>
-                    <span className="text-[10px] text-[var(--ink-faint)]">{m.label}</span>
+                    <span className="text-[11px] text-[var(--ink-faint)]">{m.label}</span>
                   </div>
                 )
               })}
             </div>
             <div className="flex items-center gap-4 mt-4 text-xs text-[var(--ink-soft)]">
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[var(--accent-soft)]" /> Leads</span>
-              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-sm bg-[var(--accent)]" /> Registered</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-lg bg-[var(--accent-soft)]" /> Leads</span>
+              <span className="flex items-center gap-1.5"><span className="w-3 h-3 rounded-lg bg-[var(--accent)]" /> Registered</span>
             </div>
           </Card>
         </>

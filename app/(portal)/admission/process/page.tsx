@@ -67,7 +67,7 @@ export default function AdmissionProcess() {
       <div className="flex items-center justify-between mb-8">
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Admissions</div>
-          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Admissions</h1>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Admissions</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Process and track student admissions.</p>
         </div>
         <button onClick={() => { refetchA(); refetchApp() }}
@@ -86,7 +86,7 @@ export default function AdmissionProcess() {
         ].map(s => (
           <div key={s.label} className="bg-[var(--paper)] rounded-xl p-5 border border-[var(--line)]">
             <div className="text-[13px] font-medium text-[var(--ink-faint)]">{s.label}</div>
-            <div className={`font-display text-[28px] font-semibold mt-2 leading-none ${s.tone}`}>{s.value}</div>
+            <div className={`font-display text-[24px] font-semibold mt-2 leading-none ${s.tone}`}>{s.value}</div>
           </div>
         ))}
       </div>
@@ -95,7 +95,7 @@ export default function AdmissionProcess() {
       <div className="flex gap-1 mb-4 bg-[var(--line-soft)] rounded-lg p-1 w-fit">
         {[{k:'admissions',l:`Admissions (${admissions.length})`},{k:'applications',l:`Applications (${applications.length})`}].map(t => (
           <button key={t.k} onClick={() => setTab(t.k as any)}
-            className={`px-4 h-8 rounded-md text-[13px] font-medium transition ${tab===t.k?'bg-white text-[var(--ink)] shadow-sm':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+            className={`px-4 h-8 rounded-lg text-[13px] font-medium transition ${tab===t.k?'bg-white text-[var(--ink)] shadow-[var(--shadow-raised)]':'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
             {t.l}
           </button>
         ))}
@@ -130,7 +130,7 @@ export default function AdmissionProcess() {
                 const sc = S[a.status] || S.pending
                 const isActing = acting === a.id
                 return (
-                  <div key={a.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-4 shadow-sm hover:shadow-md transition-shadow">
+                  <div key={a.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-4 shadow-[var(--shadow-raised)] hover:shadow-[var(--shadow-raised)] transition-shadow">
                     <div className="flex items-start justify-between mb-3">
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1 flex-wrap">
@@ -140,14 +140,14 @@ export default function AdmissionProcess() {
                               that decides which letter goes out was not on it. */}
                           <StatusBadge domain="classMode" value={a.class_mode} size="sm" showDot />
                           {a.admission_number && (
-                            <span className="text-[10px] font-mono bg-[var(--line-soft)] text-[var(--ink-faint)] px-1.5 py-0.5 rounded">{a.admission_number}</span>
+                            <span className="text-[11px] font-mono bg-[var(--line-soft)] text-[var(--ink-faint)] px-1.5 py-0.5 rounded">{a.admission_number}</span>
                           )}
                         </div>
                         <div className="text-xs text-[var(--ink-faint)]">{lead?.phone} {lead?.email ? `· ${lead.email}` : ''}</div>
                         {(a.course?.name || lead?.course_interest) && (
                           <div className="text-xs text-[var(--accent)] font-medium mt-0.5"> {a.course?.name || lead?.course_interest}</div>
                         )}
-                        <div className="text-[10px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)}</div>
+                        <div className="text-[11px] text-[var(--ink-faint)] mt-1">{formatDateTime(a.created_at)}</div>
                       </div>
                       <span className={`text-[12px] font-bold px-2.5 py-1 rounded-full ml-3 flex-shrink-0 ${sc.color}`}>
                         {sc.label}
@@ -194,7 +194,7 @@ export default function AdmissionProcess() {
       )}
 
       {tab === 'applications'&& (
-        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-sm">
+        <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-[var(--shadow-raised)]">
           {loadApp ? (
             <div className="flex justify-center py-16">
               <div className="w-6 h-6 border-2 border-[var(--accent)] border-t-transparent rounded-full animate-spin" />

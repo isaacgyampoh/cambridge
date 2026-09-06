@@ -39,7 +39,7 @@ export default function ReceptionistDashboard() {
       <div className="flex items-center justify-between mb-5">
         <div>
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">Front desk</div>
-          <h1 className="font-display text-[28px] leading-tight font-semibold text-[var(--ink)]">Class reminders</h1>
+          <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Class reminders</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">Send personalised reminders in each marketer's name.</p>
         </div>
         <button onClick={refetch} className="h-10 w-10 flex items-center justify-center bg-white border border-[var(--line)] text-[var(--ink-soft)] rounded-lg hover:border-[var(--ink-faint)] transition">
@@ -66,7 +66,7 @@ export default function ReceptionistDashboard() {
             const trainer = (batch as any).profiles
             const days = batch.start_date ? daysUntil(batch.start_date) : null
             return (
-              <div key={batch.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-sm">
+              <div key={batch.id} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
                 <div className="flex items-start justify-between mb-4">
                   <div>
                     <h3 className="font-semibold text-[var(--ink)]">{batch.name}</h3>

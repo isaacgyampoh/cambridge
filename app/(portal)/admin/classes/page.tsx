@@ -275,7 +275,7 @@ export default function ClassesPage() {
                   <button onClick={() => removeClass(b)}
                     className="text-[12px] font-semibold text-[var(--danger)] px-2 py-1.5">Delete</button>
                   <select value={b.status} onChange={e => updateStatus(b.id, e.target.value)}
-                    className="text-[12px] font-semibold px-2.5 py-1.5 rounded-md border border-[var(--line)] bg-white text-[var(--ink-soft)] focus:outline-none focus:border-[var(--accent)] cursor-pointer flex-shrink-0">
+                    className="text-[12px] font-semibold px-2.5 py-1.5 rounded-lg border border-[var(--line)] bg-white text-[var(--ink-soft)] focus:outline-none focus:border-[var(--accent)] cursor-pointer flex-shrink-0">
                     {['upcoming', 'ongoing', 'completed', 'cancelled'].map(s => <option key={s} value={s}>{s}</option>)}
                   </select>
                   </div>

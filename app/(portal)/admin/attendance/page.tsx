@@ -154,7 +154,7 @@ export default function AttendanceDashboard() {
     {
       key: 'type', header: 'Type',
       render: x => (
-        <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full
+        <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full
           ${x.attendance_type === 'online'
             ? 'bg-[var(--gold-soft)] text-[var(--gold)]'
             : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
@@ -171,7 +171,7 @@ export default function AttendanceDashboard() {
     {
       key: 'payment', header: 'Payment',
       render: x => x.payment_status === 'paid' ? (
-        <span className="text-[10px] font-bold bg-[var(--ok-soft)] text-[var(--ok)] px-2 py-0.5 rounded-full">Paid</span>
+        <span className="text-[11px] font-bold bg-[var(--ok-soft)] text-[var(--ok)] px-2 py-0.5 rounded-full">Paid</span>
       ) : x.payment_method === 'cash' ? (
         <button onClick={() => markPaid(x.id)}
           className="text-[11px] font-bold bg-[var(--warn-soft)] text-[var(--warn)] px-2.5 py-1 rounded-full
@@ -180,7 +180,7 @@ export default function AttendanceDashboard() {
           Cash — mark paid
         </button>
       ) : (
-        <span className="text-[10px] font-bold bg-[var(--line-soft)] text-[var(--ink-soft)] px-2 py-0.5 rounded-full">Pending</span>
+        <span className="text-[11px] font-bold bg-[var(--line-soft)] text-[var(--ink-soft)] px-2 py-0.5 rounded-full">Pending</span>
       ),
     },
     {
@@ -267,7 +267,7 @@ export default function AttendanceDashboard() {
                 className={`w-full text-left bg-[var(--paper)] rounded-xl border-2 p-4 transition ${selected?.id === s.id ? 'border-[var(--accent)]': 'border-[var(--line)] hover:border-[var(--line)]'}`}>
                 <div className="flex items-start justify-between mb-1">
                   <div className="text-sm font-semibold text-[var(--ink)] truncate">{s.batches?.name}</div>
-                  <span className={`text-[10px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
+                  <span className={`text-[11px] font-bold px-2 py-0.5 rounded-full ml-2 flex-shrink-0 ${s.signin_open ? 'bg-[var(--ok-soft)] text-[var(--ok)]': 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
                     {s.signin_open ? 'OPEN': 'CLOSED'}
                   </span>
                 </div>

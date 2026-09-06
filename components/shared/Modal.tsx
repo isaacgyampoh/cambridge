@@ -54,7 +54,7 @@ export default function Modal({
       style={{ backgroundColor: 'rgba(0,0,0,0.6)' }}
       onClick={closeOnBackdrop && onClose ? (e) => { if (e.target === e.currentTarget) onClose() } : undefined}
     >
-      <div className={`bg-white rounded-2xl shadow-2xl w-full ${maxWidth} my-auto`}>
+      <div className={`bg-white rounded-2xl shadow-[var(--shadow-overlay)] w-full ${maxWidth} my-auto`}>
         {children}
       </div>
     </div>,

@@ -2,8 +2,8 @@
 
 import { useEffect, useState, useCallback } from 'react'
 import Link from 'next/link'
-import { Plus, Upload, UserPlus, ArrowRight } from 'lucide-react'
-import { Card, SectionHeader, Skeleton, ErrorState, EmptyState } from '@/components/ui'
+import { Plus, Upload, UserPlus, ArrowRight, ChevronRight } from 'lucide-react'
+import { Skeleton, ErrorState, EmptyState } from '@/components/ui'
 
 /**
  * The dashboard body, shared by every role that has one.
@@ -54,10 +54,18 @@ type Summary = {
   activityFailed: boolean
 }
 
-const TONE_RING: Record<Attention['tone'], string> = {
-  danger: 'border-[var(--danger)]/25 bg-[var(--danger-soft)]',
-  warning: 'border-[var(--warn)]/25 bg-[var(--warn-soft)]',
-  accent: 'border-[var(--accent)]/25 bg-[var(--accent-soft)]',
+/**
+ * Severity is carried by a 2px rule and the figure's colour — not by tinting
+ * the whole row.
+ *
+ * A stack of filled colour blocks is the most recognisable tell of a generated
+ * dashboard: everything shouts, so nothing is emphasised. A rule marks the row
+ * without competing with the words in it.
+ */
+const TONE_RULE: Record<Attention['tone'], string> = {
+  danger: 'bg-[var(--danger)]',
+  warning: 'bg-[var(--warn)]',
+  accent: 'bg-[var(--accent)]',
 }
 const TONE_TEXT: Record<Attention['tone'], string> = {
   danger: 'text-[var(--danger)]',
@@ -129,10 +137,8 @@ export default function Overview() {
   return (
     <div className="fade-in w-full max-w-5xl">
       <header className="mb-6 sm:mb-8">
-        <h1 className="font-display text-[26px] sm:text-[32px] font-semibold text-[var(--ink)] leading-tight">
-          {greeting}
-        </h1>
-        <p className="text-[var(--ink-soft)] text-[14px] sm:text-[15px] mt-1.5">
+        <h1 className="t-display">{greeting}</h1>
+        <p className="t-lead mt-1">
           {state === 'ready'
             ? (data?.attention.length
                 ? 'Here is what is waiting on you.'
@@ -165,86 +171,94 @@ export default function Overview() {
         <>
           {/* ── 1. What is waiting on you ─────────────────────────────── */}
           {data.attention.length > 0 ? (
-            <section className="mb-8" aria-labelledby="attention-heading">
-              <h2 id="attention-heading" className="sr-only">Needs your attention</h2>
-              <ul className="space-y-2.5 stagger">
+            <section className="mb-9" aria-labelledby="attention-heading">
+              <h2 id="attention-heading" className="t-overline mb-2.5">Needs attention</h2>
+
+              <ul className="rounded-xl border border-[var(--line)] bg-[var(--paper)] overflow-hidden
+                divide-y divide-[var(--line-soft)]">
                 {data.attention.map(item => (
                   <li key={item.key}>
                     <Link href={item.href}
-                      className={`flex items-center gap-4 p-4 rounded-2xl border transition-colors
-                        hover:brightness-[0.98] active:brightness-95
-                        focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
-                        ${TONE_RING[item.tone]}`}>
-                      {/* The number leads, because it is the thing that decides
-                          whether this is worth opening. */}
-                      <span className={`font-display text-[30px] leading-none font-semibold tabular-nums
-                        flex-shrink-0 min-w-[46px] ${TONE_TEXT[item.tone]}`}>
+                      className="flex items-center gap-4 pl-0 pr-4 py-3.5 group relative
+                        hover:bg-[var(--canvas)] transition-colors
+                        focus-visible:outline-none focus-visible:bg-[var(--canvas)]">
+                      <span aria-hidden="true"
+                        className={`w-[3px] self-stretch flex-shrink-0 ${TONE_RULE[item.tone]}`} />
+
+                      <span className={`w-11 text-right numeric text-[20px] font-semibold leading-none
+                        flex-shrink-0 ${TONE_TEXT[item.tone]}`}>
                         {item.count}
                       </span>
+
                       <span className="min-w-0 flex-1">
-                        <span className="block text-[15px] font-semibold text-[var(--ink)] leading-snug">
+                        <span className="block text-[14px] font-medium text-[var(--ink)] leading-snug">
                           {item.label}
                         </span>
-                        <span className="block text-[13px] text-[var(--ink-soft)] mt-0.5 leading-snug">
-                          {item.hint}
-                        </span>
+                        <span className="block t-meta mt-0.5">{item.hint}</span>
                       </span>
-                      <ArrowRight size={18} aria-hidden="true"
-                        className={`flex-shrink-0 ${TONE_TEXT[item.tone]}`} />
+
+                      <ChevronRight size={16} aria-hidden="true"
+                        className="text-[var(--ink-faint)] flex-shrink-0
+                          group-hover:text-[var(--ink-soft)] transition-colors" />
                     </Link>
                   </li>
                 ))}
               </ul>
             </section>
           ) : (
-            <section className="mb-8">
-              <EmptyState
-                title="You are all caught up"
-                description="No follow-ups are due, nothing is waiting to be assigned, and every payment has been verified."
-              />
+            <section className="mb-9">
+              <div className="rounded-xl border border-[var(--line)] bg-[var(--paper)] px-5 py-8 text-center">
+                <p className="text-[14px] font-medium text-[var(--ink)]">Nothing needs attention</p>
+                <p className="t-sub mt-1">
+                  No follow-ups are due and nothing is waiting to be assigned.
+                </p>
+              </div>
             </section>
           )}
 
-          {/* ── 2. Today ──────────────────────────────────────────────── */}
-          <section className="mb-8" aria-labelledby="today-heading">
-            <SectionHeader title="Today" />
-            <div className="grid grid-cols-3 gap-2.5 sm:gap-3">
+          {/*
+            Today, as figures rather than cards.
+
+            Three bordered boxes holding one number each is the pattern the
+            brief calls out. A row of figures separated by a rule says the same
+            thing in a quarter of the space and reads as a summary, which is
+            what it is.
+          */}
+          <section className="mb-9" aria-labelledby="today-heading">
+            <h2 id="today-heading" className="t-overline mb-2.5">Today</h2>
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--paper)]
+              grid grid-cols-3 divide-x divide-[var(--line-soft)]">
               {[
                 { label: 'New leads', value: data.today.newLeads },
                 { label: mine ? 'Registered' : 'Registrations', value: data.today.registered },
                 { label: 'Follow-ups', value: data.today.followUps },
               ].map(stat => (
-                <Card key={stat.label} className="p-3.5 sm:p-4">
-                  <div className="font-display text-[24px] sm:text-[28px] leading-none font-semibold
-                    text-[var(--ink)] tabular-nums">
+                <div key={stat.label} className="px-4 py-3.5">
+                  <div className="numeric text-[20px] font-semibold leading-none text-[var(--ink)]">
                     {stat.value}
                   </div>
-                  <div className="text-[12.5px] text-[var(--ink-soft)] mt-1.5 leading-snug">
-                    {stat.label}
-                  </div>
-                </Card>
+                  <div className="t-meta mt-1.5">{stat.label}</div>
+                </div>
               ))}
             </div>
-            <p className="text-[12.5px] text-[var(--ink-faint)] mt-2.5">
-              {mine
-                ? `${data.pipeline.total} leads assigned to you · ${data.pipeline.readyToJoin} ready to join`
-                : `${data.pipeline.total} leads in total · ${data.pipeline.readyToJoin} ready to join`}
+            <p className="t-meta mt-2">
+              {data.pipeline.total} {mine ? 'assigned to you' : 'leads in total'}
+              {' · '}{data.pipeline.readyToJoin} ready to join
             </p>
           </section>
 
-          {/* ── 3. Quick actions ──────────────────────────────────────── */}
-          <section className="mb-8">
-            <SectionHeader title="Start something" />
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-2.5">
+          <section className="mb-9">
+            <h2 className="t-overline mb-2.5">Start something</h2>
+            <div className="flex flex-wrap gap-2">
               {quickActions.map(action => {
                 const Icon = action.icon
                 return (
                   <Link key={action.href} href={action.href}
-                    className="flex items-center gap-3 px-4 min-h-[56px] rounded-xl border
-                      border-[var(--line)] bg-[var(--paper)] text-[14px] font-medium text-[var(--ink)]
-                      hover:border-[var(--ink-faint)] hover:bg-[var(--canvas)] transition-colors
+                    className="inline-flex items-center gap-2 h-10 px-3.5 rounded-lg border
+                      border-[var(--line)] bg-[var(--paper)] text-[13px] font-medium text-[var(--ink)]
+                      hover:border-[var(--ink-faint)] transition-colors
                       focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-                    <Icon size={17} aria-hidden="true" className="text-[var(--accent)] flex-shrink-0" />
+                    <Icon size={15} aria-hidden="true" className="text-[var(--ink-faint)]" />
                     {action.label}
                   </Link>
                 )
@@ -254,8 +268,7 @@ export default function Overview() {
 
           {/* ── 4. What has been happening ────────────────────────────── */}
           <section aria-labelledby="activity-heading">
-            <SectionHeader title="Recent activity"
-              description={mine ? 'Your notes and calls.' : 'Across the centre.'} />
+            <h2 id="activity-heading" className="t-overline mb-2.5">Recent activity</h2>
 
             {data.activityFailed ? (
               <ErrorState
@@ -269,12 +282,12 @@ export default function Overview() {
                 description="Notes and calls recorded against a lead will appear here."
               />
             ) : (
-              <ul className="divide-y divide-[var(--line-soft)] rounded-2xl border border-[var(--line)]
+              <ul className="divide-y divide-[var(--line-soft)] rounded-xl border border-[var(--line)]
                 bg-[var(--paper)] overflow-hidden">
                 {data.activity.map(entry => {
                   const body = (
                     <span className="flex items-start justify-between gap-3 px-4 py-3.5">
-                      <span className="text-[14px] text-[var(--ink)] leading-snug min-w-0 break-words">
+                      <span className="text-[13px] text-[var(--ink)] leading-snug min-w-0 break-words">
                         {entry.text}
                       </span>
                       <time dateTime={entry.at}

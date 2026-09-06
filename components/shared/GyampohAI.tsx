@@ -83,7 +83,7 @@ export default function GyampohAI() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-40 h-12 px-5 rounded-full bg-[var(--accent)] text-white text-sm font-semibold shadow-lg hover:brightness-110 transition-all"
+          className="fixed bottom-5 right-5 z-40 h-12 px-5 rounded-full bg-[var(--accent)] text-white text-sm font-semibold shadow-[var(--shadow-overlay)] hover:brightness-110 transition-all"
           style={{ boxShadow: '0 4px 20px rgba(26,122,133,0.35)' }}>
           Gyampoh AI
         </button>
@@ -93,7 +93,7 @@ export default function GyampohAI() {
       {open && (
         <div className="fixed z-50 bg-[var(--paper)] flex flex-col overflow-hidden
           inset-0 rounded-none
-          sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)] sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-2xl">
+          sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)] sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-[var(--shadow-overlay)]">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--canvas)]">
             <div>
