@@ -48,24 +48,6 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
   const [notice,  setNotice]  = useState('')
   const busy = useRef(false)
 
-  /*
-   * The centre's standing figures, for the brand panel.
-   *
-   * Fetched after paint and never awaited by anything: the sign-in form does
-   * not wait on it, and a failure leaves the panel without figures rather than
-   * putting an error next to a PIN field.
-   */
-  const [stats, setStats] = useState<{ alumni: number; courses: number; graduates: number } | null>(null)
-
-  useEffect(() => {
-    let alive = true
-    fetch('/api/public/stats')
-      .then(r => (r.ok ? r.json() : null))
-      .then(d => { if (alive && d) setStats(d) })
-      .catch(() => {})
-    return () => { alive = false }
-  }, [])
-
   /* Account recovery. Separate state so it cannot be confused with sign-in. */
   const [recoverPin, setRecoverPin] = useState('')
   const [recoverNew, setRecoverNew] = useState('')

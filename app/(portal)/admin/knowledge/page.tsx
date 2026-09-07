@@ -120,7 +120,29 @@ export default function KnowledgeBasePage() {
                       <div className="font-medium text-[var(--ink)] text-sm">{e.question}</div>
                       <div className="text-sm text-[var(--ink-soft)] mt-1 whitespace-pre-line">{e.answer}</div>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/*
+                        Turning an entry off without deleting it.
+
+                        `toggle` existed and nothing called it: an entry could
+                        be created inactive, but once saved there was no way to
+                        stop the assistant using it short of deleting it
+                        outright. That is the difference between retiring an
+                        answer and losing it.
+                      */}
+                      <button type="button" onClick={() => toggle(e)}
+                        role="switch" aria-checked={e.is_active !== false}
+                        aria-label={`${e.is_active !== false ? 'Stop' : 'Start'} using this answer`}
+                        className="grid place-items-center min-h-[44px] min-w-[44px] rounded-lg
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                        <span aria-hidden="true"
+                          className={`relative block w-9 h-5 rounded-full transition-colors
+                            ${e.is_active !== false ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
+                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[var(--paper)]
+                            shadow-[var(--shadow-raised)] transition-transform
+                            ${e.is_active !== false ? 'translate-x-4' : ''}`} />
+                        </span>
+                      </button>
                       <button type="button" onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]" aria-label="Edit"><Pencil size={15} aria-hidden="true" /></button>
                       <button type="button" onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
                     </div>
@@ -146,7 +168,29 @@ export default function KnowledgeBasePage() {
                       </div>
                       <div className="text-sm text-[var(--ink)] whitespace-pre-line">{e.answer}</div>
                     </div>
-                    <div className="flex gap-1 flex-shrink-0">
+                    <div className="flex items-center gap-1 flex-shrink-0">
+                      {/*
+                        Turning an entry off without deleting it.
+
+                        `toggle` existed and nothing called it: an entry could
+                        be created inactive, but once saved there was no way to
+                        stop the assistant using it short of deleting it
+                        outright. That is the difference between retiring an
+                        answer and losing it.
+                      */}
+                      <button type="button" onClick={() => toggle(e)}
+                        role="switch" aria-checked={e.is_active !== false}
+                        aria-label={`${e.is_active !== false ? 'Stop' : 'Start'} using this answer`}
+                        className="grid place-items-center min-h-[44px] min-w-[44px] rounded-lg
+                          focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                        <span aria-hidden="true"
+                          className={`relative block w-9 h-5 rounded-full transition-colors
+                            ${e.is_active !== false ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
+                          <span className={`absolute top-0.5 left-0.5 w-4 h-4 rounded-full bg-[var(--paper)]
+                            shadow-[var(--shadow-raised)] transition-transform
+                            ${e.is_active !== false ? 'translate-x-4' : ''}`} />
+                        </span>
+                      </button>
                       <button type="button" onClick={() => openEdit(e)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--ink)] hover:bg-[var(--line-soft)]" aria-label="Edit"><Pencil size={15} aria-hidden="true" /></button>
                       <button type="button" onClick={() => del(e.id)} className="p-1.5 rounded-lg text-[var(--ink-faint)] hover:text-[var(--danger)] hover:bg-[var(--danger-soft)]" aria-label="Delete"><Trash2 size={15} aria-hidden="true" /></button>
                     </div>

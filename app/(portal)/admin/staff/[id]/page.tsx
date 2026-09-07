@@ -177,6 +177,19 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
                       className={`flex items-center gap-3 p-3 rounded-2xl border-2 text-left transition-all
                         ${on ? 'border-[var(--accent)] bg-[var(--accent-soft)]' : 'border-[var(--line)] bg-[var(--paper)] hover:border-[var(--line)]'}
                         ${locked ? 'opacity-60 cursor-not-allowed' : 'cursor-pointer'}`}>
+                      {/*
+                        The portal's own icon. It was looked up into `Icon` and
+                        then never rendered — the row's gap-3 had nothing to
+                        space, so every permission in the list read as an
+                        unlabelled block of text.
+                      */}
+                      {Icon && (
+                        <span aria-hidden="true"
+                          className={`w-8 h-8 rounded-lg grid place-items-center flex-shrink-0
+                            ${on ? 'bg-[var(--accent)] text-[var(--accent-ink)]' : 'bg-[var(--line-soft)] text-[var(--ink-faint)]'}`}>
+                          <Icon size={16} />
+                        </span>
+                      )}
                       <div className="min-w-0 flex-1">
                         <div className={`text-sm font-bold truncate ${on ? 'text-[var(--accent)]' : 'text-[var(--ink-soft)]'}`}>{portal.label}</div>
                         <div className="text-[12px] text-[var(--ink-faint)] truncate">{PORTAL_DESC[portal.id] || ''}</div>

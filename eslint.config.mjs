@@ -13,6 +13,32 @@ const eslintConfig = defineConfig([
     "build/**",
     "next-env.d.ts",
   ]),
+
+  {
+    rules: {
+      /*
+       * A leading underscore means "deliberately unused".
+       *
+       * The assistant's tool definitions share one signature — run(args, ctx)
+       * — and most tools need only one of the two. Those were already written
+       * as `_ctx` and `_args`, which is the convention this rule understands
+       * everywhere EXCEPT that it was never configured to, so sixteen
+       * correctly-marked parameters were reported as mistakes. Real unused
+       * variables were then buried in that noise.
+       *
+       * caughtErrors likewise: `catch { }` is not always available where the
+       * binding is required by older syntax, and `catch (_e)` says the same
+       * thing deliberately.
+       */
+      "@typescript-eslint/no-unused-vars": ["warn", {
+        argsIgnorePattern: "^_",
+        varsIgnorePattern: "^_",
+        caughtErrorsIgnorePattern: "^_",
+        destructuredArrayIgnorePattern: "^_",
+        ignoreRestSiblings: true,
+      }],
+    },
+  },
 ]);
 
 export default eslintConfig;

@@ -56,6 +56,18 @@ export default function PrepActivityPage() {
               const Icon = meta.icon
               return (
                 <div key={a.id} className="flex items-start gap-3 px-4 py-3.5">
+                  {/*
+                    What kind of activity this was. ACTION_META carries an icon
+                    per action; it was read into `Icon` and never drawn, so
+                    every row in the feed looked identical at a glance.
+                  */}
+                  {Icon && (
+                    <span aria-hidden="true"
+                      className="w-8 h-8 rounded-lg grid place-items-center flex-shrink-0 mt-0.5
+                        bg-[var(--brand-soft)] text-[var(--accent)]">
+                      <Icon size={15} />
+                    </span>
+                  )}
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <span className="text-sm font-medium text-[var(--ink)]">{a.actor_name || 'Coordinator'}</span>

@@ -36,10 +36,13 @@ export async function GET(req: NextRequest) {
     .eq('year', year)
     .order('created_at', { ascending: false })
 
-  // Match payments by lead (via application) for reference/receipt
-  const { data: payments } = await sb.from('payments')
-    .select('id, amount, paystack_ref, receipt_number, paid_at, application_id, status')
-    .eq('status', 'paid')
+  /*
+   * A query for the receipt reference used to sit here, unbounded — every
+   * paid payment in the system, on every request to this endpoint — and its
+   * result was never read. No registration in the response carries a receipt
+   * field, so nothing downstream lost anything when it went; the join was
+   * either never finished or removed from the response and left behind.
+   */
 
   const registrations = (enrollments || []).map((e: any) => {
     return {

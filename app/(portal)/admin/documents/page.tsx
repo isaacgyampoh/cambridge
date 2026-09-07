@@ -146,10 +146,38 @@ export default function DocumentsPage() {
     })) return
     try {
       await mutateDelete('documents', [{ col: 'id', val: id }])
+
+      /*
+       * The FILE, not just the row.
+       *
+       * `fileUrl` was already being passed in for this and then ignored, so
+       * deleting a document removed the record and left the file at its
+       * public storage URL — while the confirmation said "anyone holding a
+       * link to it will no longer be able to open it", which was untrue. For
+       * an admission letter or a signed form that is a disclosure.
+       *
+       * Deleted after the row, and reported separately: if the row went and
+       * the file did not, the operator needs to know that rather than see a
+       * plain success.
+       */
+      if (fileUrl) {
+        const res = await fetch('/api/upload/delete', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ url: fileUrl }),
+        })
+        if (!res.ok) {
+          const d = await res.json().catch(() => ({}))
+          toast.error(d.error || 'The document was removed, but its file could not be deleted.')
+          load()
+          return
+        }
+      }
+
       toast.success('Document deleted')
       load()
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to delete')
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'Could not delete that document.')
     }
   }
 

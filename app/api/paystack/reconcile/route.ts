@@ -35,9 +35,7 @@ export async function POST(req: NextRequest) {
   if (!s.valid || !ALLOWED.includes(s.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
 
   const body = await req.json().catch(() => ({}))
-  const sb = createServiceClient()
   const origin = new URL(req.url).origin
-  const results: any[] = []
 
   // Mode 1: fix one specific reference (finance pastes the Paystack ref)
   if (body.reference) {
