@@ -8,32 +8,27 @@ import { useRouter } from 'next/navigation'
 
 
 /**
- * The photograph on the sign-in screen.
+ * The sign-in form.
  *
- * A real photograph of the centre, supplied by the institution — not stock and
- * not generated. If the file is absent the panel falls back to the brand
- * surface with the crest on it (see the render below), because sign-in is the
- * one screen in the product that must never look broken.
+ * `heroSrc` is resolved on the server (see page.tsx) — the URL of the
+ * photograph of the centre, or null when none has been saved yet. A real
+ * photograph supplied by the institution; never stock, never generated.
  *
- * To change it, replace this file. Nothing else needs editing:
- *
- *   public/brand/login-hero.jpg
- *
- * Landscape or portrait both work — it is object-cover with a top-biased
- * focal point, so faces stay in frame as the crop changes with the viewport.
+ * Portrait or landscape both work: it is object-cover with a top-biased focal
+ * point, so a person stays in frame as the crop changes from a wide banner on
+ * a phone to a tall column on a desktop.
  */
-const HERO = '/brand/login-hero.jpg'
-
-export default function LoginForm({ hasHero }: { hasHero: boolean }) {
+export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
   const router = useRouter()
   /*
    * Whether the photograph decoded.
    *
-   * The SERVER already told us whether the file exists, so the panel is only
-   * rendered when it does — no flash, no broken-image glyph, and no second
+   * The SERVER already told us whether a file exists, so the panel is only
+   * rendered when one does — no flash, no broken-image glyph, and no second
    * crest competing with the lockup. This flag covers the remaining case: the
    * file exists but the bytes fail to decode.
    */
+  const hasHero = Boolean(heroSrc)
   const [heroOk, setHeroOk] = useState(hasHero)
   const [step,    setStep]    = useState<
     'pin' | 'otp' | 'set-pin' | 'recover-pin' | 'recover-otp' | 'recover-new'
@@ -319,12 +314,26 @@ export default function LoginForm({ hasHero }: { hasHero: boolean }) {
           style={{ background: 'var(--brand)' }}>
           {/* eslint-disable-next-line @next/next/no-img-element */}
           <img
-            src={HERO}
+            src={heroSrc as string}
             alt=""
             aria-hidden="true"
             onError={() => setHeroOk(false)}
+            /*
+             * object-position, chosen for a person photographed standing.
+             *
+             * On a phone this is a wide, short band cut from a tall picture,
+             * and with object-cover the percentage selects WHICH band: 0%
+             * shows the very top, 100% the bottom. A face sits around a fifth
+             * of the way down a standing portrait, so 20% frames the head and
+             * shoulders. It was 28%, which centred the band just below the
+             * face and clipped the top of the head against the upper edge —
+             * seen in a browser, not reasoned about.
+             *
+             * From lg the panel is a tall column and a portrait fills it
+             * naturally, so it simply centres.
+             */
             className={`absolute inset-0 w-full h-full object-cover
-              object-[center_28%] lg:object-[center_center]
+              object-[center_20%] lg:object-[center_center]
               transition-opacity duration-500 ${heroOk ? 'opacity-100' : 'opacity-0'}`}
           />
         </div>

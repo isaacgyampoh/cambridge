@@ -21,11 +21,33 @@ import LoginForm from './LoginForm'
  * knows.
  */
 
-/** Kept in step with HERO in LoginForm. */
-const HERO_FILE = 'brand/login-hero.jpg'
+/**
+ * Where the sign-in photograph goes.
+ *
+ * Save the photograph of the centre as ONE of these, in public/brand/. The
+ * first that exists is used, so it does not matter which format the picture
+ * is exported in — a phone will hand you a .jpg, a design tool a .png, and a
+ * modern export a .webp, and any of the three works with no code change.
+ *
+ * Nothing else needs editing. There is no config, no import and no build step.
+ */
+const HERO_CANDIDATES = [
+  'brand/login-hero.jpg',
+  'brand/login-hero.jpeg',
+  'brand/login-hero.png',
+  'brand/login-hero.webp',
+] as const
 
 export default function LoginPage() {
-  const hasHero = existsSync(join(process.cwd(), 'public', HERO_FILE))
+  /*
+   * Resolved once on the server. The result is a URL for the client to render
+   * or null, and null is a supported state: the screen falls back to the calm
+   * centred composition rather than showing a broken image or an empty
+   * coloured block.
+   */
+  const heroFile = HERO_CANDIDATES.find(f =>
+    existsSync(join(process.cwd(), 'public', f)))
+  const heroSrc = heroFile ? `/${heroFile}` : null
 
   return (
     <Suspense fallback={
@@ -35,7 +57,7 @@ export default function LoginPage() {
           rounded-full animate-spin" />
       </div>
     }>
-      <LoginForm hasHero={hasHero} />
+      <LoginForm heroSrc={heroSrc} />
     </Suspense>
   )
 }

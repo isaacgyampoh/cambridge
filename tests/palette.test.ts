@@ -145,23 +145,30 @@ describe('the sign-in photograph', () => {
 
     assert.match(page, /existsSync/,
       'the page does not check for the photograph on the server')
-    assert.match(page, /hasHero=\{hasHero\}/,
-      'the result is not passed to the form')
+    assert.match(page, /heroSrc=\{heroSrc\}/,
+      'the resolved photograph is not passed to the form')
 
     const form = code(readFileSync('app/(auth)/login/LoginForm.tsx', 'utf8'))
     assert.match(form, /\{hasHero &&/,
       'the picture panel renders even when there is no picture')
   })
 
-  test('the photograph path is stated in one place', () => {
+  test('the photograph may be saved in any common format', () => {
+    /*
+     * The picture is exported by whoever took it: a phone gives a .jpg, a
+     * design tool a .png, a modern export a .webp. Accepting one extension
+     * would mean a correctly-supplied photograph silently not appearing.
+     */
     const page = readFileSync('app/(auth)/login/page.tsx', 'utf8')
+
+    for (const ext of ['jpg', 'jpeg', 'png', 'webp']) {
+      assert.match(page, new RegExp(`brand/login-hero\\.${ext}`),
+        `a photograph saved as .${ext} would not be found`)
+    }
+
+    // The form renders whatever the server resolved, never a path of its own.
     const form = readFileSync('app/(auth)/login/LoginForm.tsx', 'utf8')
-
-    const inPage = page.match(/HERO_FILE\s*=\s*'([^']+)'/)
-    const inForm = form.match(/HERO\s*=\s*'([^']+)'/)
-
-    assert.ok(inPage && inForm, 'the photograph path is not declared in both halves')
-    assert.equal('/' + inPage![1], inForm![1],
-      'the server checks a different file from the one the form renders')
+    assert.ok(!/['"]\/brand\/login-hero/.test(form),
+      'the form hardcodes a photograph path instead of using the resolved one')
   })
 })
