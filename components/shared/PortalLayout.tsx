@@ -6,9 +6,11 @@ import Link from 'next/link'
 import { usePathname, useRouter } from 'next/navigation'
 import {
   LogOut, Menu, X, ChevronDown, Search as SearchIcon, Shield, ArrowLeft,
+  Settings, Link2,
 } from 'lucide-react'
 
 import { resolvePortals } from '@/lib/access/portals'
+import { canReachPage } from '@/lib/access/pageAccess'
 import { navFor, tabsFor, type NavSection } from '@/lib/nav/model'
 import { ROLE_LABELS } from '@/lib/utils'
 import CommandPalette from '@/components/shared/CommandPalette'
@@ -140,6 +142,17 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
     () => resolvePortals(profile?.role, profile?.portals ?? null),
     [profile?.role, profile?.portals]
   )
+  /*
+   * Can this person actually open that page?
+   *
+   * The same predicate the proxy enforces, so the account menu never offers a
+   * door that will be refused on the other side.
+   */
+  const canReach = useCallback(
+    (href: string) => Boolean(profile) && canReachPage(href, profile!.role, portals),
+    [profile, portals]
+  )
+
   const sections: NavSection[] = useMemo(
     () => (profile ? navFor(profile.role, portals) : []),
     [profile, portals]
@@ -496,6 +509,33 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                     </div>
                     <div className="text-[12px] text-[var(--ink-faint)] truncate">{roleLabel}</div>
                   </div>
+                  {/*
+                    Settings is here as well as in the sidebar.
+
+                    A super admin's sidebar carries seventy entries across eight
+                    sections, and Settings is the last item in the last one —
+                    far below the fold, which is why it reads as missing. This
+                    is where people look for it anyway.
+
+                    Only shown to somebody who actually holds it: the menu must
+                    not offer a door that the proxy will refuse.
+                  */}
+                  {canReach('/admin/settings') && (
+                    <Link role="menuitem" href="/admin/settings"
+                      className="flex items-center gap-2.5 px-3.5 py-3 text-[13px] text-[var(--ink)]
+                        hover:bg-[var(--line-soft)] transition-colors">
+                      <Settings size={15} aria-hidden="true" /> Settings
+                    </Link>
+                  )}
+
+                  {canReach('/marketer/link') && (
+                    <Link role="menuitem" href="/marketer/link"
+                      className="flex items-center gap-2.5 px-3.5 py-3 text-[13px] text-[var(--ink)]
+                        hover:bg-[var(--line-soft)] transition-colors">
+                      <Link2 size={15} aria-hidden="true" /> My marketing link
+                    </Link>
+                  )}
+
                   <Link role="menuitem" href="/admin/settings/change-pin"
                     className="flex items-center gap-2.5 px-3.5 py-3 text-[13px] text-[var(--ink)]
                       hover:bg-[var(--line-soft)] transition-colors">

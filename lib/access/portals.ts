@@ -37,8 +37,17 @@
 export const PORTAL_EXACT_PATHS: Record<string, string[]> = {
   dashboard: [
     '/admin', '/pm', '/marketer', '/admission', '/finance',
-    '/receptionist', '/trainer', '/student', '/coordinator',
+    '/trainer', '/student', '/coordinator',
   ],
+  /*
+   * The front desk, behind its own portal.
+   *
+   * /receptionist was listed under `dashboard` — a portal EVERY role holds —
+   * so any signed-in person, a student included, could open the front-desk
+   * screen and its send-reminders controls. It is a job, so it needs a portal
+   * of its own, and the receptionist role is the one that holds it.
+   */
+  reminders: ['/receptionist'],
 }
 
 export const PORTAL_PATHS: Record<string, string[]> = {
@@ -86,6 +95,19 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
   trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','documents','my_links','clock_in','messages'],
   exam_coordinator:  ['documents','prep','my_leads','my_earnings','my_links','clock_in','messages'],
   content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
+  /*
+   * Also restored: with no entry here a receptionist was granted no portals at
+   * all, so even their own screen was closed to them.
+   */
+  /*
+   * Their own screen, clocking in, and messages. Deliberately NOT `attendance`
+   * — that grants /admin/attendance, which is the monitoring dashboard rather
+   * than the front desk, and tests/privilegeEscalation declares that a
+   * receptionist reaches no administrative page. A centre that wants one of
+   * them watching the register can grant it as a duty instead of every
+   * receptionist getting it by default.
+   */
+  receptionist:      ['dashboard','reminders','clock_in','messages'],
   student:           ['dashboard','my_payments'],
 }
 
@@ -107,6 +129,13 @@ export const ROLE_HOME: Record<string, string> = {
   super_admin: '/admin', administrator: '/admin', project_manager: '/pm', marketing_officer: '/marketer', content_manager: '/content',
   admissions_officer: '/admission', accountant: '/finance',
   trainer: '/trainer', exam_coordinator: '/coordinator', student: '/student',
+  /*
+   * Restored. `receptionist` is still a role people are given — it is in
+   * UserRole and in ROLE_LABELS, so the staff screen offers it — but it had
+   * no landing page here, so `ROLE_HOME[role] || '/admin'` sent a receptionist
+   * to /admin, which they cannot open. They were locked out of the product.
+   */
+  receptionist: '/receptionist',
 }
 
 /**

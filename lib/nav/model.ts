@@ -152,6 +152,12 @@ const CATALOGUE: CatalogueEntry[] = [
     { label: 'SMS delivery', href: '/admin/sms-delivery' },
   ]},
   { id: 'wa_lines', label: 'WhatsApp lines', icon: 'broadcast', href: '/admin/whatsapp', section: 'messaging' },
+  /*
+   * Follow-up sequences. This existed as "Follow-up Sequences" in the sidebar
+   * and was dropped when the shell was rebuilt: the page, its builder and its
+   * cron runner all survived, but nothing linked to them any more.
+   */
+  { id: 'sequences', label: 'Follow-up sequences', icon: 'sms', href: '/admin/sequences', section: 'comms' },
   { id: 'knowledge', label: 'AI knowledge', icon: 'ai', href: '/admin/knowledge', section: 'messaging' },
   { id: 'conversations', label: 'AI conversations', icon: 'ai', href: '/admin/conversations', section: 'messaging' },
   { id: 'grp_automation', label: 'Automation', icon: 'broadcast', href: '/pm/info-sessions', section: 'messaging', children: [
@@ -166,6 +172,12 @@ const CATALOGUE: CatalogueEntry[] = [
     { label: 'Staff reports', href: '/admin/reports' },
   ]},
   { id: 'workforce', label: 'Workforce', icon: 'workforce', href: '/admin/workforce', section: 'team' },
+  /*
+   * The front desk. Its portal is `reminders`, so it appears for the
+   * receptionist and for anyone explicitly given that duty — not for
+   * everybody, which is what listing it under `dashboard` used to mean.
+   */
+  { id: 'reminders', label: 'Front desk', icon: 'bell', href: '/receptionist', section: 'ops' },
   { id: 'clock_in', label: 'Clock in', icon: 'clock', href: '/clock-in', section: 'team' },
 
   /* ── Content & system ── */
@@ -231,12 +243,30 @@ function stripSection(entry: CatalogueEntry): NavItem {
 const SUPERSEDED_BY: Record<string, string> = {
   my_leads: 'leads',
   my_earnings: 'remuneration',
-  my_link: 'broadcast',
-  my_flyers: 'broadcast',
-  my_links: 'broadcast',
   my_classes: 'academics',
   my_attendance: 'attendance',
   my_payments: 'finance',
+
+  /*
+   * "Shared links" is the office's noticeboard, and the Broadcast screen's
+   * link tab is where those same links are posted and listed. Somebody who
+   * posts them does not need a second read-only view of them.
+   */
+  my_links: 'broadcast',
+
+  /*
+   * ── WHAT IS DELIBERATELY *NOT* HERE ─────────────────────────────────────
+   *
+   * my_link and my_flyers were superseded by `broadcast`, and that was wrong.
+   * They are not organisation-wide screens shown from a personal angle — they
+   * are a person's OWN join link and their OWN flyers, with their own
+   * referral code and their own conversion figures. Broadcast sends bulk
+   * messages; it has never shown anybody their personal link.
+   *
+   * The effect was that every super admin, administrator and anyone else
+   * holding `broadcast` silently lost the ability to find, copy or share
+   * their own marketing link.
+   */
 }
 
 /** Home resolves per role — a marketer's home is not an administrator's. */

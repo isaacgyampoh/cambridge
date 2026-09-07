@@ -1,7 +1,8 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
+import { ROLE_LABELS } from '../lib/utils/index.ts'
 import { canReachPage, allowedExactPaths } from '../lib/access/pageAccess.ts'
-import { resolvePortals, ROLE_DEFAULTS, ROLE_HOME, PORTAL_EXACT_PATHS } from '../lib/access/portals.ts'
+import { ROLE_HOME, resolvePortals, ROLE_DEFAULTS, PORTAL_EXACT_PATHS } from '../lib/access/portals.ts'
 
 /**
  * Page access.
@@ -115,5 +116,40 @@ describe('SMS delivery is scoped to whoever runs messaging', () => {
   test('broadcast and settings still reach it', () => {
     assert.equal(canReachPage('/admin/sms-delivery', 'administrator', ['broadcast']), true)
     assert.equal(canReachPage('/admin/sms-delivery', 'administrator', ['settings']), true)
+  })
+})
+
+describe('every role can reach its own work', () => {
+  /*
+   * The counterpart to the privilege-escalation matrix, which only proves
+   * that people cannot reach what they should not.
+   *
+   * A role can also be broken the other way. `receptionist` is in UserRole and
+   * in ROLE_LABELS — the staff screen offers it — but it had been dropped from
+   * both ROLE_HOME and ROLE_DEFAULTS, so a receptionist was sent to /admin,
+   * refused, and left with no portals at all. Nothing caught it, because every
+   * test asked what people could NOT do.
+   */
+  test('every role has a landing page it can actually open', () => {
+    const offenders: string[] = []
+
+    for (const role of Object.keys(ROLE_LABELS)) {
+      const home = ROLE_HOME[role]
+      if (!home) { offenders.push(`${role} has no ROLE_HOME`); continue }
+      if (!canReachPage(home, role, portalsFor(role))) {
+        offenders.push(`${role} cannot open its own landing page ${home}`)
+      }
+    }
+
+    assert.deepEqual(offenders, [],
+      'a role that cannot open its own home is locked out of the product:\n  ' +
+      offenders.join('\n  '))
+  })
+
+  test('no role is left with no portals at all', () => {
+    const offenders = Object.keys(ROLE_LABELS)
+      .filter(role => portalsFor(role).length === 0)
+    assert.deepEqual(offenders, [],
+      'these roles were granted nothing: ' + offenders.join(', '))
   })
 })
