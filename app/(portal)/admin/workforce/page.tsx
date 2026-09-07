@@ -20,7 +20,7 @@ type Shift = {
 export default function WorkforcePage() {
   const today = new Date().toISOString().slice(0, 10)
   const { data: offices, refetch: loadOffices } = useData<OfficeLocation>({ table: 'office_locations', limit: 20 })
-  const { data: attendance, loading, refetch: loadAtt } = useData<StaffAttendance>({
+  const { data: attendance, loading } = useData<StaffAttendance>({
     table: 'staff_attendance', select: '*, staff:staff_id(full_name, role)',
     filters: [{ col: 'date', op: 'eq', val: today }],
     orderBy: 'clock_in_at', orderAsc: false, limit: 200,

@@ -24,7 +24,7 @@ export default function FinancePage() {
   const { data: payments, loading: loadP, refetch: refetchP } = useData<Payment>({
     table: 'payments', select: '*, student:student_id(full_name, phone)', orderBy: 'created_at', orderAsc: false, limit: 200,
   })
-  const { data: invoices, loading: loadI, refetch: refetchI } = useData<Invoice>({
+  const { data: invoices, loading: loadI } = useData<Invoice>({
     table: 'invoices', select: '*, student:student_id(full_name)', orderBy: 'created_at', orderAsc: false, limit: 200,
   })
   const { data: students } = useData<Profile>({

@@ -5,7 +5,6 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
-import crypto from 'crypto'
 
 // Generate a random class code like CCE-2503
 function generateClassCode(): string {
@@ -17,14 +16,12 @@ function generateClassCode(): string {
 
 export async function POST(req: NextRequest) {
  // Verify this is a legit cron call
- const authHeader = req.headers.get('authorization')
  if (!isValidCronRequest(req)) {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
  }
 
  const sb = createServiceClient()
  const today = new Date().toISOString().slice(0, 10)
- const dayOfWeek = new Date().toLocaleDateString('en-US', { weekday: 'long' }).toLowerCase()
 
  // Find batches that have class today (ongoing batches)
  // In production, batches should have a schedule field like "Mon,Wed,Fri"
@@ -92,7 +89,7 @@ export async function POST(req: NextRequest) {
  try {
  await sendWhatsAppText(student.phone, message)
  linksSent++
- } catch (e) {
+ } catch {
  // Fallback to SMS if WhatsApp fails
  try {
  await sendSMS(student.phone,`Cambridge CE: Good morning! ${courseName} class today. Sign in at: ${linkWithMarketer}`)
@@ -117,8 +114,6 @@ export async function POST(req: NextRequest) {
 
 // Also allow GET to trigger manually from admin
 export async function GET(req: NextRequest) {
- const url = new URL(req.url)
- const secret = url.searchParams.get('secret')
  if (!isValidCronRequest(req)) {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
  }

@@ -15,7 +15,6 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'unauth' }, { status: 401 })
   }
 
- const authHeader = req.headers.get('authorization')
  if (!isValidCronRequest(req)) {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
  }
@@ -85,7 +84,6 @@ export async function POST(req: NextRequest) {
 }
 
 export async function GET(req: NextRequest) {
- const url = new URL(req.url)
  if (!isValidCronRequest(req)) {
  return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
  }

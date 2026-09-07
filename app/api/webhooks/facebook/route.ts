@@ -56,7 +56,7 @@ export async function POST(req: NextRequest) {
     for (const change of entry.changes || []) {
       if (change.field !== 'leadgen') continue
 
-      const { leadgen_id, page_id, form_id } = change.value
+      const { leadgen_id } = change.value
 
       // Fetch lead data from Facebook Graph API
       let leadData: any = {}

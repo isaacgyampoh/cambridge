@@ -1,6 +1,5 @@
 'use client'
 import { useState, useRef } from 'react'
-import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
@@ -34,7 +33,6 @@ type ImportResult = {
 }
 
 export default function ImportLeadsPage() {
-  const router  = useRouter()
   const fileRef = useRef<HTMLInputElement>(null)
   const [raw,       setRaw]       = useState('')
   const [parsed,    setParsed]    = useState<ParsedLead[]>([])

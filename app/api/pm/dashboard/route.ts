@@ -13,7 +13,6 @@ export async function GET(req: NextRequest) {
   if (!session.valid || !ALLOWED.includes(session.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
 
   const sb = createServiceClient()
-  const weekAgo = new Date(Date.now() - 7 * 864e5).toISOString()
 
   // The marketer list feeds the assign dropdown, so it must show exactly who
   // can actually receive a lead. It previously listed every active non-super-

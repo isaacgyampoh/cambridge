@@ -1,7 +1,6 @@
 'use client'
 import { uploadFile } from '@/lib/upload'
 import { useState, useEffect, useRef } from 'react'
-import { createClient } from '@/lib/supabase/client'
 import { useData, mutate, mutateDelete } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { Trash2, X } from 'lucide-react'
@@ -70,7 +69,6 @@ export default function DocumentsPage() {
     else toast.error(d.error || 'Could not generate preview')
   }
 
-  const sb = createClient()
 
   useEffect(() => {
     fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})

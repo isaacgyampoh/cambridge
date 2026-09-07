@@ -30,7 +30,17 @@ const eslintConfig = defineConfig([
        * binding is required by older syntax, and `catch (_e)` says the same
        * thing deliberately.
        */
-      "@typescript-eslint/no-unused-vars": ["warn", {
+      /*
+       * An error, not a warning.
+       *
+       * Every one of these was cleared, and each had been hiding something:
+       * a knowledge-base toggle no control called, two screens that looked up
+       * an icon and never drew it, a lead-distribution spread fetched and
+       * never shown, an unbounded payments query nobody read, and a delete
+       * that was handed the file URL and ignored it. A warning is what let
+       * them accumulate to fifty-one.
+       */
+      "@typescript-eslint/no-unused-vars": ["error", {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_",
         caughtErrorsIgnorePattern: "^_",

@@ -27,7 +27,7 @@ export async function GET(req: NextRequest) {
       at: r.created_at, phone: r.from_phone, text: r.body_text,
       outcome: r.outcome, detail: r.detail,
     })))
-  } catch (e: any) { out.sources.webhook_inbox = 'missing' }
+  } catch { out.sources.webhook_inbox = 'missing' }
 
   // Fallback source
   if (out.events.length === 0) {

@@ -54,7 +54,6 @@ export default function MarketerPerformancePage() {
   const [selected, setSelected] = useState<MarketerStats | null>(null)
   const [alertMsg, setAlertMsg] = useState('')
   const [sendingAlert, setSendingAlert] = useState(false)
-  const [view, setView] = useState<'table'| 'cards'>('cards')
   useEffect(() => { load() }, [range])
 
   async function load() {

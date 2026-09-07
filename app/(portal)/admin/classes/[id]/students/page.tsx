@@ -145,17 +145,6 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     finally { setActing(null) }
   }
 
-  async function patch(e: any, fields: any, label: string) {
-    setActing(e.id)
-    try {
-      await fetch('/api/data', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'class_enrollments', data: fields, filters: [{ col: 'id', val: e.id }] }),
-      })
-      toast.success(label); load()
-    } catch { toast.error('Failed') }
-    finally { setActing(null) }
-  }
 
   async function togglePaid(e: any) {
     const nowPaid = !e.fees_paid

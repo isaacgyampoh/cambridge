@@ -15,7 +15,6 @@ export default function MyFlyers() {
   const [loading, setLoading] = useState(true)
   const [uploading, setUploading] = useState(false)
   const [form, setForm] = useState({ title: '', course: '' })
-  const [preview, setPreview] = useState<string>('')
 
   async function load() {
     try {
@@ -43,7 +42,7 @@ export default function MyFlyers() {
         body: JSON.stringify({ title: form.title, course: form.course, image_url: up.url }),
       })
       const d = await saveRes.json().catch(() => ({ error: 'Could not save the flyer. Please try again.' }))
-      if (d.flyer) { toast.success('Flyer uploaded! Your link is ready to share.'); setForm({ title: '', course: '' }); setPreview(''); load() }
+      if (d.flyer) { toast.success('Flyer uploaded! Your link is ready to share.'); setForm({ title: '', course: '' }); load() }
       else toast.error(d.error || 'Could not save flyer')
     } catch (err: any) { toast.error(err.message || 'Upload failed') }
     finally { setUploading(false) }

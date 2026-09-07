@@ -151,9 +151,6 @@ export default function ClassesPage() {
     load()
   }
 
-  const STATUS_TONE: Record<string, any> = {
-    upcoming: 'accent', ongoing: 'success', completed: 'muted', cancelled: 'danger',
-  }
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">

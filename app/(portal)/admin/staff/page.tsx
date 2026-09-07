@@ -535,6 +535,33 @@ export default function StaffPage() {
           <div className="text-[13px] font-medium text-[var(--ink-faint)] mb-2">People</div>
           <h1 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)]">Staff</h1>
           <p className="text-[var(--ink-soft)] text-sm mt-1.5">{staff.length} team members across all roles</p>
+
+          {/*
+            The lead spread, stated.
+
+            It was fetched into `spread` and never rendered, which is the exact
+            failure the comment on that state describes: an 8-to-23 imbalance
+            ran for months because the screen a manager would look at to spot
+            it did not show it. Per-person counts were drawn in the list, but a
+            manager scanning twenty rows does not add up a range — the range is
+            the thing worth saying out loud.
+
+            Called out only when it is actually lopsided. A two-lead difference
+            across a team is not news, and a warning that fires every day stops
+            being read.
+          */}
+          {spread && spread.people > 1 && (
+            <p className="text-[13px] mt-2">
+              <span className={spread.max - spread.min >= 8
+                ? 'text-[var(--warn)] font-medium'
+                : 'text-[var(--ink-faint)]'}>
+                Open leads run from {spread.min} to {spread.max} across {spread.people} people
+              </span>
+              {spread.max - spread.min >= 8 && (
+                <span className="text-[var(--ink-faint)]"> · worth rebalancing</span>
+              )}
+            </p>
+          )}
         </div>
         <div className="flex items-center gap-2">
           {isSuperAdmin && (

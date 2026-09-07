@@ -136,7 +136,6 @@ export default function ConversionsPage() {
               {data.months.map((m: any) => {
                 const max = Math.max(...data.months.map((x: any) => x.leads), 1)
                 const h = (m.leads / max) * 100
-                const rh = m.leads ? (m.registered / m.leads) * h : 0
                 return (
                   <div key={m.month} className="flex-1 flex flex-col items-center gap-1.5">
                     <div className="w-full flex flex-col justify-end items-center relative" style={{ height: '120px' }}>

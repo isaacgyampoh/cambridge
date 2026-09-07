@@ -12,9 +12,6 @@ import { sendSMS } from '@/lib/integrations/sms'
  * POST — add a student to the tracker / update a record / remove.
  */
 
-function coordProgram(session: any) {
-  return session.role === 'exam_coordinator' ? (session.coordinatorProgram || null) : null
-}
 
 export async function GET(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value

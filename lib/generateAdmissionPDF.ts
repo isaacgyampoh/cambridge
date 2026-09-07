@@ -10,7 +10,6 @@ import { createServiceClient } from '@/lib/supabase/server'
  * the site. These are the same values as --brand, --ink and --canvas.
  */
 const BRAND = rgb(0.043, 0.231, 0.180)     // #0B3B2E deep forest
-const ACCENT = rgb(0.071, 0.478, 0.353)    // #127A5A
 const INK = rgb(0.063, 0.137, 0.110)       // #10231C
 const SOFT = rgb(0.353, 0.420, 0.392)      // #5A6B64
 const FAINT = rgb(0.549, 0.604, 0.580)     // #8C9A94

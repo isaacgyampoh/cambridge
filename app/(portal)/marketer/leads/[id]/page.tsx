@@ -30,13 +30,6 @@ const ACTIVITY_TYPES = [
 ]
 
 
-async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 100) {
-  const params = new URLSearchParams({ table, select, limit: String(limit) })
-  if (filters?.length) params.set('filters', JSON.stringify(filters))
-  const res = await fetch(`/api/data?${params}`)
-  const json = await res.json()
-  return json.data || []
-}
 
 export default function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)

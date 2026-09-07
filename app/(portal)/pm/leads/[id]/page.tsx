@@ -10,7 +10,6 @@ import Link from 'next/link'
 import { whatsappHref } from '@/lib/ui/contact'
 import CallButton from '@/components/shared/CallButton'
 
-const STATUSES = ['new','contacted','interested','follow_up','registered','not_interested','lost']
 
 
 async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 200) {
