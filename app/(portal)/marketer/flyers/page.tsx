@@ -3,6 +3,7 @@ import { uploadFile } from '@/lib/upload'
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Spinner, EmptyState, inputClass } from '@/components/ui'
 import { CONFIG } from '@/lib/config'
+import { BRAND } from '@/lib/brand'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 
@@ -59,7 +60,35 @@ export default function MyFlyers() {
   }
 
   function linkFor(id: string) { return `${CONFIG.appUrl}/f/${id}` }
-  function copy(id: string) { navigator.clipboard.writeText(linkFor(id)); toast.success('Flyer link copied!') }
+  function copy(id: string) { navigator.clipboard.writeText(linkFor(id)); toast.success('Flyer link copied') }
+
+  /*
+   * Share one flyer.
+   *
+   * The message carries the link and nothing else of substance, because the
+   * LINK now carries the flyer: /f/{id} serves Open Graph metadata naming the
+   * flyer image, so WhatsApp and Facebook render the flyer itself as the
+   * preview. Repeating the details in the text would only compete with it.
+   */
+  async function shareFlyer(f: { id: string; title?: string | null; course?: string | null }) {
+    const url = linkFor(f.id)
+    const title = f.title || f.course || `Training at ${BRAND.shortName}`
+
+    if (typeof navigator !== 'undefined' && navigator.share) {
+      try {
+        await navigator.share({
+          title,
+          text: `${title} — ${BRAND.name}. Tap to see the programme and apply.`,
+          url,
+        })
+        return
+      } catch {
+        // Includes the person dismissing the sheet, which is not a failure.
+        return
+      }
+    }
+    copy(f.id)
+  }
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
@@ -104,12 +133,28 @@ export default function MyFlyers() {
                       <span>{f.clicks || 0} views</span>
                       <span>{f.leads || 0} leads</span>
                     </div>
+                    {/* Same treatment as the card above: the phone's own
+                        share sheet, not a hardcoded WhatsApp button. */}
                     <div className="flex gap-2 mt-3">
-                      <button onClick={() => copy(f.id)} className="flex-1 h-11 sm:h-9 rounded-lg bg-[var(--accent)] text-white text-[13px] font-semibold hover:brightness-110 transition">Copy link</button>
-                      <a href={`https://wa.me/?text=${encodeURIComponent(`Interested in professional training with Cambridge Center of Excellence? Tap here:\n\n${linkFor(f.id)}`)}`}
-                        target="_blank" rel="noopener noreferrer"
-                        className="flex-1 h-9 rounded-lg bg-[#25D366] text-white text-[13px] font-semibold flex items-center justify-center hover:opacity-90 transition">WhatsApp</a>
-                      <button onClick={() => remove(f.id)} className="h-11 sm:h-9 px-3 rounded-lg border border-[var(--line)] text-[var(--danger)] text-[13px] font-medium">Delete</button>
+                      <button type="button" onClick={() => copy(f.id)}
+                        className="flex-1 h-11 sm:h-9 rounded-lg bg-[var(--accent)]
+                          text-[var(--accent-ink)] text-[13px] font-semibold
+                          hover:bg-[var(--accent-hover)] transition-colors">
+                        Copy link
+                      </button>
+                      <button type="button" onClick={() => shareFlyer(f)}
+                        className="flex-1 h-11 sm:h-9 rounded-lg border border-[var(--line)]
+                          text-[var(--ink)] text-[13px] font-semibold
+                          hover:bg-[var(--canvas)] transition-colors">
+                        Share
+                      </button>
+                      <button type="button" onClick={() => remove(f.id)}
+                        aria-label={`Delete ${f.title || 'this flyer'}`}
+                        className="h-11 sm:h-9 px-3 rounded-lg border border-[var(--line)]
+                          text-[13px] text-[var(--danger)] hover:bg-[var(--danger-soft)]
+                          transition-colors">
+                        Delete
+                      </button>
                     </div>
                   </div>
                 </Card>
