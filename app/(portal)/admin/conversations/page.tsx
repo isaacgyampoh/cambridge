@@ -105,7 +105,7 @@ export default function ConversationsPage() {
       if (!!b.total !== !!a.total) return b.total - a.total
       return (b.last || '').localeCompare(a.last || '')
     })
-  }, [byStaff, search, lines])
+  }, [byStaff, search])
 
   const staff = staffId ? byStaff[staffId] : null
   const threads: any[] = staff ? Object.values(staff.threads).sort((a: any, b: any) => (b.last || '').localeCompare(a.last || '')) : []

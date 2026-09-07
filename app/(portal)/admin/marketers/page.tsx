@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { mutate } from '@/hooks/useData'
 import { formatGHS } from '@/lib/utils'
 import { AlertTriangle, TrendingUp, Phone, MessageSquare, Users, Target } from 'lucide-react'
@@ -54,9 +54,16 @@ export default function MarketerPerformancePage() {
   const [selected, setSelected] = useState<MarketerStats | null>(null)
   const [alertMsg, setAlertMsg] = useState('')
   const [sendingAlert, setSendingAlert] = useState(false)
-  useEffect(() => { load() }, [range])
 
-  async function load() {
+  /*
+   * useCallback so the effect's dependency is real rather than silenced.
+   *
+   * The effect listed the value the loader reads but not the loader itself,
+   * so the relationship was correct by coincidence: it held only because the
+   * function is redefined every render. A future edit that captured anything
+   * else would go stale with nothing to say so.
+   */
+  const load = useCallback(async () => {
     setLoading(true)
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
 
@@ -143,7 +150,9 @@ export default function MarketerPerformancePage() {
     stats.sort((a, b) => order[a.status] - order[b.status] || b.conversionRate - a.conversionRate)
     setMarketers(stats)
     setLoading(false)
-  }
+  }, [range])
+
+  useEffect(() => { load() }, [load])
 
   async function sendAlert(marketer: MarketerStats) {
     if (!alertMsg.trim()) { toast.error('Write a message first'); return }

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { displayPhone, telHref } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import { PageHeader, Card, Badge, Spinner, EmptyState, inputClass } from '@/components/ui'
@@ -12,15 +12,28 @@ export default function MarketerAttendance() {
   const [att, setAtt] = useState<any>(null)
   const [loading, setLoading] = useState(false)
 
-  const active = (batches || []).filter((b: any) => b.status !== 'completed' && b.status !== 'cancelled')
+  const active = useMemo(
+    () => (batches || []).filter(b => b.status !== 'completed' && b.status !== 'cancelled'),
+    [batches],
+  )
 
-  useEffect(() => { if (!batchId && active.length) setBatchId(active[0].id) }, [active])
+  /*
+   * The class being looked at: the one chosen, or the first running one.
+   *
+   * This was an effect that called setBatchId when nothing was chosen yet.
+   * `active` is rebuilt by .filter() on every render, so the effect had a new
+   * dependency every time and ran on every render — and a person arriving at
+   * the screen saw an empty select for a frame before it corrected itself.
+   * Deriving it needs no effect and has no such frame.
+   */
+  const shownBatchId = batchId || active[0]?.id || ''
+
   useEffect(() => {
-    if (!batchId) return
+    if (!shownBatchId) return
     setLoading(true)
-    fetch(`/api/classes/attendance?batchId=${batchId}`).then(r => r.json())
+    fetch(`/api/classes/attendance?batchId=${shownBatchId}`).then(r => r.json())
       .then(d => { if (!d.error) setAtt(d) }).finally(() => setLoading(false))
-  }, [batchId])
+  }, [shownBatchId])
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
@@ -30,7 +43,7 @@ export default function MarketerAttendance() {
         description="See which of your students came to class today, and who to call."
       />
 
-      <select value={batchId} onChange={e => setBatchId(e.target.value)} className={inputClass + ' mb-5 max-w-sm'}>
+      <select value={shownBatchId} onChange={e => setBatchId(e.target.value)} className={inputClass + ' mb-5 max-w-sm'}>
         <option value="">Select a class…</option>
         {active.map((b: any) => <option key={b.id} value={b.id}>{b.name} {b.courses?.name ? `· ${b.courses.name}` : ''}</option>)}
       </select>

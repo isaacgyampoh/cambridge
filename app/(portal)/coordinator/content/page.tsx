@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { PageHeader, Card, Button, Spinner, EmptyState, inputClass, Field } from '@/components/ui'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -35,13 +35,21 @@ export default function PrepContentPage() {
     }).catch(() => {})
   }, [])
 
-  async function load() {
+  /*
+   * useCallback so the effect's dependency is real rather than silenced.
+   *
+   * The effect listed the value the loader reads but not the loader itself,
+   * so the relationship was correct by coincidence: it held only because the
+   * function is redefined every render. A future edit that captured anything
+   * else would go stale with nothing to say so.
+   */
+  const load = useCallback(async () => {
     setLoading(true)
     const d = await fetch(`/api/prep/content?program_code=${program}`).then(r => r.json()).catch(() => ({ content: [] }))
     setContent(d.content || [])
     setLoading(false)
-  }
-  useEffect(() => { load() }, [program])
+  }, [program])
+  useEffect(() => { load() }, [load])
 
   async function create() {
     if (!form.content.trim()) { toast.error('Add the content'); return }

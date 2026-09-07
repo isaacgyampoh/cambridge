@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useCallback } from 'react'
 import { useData, mutate } from '@/hooks/useData'
 import { PageHeader, Card, StatCard, Badge, SectionLabel, Button, Sparkline } from '@/components/ui'
 import { formatGHS } from '@/lib/utils'
@@ -35,14 +35,22 @@ export default function AdminRemuneration() {
   const { data: programs, refetch: refetchPrograms } = useData<ProgramPoints>({ table: 'program_points', orderBy: 'sort_order', limit: 50 })
   const { data: bands } = useData<RankBand>({ table: 'rank_bands', orderBy: 'sort_order', limit: 50 })
 
-  async function load() {
+  /*
+   * useCallback so the effect's dependency is real rather than silenced.
+   *
+   * The effect listed the value the loader reads but not the loader itself,
+   * so the relationship was correct by coincidence: it held only because the
+   * function is redefined every render. A future edit that captured anything
+   * else would go stale with nothing to say so.
+   */
+  const load = useCallback(async () => {
     setLoading(true)
     const d = await fetch(`/api/remuneration?scope=all&year=${year}`).then(r => r.json())
     setBoard(d.board || [])
     setTotals({ commitment: d.totalSalaryCommitment || 0 })
     setLoading(false)
-  }
-  useEffect(() => { load() }, [])
+  }, [year])
+  useEffect(() => { load() }, [load])
 
   const ranked = board.filter(m => m.rank !== 'Unranked')
   const topRank = board[0]

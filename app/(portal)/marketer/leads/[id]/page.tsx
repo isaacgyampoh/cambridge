@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { LoadingState, StatusBadge } from '@/components/ui'
 import { readableStatus } from '@/lib/ui/status'
 import { mutate } from '@/hooks/useData'
@@ -51,6 +51,29 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const [regForm, setRegForm] = useState({ programCode: '', delivery: 'in_person', corporateValue: '' })
   const [registering, setRegistering] = useState(false)
 
+  const loadComments = useCallback(async () => {
+    try {
+      const d = await fetch(`/api/leads/comments?lead_id=${id}`).then(r => r.json())
+      setComments(d.comments || [])
+    } catch { /* the record is still useful without the comments */ }
+  }, [id])
+
+  /*
+   * useCallback so the effect's dependency on it is real rather than implied.
+   * `id` is what it reads; listing that alone worked only because the function
+   * is rebuilt every render.
+   */
+  const load = useCallback(async () => {
+    const res = await fetch(`/api/leads/detail?id=${id}`)
+    if (!res.ok) { setLead(null); setLoading(false); return }
+    const d = await res.json()
+    const l = d.lead || null
+    setLead(l); setActivities(d.activities || [])
+    setNewStatus(l?.status || '')
+    setLoading(false)
+    loadComments()
+  }, [id, loadComments])
+
   useEffect(() => {
     async function init() {
       const s = await fetch('/api/auth/me').then(r => r.ok ? r.json() : null)
@@ -61,7 +84,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
       load()
     }
     init()
-  }, [id])
+  }, [id, load])
 
   async function registerStudent() {
     if (!regForm.programCode) { toast.error('Select a programme'); return }
@@ -79,23 +102,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     finally { setRegistering(false) }
   }
 
-  async function load() {
-    const res = await fetch(`/api/leads/detail?id=${id}`)
-    if (!res.ok) { setLead(null); setLoading(false); return }
-    const d = await res.json()
-    const l = d.lead || null
-    setLead(l); setActivities(d.activities || [])
-    setNewStatus(l?.status || '')
-    setLoading(false)
-    loadComments()
-  }
 
-  async function loadComments() {
-    try {
-      const d = await fetch(`/api/leads/comments?lead_id=${id}`).then(r => r.json())
-      setComments(d.comments || [])
-    } catch {}
-  }
 
   async function postComment() {
     if (!commentText.trim()) return

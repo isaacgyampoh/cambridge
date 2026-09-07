@@ -57,11 +57,20 @@ export default function AttendanceDashboard() {
   }, [])
 
   // Light polling while a session is selected, to mimic realtime
+  /*
+   * Light polling while a session is open, to mimic realtime.
+   *
+   * The dependency list named only selected?.id while the body also calls two
+   * refetch functions. It happened to be correct — both are keyed on the
+   * selected session, so the interval was rebuilt whenever they changed — but
+   * nothing said so, and an interval holding a stale refetch would have gone
+   * on polling the previous session's rows with no sign of it.
+   */
   useEffect(() => {
     if (!selected) return
     const id = setInterval(() => { refetchSignins(); refetchSessions() }, 8000)
     return () => clearInterval(id)
-  }, [selected?.id])
+  }, [selected, refetchSignins, refetchSessions])
 
   async function selectSession(s: any) {
     setSelected(s)

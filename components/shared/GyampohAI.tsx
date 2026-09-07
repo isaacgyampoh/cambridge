@@ -41,7 +41,10 @@ export default function GyampohAI() {
         if (d.alerts?.length) setAlerts(d.alerts)
       }).catch(() => {})
     }
-  }, [open])
+    // alerts.length, not alerts: the guard asks whether anything has been
+    // loaded yet, and depending on the array itself would refetch the moment
+    // the fetch populated it.
+  }, [open, alerts.length])
 
   useEffect(() => {
     if (scrollRef.current) scrollRef.current.scrollTop = scrollRef.current.scrollHeight

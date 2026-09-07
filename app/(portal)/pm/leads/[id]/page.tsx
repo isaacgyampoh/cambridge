@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { LoadingState, StatusBadge } from '@/components/ui'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, SOURCE_COLORS } from '@/lib/utils'
@@ -30,12 +30,12 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const [note, setNote] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
 
-  useEffect(() => {
-    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})
-    load()
-  }, [id])
-
-  async function load() {
+  /*
+   * useCallback so the effect's dependency on it is real rather than implied.
+   * `id` is what it reads; listing that alone worked only because the function
+   * is rebuilt every render.
+   */
+  const load = useCallback(async () => {
     const [leads, a, lg, m] = await Promise.all([
       apiQuery('leads', '*, assignee:assigned_to(full_name,email,phone,role)', [{ col: 'id', op: 'eq', val: id }], 1),
       apiQuery('lead_activities', '*, creator:created_by(full_name)', [{ col: 'lead_id', op: 'eq', val: id }]),
@@ -44,7 +44,13 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     ])
     setLead(leads[0] || null); setActivities(a); setLogs(lg); setMarketers(m)
     setLoading(false)
-  }
+  }, [id])
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => r.ok ? r.json() : null).then(s => setUserId(s?.userId || null)).catch(() => {})
+    load()
+  }, [id, load])
+
 
   async function addNote() {
     if (!note.trim()) return

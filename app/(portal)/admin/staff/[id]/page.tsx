@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { displayPhone } from '@/lib/ui/contact'
 import { useRouter } from 'next/navigation'
@@ -47,7 +47,15 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   const [loading,  setLoading]  = useState(true)
   const [saving,   setSaving]   = useState(false)
 
-  function reload() {
+  /*
+   * useCallback so the effect's dependency is real rather than silenced.
+   *
+   * The effect listed the value the loader reads but not the loader itself,
+   * so the relationship was correct by coincidence: it held only because the
+   * function is redefined every render. A future edit that captured anything
+   * else would go stale with nothing to say so.
+   */
+  const reload = useCallback(() => {
     return fetch(`/api/data?table=profiles&select=*&filters=${encodeURIComponent(JSON.stringify([{col:'id',op:'eq',val:id}]))}`)
       .then(r => r.json())
       .then(d => {
@@ -58,8 +66,8 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         setSelected(new Set(portals))
         setLoading(false)
       })
-  }
-  useEffect(() => { reload() }, [id])
+  }, [id])
+  useEffect(() => { reload() }, [reload])
 
   function toggle(portalId: string) {
     if (portalId === 'dashboard') return // always on

@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect, use } from 'react'
+import { useState, useEffect, use, useCallback } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
 import { readableStatus } from '@/lib/ui/status'
 import { useData } from '@/hooks/useData'
@@ -96,7 +96,15 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     orderBy: 'created_at', orderAsc: false, limit: 1000,
   })
 
-  async function load() {
+  /*
+   * useCallback so the effect's dependency is real rather than silenced.
+   *
+   * The effect listed the value the loader reads but not the loader itself,
+   * so the relationship was correct by coincidence: it held only because the
+   * function is redefined every render. A future edit that captured anything
+   * else would go stale with nothing to say so.
+   */
+  const load = useCallback(async () => {
     setLoading(true)
     const [bRes, eRes] = await Promise.all([
       fetch(`/api/data?${new URLSearchParams({ table: 'batches', select: '*, course:course_id(name)', filters: JSON.stringify([{ col: 'id', op: 'eq', val: batchId }]), limit: '1' })}`).then(r => r.json()),
@@ -105,8 +113,8 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     setBatch(bRes.data?.[0] || null)
     setEnrolled(eRes.data || [])
     setLoading(false)
-  }
-  useEffect(() => { load() }, [batchId])
+  }, [batchId])
+  useEffect(() => { load() }, [load])
 
   const enrolledAppIds = new Set(enrolled.map((e: any) => e.application_id))
   const candidates = apps.filter((a) =>

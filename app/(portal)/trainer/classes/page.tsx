@@ -36,11 +36,23 @@ export default function TrainerClasses() {
     enabled: !!selected,
   })
 
+  /*
+   * Load the marks already saved for this class and date.
+   *
+   * The dependency was `existingAttendance.length`, not the records
+   * themselves. Changing a student from present to absent leaves the COUNT
+   * identical, so after saving and refetching the effect did not re-run and
+   * the screen kept showing the previous marks — the trainer saw their change
+   * reverted, on the one screen where being wrong about who attended matters.
+   *
+   * The array itself is the right dependency: useData holds it in state, so
+   * its identity changes when and only when new rows arrive.
+   */
   useEffect(() => {
-    const map: Record<string,string> = {}
+    const map: Record<string, string> = {}
     existingAttendance.forEach(a => { map[a.student_id] = a.status })
     setAttendance(map)
-  }, [existingAttendance.length, selected, attendanceDate])
+  }, [existingAttendance, selected, attendanceDate])
 
   const students = enrollments.map((e: any) => e.student).filter(Boolean)
 
