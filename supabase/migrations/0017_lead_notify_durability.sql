@@ -1,55 +1,57 @@
 -- ─────────────────────────────────────────────────────────────────────────────
--- Lead-assignment notifications survive a failed send
+-- An index for the lead-notification sweep
 -- ─────────────────────────────────────────────────────────────────────────────
 --
--- ── WHAT WAS WRONG ──────────────────────────────────────────────────────────
+-- OPTIONAL. Nothing waits on this migration: /api/leads/notify-pending is
+-- correct on the schema as it stands, and applying this only makes its query
+-- cheaper. It is recorded here so the fix below is written down somewhere
+-- other than a commit message.
 --
--- /api/leads/notify-pending finished each marketer with:
+-- ── THE BUG THIS FOLLOWS ────────────────────────────────────────────────────
 --
---     await sb.from('lead_assign_pending')
---       .update({ pending: 0, last_sms_at: new Date().toISOString() })
---       .eq('marketer_id', p.marketer_id)
+-- The endpoint used to finish each marketer with
 --
--- lead_assign_pending has three columns — marketer_id, pending, last_lead_at.
--- There is no last_sms_at and there never was. PostgREST rejects the whole
--- statement, so `pending` was not cleared either; and the result was not
--- read, so nothing said so.
+--     .update({ pending: 0, last_sms_at: now() })
 --
--- The consequences pull in opposite directions, which is why this was hard to
--- see from the outside:
+-- and lead_assign_pending has three columns: marketer_id, pending,
+-- last_lead_at. There is no last_sms_at and there never was — migration 0002
+-- created this table and nothing has altered it since. PostgREST rejects the
+-- whole statement, so `pending` was not cleared either; the result was never
+-- read, so nothing said so; and the send itself was inside a bare catch {}.
 --
---   * A marketer WITH a phone kept a standing pending count and was texted
---     again on every run of the cron, indefinitely.
---   * A marketer with NO phone took the other branch — an update with no
---     last_sms_at, which succeeds — and was silently cleared, so the leads
+-- The two branches failed in opposite directions, which is why it was hard to
+-- see from outside:
+--
+--   * a marketer WITH a phone kept a standing count and was re-texted on
+--     every run of the cron, indefinitely;
+--   * a marketer with NO phone took the other branch — an update with no
+--     last_sms_at, which succeeds — and was cleared silently, so the leads
 --     they had been given were never announced at all.
 --
--- Neither the failed update nor a failed send was checked. Both are now.
+-- ── WHY NO COLUMNS ARE ADDED ────────────────────────────────────────────────
 --
--- ── WHAT THIS ADDS ──────────────────────────────────────────────────────────
+-- The obvious repair is last_sms_at plus a retry counter. It is also the
+-- wrong one: it would make the endpoint correct only AFTER someone applied a
+-- migration by hand, and until then exactly as broken as before — on the
+-- workflow that is failing right now.
 --
--- last_sms_at  the column the code has been trying to write since the
---              endpoint was written
--- attempts     runs that failed to queue this batch, so a transient provider
---              outage is retried rather than discarded, and a permanently
---              broken row is given up on rather than retried forever
--- last_error   why the last attempt failed, so an administrator can see that
---              somebody is receiving leads nobody can text them about
+-- Everything needed was already present. Retries and backoff belong to
+-- sms_logs, which the SMS queue maintains; a counter here would be a second,
+-- worse copy of it. Deduplication belongs to the queue's unique dedupe_key,
+-- which is what makes it safe to leave a count standing after a failure. And
+-- the one failure that would otherwise retry for ever — a phone number that
+-- can never be delivered to — is decided in the endpoint before queueing,
+-- with the same normaliseRecipient the sender uses.
 --
--- IF NOT EXISTS throughout: this migration is safe to run more than once, and
--- safe on an instance where someone has already added a column by hand.
+-- So the endpoint reads and writes only marketer_id and pending, and this
+-- migration adds no columns.
 
-ALTER TABLE lead_assign_pending ADD COLUMN IF NOT EXISTS last_sms_at TIMESTAMPTZ;
-ALTER TABLE lead_assign_pending ADD COLUMN IF NOT EXISTS attempts    INT NOT NULL DEFAULT 0;
-ALTER TABLE lead_assign_pending ADD COLUMN IF NOT EXISTS last_error  TEXT;
-
--- The endpoint reads rows with pending > 0 that have settled, ordered by
--- nothing in particular. This is the index for that predicate.
+-- The sweep reads rows with a positive count whose last lead has settled.
+-- Partial, because rows with nothing pending are the overwhelming majority
+-- and are never selected.
 CREATE INDEX IF NOT EXISTS lead_assign_pending_due_idx
   ON lead_assign_pending (last_lead_at)
   WHERE pending > 0;
 
-COMMENT ON COLUMN lead_assign_pending.attempts IS
-  'Cron runs that failed to queue this batch. Cleared once queued; the batch is abandoned and logged after 6.';
-COMMENT ON COLUMN lead_assign_pending.last_error IS
-  'Why the last notification attempt failed. Non-null here means someone is receiving leads they are not being told about.';
+COMMENT ON TABLE lead_assign_pending IS
+  'Per-marketer count of leads assigned but not yet announced by SMS. Cleared by /api/leads/notify-pending only once the message is queued — never before, which is the bug this replaced.';

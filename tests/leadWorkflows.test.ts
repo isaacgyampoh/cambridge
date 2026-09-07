@@ -275,8 +275,39 @@ describe('the SMS that announces assigned leads', () => {
   test('a failed send leaves the count standing so it retries', () => {
     assert.match(route, /if \(result\.queued \|\| result\.duplicate\)/,
       'the count is cleared regardless of whether the message was queued')
-    assert.match(route, /attempts >= MAX_RUNS/,
-      'a permanently failing row would be retried forever')
+  })
+
+  /*
+   * The endpoint must be correct on the schema as it stands. Requiring a
+   * hand-applied migration would leave it exactly as broken as before until
+   * someone ran the SQL — on the workflow that is failing right now.
+   */
+  test('it touches no column that does not exist', () => {
+    const EXISTING = ['marketer_id', 'pending', 'last_lead_at']
+    const referenced = new Set<string>()
+
+    const table = /lead_assign_pending'\)([\s\S]*?)(?=\n\n|$)/g
+    for (const m of route.matchAll(/from\('lead_assign_pending'\)\s*([\s\S]{0,220})/g)) {
+      for (const sel of m[1].matchAll(/\.select\('([^']+)'\)/g)) {
+        sel[1].split(',').forEach(c => referenced.add(c.trim()))
+      }
+      for (const upd of m[1].matchAll(/\.update\(\{([^}]*)\}\)/g)) {
+        for (const k of upd[1].matchAll(/(\w+)\s*:/g)) referenced.add(k[1])
+      }
+      for (const eq of m[1].matchAll(/\.(?:eq|gt|lte|gte|lt)\('(\w+)'/g)) referenced.add(eq[1])
+    }
+    void table
+
+    const unknown = [...referenced].filter(c => !EXISTING.includes(c))
+    assert.deepEqual(unknown, [],
+      'these columns are not on lead_assign_pending, so the statement fails as ' +
+      'a unit and the count is never cleared — exactly how this broke:\n  ' +
+      unknown.join('\n  '))
+  })
+
+  test('a permanently undeliverable number is not retried forever', () => {
+    assert.match(route, /normaliseRecipient\(profile\.phone\)/,
+      'an unusable number is queued on every run instead of being settled once')
   })
 
   test('it goes through the SMS queue, so it is logged and retried', () => {
@@ -287,15 +318,15 @@ describe('the SMS that announces assigned leads', () => {
   })
 
   test('a recipient with no phone is recorded, not silently dropped', () => {
-    assert.match(route, /no phone on profile/,
+    assert.match(route, /no usable phone for marketer/,
       'somebody receiving leads with no phone number is a thing an ' +
       'administrator must be able to find out about')
   })
 
-  test('the migration adding the columns exists', () => {
+  test('the fix requires no migration to be applied by hand', () => {
     const sql = readFileSync('supabase/migrations/0017_lead_notify_durability.sql', 'utf8')
-    for (const col of ['last_sms_at', 'attempts', 'last_error']) {
-      assert.match(sql, new RegExp(`ADD COLUMN IF NOT EXISTS ${col}`))
-    }
+    assert.ok(!/ADD COLUMN/i.test(sql),
+      'the endpoint depends on a column somebody has to add before it works')
+    assert.match(sql, /CREATE INDEX IF NOT EXISTS/)
   })
 })

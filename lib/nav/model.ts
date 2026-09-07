@@ -1,5 +1,5 @@
 import { canReachPage } from '../access/pageAccess.ts'
-import { PORTAL_PATHS } from '../access/portals.ts'
+import { PORTAL_PATHS, PORTAL_EXACT_PATHS } from '../access/portals.ts'
 import { ROLE_HOME } from '../access/portals.ts'
 
 /**
@@ -439,4 +439,71 @@ export function portalOptions(): PortalOption[] {
 /** Look one up by id, for rendering a portal the catalogue may not list. */
 export function portalOption(id: string): PortalOption | undefined {
   return portalOptions().find(p => p.id === id)
+}
+
+/** Human labels for the catalogue's sections, in the order they should appear. */
+const SECTION_LABELS: [string, string][] = [
+  ['top', 'Overview'],
+  ['growth', 'Leads & growth'],
+  ['enrolment', 'Admissions'],
+  ['finance', 'Finance'],
+  ['academics', 'Classes & training'],
+  ['messaging', 'Messaging'],
+  ['comms', 'Communication'],
+  ['team', 'Team'],
+  ['ops', 'Operations'],
+  ['system', 'System'],
+]
+
+export type PortalGroup = { label: string; portals: PortalOption[] }
+
+/**
+ * Every grantable portal, grouped for the staff permissions screen.
+ *
+ * ── WHY THIS IS NOT A LIST IN THE PAGE ─────────────────────────────────────
+ *
+ * That screen had its own `groups` array naming seventeen portals. There are
+ * thirty-three. The other sixteen — my_earnings, my_link, my_flyers, reports,
+ * my_attendance, clock_in, messages, registrations, insights, conversations,
+ * remuneration, knowledge, wa_lines, workforce, my_links, prep, grp_socials,
+ * grp_automation — could not be granted or revoked by anyone, because the
+ * screen that exists to grant and revoke them did not draw a checkbox.
+ *
+ * Deriving the groups from the catalogue means a portal added to the system
+ * appears here without anyone remembering to add it twice.
+ *
+ * `dashboard` is excluded: it is granted to everyone by resolvePortals and is
+ * not a choice. So is anything the catalogue lists that unlocks no path —
+ * `notifications`, `sequences` and `reminders` are navigation entries, not
+ * access, and offering a toggle that grants nothing is worse than offering
+ * none.
+ */
+export function portalGroups(): PortalGroup[] {
+  const known = new Set(SECTION_LABELS.map(([id]) => id))
+  /*
+   * BOTH path tables. A portal unlocks pages through PORTAL_PATHS (prefix
+   * match) or PORTAL_EXACT_PATHS (one page, matched exactly), and `reminders`
+   * — the receptionist's own front-desk screen, and one of their role
+   * defaults — lives only in the second. Checking one table dropped it from
+   * the screen as though it granted nothing.
+   */
+  const grantable = (e: CatalogueEntry) =>
+    e.id !== 'home' && e.id !== 'dashboard' &&
+    Boolean(PORTAL_PATHS[e.id]?.length || PORTAL_EXACT_PATHS[e.id]?.length)
+
+  return SECTION_LABELS
+    .map(([section, label]) => ({
+      label,
+      portals: CATALOGUE
+        .filter(e => grantable(e) && e.section === section)
+        .map(({ id, label: l, icon }) => ({ id, label: l, icon })),
+    }))
+    .concat([{
+      // A section nobody has labelled yet still has to be grantable.
+      label: 'Other',
+      portals: CATALOGUE
+        .filter(e => grantable(e) && !known.has(e.section))
+        .map(({ id, label: l, icon }) => ({ id, label: l, icon })),
+    }])
+    .filter(g => g.portals.length > 0)
 }

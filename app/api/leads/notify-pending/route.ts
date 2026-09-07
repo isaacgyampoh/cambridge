@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { queueSMS } from '@/lib/notifications/sms'
+import { normaliseRecipient } from '@/lib/integrations/sms'
 import { CONFIG } from '@/lib/config'
 
 export const runtime = 'nodejs'
@@ -10,87 +11,54 @@ export const runtime = 'nodejs'
  * Tell marketers about the leads they have been given.
  *
  * One consolidated SMS per person rather than one per lead: a distribution of
- * twenty leads is one text. Hit by the cron every few minutes, and only for
+ * twenty leads is one text. Run by the cron every few minutes, and only for
  * people whose last lead settled 3+ minutes ago so a batch groups together.
  *
  * ── WHAT WAS WRONG ─────────────────────────────────────────────────────────
  *
- * The count was cleared whether or not the message was sent:
+ * The endpoint finished each marketer with
  *
- *     try { const ok = await sendSMS(...); if (ok) sent++ } catch {}
- *     // Reset regardless (avoid a stuck loop re-texting)
- *     await sb.from('lead_assign_pending').update({ pending: 0 })...
+ *     .update({ pending: 0, last_sms_at: new Date().toISOString() })
  *
- * So a provider outage, an exhausted SMS balance or a momentary network
- * failure discarded the fact that the person was owed a notification. There
- * was no retry, because the counter that would have driven one had been set
- * to zero — and the bare `catch {}` meant nothing was logged either. The
- * leads were assigned and visible in the portal; nobody was told to look.
- * "I never got a message about my leads" is the exact shape of that.
+ * `lead_assign_pending` has three columns — marketer_id, pending,
+ * last_lead_at. There is no last_sms_at and there never was: migration 0002
+ * created the table and nothing has altered it since. PostgREST rejects the
+ * whole statement, so `pending` was not cleared either — and the result was
+ * never read, so nothing said so. The send itself sat inside a bare catch {}.
  *
- * The comment was not wrong about the danger — a send that fails forever
- * would re-text on every run. But zero and infinity are not the only options.
+ * The two branches then failed in OPPOSITE directions, which is why this was
+ * so hard to see from outside:
  *
- * ── WHAT IT DOES NOW ───────────────────────────────────────────────────────
+ *   - a marketer WITH a phone kept a standing pending count and was texted
+ *     again on every run, indefinitely;
+ *   - a marketer with NO phone took the other branch — an update with no
+ *     last_sms_at, which succeeds — and was cleared silently, so the leads
+ *     they had been given were never announced at all.
  *
- * Sends through queueSMS, the same path the manual-assignment route uses, so
- * the message is written to sms_logs, retried on a transient failure and
- * deduped on a key. Three things follow:
+ * ── WHY THERE IS NO NEW COLUMN ─────────────────────────────────────────────
  *
- *   - The counter is cleared only once the message is genuinely queued. A
- *     failure leaves it standing and the next run tries again.
- *   - A number that can never work (missing, or not a Ghanaian mobile) is
- *     cleared and logged rather than retried forever.
- *   - The dedupe key covers the marketer and the count, so a retry after a
- *     partial failure cannot text the same person about the same batch twice.
+ * The obvious repair is to add last_sms_at and a retry counter. It is also
+ * the wrong one: it makes this endpoint correct only AFTER a migration has
+ * been applied by hand, and until then it is exactly as broken as before, on
+ * the workflow that is failing right now.
+ *
+ * Everything needed is already here.
+ *
+ *   Retries and backoff belong to sms_logs, which the SMS queue already
+ *   maintains — a counter on this table would be a second, worse copy of
+ *   machinery that exists.
+ *
+ *   Deduplication belongs to the queue's unique dedupe_key, so a re-run
+ *   cannot text the same person about the same batch twice. That is what
+ *   makes it safe to leave a count standing.
+ *
+ *   The one failure that would otherwise retry for ever is a phone number
+ *   that can never be delivered to. That is decidable here, before queueing,
+ *   with the same normaliseRecipient the sender uses — no counter required.
+ *
+ * So this reads and writes only marketer_id and pending, and is correct on
+ * the database as it stands today.
  */
-
-/** Give up on one batch after this many attempts and log it loudly. */
-const MAX_RUNS = 6
-
-/**
- * Clear a marketer's pending count, and say whether it actually cleared.
- *
- * ── WHY THIS IS TWO STATEMENTS ─────────────────────────────────────────────
- *
- * The old code cleared the counter and stamped last_sms_at together. There is
- * no last_sms_at column — migration 0017 adds it — so PostgREST rejected the
- * whole statement and `pending` was not cleared either. Nobody noticed,
- * because the result was never read.
- *
- * The counter is what decides whether someone gets texted again, so clearing
- * it must not depend on a column that may not be there yet. It goes first, on
- * its own, using only marketer_id and pending. The diagnostics follow in a
- * second statement whose failure is logged and otherwise harmless — which
- * makes this endpoint correct both before and after 0017 is applied.
- *
- * And the result IS read. A clear that fails now says so.
- */
-async function clearPending(
-  sb: ReturnType<typeof createServiceClient>,
-  marketerId: string,
-  diagnostics: Record<string, unknown>,
-): Promise<boolean> {
-  const { error } = await sb.from('lead_assign_pending')
-    .update({ pending: 0 })
-    .eq('marketer_id', marketerId)
-
-  if (error) {
-    console.error('[lead_notify] could not clear pending for', marketerId, error.message)
-    return false
-  }
-
-  // Best effort: these columns arrive with migration 0017. Before it is
-  // applied this fails and the notification is still correct.
-  const { error: diagErr } = await sb.from('lead_assign_pending')
-    .update(diagnostics)
-    .eq('marketer_id', marketerId)
-  if (diagErr) {
-    console.warn('[lead_notify] diagnostics not recorded (apply migration 0017):', diagErr.message)
-  }
-
-  return true
-}
 
 export async function GET(req: NextRequest) {
   if (!isValidCronRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
@@ -98,98 +66,102 @@ export async function GET(req: NextRequest) {
   const sb = createServiceClient()
   const settleCutoff = new Date(Date.now() - 3 * 60000).toISOString()  // last lead 3+ min ago
 
-  /*
-   * `attempts` arrives with migration 0017. Naming a column that does not
-   * exist fails the whole select, so this asks for it and falls back — the
-   * endpoint has to work on an instance where the migration has not been
-   * applied yet, which is every instance the moment this deploys.
-   */
-  type Pending = { marketer_id: string; pending: number; last_lead_at: string; attempts?: number }
-
-  const due = (cols: string) => sb.from('lead_assign_pending')
-    .select(cols)
+  const { data: pendings, error: readErr } = await sb.from('lead_assign_pending')
+    .select('marketer_id, pending, last_lead_at')
     .gt('pending', 0)
     .lte('last_lead_at', settleCutoff)
     .limit(200)
-    .overrideTypes<Pending[]>()
-
-  const first = await due('marketer_id, pending, last_lead_at, attempts')
-  let pendings = first.data
-  const readErr = first.error
 
   if (readErr) {
-    console.warn('[lead_notify] reading without attempts (apply migration 0017):', readErr.message)
-    ;({ data: pendings } = await due('marketer_id, pending, last_lead_at'))
+    console.error('[lead_notify] could not read pending assignments:', readErr.message)
+    return NextResponse.json({ error: 'Could not read pending assignments.' }, { status: 500 })
   }
-
-  if (!pendings?.length) return NextResponse.json({ ran: true, sent: 0, held: 0 })
+  if (!pendings?.length) return NextResponse.json({ ran: true, sent: 0, held: 0, dropped: 0 })
 
   const portal = CONFIG.appUrl
-  let sent = 0
-  let held = 0
-  let dropped = 0
+  let sent = 0     // queued for delivery
+  let held = 0     // left standing, to be retried on the next run
+  let dropped = 0  // cannot ever be delivered; cleared and logged
+
+  /**
+   * Clear one marketer's pending count.
+   *
+   * Only `pending`, and the result is read. The statement this replaces also
+   * set a column that does not exist, which failed the update as a unit and
+   * left the count in place — the whole reason the same people were texted
+   * over and over.
+   */
+  async function clearPending(marketerId: string): Promise<boolean> {
+    const { error } = await sb.from('lead_assign_pending')
+      .update({ pending: 0 })
+      .eq('marketer_id', marketerId)
+    if (error) {
+      console.error('[lead_notify] could not clear pending for', marketerId, error.message)
+      return false
+    }
+    return true
+  }
 
   for (const p of pendings) {
-    const { data: profile } = await sb.from('profiles')
+    const { data: profile, error: profErr } = await sb.from('profiles')
       .select('full_name, phone').eq('id', p.marketer_id).maybeSingle()
 
+    if (profErr) {
+      // Transient. Leave the count standing; the next run picks it up.
+      console.error('[lead_notify] could not read profile', p.marketer_id, profErr.message)
+      held++
+      continue
+    }
+
     /*
-     * No number to reach them on. Clearing is right — retrying cannot help —
-     * but it is recorded, because a marketer receiving leads with no phone on
-     * their profile is something an administrator needs to fix rather than a
-     * fact the system should quietly absorb.
+     * Nothing to deliver to, and no run will change that until somebody
+     * edits the profile. Clearing is right; doing it silently was not.
+     * Someone receiving leads that cannot be announced is a thing an
+     * administrator has to be able to find out about.
      */
-    if (!profile?.phone) {
-      console.error('[lead_notify] no phone on profile', p.marketer_id, `— ${p.pending} lead(s) unannounced`)
-      await clearPending(sb, p.marketer_id, { attempts: 0, last_error: 'No phone number on the profile' })
+    const number = profile?.phone ? normaliseRecipient(profile.phone) : null
+    if (!number) {
+      console.error(
+        '[lead_notify] no usable phone for marketer', p.marketer_id,
+        profile?.full_name ? `(${profile.full_name})` : '',
+        `— ${p.pending} lead(s) assigned and unannounced`,
+        profile?.phone ? '— number on file is not a Ghanaian mobile' : '— no number on file',
+      )
+      await clearPending(p.marketer_id)
       dropped++
       continue
     }
 
     const n = p.pending
-    const first = (profile.full_name || 'there').split(' ')[0]
+    const first = (profile?.full_name || 'there').split(' ')[0]
     const msg = n === 1
       ? `Hi ${first}, you've been assigned a new lead. Check your portal: ${portal}/marketer/leads`
       : `Hi ${first}, you've been assigned ${n} new leads. Check your portal: ${portal}/marketer/leads`
 
     const result = await queueSMS({
-      to: profile.phone,
+      to: number,
       message: msg,
       kind: 'lead_assigned',
       entityId: p.marketer_id,
-      // The count is part of the key: the same person being told about three
-      // leads and later about five are different messages, but a retry of the
-      // same batch is not.
+      /*
+       * The count and the settling time are part of the key: being told about
+       * three leads and later about five are different messages, but a retry
+       * of the same batch is the same message and must not send twice.
+       */
       dedupeKey: `lead_pending:${p.marketer_id}:${n}:${String(p.last_lead_at).slice(0, 16)}`,
     })
 
-    // Queued (or already queued by an earlier run) means the notification is
-    // owned by the SMS queue, which retries on its own. Only then is the
-    // counter safe to clear.
-    if (result.queued || result.duplicate) {
-      await clearPending(sb, p.marketer_id, {
-        attempts: 0, last_error: null, last_sms_at: new Date().toISOString(),
-      })
-      if (result.sent) sent++
-      continue
-    }
-
     /*
-     * Could not even be queued. The count stands so the next run tries again
-     * — up to a point: a batch that has failed MAX_RUNS times is cleared and
-     * logged, so one broken row cannot make this endpoint fail forever.
+     * Queued — or already owned by an earlier run — means the SMS queue has
+     * it, and the queue retries on its own. Only then is the count safe to
+     * clear. Anything else leaves it standing to be tried again, which is
+     * safe precisely because of the dedupe key above.
      */
-    const attempts = (p.attempts || 0) + 1
-    if (attempts >= MAX_RUNS) {
-      console.error('[lead_notify] giving up after', attempts, 'runs for', p.marketer_id, `— ${n} lead(s) unannounced`)
-      await clearPending(sb, p.marketer_id, { attempts: 0, last_error: `Gave up after ${attempts} attempts` })
-      dropped++
+    if (result.queued || result.duplicate) {
+      if (await clearPending(p.marketer_id)) sent++
+      else held++
     } else {
-      // The count deliberately stands, so the next run tries again.
-      const { error } = await sb.from('lead_assign_pending')
-        .update({ attempts, last_error: 'Could not be queued' })
-        .eq('marketer_id', p.marketer_id)
-      if (error) console.warn('[lead_notify] attempt counter not recorded (apply migration 0017):', error.message)
+      console.error('[lead_notify] could not queue notification for', p.marketer_id, `— ${n} lead(s) still pending`)
       held++
     }
   }

@@ -3,23 +3,41 @@ import { useState, useEffect, use, useCallback } from 'react'
 import { PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { displayPhone } from '@/lib/ui/contact'
 import { useRouter } from 'next/navigation'
-import { portalOption } from '@/lib/nav/model'
+import { portalGroups } from '@/lib/nav/model'
+import { ROLE_DEFAULTS, resolvePortals } from '@/lib/access/portals'
 import { NAV_ICONS } from '@/components/shared/navIcons'
 import { toast } from 'sonner'
 import Link from 'next/link'
 
-const ROLE_DEFAULTS: Record<string, string[]> = {
-  super_admin:       ['dashboard','leads','admissions','finance','broadcast','attendance','academics','documents','marketers','alumni','staff','settings'],
-  project_manager:   ['dashboard','pm_leads','leads','admissions'],
-  marketing_officer: ['dashboard','my_leads','leads'],
-  admissions_officer:['dashboard','admissions','leads'],
-  accountant:        ['dashboard','finance','leads'],
-  receptionist:      ['dashboard','reminders','attendance'],
-  trainer:           ['dashboard','my_classes','attendance'],
-  student:           ['dashboard','my_payments'],
-}
-
+/*
+ * What each permission actually lets somebody do.
+ *
+ * Written for the person granting it, in the terms they would use — an
+ * administrator deciding whether a trainer should have "Clock in" needs to
+ * know it is staff attendance, not a student register. Every grantable
+ * portal has an entry, and tests/staffPermissions asserts it, because a
+ * toggle with a blank line under it tells the grantee nothing about what
+ * they are handing over.
+ */
 const PORTAL_DESC: Record<string, string> = {
+  insights: 'Charts and trends across the centre',
+  reports: 'Read-only performance reports',
+  messages: 'Internal staff messaging',
+  remuneration: 'Commission rates and marketer pay',
+  my_earnings: 'Their own commission and earnings',
+  my_link: 'Their personal referral link',
+  my_flyers: 'Their own campaign flyers',
+  my_links: 'Shared marketing links',
+  registrations: 'Registration fees and marketer payouts',
+  my_attendance: 'Attendance for classes they market',
+  prep: 'Exam prep tracker and content bank',
+  wa_lines: 'WhatsApp numbers and connection status',
+  knowledge: 'What the AI assistant is taught',
+  conversations: 'AI conversations with leads',
+  grp_automation: 'Scheduled reminders and info sessions',
+  workforce: 'Staff attendance and office locations',
+  clock_in: 'Clocking themselves in and out',
+  grp_socials: 'Social media content and drafts',
   dashboard: 'Main dashboard overview',
   leads: 'All leads, pipeline, add/import leads',
   my_leads: 'Own assigned leads and follow-ups',
@@ -62,8 +80,27 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
         const s = d.data?.[0]
         if (!s) return
         setStaff(s)
-        const portals = s.portals?.length ? s.portals : ROLE_DEFAULTS[s.role] || ['dashboard']
-        setSelected(new Set(portals))
+        /*
+         * resolvePortals — the SAME function the route guard and the sidebar
+         * use — rather than a lookup against a local table.
+         *
+         * This page carried its own copy of ROLE_DEFAULTS, and every role in
+         * it had drifted: a marketing officer was listed as
+         * ['dashboard','my_leads','leads'] when the real defaults are nine
+         * portals, and exam_coordinator, content_manager and administrator
+         * were absent altogether, falling through to ['dashboard'].
+         *
+         * That was not a display bug. Saving writes `portals` explicitly, and
+         * resolvePortals treats a non-empty saved list as the WHOLE of a
+         * person's access — it is not merged with role defaults, or nothing
+         * could ever be taken away. So opening a marketer who had never been
+         * customised and pressing Save silently stripped their earnings,
+         * link, flyers, reports, class attendance, clock-in and messages, and
+         * handed them the full admin lead board they should not have. For a
+         * content manager or exam coordinator it reduced them to the
+         * dashboard and nothing else.
+         */
+        setSelected(new Set(resolvePortals(s.role, s.portals)))
         setLoading(false)
       })
   }, [id])
@@ -80,8 +117,8 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   }
 
   function resetToDefaults() {
-    const defaults = ROLE_DEFAULTS[staff?.role] || ['dashboard']
-    setSelected(new Set(defaults))
+    // The real defaults for the role, from the one place that defines them.
+    setSelected(new Set(ROLE_DEFAULTS[staff?.role] || ['dashboard']))
     toast.info('Reset to role defaults')
   }
 
@@ -112,16 +149,17 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
   }
 
   // Group portals
-  const groups = [
-    { label: 'Core', ids: ['dashboard'] },
-    { label: 'CRM & Leads', ids: ['leads','my_leads','pm_leads'] },
-    { label: 'Admissions', ids: ['admissions'] },
-    { label: 'Finance', ids: ['finance','my_payments'] },
-    { label: 'Communication', ids: ['broadcast'] },
-    { label: 'Classes & Training', ids: ['attendance','academics','my_classes','reminders'] },
-    { label: 'Content', ids: ['documents','alumni'] },
-    { label: 'Management', ids: ['marketers','staff','settings'] },
-  ]
+  /*
+   * Every grantable portal, grouped from the navigation catalogue.
+   *
+   * The list here named seventeen. There are thirty-three, so sixteen —
+   * my_earnings, my_link, my_flyers, reports, my_attendance, clock_in,
+   * messages, registrations, insights, conversations, remuneration,
+   * knowledge, wa_lines, workforce, my_links and prep — had no checkbox on
+   * the one screen that exists to grant and revoke them. Several are role
+   * defaults, so they could be lost by saving and never given back.
+   */
+  const groups = portalGroups()
 
   return (
     <div className="w-full max-w-3xl mx-auto fade-in">
@@ -169,14 +207,14 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
       {/* Portal groups */}
       <div className="space-y-4 mb-5">
         {groups.map(group => {
-          const portalsInGroup = group.ids.map(portalOption).filter(Boolean)
+          const portalsInGroup = group.portals
           return (
             <div key={group.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-[var(--shadow-raised)]">
               <div className="px-4 py-3 border-b border-[var(--line-soft)] bg-[var(--line-soft)]">
                 <span className="text-xs font-bold text-[var(--ink-faint)]">{group.label}</span>
               </div>
               <div className="p-3 grid grid-cols-1 sm:grid-cols-2 gap-2">
-                {portalsInGroup.map((portal: any) => {
+                {portalsInGroup.map(portal => {
                   const Icon    = NAV_ICONS[portal.icon as keyof typeof NAV_ICONS]
                   const on      = selected.has(portal.id)
                   const locked  = portal.id === 'dashboard'
