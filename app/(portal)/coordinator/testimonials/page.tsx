@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import { CONFIG } from '@/lib/config'
 import { useConfirm } from '@/hooks/useConfirm'
 import type { Testimonial } from '@/types'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 export default function TestimonialsPage() {
   const { confirm, dialog } = useConfirm()
@@ -68,7 +69,7 @@ export default function TestimonialsPage() {
             <Card key={t.id} className="p-5 flex flex-col">
               <div className="flex items-start gap-3 mb-3">
                 {t.image_url ? (
-                  <img src={t.image_url} alt="" className="w-12 h-12 rounded-full object-cover" />
+                  <RemoteImage src={t.image_url} alt="" className="w-12 h-12 rounded-full object-cover" />
                 ) : (
                   <div className="w-12 h-12 rounded-full bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center font-semibold">{(t.student_name || '?')[0]}</div>
                 )}

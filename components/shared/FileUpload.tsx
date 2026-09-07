@@ -4,6 +4,7 @@ import { useState, useRef } from 'react'
 import { CONFIG } from '@/lib/config'
 import { Upload, X, FileText, Check, Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
+import { RemoteImage } from './RemoteImage'
 
 /**
  * Direct-to-Cloudinary uploader. Pick a file -> uploads -> returns the URL
@@ -72,7 +73,7 @@ export default function FileUpload({
       {preview ? (
         <div className="flex items-center gap-3 p-3 rounded-2xl border border-[var(--line)] bg-[var(--line-soft)]">
           {isImage ? (
-            <img src={preview} alt="" className="w-12 h-12 rounded-lg object-cover" />
+            <RemoteImage src={preview} alt="The file you attached" className="w-12 h-12 rounded-lg object-cover" eager />
           ) : (
             <div className="w-12 h-12 rounded-lg bg-[var(--accent-soft)] text-[var(--accent)] flex items-center justify-center"><FileText size={20} /></div>
           )}

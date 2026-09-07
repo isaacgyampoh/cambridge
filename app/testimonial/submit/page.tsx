@@ -3,6 +3,8 @@ import { uploadFile } from '@/lib/upload'
 import { useState, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import { toast, Toaster } from 'sonner'
+import Image from 'next/image'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 function SubmitForm() {
   const params = useSearchParams()
@@ -42,7 +44,7 @@ function SubmitForm() {
   if (done) {
     return (
       <div style={{ maxWidth: 460, margin: '0 auto', textAlign: 'center', padding: '48px 24px' }}>
-        <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 64, height: 64, objectFit: 'contain', margin: '0 auto 16px' }} />
+        <Image src="/brand/logo.png" alt="Cambridge Center of Excellence" width={64} height={64} style={{ objectFit: 'contain', margin: '0 auto 16px' }} />
         <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)', margin: '0 0 8px' }}>Thank you!</h1>
         <p style={{ color: 'var(--ink-soft)', fontSize: 15 }}>Your testimonial has been received. We may feature it on our social pages.</p>
       </div>
@@ -52,7 +54,7 @@ function SubmitForm() {
   return (
     <div style={{ maxWidth: 480, margin: '0 auto', padding: '32px 20px' }}>
       <div style={{ textAlign: 'center', marginBottom: 28 }}>
-        <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 60, height: 60, objectFit: 'contain', margin: '0 auto 12px' }} />
+        <Image src="/brand/logo.png" alt="Cambridge Center of Excellence" width={60} height={60} style={{ objectFit: 'contain', margin: '0 auto 12px' }} priority />
         <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)', margin: '0 0 6px', letterSpacing: '-0.02em' }}>Share your experience</h1>
         <p style={{ color: 'var(--ink-soft)', fontSize: 14 }}>We’d love to hear how your programme went. Your words may be featured on our socials.</p>
       </div>
@@ -73,7 +75,7 @@ function SubmitForm() {
         <Field label="Your photo (optional)">
           {form.image_url ? (
             <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-              <img src={form.image_url} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+              <RemoteImage src={form.image_url} alt="The photo you attached" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} eager />
               <button type="button" onClick={() => set('image_url', '')} style={{ background: 'none', border: 'none', color: '#d85a30', fontSize: 13, cursor: 'pointer' }}>Remove</button>
             </div>
           ) : (

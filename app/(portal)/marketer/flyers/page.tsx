@@ -6,6 +6,7 @@ import { CONFIG } from '@/lib/config'
 import { BRAND } from '@/lib/brand'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 const COURSES = ['Projects Management Professional','Corporate Training','Professional in Human Resources','Senior Professional in Human Resources','Software Agile Projects Management','Results-Based Monitoring and Evaluation']
 
@@ -124,7 +125,7 @@ export default function MyFlyers() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               {flyers.map(f => (
                 <Card key={f.id} className="p-0 overflow-hidden">
-                  <img src={f.image_url} alt={f.title || 'Flyer'} className="w-full h-44 object-cover" />
+                  <RemoteImage src={f.image_url} alt={f.title || 'Flyer'} className="w-full h-44 object-cover" />
                   <div className="p-4">
                     <div className="font-medium text-[var(--ink)] text-[15px]">{f.title || 'Flyer'}</div>
                     {f.course && <div className="text-[13px] text-[var(--ink-faint)]">{f.course}</div>}

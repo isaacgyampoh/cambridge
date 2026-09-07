@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
+import Image from 'next/image'
 
 function ReferInner() {
   const params = useSearchParams()
@@ -102,7 +103,7 @@ function Shell({ title, subtitle, children }: { title: string; subtitle: string;
       <div className="relative overflow-hidden" style={{ background: 'var(--accent)' }}>
         <div className="relative max-w-md mx-auto px-4 pt-10 pb-20 text-center">
           <div className="inline-flex w-14 h-14 rounded-2xl bg-[var(--paper)] overflow-hidden p-1.5 mb-4 shadow-[var(--shadow-overlay)]">
-            <img src="/brand/logo.png" alt="Cambridge" className="w-full h-full object-contain" />
+            <Image src="/brand/logo.png" alt="Cambridge" width={56} height={56} className="w-full h-full object-contain" priority />
           </div>
           <h1 className="font-display text-white text-[24px] font-semibold tracking-[-0.02em]">{title}</h1>
           <p className="text-white/70 text-[14px] mt-2 leading-relaxed">{subtitle}</p>

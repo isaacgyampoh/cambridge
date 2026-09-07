@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { useInstallPrompt } from './useInstallPrompt'
+import Image from 'next/image'
 
 /**
  * Prominent install banner. Reappears every session until the app is
@@ -30,7 +31,7 @@ export default function InstallPrompt() {
     <div className="fixed bottom-4 left-4 right-4 sm:left-auto sm:right-4 sm:w-[360px] z-[70] bg-[var(--paper)] border border-[var(--line)] rounded-2xl shadow-[var(--shadow-overlay)] p-4 fade-in">
       <div className="flex items-start gap-3">
         <div className="w-11 h-11 rounded-2xl bg-[var(--paper)] border border-[var(--line)] flex items-center justify-center overflow-hidden p-1 flex-shrink-0">
-          <img src="/brand/logo.png" alt="" className="w-full h-full object-contain" />
+          <Image src="/brand/logo.png" alt="" width={44} height={44} className="w-full h-full object-contain" />
         </div>
         <div className="min-w-0 flex-1">
           <div className="font-semibold text-[var(--ink)] text-[15px]">Install the Cambridge app</div>

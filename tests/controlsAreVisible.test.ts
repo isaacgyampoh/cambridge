@@ -83,9 +83,25 @@ describe('no control renders as an empty box', () => {
       const src = readFileSync(file, 'utf8')
 
       for (const m of src.matchAll(/<(a|button)\b((?:[^>{]|\{(?:[^{}]|\{[^{}]*\})*\})*)>\s*(<[A-Z]\w*\s[^>]*\/>)\s*<\/\1>/g)) {
-        const [, tag, attrs] = m
+        const [, tag, attrs, child] = m
         const hasName = /aria-label|aria-labelledby|title=/.test(attrs)
         if (hasName) continue
+
+        /*
+         * An `alt` on the child IS the name.
+         *
+         * This test looks for a control whose only child is a component, on
+         * the assumption that the component is an icon and so contributes no
+         * text. That holds for lucide icons, which is what it was written
+         * against — but not for a component that renders an image, where the
+         * accessible name computation takes the alt text and the link is
+         * announced with it. RemoteImage is the case in hand: a message
+         * attachment wrapped in a link to the full-size file.
+         *
+         * An EMPTY alt is still an offence — alt="" marks an image as
+         * decorative, which leaves the link with nothing to announce.
+         */
+        if (/\salt=(?!["']["'])/.test(child)) continue
         const line = src.slice(0, m.index).split('\n').length
         offenders.push(`${file}:${line} — an icon-only <${tag}> with no aria-label`)
       }

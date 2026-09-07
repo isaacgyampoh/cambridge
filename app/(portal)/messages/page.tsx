@@ -4,6 +4,7 @@ import { uploadFile as uploadToStorage } from '@/lib/upload'
 import { useState, useEffect, useRef } from 'react'
 import { PageHeader, Card, Spinner } from '@/components/ui'
 import { ROLE_LABELS } from '@/lib/utils'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 /*
  * An optimistic message's local identity.
@@ -196,7 +197,7 @@ export default function Messages() {
                       ) : m.file_url ? (
                         m.file_type === 'image' ? (
                           <a href={m.file_url} target="_blank" rel="noopener noreferrer" className="max-w-[70%] block">
-                            <img src={m.file_url} alt={m.file_name || 'image'} className="rounded-2xl max-h-64 object-cover" />
+                            <RemoteImage src={m.file_url} alt={m.file_name || 'image'} className="rounded-2xl max-h-64 object-cover" />
                           </a>
                         ) : (
                           <a href={m.file_url} target="_blank" rel="noopener noreferrer"

@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { Smartphone } from 'lucide-react'
+import Image from 'next/image'
 
 export default function StudentLogin() {
   // Never scroll on a sign-in screen
@@ -54,7 +55,7 @@ export default function StudentLogin() {
             display: 'flex', alignItems: 'center', justifyContent: 'center', margin: '0 auto 14px',
             boxShadow: '0 14px 34px -12px rgba(9,52,58,.45), 0 0 0 1px rgba(9,52,58,.06)',
           }}>
-            <img src="/brand/logo.png" alt="" style={{ width: '100%', height: '100%', objectFit: 'contain' }} />
+            <Image src="/brand/logo.png" alt="" width={94} height={94} style={{ width: '100%', height: '100%', objectFit: 'contain' }} priority />
           </div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)' }}>Student Portal</h1>
           <p style={{ fontSize: 14, color: 'var(--ink-soft)', marginTop: 4 }}>Cambridge Center of Excellence</p>

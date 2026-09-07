@@ -9,6 +9,7 @@ import Modal from '@/components/shared/Modal'
 import { useConfirm } from '@/hooks/useConfirm'
 import type { Alumnus } from '@/types'
 import { Card, EmptyState, LoadingState } from '@/components/ui'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 const EMPTY_FORM = {
   full_name: '', email: '', phone: '', photo_url: '',
@@ -146,7 +147,7 @@ export default function AlumniPage() {
             <div className="flex items-center gap-4 mb-5 pb-5 border-b border-[var(--line-soft)]">
               <div className="w-20 h-20 rounded-full bg-[var(--line-soft)] flex items-center justify-center overflow-hidden flex-shrink-0">
                 {form.photo_url
-                  ? <img src={form.photo_url} alt="" className="w-full h-full object-cover" />
+                  ? <RemoteImage src={form.photo_url} alt="" className="w-full h-full object-cover" eager />
                   : <span className="text-[var(--ink-faint)] text-xs">Photo</span>}
               </div>
               <div>
@@ -243,7 +244,7 @@ export default function AlumniPage() {
                 )}
                 <div className="w-14 h-14 rounded-full border-3 border-white overflow-hidden bg-[var(--accent-soft)] flex-shrink-0 absolute -bottom-7 left-4">
                   {a.photo_url
-                    ? <img src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
+                    ? <RemoteImage src={a.photo_url} alt={a.full_name} className="w-full h-full object-cover" />
                     : <div className="w-full h-full flex items-center justify-center text-[var(--accent)] font-bold text-xl">{a.full_name.charAt(0)}</div>}
                 </div>
               </div>

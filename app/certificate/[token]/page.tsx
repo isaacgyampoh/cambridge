@@ -1,4 +1,5 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import Image from 'next/image'
 
 export default async function CertificateDownload({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
@@ -19,7 +20,7 @@ export default async function CertificateDownload({ params }: { params: Promise<
   return (
     <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--canvas)', fontFamily: 'Inter, sans-serif', padding: 20 }}>
       <div style={{ maxWidth: 460, width: '100%', background: '#fff', borderRadius: 20, border: '1px solid var(--line)', padding: 36, textAlign: 'center', boxShadow: '0 4px 24px rgba(26,34,48,0.06)' }}>
-        <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 72, height: 72, objectFit: 'contain', margin: '0 auto 16px' }} />
+        <Image src="/brand/logo.png" alt="Cambridge Center of Excellence" width={72} height={72} style={{ objectFit: 'contain', margin: '0 auto 16px' }} priority />
         <h1 style={{ fontSize: 22, fontWeight: 600, color: 'var(--ink)', margin: '0 0 4px', letterSpacing: '-0.02em' }}>Your certificate is ready</h1>
         <p style={{ color: 'var(--ink-soft)', fontSize: 15, margin: '0 0 24px' }}>Congratulations, {cert.student_name.split(' ')[0]}.</p>
 

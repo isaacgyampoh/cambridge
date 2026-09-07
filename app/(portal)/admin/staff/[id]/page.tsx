@@ -235,11 +235,25 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
 function EditStaffPanel({ staff, onSaved }: { staff: any; onSaved: () => void }) {
   const [open, setOpen] = useState(false)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ full_name: '', phone: '', email: '', new_pin: '' })
-
-  useEffect(() => {
-    if (staff) setForm({ full_name: staff.full_name || '', phone: displayPhone(staff.phone), email: staff.email || '', new_pin: '' })
-  }, [staff])
+  /*
+   * Seeded once, from the row this panel was mounted with.
+   *
+   * It used to be seeded in an effect keyed on `staff`, which meant every
+   * refetch of the staff row overwrote whatever the administrator had typed.
+   * `onSaved` is that refetch, so today it only fires after a save and the
+   * overwrite is invisible — but it is a wipe waiting for a second caller,
+   * and on the panel that sets someone's login PIN, losing half-entered
+   * changes is not a small thing.
+   *
+   * The panel renders below the `if (!staff) return` guard, so the row is
+   * always present by the time this runs and there is nothing to wait for.
+   */
+  const [form, setForm] = useState(() => ({
+    full_name: staff.full_name || '',
+    phone: displayPhone(staff.phone),
+    email: staff.email || '',
+    new_pin: '',
+  }))
 
   async function save() {
     setSaving(true)

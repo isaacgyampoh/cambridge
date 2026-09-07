@@ -5,6 +5,7 @@ import FileUpload from '@/components/shared/FileUpload'
 import { Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 export default function BrandKit() {
   const { confirm, ask, dialog } = useConfirm()
@@ -107,7 +108,7 @@ export default function BrandKit() {
               {assets.map(a => (
                 <Card key={a.id} className="p-3">
                   <div className="aspect-square rounded-lg bg-[var(--canvas)] overflow-hidden mb-2 flex items-center justify-center">
-                    <img src={a.url} alt={a.name} className="max-w-full max-h-full object-contain" />
+                    <RemoteImage src={a.url} alt={a.name} className="max-w-full max-h-full object-contain" />
                   </div>
                   <div className="flex items-center justify-between gap-1">
                     <span className="text-xs text-[var(--ink-soft)] truncate">{a.name}</span>

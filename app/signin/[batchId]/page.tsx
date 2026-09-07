@@ -3,6 +3,8 @@ import { uploadFile } from '@/lib/upload'
 import { useState, useEffect, use } from 'react'
 import Script from 'next/script'
 import { CONFIG } from '@/lib/config'
+import Image from 'next/image'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 type Step = 'locating' | 'name' | 'offer_online' | 'signed' | 'pay_amount' | 'pay_method' | 'bank' | 'done'
 
@@ -117,7 +119,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
       <Script src="https://js.paystack.co/v1/inline.js" strategy="lazyOnload" />
       <div style={card}>
         <div style={{ textAlign: 'center', marginBottom: 22 }}>
-          <img src="/brand/logo.png" alt="Cambridge Center of Excellence" style={{ width: 56, height: 56, objectFit: 'contain', margin: '0 auto 10px' }} />
+          <Image src="/brand/logo.png" alt="Cambridge Center of Excellence" width={56} height={56} style={{ objectFit: 'contain', margin: '0 auto 10px' }} priority />
           <div style={{ fontSize: 13, color: 'var(--ink-faint)' }}>Cambridge Center of Excellence</div>
           <h1 style={{ fontSize: 20, fontWeight: 600, color: 'var(--ink)', margin: '4px 0 0' }}>Class sign-in</h1>
         </div>
@@ -226,7 +228,7 @@ export default function ClassSignIn({ params }: { params: Promise<{ batchId: str
             </div>
             {screenshot ? (
               <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 12 }}>
-                <img src={screenshot} alt="" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} />
+                <RemoteImage src={screenshot} alt="Your uploaded payment screenshot" style={{ width: 44, height: 44, borderRadius: 8, objectFit: 'cover' }} eager />
                 <span style={{ fontSize: 13, color: '#059669' }}>Screenshot attached</span>
               </div>
             ) : (

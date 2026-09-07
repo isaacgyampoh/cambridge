@@ -6,6 +6,8 @@ import { useState, useEffect, use } from 'react'
 import type { Profile, Course } from '@/types'
 import { toast } from 'sonner'
 import Script from 'next/script'
+import Image from 'next/image'
+import { RemoteImage } from '@/components/shared/RemoteImage'
 
 
 // Map a UTM source slug to a friendly platform label.
@@ -196,7 +198,7 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
         <div className="relative overflow-hidden" style={{ background: 'var(--accent)' }}>
           <div className="relative max-w-2xl mx-auto px-4 pt-10 pb-24 text-center">
             <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl mb-5 bg-[var(--paper)] overflow-hidden p-1.5 shadow-[var(--shadow-overlay)]">
-              <img src="/brand/logo.png" alt="Cambridge Center of Excellence" className="w-full h-full object-contain" />
+              <Image src="/brand/logo.png" alt="Cambridge Center of Excellence" width={64} height={64} className="w-full h-full object-contain" priority />
             </div>
             <h1 className="font-display text-white text-[24px] sm:text-[24px] font-semibold tracking-[-0.02em]">Cambridge Center of Excellence</h1>
             <p className="text-white/70 text-[15px] mt-2 max-w-md mx-auto leading-relaxed">Take the next step in your career. Complete your registration below to secure your place.</p>
@@ -495,7 +497,7 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
               <div className="text-[11px] text-[var(--ink-faint)] mt-2">Transfer GHS {Number(amount).toFixed(2)}, then upload your screenshot. Finance will verify it.</div>
             </div>
             {screenshot ? (
-              <div className="flex items-center gap-2 mb-3"><img src={screenshot} alt="" className="w-11 h-11 rounded-lg object-cover" /><span className="text-sm text-[var(--ok)]">Screenshot attached</span></div>
+              <div className="flex items-center gap-2 mb-3"><RemoteImage src={screenshot} alt="Your uploaded payment screenshot" className="w-11 h-11 rounded-lg object-cover" eager /><span className="text-sm text-[var(--ok)]">Screenshot attached</span></div>
             ) : (
               <label className="flex items-center justify-center h-12 rounded-2xl border border-dashed border-[var(--line)] text-sm text-[var(--ink-soft)] cursor-pointer mb-3">
                 {uploading ? 'Uploading…' : 'Upload payment screenshot'}
