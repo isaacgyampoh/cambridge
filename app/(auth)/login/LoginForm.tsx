@@ -331,9 +331,23 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
         crest was half-clipped by the image it is meant to overlap.
       */}
       <div className="relative z-10 flex-1 flex flex-col min-w-0">
+      {/*
+        pb-[14vh] with justify-center, which lifts the composition above the
+        true middle by about 7vh.
+        
+        Centred exactly, the four boxes landed at the vertical midpoint of the
+        screen with an equal void above and below — which reads as a page that
+        did not finish loading, and puts the field precisely where the
+        software keyboard covers it. Optical centre is above geometric centre
+        for a composition that is read top-down, and lifting it also keeps the
+        boxes visible once the keyboard opens.
+        
+        Only when there is no photograph: with one, the column starts under
+        the picture and the spacing is already resolved.
+      */}
       <main className={`flex-1 w-full flex flex-col items-center
         px-5 pb-8 sm:px-6 lg:px-10
-        ${hasHero ? 'justify-start lg:justify-center' : 'justify-center'}`}>
+        ${hasHero ? 'justify-start lg:justify-center' : 'justify-center pb-[14vh] lg:pb-8'}`}>
         <div className="w-full max-w-[360px] lg:max-w-[380px]">
 
           {/*
@@ -366,8 +380,18 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
                   tracking-[-0.01em] text-[var(--ink)]">
                   Welcome back
                 </h2>
+                {/*
+                  The instruction, visible.
+                
+                  `label="PIN"` below reaches a screen reader through
+                  aria-label and nothing else, so a sighted person arrived at
+                  four empty boxes with "Sign in securely to continue" above
+                  them and nothing anywhere saying what goes in them. The
+                  length comes from PIN_LENGTH so the sentence cannot drift
+                  from the number of boxes it describes.
+                */}
                 <p className="text-[var(--ink-soft)] text-[14px] mt-1.5 leading-snug">
-                  Sign in securely to continue.
+                  Enter your {PIN_LENGTH}-digit PIN to continue.
                 </p>
               </div>
 

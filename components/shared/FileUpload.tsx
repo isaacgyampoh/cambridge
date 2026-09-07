@@ -26,6 +26,33 @@ export default function FileUpload({
   const [preview, setPreview] = useState(value || '')
   const inputRef = useRef<HTMLInputElement>(null)
 
+  /*
+   * `value` is respected after mount, not only at it.
+   *
+   * useState keeps only its first argument, so the preview was whatever
+   * `value` happened to be the moment this mounted and nothing the parent did
+   * afterwards could change it. On the certificates screen that shows: the
+   * upload sits beside a "…or paste a PDF link" box, both bound to the same
+   * certUrl, and pasting a link updated the box while the preview went on
+   * showing nothing — so the administrator pasted a valid link and had no
+   * sign it had registered.
+   *
+   * Adjusted during render rather than in an effect, the same way
+   * ConfirmDialog resets its typed phrase in components/ui/states: React
+   * re-runs this component with the new value before anything is painted, so
+   * there is no flash of the stale preview and no second commit.
+   *
+   * `value === undefined` means the parent is not controlling this — brand
+   * assets mount it that way — and then the preview belongs to the upload
+   * alone. Resyncing there would wipe the thumbnail the moment a file
+   * finished uploading.
+   */
+  const [lastValue, setLastValue] = useState(value)
+  if (value !== undefined && value !== lastValue) {
+    setLastValue(value)
+    setPreview(value)
+  }
+
   const configured = !!CONFIG.cloudinaryCloudName && !!CONFIG.cloudinaryUploadPreset
 
   async function handleFile(file: File) {

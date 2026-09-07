@@ -151,7 +151,23 @@ function Empty({ children }: { children: React.ReactNode }) {
 export default function PortalView({ demo, demoData }: { demo?: boolean; demoData?: PortalData }) {
   // Demo content is initial state rather than something an effect writes, so
   // the first paint is already correct and no cascading render is triggered.
-  const [d, setD] = useState<PortalData | null>(demo ? demoData ?? null : null)
+  /*
+   * In demo mode the prop IS the data. It is not copied into state.
+   *
+   * This was `useState(demo ? demoData ?? null : null)`, and useState keeps
+   * only its FIRST argument — the initialiser runs once and every later value
+   * of `demoData` is ignored. So /portal/demo highlighted the state button
+   * you pressed and then showed you the first state for ever: choosing
+   * "Paid up — can join" left "Payment required to join" on screen, and
+   * "Cohort finished" never appeared at all.
+   *
+   * That is the public demo. It is what the portal gets shown with.
+   *
+   * Only the fetched value needs to be state, and only the fetch writes it —
+   * neither setter below runs in demo mode.
+   */
+  const [fetched, setFetched] = useState<PortalData | null>(null)
+  const d = demo ? demoData ?? null : fetched
   const [loading, setLoading] = useState(!demo)
   const [tab, setTab] = useState<Tab>('home')
   const [installEvt, setInstallEvt] = useState<{ prompt: () => void } | null>(null)
@@ -168,7 +184,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     try {
       const r = await fetch('/api/student/me')
       if (r.status === 401) { window.location.href = '/portal/login'; return }
-      setD(await r.json())
+      setFetched(await r.json())
     } catch {
       setNotice({ text: 'We could not load your portal. Check your connection and try again.', tone: 'danger' })
     } finally {
@@ -188,7 +204,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
       .then(async r => {
         if (r.status === 401) { window.location.href = '/portal/login'; return }
         const json = await r.json()
-        if (!cancelled) { setD(json); setLoading(false) }
+        if (!cancelled) { setFetched(json); setLoading(false) }
       })
       .catch(() => {
         if (cancelled) return
@@ -311,6 +327,20 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
     </>
   )
 
+  /*
+   * Is the class card already asking for money?
+   *
+   * The amber "Payment required to join" block and the Fees card's "Make a
+   * payment" both call setTab('payments') — the same action, under two
+   * near-identical labels, one scroll apart. Two primary buttons for one
+   * thing is not twice the prompt; it makes the specific one ("pay GHS 300
+   * to unlock session 2") look like the general one, and a student skims
+   * past both.
+   *
+   * The specific ask wins, and the general one stands down while it is up.
+   */
+  const classIsAskingForPayment = Boolean(d?.batch && s && !s.cohortEnded && !s.canJoin)
+
   const classStatus = () => {
     if (!d?.batch) return <Empty>Your class will appear here once you have been added to a group.</Empty>
     if (!s) return null
@@ -401,7 +431,7 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
         <Card>
           <Label>Fees</Label>
           {feeSummary()}
-          {f && f.balance > 0 && (
+          {f && f.balance > 0 && !classIsAskingForPayment && (
             <div className="mt-4"><Button onClick={() => setTab('payments')}>Make a payment</Button></div>
           )}
         </Card>
