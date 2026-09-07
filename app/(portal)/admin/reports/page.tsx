@@ -2,19 +2,39 @@
 import { useState, useEffect, useCallback } from 'react'
 
 import { formatGHS } from '@/lib/utils'
-import { LoadingState, PageHeader } from '@/components/ui'
+import { LoadingState, ErrorState, PageHeader } from '@/components/ui'
+import { apiQuery, ApiQueryError } from '@/lib/api/query'
 
+/*
+ * The columns this page asks for, named. `select` above and the reads below
+ * used to have nothing holding them together: adding a column to one and
+ * forgetting the other was a runtime undefined, and the totals it fed were
+ * wrong without being empty.
+ */
+type LeadRow = { source: string; status: string; created_at: string; assigned_to: string | null }
+type AdmissionRow = { status: string; created_at: string }
+type PaymentRow = { amount: number | string; status: string; method: string; paid_at: string | null }
+type BatchRow = { status: string; class_type: string }
 
-async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 2000) {
-  const params = new URLSearchParams({ table, select, limit: String(limit) })
-  if (filters?.length) params.set('filters', JSON.stringify(filters))
-  const res = await fetch(`/api/data?${params}`)
-  const json = await res.json()
-  return json.data || []
+/** What the page renders. Named so `data` is not `any`. */
+type Report = {
+  totalLeads: number
+  converted: number
+  unassigned: number
+  bySource: Record<string, number>
+  totalAdmissions: number
+  admitted: number
+  byAdmStatus: Record<string, number>
+  revenue: number
+  txCount: number
+  totalStudents: number
+  ongoingBatches: number
+  upcomingBatches: number
 }
 
 export default function AdminReports() {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<Report | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState('30')
 
   /*
@@ -28,40 +48,53 @@ export default function AdminReports() {
    */
   const load = useCallback(async () => {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
-    const [leads, admissions, payments, students, batches] = await Promise.all([
-      apiQuery('leads', 'source,status,created_at,assigned_to', [{ col: 'created_at', op: 'gte', val: since }]),
-      apiQuery('admissions', 'status,created_at', [{ col: 'created_at', op: 'gte', val: since }]),
-      apiQuery('payments', 'amount,status,method,paid_at', [{ col: 'created_at', op: 'gte', val: since }]),
-      apiQuery('profiles', 'id', [{ col: 'role', op: 'eq', val: 'student' }, { col: 'is_active', op: 'eq', val: true }]),
-      apiQuery('batches', 'status,class_type'),
-    ])
 
-    const l = leads; const p = payments
-    const paidPayments = p.filter((x: any) => x.status === 'paid')
-    const bySource: Record<string, number> = {}
-    l.forEach((x: any) => { bySource[x.source] = (bySource[x.source] || 0) + 1 })
+    /*
+     * Wrapped, because apiQuery now throws instead of handing back an empty
+     * array. It used to swallow a 401 or a 500 and return [], which drew this
+     * page with every figure at zero — a report of a month that brought in
+     * nothing, indistinguishable from the real thing.
+     */
+    try {
+      const [leads, admissions, payments, students, batches] = await Promise.all([
+        apiQuery<LeadRow>('leads', 'source,status,created_at,assigned_to', { filters: [{ col: 'created_at', op: 'gte', val: since }] }),
+        apiQuery<AdmissionRow>('admissions', 'status,created_at', { filters: [{ col: 'created_at', op: 'gte', val: since }] }),
+        apiQuery<PaymentRow>('payments', 'amount,status,method,paid_at', { filters: [{ col: 'created_at', op: 'gte', val: since }] }),
+        apiQuery<{ id: string }>('profiles', 'id', { filters: [{ col: 'role', op: 'eq', val: 'student' }, { col: 'is_active', op: 'eq', val: true }] }),
+        apiQuery<BatchRow>('batches', 'status,class_type'),
+      ])
 
-    const byAdmStatus: Record<string, number> = {}
-    admissions.forEach((x: any) => { byAdmStatus[x.status] = (byAdmStatus[x.status] || 0) + 1 })
+      const paidPayments = payments.filter(x => x.status === 'paid')
+      const bySource: Record<string, number> = {}
+      leads.forEach(x => { bySource[x.source] = (bySource[x.source] || 0) + 1 })
 
-    setData({
-      totalLeads: l.length,
-      converted: l.filter((x: any) => ['ready_to_join','registered'].includes(x.status)).length,
-      unassigned: l.filter((x: any) => !x.assigned_to).length,
-      bySource,
-      totalAdmissions: (admissions || []).length,
-      admitted: byAdmStatus.admitted || 0,
-      byAdmStatus,
-      revenue: paidPayments.reduce((a: number, x: any) => a + Number(x.amount), 0),
-      txCount: paidPayments.length,
-      totalStudents: (students || []).length,
-      ongoingBatches: (batches || []).filter((b: any) => b.status === 'ongoing').length,
-      upcomingBatches: (batches || []).filter((b: any) => b.status === 'upcoming').length,
-    })
+      const byAdmStatus: Record<string, number> = {}
+      admissions.forEach(x => { byAdmStatus[x.status] = (byAdmStatus[x.status] || 0) + 1 })
+
+      setData({
+        totalLeads: leads.length,
+        converted: leads.filter(x => ['ready_to_join', 'registered'].includes(x.status)).length,
+        unassigned: leads.filter(x => !x.assigned_to).length,
+        bySource,
+        totalAdmissions: admissions.length,
+        admitted: byAdmStatus.admitted || 0,
+        byAdmStatus,
+        revenue: paidPayments.reduce((a, x) => a + Number(x.amount), 0),
+        txCount: paidPayments.length,
+        totalStudents: students.length,
+        ongoingBatches: batches.filter(b => b.status === 'ongoing').length,
+        upcomingBatches: batches.filter(b => b.status === 'upcoming').length,
+      })
+      setError(null)
+    } catch (e) {
+      setData(null)
+      setError(e instanceof ApiQueryError ? e.userMessage : 'This report could not be loaded. Please try again.')
+    }
   }, [range])
 
   useEffect(() => { load() }, [load])
 
+  if (error) return <ErrorState title="The report did not load" message={error} onRetry={load} />
   if (!data) return <LoadingState />
 
   return (
@@ -103,7 +136,7 @@ export default function AdminReports() {
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Leads by Source</h3>
           <div className="space-y-2">
-            {Object.entries(data.bySource).sort((a: any, b: any) => b[1] - a[1]).map(([src, cnt]: any) => (
+            {Object.entries(data.bySource).sort((a, b) => b[1] - a[1]).map(([src, cnt]) => (
               <div key={src}>
                 <div className="flex justify-between text-xs mb-1">
                   <span className="capitalize font-medium text-[var(--ink-soft)]">{src}</span>
@@ -121,7 +154,7 @@ export default function AdminReports() {
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Admission Pipeline</h3>
           <div className="space-y-2">
-            {Object.entries(data.byAdmStatus).sort((a: any, b: any) => b[1] - a[1]).map(([status, cnt]: any) => (
+            {Object.entries(data.byAdmStatus).sort((a, b) => b[1] - a[1]).map(([status, cnt]) => (
               <div key={status} className="flex items-center justify-between py-2 border-b border-[var(--line-soft)] last:border-0">
                 <span className="text-sm capitalize text-[var(--ink-soft)]">{status.replace(/_/g,' ')}</span>
                 <span className="text-sm font-semibold text-[var(--ink)]">{cnt}</span>

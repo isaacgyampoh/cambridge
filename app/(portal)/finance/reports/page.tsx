@@ -3,20 +3,38 @@ import { useState, useEffect, useCallback } from 'react'
 
 import { formatGHS } from '@/lib/utils'
 import { DollarSign, TrendingUp, AlertCircle } from 'lucide-react'
-import { LoadingState, PageHeader } from '@/components/ui'
+import { LoadingState, ErrorState, PageHeader } from '@/components/ui'
+import { apiQuery, ApiQueryError } from '@/lib/api/query'
 
+type PaymentRow = {
+  amount: number | string
+  status: string
+  method: string
+  paid_at: string | null
+  created_at: string
+  student?: { full_name: string } | null
+}
 
-async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], orderBy?: string, orderAsc?: boolean, limit = 2000) {
-  const params = new URLSearchParams({ table, select, limit: String(limit) })
-  if (filters?.length) params.set('filters', JSON.stringify(filters))
-  if (orderBy) { params.set('orderBy', orderBy); if (orderAsc !== undefined) params.set('orderAsc', String(orderAsc)) }
-  const res = await fetch(`/api/data?${params}`)
-  const json = await res.json()
-  return json.data || []
+export type InvoiceRow = {
+  id: string
+  invoice_number: string | null
+  outstanding: number | string
+  student?: { full_name: string } | null
+}
+
+type Report = {
+  totalRevenue: number
+  txCount: number
+  avgTx: number
+  byMethod: Record<string, number>
+  outstanding: InvoiceRow[]
+  totalOutstanding: number
+  daily: Record<string, number>
 }
 
 export default function FinanceReports() {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<Report | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState('30')
 
   /*
@@ -30,42 +48,56 @@ export default function FinanceReports() {
    */
   const load = useCallback(async () => {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
-    const [payments, invoices] = await Promise.all([
-      apiQuery('payments', '*,student:student_id(full_name)', [{ col: 'created_at', op: 'gte', val: since }]),
-      apiQuery('invoices', '*,student:student_id(full_name)', undefined, 'outstanding', false),
-    ])
 
-    const p: any[] = payments
-    const paid = p.filter((x: any) => x.status === 'paid')
-    const byMethod: Record<string, number> = {}
-    paid.forEach((x: any) => { byMethod[x.method] = (byMethod[x.method] || 0) + Number(x.amount) })
+    /*
+     * Wrapped, because apiQuery now throws instead of returning an empty
+     * array. It used to swallow a 401 or a 500 and hand back [], which drew
+     * this page with revenue at GHS 0.00 and nothing outstanding — a month
+     * that took in nothing, rendered with the same confidence as a real one.
+     * On the finance report that is the worst possible way to fail.
+     */
+    try {
+      const [payments, invoices] = await Promise.all([
+        apiQuery<PaymentRow>('payments', '*,student:student_id(full_name)', { filters: [{ col: 'created_at', op: 'gte', val: since }] }),
+        apiQuery<InvoiceRow>('invoices', '*,student:student_id(full_name)', { orderBy: 'outstanding', orderAsc: false }),
+      ])
 
-    // Daily revenue trend
-    const daily: Record<string, number> = {}
-    for (let i = Math.min(parseInt(range), 30) - 1; i >= 0; i--) {
-      const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
-      daily[d] = 0
+      const paid = payments.filter(x => x.status === 'paid')
+      const byMethod: Record<string, number> = {}
+      paid.forEach(x => { byMethod[x.method] = (byMethod[x.method] || 0) + Number(x.amount) })
+
+      // Daily revenue trend
+      const daily: Record<string, number> = {}
+      for (let i = Math.min(parseInt(range), 30) - 1; i >= 0; i--) {
+        const d = new Date(Date.now() - i * 86400000).toISOString().slice(0, 10)
+        daily[d] = 0
+      }
+      paid.forEach(x => {
+        const d = x.paid_at?.slice(0, 10) || x.created_at.slice(0, 10)
+        if (daily[d] !== undefined) daily[d] += Number(x.amount)
+      })
+
+      const total = paid.reduce((a, x) => a + Number(x.amount), 0)
+
+      setData({
+        totalRevenue: total,
+        txCount: paid.length,
+        avgTx: paid.length ? total / paid.length : 0,
+        byMethod,
+        outstanding: invoices.filter(i => Number(i.outstanding) > 0),
+        totalOutstanding: invoices.reduce((a, i) => a + Number(i.outstanding), 0),
+        daily,
+      })
+      setError(null)
+    } catch (e) {
+      setData(null)
+      setError(e instanceof ApiQueryError ? e.userMessage : 'This report could not be loaded. Please try again.')
     }
-    paid.forEach((x: any) => {
-      const d = x.paid_at?.slice(0, 10) || x.created_at.slice(0, 10)
-      if (daily[d] !== undefined) daily[d] += Number(x.amount)
-    })
-
-    const inv: any[] = invoices
-
-    setData({
-      totalRevenue: paid.reduce((a: number, x: any) => a + Number(x.amount), 0),
-      txCount: paid.length,
-      avgTx: paid.length ? paid.reduce((a: number, x: any) => a + Number(x.amount), 0) / paid.length : 0,
-      byMethod,
-      outstanding: inv.filter((i: any) => Number(i.outstanding) > 0),
-      totalOutstanding: inv.reduce((a: number, i: any) => a + Number(i.outstanding), 0),
-      daily,
-    })
   }, [range])
 
   useEffect(() => { load() }, [load])
 
+  if (error) return <ErrorState title="The report did not load" message={error} onRetry={load} />
   if (!data) return <LoadingState />
 
   const maxDaily = Math.max(...Object.values(data.daily as Record<string, number>), 1)
@@ -106,7 +138,7 @@ export default function FinanceReports() {
       <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5 mb-5">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Daily Revenue</h3>
         <div className="flex items-end gap-1 h-32">
-          {Object.entries(data.daily).slice(-30).map(([date, amount]: any) => (
+          {Object.entries(data.daily).slice(-30).map(([date, amount]) => (
             <div key={date} className="flex-1 flex flex-col items-center gap-1 group relative">
               <div className="absolute -top-8 left-1/2 -translate-x-1/2 bg-[var(--ink)] text-white text-[11px] px-2 py-1 rounded opacity-0 group-hover:opacity-100 whitespace-nowrap z-10 transition">
                 {date.slice(5)}: GHS {amount.toFixed(0)}
@@ -127,7 +159,7 @@ export default function FinanceReports() {
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Revenue by Payment Method</h3>
           <div className="space-y-3">
-            {Object.entries(data.byMethod).sort((a: any, b: any) => b[1] - a[1]).map(([method, amt]: any) => (
+            {Object.entries(data.byMethod).sort((a, b) => b[1] - a[1]).map(([method, amt]) => (
               <div key={method}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium capitalize text-[var(--ink-soft)]">{method.replace(/_/g, ' ')}</span>
@@ -146,7 +178,7 @@ export default function FinanceReports() {
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Outstanding Balances</h3>
           <div className="space-y-2 max-h-64 overflow-y-auto">
-            {data.outstanding.slice(0, 20).map((inv: any) => (
+            {data.outstanding.slice(0, 20).map(inv => (
               <div key={inv.id} className="flex items-center justify-between py-2 border-b border-[var(--line-soft)]">
                 <div>
                   <div className="text-sm font-semibold text-[var(--ink)]">{inv.student?.full_name || '—'}</div>

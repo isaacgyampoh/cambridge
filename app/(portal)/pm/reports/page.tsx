@@ -2,21 +2,29 @@
 import { useState, useEffect, useCallback } from 'react'
 
 import { DataTable, type Column } from '@/components/ui/DataTable'
-import { LoadingState } from '@/components/ui'
-
-
-async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 2000) {
-  const params = new URLSearchParams({ table, select, limit: String(limit) })
-  if (filters?.length) params.set('filters', JSON.stringify(filters))
-  const res = await fetch(`/api/data?${params}`)
-  const json = await res.json()
-  return json.data || []
-}
+import { LoadingState, ErrorState } from '@/components/ui'
+import { apiQuery, ApiQueryError } from '@/lib/api/query'
 
 type MarketerRow = { name: string; total: number; converted: number }
 
+type LeadRow = {
+  source: string
+  status: string
+  assigned_to: string | null
+  assignee?: { full_name: string } | null
+}
+
+type Report = {
+  total: number
+  bySource: Record<string, number>
+  byStatus: Record<string, number>
+  byMarketer: Record<string, MarketerRow>
+  conversionRate: number
+}
+
 export default function PMReports() {
-  const [data, setData] = useState<any>(null)
+  const [data, setData] = useState<Report | null>(null)
+  const [error, setError] = useState<string | null>(null)
   const [range, setRange] = useState('30')
 
   /*
@@ -31,35 +39,47 @@ export default function PMReports() {
   const load = useCallback(async () => {
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
 
-    const [leads] = await Promise.all([
-      apiQuery('leads', '*, assignee:assigned_to(full_name)', [{ col: 'created_at', op: 'gte', val: since }]),
-    ])
+    /*
+     * Wrapped, because apiQuery now throws rather than returning []. A 401 or
+     * a 500 used to come back as an empty array and draw this page as a month
+     * with no leads at all — and a marketer board with nobody on it, which is
+     * the figure a project manager acts on.
+     */
+    try {
+      const leads = await apiQuery<LeadRow>('leads', '*, assignee:assigned_to(full_name)', {
+        filters: [{ col: 'created_at', op: 'gte', val: since }],
+      })
 
-    const l: any[] = leads
-    const total = l.length
-    const bySource: Record<string, number> = {}
-    const byStatus: Record<string, number> = {}
-    const byMarketer: Record<string, { name: string; total: number; converted: number }> = {}
+      const total = leads.length
+      const bySource: Record<string, number> = {}
+      const byStatus: Record<string, number> = {}
+      const byMarketer: Record<string, MarketerRow> = {}
 
-    l.forEach((lead: any) => {
-      bySource[lead.source] = (bySource[lead.source] || 0) + 1
-      byStatus[lead.status] = (byStatus[lead.status] || 0) + 1
-      if (lead.assigned_to) {
-        const name = (lead as any).assignee?.full_name || 'Unknown'
-        if (!byMarketer[lead.assigned_to]) byMarketer[lead.assigned_to] = { name, total: 0, converted: 0 }
-        byMarketer[lead.assigned_to].total++
-        if (['ready_to_join','registered'].includes(lead.status)) byMarketer[lead.assigned_to].converted++
-      }
-    })
+      leads.forEach(lead => {
+        bySource[lead.source] = (bySource[lead.source] || 0) + 1
+        byStatus[lead.status] = (byStatus[lead.status] || 0) + 1
+        if (lead.assigned_to) {
+          const name = lead.assignee?.full_name || 'Unknown'
+          if (!byMarketer[lead.assigned_to]) byMarketer[lead.assigned_to] = { name, total: 0, converted: 0 }
+          byMarketer[lead.assigned_to].total++
+          if (['ready_to_join', 'registered'].includes(lead.status)) byMarketer[lead.assigned_to].converted++
+        }
+      })
 
-    setData({ total, bySource, byStatus, byMarketer, conversionRate: total ? Math.round((byStatus.ready_to_join || 0) / total * 100) : 0 })
+      setData({ total, bySource, byStatus, byMarketer, conversionRate: total ? Math.round((byStatus.ready_to_join || 0) / total * 100) : 0 })
+      setError(null)
+    } catch (e) {
+      setData(null)
+      setError(e instanceof ApiQueryError ? e.userMessage : 'This report could not be loaded. Please try again.')
+    }
   }, [range])
 
   useEffect(() => { load() }, [load])
 
+  if (error) return <ErrorState title="The report did not load" message={error} onRetry={load} />
   if (!data) return <LoadingState />
 
-  const marketerRows: MarketerRow[] = Object.values(data.byMarketer as Record<string, MarketerRow>)
+  const marketerRows: MarketerRow[] = Object.values(data.byMarketer)
     .sort((a, b) => b.converted - a.converted)
 
   const marketerColumns: Column<MarketerRow>[] = [
@@ -110,7 +130,7 @@ export default function PMReports() {
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Leads by Source</h3>
           <div className="space-y-3">
-            {Object.entries(data.bySource).sort((a: any, b: any) => b[1] - a[1]).map(([source, count]: any) => (
+            {Object.entries(data.bySource).sort((a, b) => b[1] - a[1]).map(([source, count]) => (
               <div key={source}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium capitalize text-[var(--ink-soft)]">{source}</span>
@@ -128,7 +148,7 @@ export default function PMReports() {
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
           <h3 className="text-sm font-semibold text-[var(--ink)] mb-4">Pipeline Status</h3>
           <div className="space-y-3">
-            {Object.entries(data.byStatus).sort((a: any, b: any) => b[1] - a[1]).map(([status, count]: any) => (
+            {Object.entries(data.byStatus).sort((a, b) => b[1] - a[1]).map(([status, count]) => (
               <div key={status}>
                 <div className="flex justify-between text-sm mb-1">
                   <span className="font-medium capitalize text-[var(--ink-soft)]">{status.replace(/_/g,' ')}</span>

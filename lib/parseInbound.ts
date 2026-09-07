@@ -31,7 +31,7 @@ const NAME_KEYS = /^(pushname|notifyname|sendername|name|contactname)$/i
 const MEDIA_KEYS = /(audiomessage|voicemessage|pttmessage|imagemessage|videomessage|documentmessage|stickermessage)$/i
 
 /** A WhatsApp id or phone number, normalised to digits. */
-function asPhone(v: any, allowLid = false): string | null {
+function asPhone(v: unknown, allowLid = false): string | null {
   if (typeof v !== 'string') return null
   // A Linked ID is an internal identifier, not a number anyone can be reached
   // on. Treating one as a phone means matching no lead and replying to nobody.
@@ -44,20 +44,32 @@ function asPhone(v: any, allowLid = false): string | null {
   return digits
 }
 
-export function parseInbound(body: any): Inbound {
+/*
+ * `unknown`, not `any`.
+ *
+ * This is the doorway for a payload written by someone else's server, in a
+ * shape they change without telling us — the whole reason the function walks
+ * the object instead of reading known paths. Under `any` the compiler agrees
+ * to whatever field you name, which is exactly the wrong answer for data
+ * nobody has checked. Every read below was already guarded by a typeof; this
+ * only makes the compiler insist on it, so the next field added here cannot
+ * skip the guard by accident.
+ */
+export function parseInbound(body: unknown): Inbound {
   const out: Inbound = { phone: null, lid: null, text: null, fromMe: false, mediaType: null, senderName: null, eventName: null }
   if (!body || typeof body !== 'object') return out
 
-  out.eventName = typeof body.event === 'string' ? body.event
-    : typeof body.type === 'string' ? body.type : null
+  const top = body as Record<string, unknown>
+  out.eventName = typeof top.event === 'string' ? top.event
+    : typeof top.type === 'string' ? top.type : null
 
-  const seen = new Set<any>()
+  const seen = new Set<object>()
   let bestText: string | null = null
   let bestPhone: string | null = null
   let primaryPhone: string | null = null
   let primaryText: string | null = null
 
-  const walk = (node: any, depth: number) => {
+  const walk = (node: unknown, depth: number) => {
     if (!node || typeof node !== 'object' || depth > 8 || seen.has(node)) return
     seen.add(node)
 

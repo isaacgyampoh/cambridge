@@ -1,6 +1,7 @@
 'use client'
 import { useState, useEffect, use, useCallback } from 'react'
-import { LoadingState, StatusBadge } from '@/components/ui'
+import { LoadingState, ErrorState, StatusBadge } from '@/components/ui'
+import { apiQuery, ApiQueryError } from '@/lib/api/query'
 import { mutate } from '@/hooks/useData'
 import { formatDateTime, formatPhone, SOURCE_COLORS } from '@/lib/utils'
 import type { Lead, LeadActivity, LeadStatusLog, Profile } from '@/types'
@@ -12,14 +13,6 @@ import CallButton from '@/components/shared/CallButton'
 
 
 
-async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 200) {
-  const params = new URLSearchParams({ table, select, limit: String(limit) })
-  if (filters?.length) params.set('filters', JSON.stringify(filters))
-  const res = await fetch(`/api/data?${params}`)
-  const json = await res.json()
-  return json.data || []
-}
-
 export default function LeadDetail({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params)
   const [lead, setLead] = useState<Lead | null>(null)
@@ -29,6 +22,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   const [loading, setLoading] = useState(true)
   const [note, setNote] = useState('')
   const [userId, setUserId] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
 
   /*
    * useCallback so the effect's dependency on it is real rather than implied.
@@ -36,14 +30,27 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
    * is rebuilt every render.
    */
   const load = useCallback(async () => {
-    const [leads, a, lg, m] = await Promise.all([
-      apiQuery('leads', '*, assignee:assigned_to(full_name,email,phone,role)', [{ col: 'id', op: 'eq', val: id }], 1),
-      apiQuery('lead_activities', '*, creator:created_by(full_name)', [{ col: 'lead_id', op: 'eq', val: id }]),
-      apiQuery('lead_status_logs', '*, changer:changed_by(full_name)', [{ col: 'lead_id', op: 'eq', val: id }]),
-      apiQuery('profiles', '*', [{ col: 'role', op: 'eq', val: 'marketing_officer' }, { col: 'is_active', op: 'eq', val: true }]),
-    ])
-    setLead(leads[0] || null); setActivities(a); setLogs(lg); setMarketers(m)
-    setLoading(false)
+    /*
+     * Wrapped, because apiQuery now throws rather than returning []. On a 401
+     * or a 500 this page used to show "Lead not found" — which says the
+     * record does not exist when what actually happened is that nobody asked
+     * successfully. On a lead someone is mid-conversation with, that is the
+     * wrong thing to be told.
+     */
+    try {
+      const [leads, a, lg, m] = await Promise.all([
+        apiQuery<Lead>('leads', '*, assignee:assigned_to(full_name,email,phone,role)', { filters: [{ col: 'id', op: 'eq', val: id }], limit: 1 }),
+        apiQuery<LeadActivity>('lead_activities', '*, creator:created_by(full_name)', { filters: [{ col: 'lead_id', op: 'eq', val: id }], limit: 200 }),
+        apiQuery<LeadStatusLog>('lead_status_logs', '*, changer:changed_by(full_name)', { filters: [{ col: 'lead_id', op: 'eq', val: id }], limit: 200 }),
+        apiQuery<Profile>('profiles', '*', { filters: [{ col: 'role', op: 'eq', val: 'marketing_officer' }, { col: 'is_active', op: 'eq', val: true }], limit: 200 }),
+      ])
+      setLead(leads[0] || null); setActivities(a); setLogs(lg); setMarketers(m)
+      setError(null)
+    } catch (e) {
+      setError(e instanceof ApiQueryError ? e.userMessage : 'This lead could not be loaded. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }, [id])
 
   useEffect(() => {
@@ -76,6 +83,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
   }
 
   if (loading) return <LoadingState />
+  if (error) return <ErrorState title="This lead did not load" message={error} onRetry={load} />
   if (!lead) return <div className="text-center py-20 text-[var(--ink-faint)]">Lead not found</div>
 
   const assignee = (lead as any).assignee

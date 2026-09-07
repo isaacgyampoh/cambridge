@@ -2,10 +2,10 @@
 import { useState, useEffect, useCallback } from 'react'
 import { mutate } from '@/hooks/useData'
 import { formatGHS } from '@/lib/utils'
-import { AlertTriangle, TrendingUp, Phone, MessageSquare, Users, Target } from 'lucide-react'
 import { toast } from 'sonner'
 import Modal from '@/components/shared/Modal'
-import { Card, EmptyState, LoadingState, PageHeader } from '@/components/ui'
+import { Card, EmptyState, LoadingState, ErrorState, PageHeader } from '@/components/ui'
+import { apiQuery, ApiQueryError } from '@/lib/api/query'
 
 interface MarketerStats {
   id: string
@@ -38,14 +38,21 @@ interface MarketerStats {
   status: 'active'| 'inactive'| 'at_risk'| 'top_performer'
 }
 
-
-async function apiQuery(table: string, select: string, filters?: { col: string; op: string; val: any }[], limit = 1000) {
-  const params = new URLSearchParams({ table, select, limit: String(limit) })
-  if (filters?.length) params.set('filters', JSON.stringify(filters))
-  const res = await fetch(`/api/data?${params}`)
-  const json = await res.json()
-  return json.data || []
+/** The rows this page reads, named so the reads below are checked. */
+type MarketerProfile = {
+  id: string
+  full_name: string
+  email: string
+  phone: string | null
+  marketer_code: string
+  performance_tier?: string | null
+  tier_locked?: boolean | null
+  gets_google_leads?: boolean | null
+  gets_website_leads?: boolean | null
 }
+type LeadRow = { status: string; created_at: string; updated_at: string }
+type ActivityRow = { activity_type: string; created_at: string }
+type ApplicationRow = { payment_status: string; amount_paid: number | string | null }
 
 export default function MarketerPerformancePage() {
   const [marketers, setMarketers] = useState<MarketerStats[]>([])
@@ -54,6 +61,7 @@ export default function MarketerPerformancePage() {
   const [selected, setSelected] = useState<MarketerStats | null>(null)
   const [alertMsg, setAlertMsg] = useState('')
   const [sendingAlert, setSendingAlert] = useState(false)
+  const [error, setError] = useState<string | null>(null)
 
   /*
    * useCallback so the effect's dependency is real rather than silenced.
@@ -66,90 +74,119 @@ export default function MarketerPerformancePage() {
   const load = useCallback(async () => {
     setLoading(true)
     const since = new Date(Date.now() - parseInt(range) * 86400000).toISOString()
+    const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
 
-    const profiles = await apiQuery('profiles', '*', [
-      { col: 'role', op: 'eq', val: 'marketing_officer'},
-      { col: 'is_active', op: 'eq', val: true },
-    ])
-
-    if (!profiles?.length) { setMarketers([]); setLoading(false); return }
-
-    const stats: MarketerStats[] = []
-
-    for (const m of profiles) {
-      // Get all leads assigned to this marketer
-      const leads = await apiQuery('leads', 'status,created_at,updated_at', [
-        { col: 'assigned_to', op: 'eq', val: m.id },
-      ])
-
-      // Activities this week
-      const weekAgo = new Date(Date.now() - 7 * 86400000).toISOString()
-      const activities = await apiQuery('lead_activities', 'activity_type,created_at', [
-        { col: 'created_by', op: 'eq', val: m.id },
-        { col: 'created_at', op: 'gte', val: weekAgo },
-      ])
-
-      // Applications via marketer link
-      const applications = await apiQuery('applications', 'payment_status,amount_paid', [
-        { col: 'marketer_id', op: 'eq', val: m.id },
-        { col: 'created_at', op: 'gte', val: since },
-      ])
-
-      const l: any[] = leads
-      const a: any[] = activities
-      const apps: any[] = applications
-
-      const converted = l.filter((x: any) => ['ready_to_join','registered'].includes(x.status)).length
-      const total = l.length
-      const lastActivity = a.length > 0
-        ? a.sort((a: any, b: any) => new Date(b.created_at).getTime() - new Date(a.created_at).getTime())[0].created_at
-        : null
-      const daysSince = lastActivity
-        ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000)
-        : 999
-
-      const paidApps = apps.filter((a: any) => a.payment_status === 'paid')
-      const revenue = paidApps.reduce((acc: number, a: any) => acc + Number(a.amount_paid), 0)
-
-      let status: MarketerStats['status'] = 'active'
-      const convRate = total > 0 ? Math.round(converted / total * 100) : 0
-      if (daysSince > 7) status = 'inactive'
-      else if (convRate > 30) status = 'top_performer'
-      else if (daysSince > 3 || convRate < 5) status = 'at_risk'
-
-      stats.push({
-        id: m.id,
-        full_name: m.full_name,
-        email: m.email,
-        phone: m.phone,
-        marketer_code: m.marketer_code,
-        performance_tier: m.performance_tier || 'mid',
-        tier_locked: m.tier_locked || false,
-        gets_google_leads: m.gets_google_leads === true,
-        gets_website_leads: m.gets_website_leads === true,
-        totalLeads: total,
-        contactedLeads: l.filter((x: any) => x.status !== 'new').length,
-        interestedLeads: l.filter((x: any) => ['interested','follow_up'].includes(x.status)).length,
-        convertedLeads: converted,
-        lostLeads: l.filter((x: any) => ['not_interested','lost'].includes(x.status)).length,
-        uncontactedLeads: l.filter((x: any) => x.status === 'new').length,
-        conversionRate: convRate,
-        callsThisWeek: a.filter((x: any) => x.activity_type === 'call').length,
-        waThisWeek: a.filter((x: any) => x.activity_type === 'whatsapp').length,
-        lastActivityDate: lastActivity,
-        daysSinceActivity: daysSince,
-        applicationsGenerated: apps.length,
-        applicationsPaid: paidApps.length,
-        revenueGenerated: revenue,
-        status,
+    /*
+     * ── WHY THIS IS NOT A LOOP OF AWAITS ANY MORE ────────────────────────
+     *
+     * It used to walk the marketers one at a time and, for each, await three
+     * queries in sequence: leads, then activities, then applications. Nothing
+     * in the second depended on the first — they were serial only because
+     * that is how the code was written. With ten marketers that is thirty-one
+     * round trips end to end, and the board sat empty for all of them.
+     *
+     * They all go out together now. The arithmetic below is unchanged.
+     *
+     * ── AND WHY IT IS WRAPPED ────────────────────────────────────────────
+     *
+     * apiQuery throws rather than returning [] on a failed request. Before,
+     * an expired session drew this page as a board on which every marketer
+     * had zero leads, zero calls and no revenue — which reads as a team that
+     * did nothing, not as a page that failed.
+     */
+    try {
+      const profiles = await apiQuery<MarketerProfile>('profiles', '*', {
+        filters: [
+          { col: 'role', op: 'eq', val: 'marketing_officer' },
+          { col: 'is_active', op: 'eq', val: true },
+        ],
+        limit: 1000,
       })
-    }
 
-    // Sort: top performers first, then active, at risk, inactive
-    const order = { top_performer: 0, active: 1, at_risk: 2, inactive: 3 }
-    stats.sort((a, b) => order[a.status] - order[b.status] || b.conversionRate - a.conversionRate)
-    setMarketers(stats)
-    setLoading(false)
+      if (!profiles.length) { setMarketers([]); setError(null); setLoading(false); return }
+
+      const stats = await Promise.all(profiles.map(async (m): Promise<MarketerStats> => {
+        const [leads, activities, applications] = await Promise.all([
+          apiQuery<LeadRow>('leads', 'status,created_at,updated_at', {
+            filters: [{ col: 'assigned_to', op: 'eq', val: m.id }], limit: 1000,
+          }),
+          apiQuery<ActivityRow>('lead_activities', 'activity_type,created_at', {
+            filters: [
+              { col: 'created_by', op: 'eq', val: m.id },
+              { col: 'created_at', op: 'gte', val: weekAgo },
+            ], limit: 1000,
+          }),
+          apiQuery<ApplicationRow>('applications', 'payment_status,amount_paid', {
+            filters: [
+              { col: 'marketer_id', op: 'eq', val: m.id },
+              { col: 'created_at', op: 'gte', val: since },
+            ], limit: 1000,
+          }),
+        ])
+
+        const converted = leads.filter(x => ['ready_to_join', 'registered'].includes(x.status)).length
+        const total = leads.length
+
+        /*
+         * `reduce` rather than sort-then-take-first: the sort was mutating
+         * the activities array in place to read one value out of it.
+         */
+        const lastActivity = activities.reduce<string | null>(
+          (latest, x) => !latest || new Date(x.created_at) > new Date(latest) ? x.created_at : latest,
+          null,
+        )
+        const daysSince = lastActivity
+          ? Math.floor((Date.now() - new Date(lastActivity).getTime()) / 86400000)
+          : 999
+
+        const paidApps = applications.filter(a => a.payment_status === 'paid')
+        const revenue = paidApps.reduce((acc, a) => acc + Number(a.amount_paid || 0), 0)
+
+        let status: MarketerStats['status'] = 'active'
+        const convRate = total > 0 ? Math.round(converted / total * 100) : 0
+        if (daysSince > 7) status = 'inactive'
+        else if (convRate > 30) status = 'top_performer'
+        else if (daysSince > 3 || convRate < 5) status = 'at_risk'
+
+        return {
+          id: m.id,
+          full_name: m.full_name,
+          email: m.email,
+          phone: m.phone,
+          marketer_code: m.marketer_code,
+          performance_tier: m.performance_tier || 'mid',
+          tier_locked: m.tier_locked || false,
+          gets_google_leads: m.gets_google_leads === true,
+          gets_website_leads: m.gets_website_leads === true,
+          totalLeads: total,
+          contactedLeads: leads.filter(x => x.status !== 'new').length,
+          interestedLeads: leads.filter(x => ['interested', 'follow_up'].includes(x.status)).length,
+          convertedLeads: converted,
+          lostLeads: leads.filter(x => ['not_interested', 'lost'].includes(x.status)).length,
+          uncontactedLeads: leads.filter(x => x.status === 'new').length,
+          conversionRate: convRate,
+          callsThisWeek: activities.filter(x => x.activity_type === 'call').length,
+          waThisWeek: activities.filter(x => x.activity_type === 'whatsapp').length,
+          lastActivityDate: lastActivity,
+          daysSinceActivity: daysSince,
+          applicationsGenerated: applications.length,
+          applicationsPaid: paidApps.length,
+          revenueGenerated: revenue,
+          status,
+        }
+      }))
+
+      // Sort: top performers first, then active, at risk, inactive
+      const order = { top_performer: 0, active: 1, at_risk: 2, inactive: 3 }
+      stats.sort((a, b) => order[a.status] - order[b.status] || b.conversionRate - a.conversionRate)
+      setMarketers(stats)
+      setError(null)
+    } catch (e) {
+      setMarketers([])
+      setError(e instanceof ApiQueryError ? e.userMessage : 'This board could not be loaded. Please try again.')
+    } finally {
+      setLoading(false)
+    }
   }, [range])
 
   useEffect(() => { load() }, [load])
@@ -292,6 +329,13 @@ export default function MarketerPerformancePage() {
       {/* Marketer cards */}
       {loading ? (
         <LoadingState />
+      ) : error ? (
+        /*
+         * Before the empty check, deliberately. A failed load left `marketers`
+         * empty, which fell through to "No marketing officers" — a sentence
+         * about the team when the truth was about the request.
+         */
+        <ErrorState title="The board did not load" message={error} onRetry={load} />
       ) : (
         <div className="space-y-4">
       {/* How leads are shared — so the tiers are not misread */}
@@ -322,17 +366,30 @@ export default function MarketerPerformancePage() {
                     </div>
                   </div>
                   <div className="flex items-center gap-2">
-                    <select value={(m as any).performance_tier || 'mid'}
+                    <select value={m.performance_tier || 'mid'}
                       onChange={async (e) => {
                         const tier = e.target.value
-                        await fetch('/api/marketer/set-tier', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ marketer_id: m.id, tier }) })
+                        /*
+                         * The response is read now. It used to await the fetch
+                         * and announce success regardless — so a 403 from a
+                         * role that cannot set tiers, or a 500, told the
+                         * administrator the change had been made. Tier decides
+                         * who receives which leads, so being wrong about it is
+                         * a question of money, not of tidiness.
+                         */
+                        const res = await fetch('/api/marketer/set-tier', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ marketer_id: m.id, tier }) })
+                        const d = await res.json().catch(() => null)
+                        if (!res.ok || d?.error) {
+                          toast.error(d?.error || 'That tier could not be saved.')
+                          return
+                        }
                         toast.success(`${m.full_name.split(' ')[0]} set to ${tier} performer`)
                         load()
                       }}
                       className={`text-[12px] font-semibold rounded-lg border px-2 py-1.5 ${
-                        (m as any).performance_tier === 'high' ? 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/20' :
-                        (m as any).performance_tier === 'low' ? 'bg-[var(--warn-soft)] text-[var(--warn)] border-[var(--warn)]/20' :
-                        (m as any).performance_tier === 'support' ? 'bg-[var(--line-soft)] text-[var(--ink-soft)] border-[var(--line)]' :
+                        m.performance_tier === 'high' ? 'bg-[var(--ok-soft)] text-[var(--ok)] border-[var(--ok)]/20' :
+                        m.performance_tier === 'low' ? 'bg-[var(--warn-soft)] text-[var(--warn)] border-[var(--warn)]/20' :
+                        m.performance_tier === 'support' ? 'bg-[var(--line-soft)] text-[var(--ink-soft)] border-[var(--line)]' :
                         'bg-[var(--accent-soft)] text-[var(--accent)] border-[var(--accent)]/20'
                       }`}>
                       <option value="high">High performer</option>
@@ -343,13 +400,36 @@ export default function MarketerPerformancePage() {
                     {/* Exclusive lead sources — Google & Website go only to
                         chosen people, not the whole pool */}
                     {(['google', 'website'] as const).map(src => {
-                      const key = src === 'google' ? 'gets_google_leads' : 'gets_website_leads'
-                      const on = (m as any)[key] === true
+                      const key = src === 'google' ? 'gets_google_leads' as const : 'gets_website_leads' as const
+                      const on = m[key] === true
                       return (
                         <button key={src} title={`${on ? 'Receiving' : 'Not receiving'} ${src} leads`}
                           onClick={async () => {
-                            await fetch('/api/marketer/set-source-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ marketer_id: m.id, source: src, enabled: !on }) })
-                            ;(m as any)[key] = !on
+                            /*
+                             * Two things were wrong on this line.
+                             *
+                             * The fetch was awaited and its result thrown
+                             * away, so a refusal — a role without permission,
+                             * a server error — still announced that the
+                             * marketer now receives Google leads. Google and
+                             * website leads go to chosen people rather than
+                             * the pool, so a false confirmation here sends an
+                             * administrator away believing they have routed
+                             * leads that are still going somewhere else.
+                             *
+                             * And `(m as any)[key] = !on` wrote into an object
+                             * held in React state. Mutating state in place
+                             * schedules no render, so it changed nothing on
+                             * screen; the load() underneath is what actually
+                             * refreshed the button. It was invisible work that
+                             * left a wrong value behind whenever load() failed.
+                             */
+                            const res = await fetch('/api/marketer/set-source-access', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ marketer_id: m.id, source: src, enabled: !on }) })
+                            const d = await res.json().catch(() => null)
+                            if (!res.ok || d?.error) {
+                              toast.error(d?.error || 'That change could not be saved.')
+                              return
+                            }
                             toast.success(`${m.full_name.split(' ')[0]} ${!on ? 'now gets' : 'no longer gets'} ${src === 'google' ? 'Google' : 'Website'} leads`)
                             load()
                           }}
@@ -374,16 +454,24 @@ export default function MarketerPerformancePage() {
 
                 {/* Stats grid */}
                 <div className="grid grid-cols-3 lg:grid-cols-6 gap-3 mb-3">
-                  {[
-                    { label: 'Total Leads', value: m.totalLeads, icon: Users },
-                    { label: 'Uncontacted', value: m.uncontactedLeads, icon: AlertTriangle, alert: m.uncontactedLeads > 5 },
-                    { label: 'Converted', value: m.convertedLeads, icon: TrendingUp },
-                    { label: 'Rate', value: `${m.conversionRate}%`, icon: Target },
-                    { label: 'Calls/wk', value: m.callsThisWeek, icon: Phone },
-                    { label: 'WA/wk', value: m.waThisWeek, icon: MessageSquare },
-                  ].map(s => (
-                    <div key={s.label} className={`rounded-xl p-3 text-center ${(s as any).alert ? 'bg-[var(--danger-soft)]': 'bg-[var(--line-soft)]'}`}>
-                      <div className={`text-xl font-bold ${(s as any).alert ? 'text-[var(--danger)]': 'text-[var(--ink)]'}`}>{s.value}</div>
+                  {/*
+                    * Annotated so `alert` is optional on every cell rather
+                    * than present on one. Without it TypeScript infers a
+                    * union in which only the Uncontacted cell has the field,
+                    * which is why every read of it was cast through `any` —
+                    * and each `icon` was dead weight: nothing below renders
+                    * one.
+                    */}
+                  {([
+                    { label: 'Total Leads', value: m.totalLeads },
+                    { label: 'Uncontacted', value: m.uncontactedLeads, alert: m.uncontactedLeads > 5 },
+                    { label: 'Converted', value: m.convertedLeads },
+                    { label: 'Rate', value: `${m.conversionRate}%` },
+                    { label: 'Calls/wk', value: m.callsThisWeek },
+                    { label: 'WA/wk', value: m.waThisWeek },
+                  ] as { label: string; value: string | number; alert?: boolean }[]).map(s => (
+                    <div key={s.label} className={`rounded-xl p-3 text-center ${s.alert ? 'bg-[var(--danger-soft)]': 'bg-[var(--line-soft)]'}`}>
+                      <div className={`text-xl font-bold ${s.alert ? 'text-[var(--danger)]': 'text-[var(--ink)]'}`}>{s.value}</div>
                       <div className="text-[11px] text-[var(--ink-faint)] mt-0.5">{s.label}</div>
                     </div>
                   ))}

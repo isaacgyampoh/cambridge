@@ -5,7 +5,17 @@ export function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs))
 }
 
-export function formatGHS(amount: number) {
+/*
+ * `number | string` because that is what it already accepted.
+ *
+ * The body has always coerced with Number(), and it needs to: Postgres sends
+ * a numeric column over JSON as a string, so an invoice balance or a payment
+ * amount read straight from a row arrives here as "1250.00". The signature
+ * said `number` and every caller passing a row value was quietly wrong about
+ * its own data — invisible while the annotation was `any`, and the first
+ * thing the compiler objected to once the rows were typed.
+ */
+export function formatGHS(amount: number | string) {
   return `GHS ${Number(amount).toLocaleString('en-GH', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
 }
 
