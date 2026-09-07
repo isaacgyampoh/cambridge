@@ -39,50 +39,68 @@ export default function NewLeadPage() {
     e.preventDefault()
     if (!form.full_name.trim()) { toast.error('Full name is required'); return }
     setSaving(true)
-    try {
-      // Duplicate detection
-      if (form.phone.trim() || form.email.trim()) {
-        const dup = await fetch('/api/leads/check-duplicate', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: form.phone.trim(), email: form.email.trim() }),
-        }).then(r => r.json())
-        if (dup.duplicate) {
-          const owner = dup.lead?.assignee?.full_name ? ` (with ${dup.lead.assignee.full_name})` : ''
-          const proceed = await confirm({
-            title: 'This person is already a lead',
-            message: `"${dup.lead.full_name}" already exists with this phone or email${owner}. Adding again creates a second record for the same person.`,
-            confirmLabel: 'Add anyway',
-          })
-          if (!proceed) { setSaving(false); return }
-        }
-      }
-      // If admin manually picked a marketer, insert directly and notify them.
-      // Otherwise route through the intake pipeline so the lead is AUTO-ASSIGNED
-      // (weighted lottery) + AI-greeted + nurtured, like a webhook lead.
-      // Always route through the intake pipeline so a manual lead behaves
-      // exactly like a webhook lead: assigned (to the chosen marketer if one
-      // was picked), AI-greeted on WhatsApp, and enrolled in nurture.
-      const res = await fetch('/api/leads/import', {
+
+    /*
+     * Posts to /api/leads/create, the same route the marketer's Add-lead
+     * screen uses, rather than /api/leads/import.
+     *
+     * Import is the BULK route. Sending it one row worked here — an
+     * administrator holds the `leads` portal it is guarded by — but it drops
+     * `notes` and `gender` on the floor, it takes the owner from whatever the
+     * browser sends, and it reports outcomes as import counters rather than
+     * as a lead that was or was not created. One manual lead is one
+     * operation, and it is the same operation on both screens.
+     *
+     * Leaving the marketer blank still means "let the pool decide": the
+     * create route runs the same weighted lottery for a caller who
+     * distributes leads.
+     */
+    async function post(allowDuplicate: boolean) {
+      const res = await fetch('/api/leads/create', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leads: [{
+        body: JSON.stringify({
           full_name: form.full_name.trim(),
           email: form.email.trim() || null,
-          phone: form.phone.trim().replace(/^0/, '233') || null,
+          phone: form.phone.trim() || null,
+          gender: form.gender || null,
+          city: form.city.trim() || null,
+          country: form.country.trim() || null,
           course_interest: form.course_interest || null,
-          source: form.source || 'manual',
-          landing_source: 'Added manually',
-          city: form.city || null,
           notes: form.notes || null,
+          source: form.source || 'manual',
           assigned_to: form.assigned_to || null,
-        }] }),
+          allowDuplicate,
+        }),
       })
-      const d = await res.json()
-      if (d.error) throw new Error(d.error)
-      if (d.duplicates) toast.error('That lead already exists in the system.')
-      else toast.success(`Lead "${form.full_name}" added${d.assigned ? ' and assigned' : ''}.`)
+      const body = await res.json().catch(() => null)
+      return { res, body }
+    }
+
+    try {
+      let { res, body } = await post(false)
+
+      if (res.status === 409 && body?.duplicate) {
+        const proceed = await confirm({
+          title: 'This person is already a lead',
+          message: `${body.error} Adding them again creates a second record for the same person.`,
+          confirmLabel: 'Add anyway',
+        })
+        if (!proceed) { setSaving(false); return }
+        ;({ res, body } = await post(true))
+      }
+
+      // Never a silent success: this read only `d.error` before, so a 500 or
+      // a redirect to sign-in was reported as a lead that had been added.
+      if (!res.ok || !body?.success) {
+        toast.error(body?.error || 'This lead could not be added. Please check the details and try again.')
+        setSaving(false)
+        return
+      }
+
+      toast.success(`Lead "${form.full_name.trim()}" added${body.assigned ? ' and assigned' : ', but nobody was available to take it'}.`)
       router.push('/admin/leads')
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
     } finally {
       setSaving(false)
     }

@@ -1,4 +1,5 @@
 import 'server-only'
+import { resolvePortals } from '../access/portals.ts'
 
 /**
  * Access policy for the generic /api/data endpoint.
@@ -23,10 +24,10 @@ export const READ_TABLES: Record<string, string[]> = {
   super_admin: [ALL_TABLES_WILDCARD],
   administrator: [ALL_TABLES_WILDCARD],
   exam_coordinator: ['leads','lead_activities','lead_comments','lead_status_logs','documents','prep_records','testimonials','class_enrollments','profiles','courses','batches','notifications','staff_attendance','office_locations'],
-  project_manager: ['documents','leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','program_points','rank_bands','marketer_enrollments'],
+  project_manager: ['documents','leads','lead_activities','lead_status_logs','profiles','notifications','admissions','batches','courses','class_enrollments','class_materials','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','program_points','rank_bands','marketer_enrollments','student_fees'],
   marketing_officer: ['leads','lead_activities','lead_status_logs','notifications','follow_up_queue','applications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','program_points','rank_bands','marketer_enrollments','profiles','courses'],
   admissions_officer: ['admissions','applications','leads','profiles','courses','batches','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations'],
-  accountant: ['payments','invoices','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','program_points','rank_bands'],
+  accountant: ['payments','invoices','student_fees','applications','profiles','courses','notifications','marketer_enrollments','leads','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','program_points','rank_bands','batches','class_enrollments'],
   receptionist: ['batches','batch_students','profiles','courses','class_sessions','class_signins','notifications','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','program_points','rank_bands','marketer_enrollments'],
   trainer: ['leads','lead_activities','lead_comments','lead_status_logs','documents','batches','batch_students','attendance','profiles','courses','class_sessions','staff_attendance','office_locations','knowledge_base','ai_conversations','sequences','sequence_steps','sequence_enrollments','program_points','rank_bands','marketer_enrollments'],
   content_manager: ['profiles','courses','notifications','staff_attendance','office_locations','knowledge_base'],
@@ -47,7 +48,7 @@ export const WRITE_TABLES: Record<string, string[]> = {
   project_manager: ['leads','lead_activities','lead_comments','lead_status_logs','follow_up_queue','admissions','documents','batches','courses','class_enrollments','class_sessions','knowledge_base','sequences','sequence_steps','sequence_enrollments','notifications','program_points','alumni'],
   marketing_officer: ['leads','lead_activities','lead_comments','lead_status_logs','follow_up_queue','notifications'],
   admissions_officer: ['admissions','applications','leads','lead_activities','batches','notifications'],
-  accountant: ['payments','invoices','applications','notifications','program_points'],
+  accountant: ['payments','invoices','student_fees','applications','notifications','program_points'],
   receptionist: ['class_sessions','class_signins','batch_students','attendance','notifications'],
   trainer: ['attendance','class_sessions','lead_activities','lead_comments','notifications','documents'],
   exam_coordinator: ['prep_records','testimonials','documents','lead_activities','lead_comments','notifications'],
@@ -112,15 +113,65 @@ export const UNWRITABLE_COLUMNS = [
 ]
 
 /**
+ * The portal that makes someone a lead recipient.
+ *
+ * ── WHY THIS CONSTANT IS HERE ──────────────────────────────────────────────
+ *
+ * lib/leads/eligibility.ts decides who may RECEIVE a lead, and it decides it
+ * from the portal system: you are eligible if your resolved portals include
+ * `my_leads`. This file decided who may READ the leads table, and it decided
+ * it from a hand-kept list of role names.
+ *
+ * Two lists, one question. They disagreed, and the disagreement was silent.
+ *
+ * `content_manager` holds `my_leads` by default, so the distributor picked
+ * them and the assignment was written correctly — but READ_TABLES gave them
+ * no access to `leads`, so /api/data answered 403 and their leads page stayed
+ * empty. From the marketing side that is indistinguishable from the lead
+ * never arriving, which is exactly how it was reported.
+ *
+ * Worse, resolvePortals lets an administrator grant `my_leads` to ANY role
+ * from the staff permissions screen. Grant it to a receptionist and they
+ * become a lead recipient whose reads are refused — a new instance of the
+ * same bug, created through the UI, with nothing to warn anyone.
+ *
+ * Lead access is derived from the portal now, on both sides of the question.
+ */
+export const LEADS_PORTAL = 'my_leads'
+
+/**
+ * May this user read the leads table, and if so whose rows?
+ *
+ * Returns 'own' when they see only leads assigned to them, 'all' for the
+ * oversight roles, and null when leads are not theirs to read at all.
+ */
+export function leadAccessFor(role: string, portals?: string[] | null): 'all' | 'own' | null {
+  if (role === 'super_admin' || role === 'administrator') return 'all'
+
+  // The oversight roles work the whole board: they distribute, report on, or
+  // reconcile against leads they do not personally own.
+  const seesAllLeads = ['project_manager', 'admissions_officer', 'accountant']
+  if (seesAllLeads.includes(role)) return 'all'
+
+  // Everyone else reads leads if — and only if — they can be given one.
+  return resolvePortals(role, portals).includes(LEADS_PORTAL) ? 'own' : null
+}
+
+/**
  * Row scoping: a role may reach the table, but only its own rows.
  * Returns the column that must equal the current user's id, or null.
+ *
+ * `portals` is the user's RESOLVED portals, so a permission granted to one
+ * person from the staff screen is honoured here rather than only the defaults
+ * for their role.
  */
-export function ownerColumnFor(table: string, role: string): string | null {
+export function ownerColumnFor(table: string, role: string, portals?: string[] | null): string | null {
   if (role === 'super_admin' || role === 'administrator') return null
 
-  // Anyone with a "my leads" view sees only leads assigned to them.
-  const ownLeadsOnly = ['marketing_officer', 'exam_coordinator', 'trainer', 'content_manager']
-  if (table === 'leads' && ownLeadsOnly.includes(role)) return 'assigned_to'
+  // Scoped to their own leads exactly when their access is 'own'. Derived
+  // from the portal rather than from a second list of role names that had to
+  // be kept in step with eligibility by hand.
+  if (table === 'leads') return leadAccessFor(role, portals) === 'own' ? 'assigned_to' : null
 
   // Only oversight roles read other people's staff records.
   const canReadAllProfiles = ['project_manager', 'accountant', 'admissions_officer']
@@ -140,12 +191,27 @@ export function ownerColumnFor(table: string, role: string): string | null {
   return null
 }
 
-export function canRead(table: string, role: string): boolean {
+export function canRead(table: string, role: string, portals?: string[] | null): boolean {
+  // Leads are governed by the portal, so that eligibility to receive one and
+  // permission to see it can never disagree. See leadAccessFor above.
+  if (table === 'leads') return leadAccessFor(role, portals) !== null
+
   const list = READ_TABLES[role] || []
   return list.includes(ALL_TABLES_WILDCARD) || list.includes(table)
 }
 
-export function canWrite(table: string, role: string): boolean {
+/** Tables anyone who can be given a lead must be able to work it with. */
+const LEAD_WORKING_TABLES = ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'follow_up_queue']
+
+export function canWrite(table: string, role: string, portals?: string[] | null): boolean {
+  /*
+   * Receiving a lead you cannot update is the same dead end as receiving one
+   * you cannot see: the row arrives, the page renders it, and every action on
+   * it is refused. Anyone the distributor may pick can work what they are
+   * given — and only their own rows, which ownerColumnFor still enforces.
+   */
+  if (LEAD_WORKING_TABLES.includes(table) && leadAccessFor(role, portals) !== null) return true
+
   const list = WRITE_TABLES[role] || []
   return list.includes(ALL_TABLES_WILDCARD) || list.includes(table)
 }

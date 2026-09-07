@@ -42,12 +42,12 @@ function fail(message: string, status = 403) {
 }
 
 /** Refuse a select string that reaches tables the role may not read. */
-function checkSelect(select: string, role: string): string | null {
+function checkSelect(select: string, role: string, portals: string[]): string | null {
   if (select.length > 2000) return 'That query is too complex.'
   for (const rel of embeddedRelations(select)) {
     const target = FK_TARGETS[rel] || rel
     if (!isValidIdentifier(target)) return 'That query is not valid.'
-    if (!canRead(target, role)) {
+    if (!canRead(target, role, portals)) {
       return 'You do not have access to some of the information in that request.'
     }
   }
@@ -59,15 +59,24 @@ export async function GET(req: NextRequest) {
   try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
   const role = ctx.session.role
   const userId = ctx.session.userId
+  /*
+   * The user's RESOLVED portals, not their role's defaults.
+   *
+   * Lead access is derived from the `my_leads` portal (see lib/data/policy),
+   * and an administrator can grant that to one person from the staff screen.
+   * Reading it off the session means such a grant actually works instead of
+   * making them a lead recipient whose reads are refused.
+   */
+  const portals = ctx.portals
 
   const { searchParams } = req.nextUrl
   const table = searchParams.get('table') || ''
   const select = searchParams.get('select') || '*'
 
   if (!table || !isValidIdentifier(table)) return fail('Missing or invalid table.', 400)
-  if (!canRead(table, role)) return fail('You do not have access to this information.')
+  if (!canRead(table, role, portals)) return fail('You do not have access to this information.')
 
-  const selectError = checkSelect(select, role)
+  const selectError = checkSelect(select, role, portals)
   if (selectError) return fail(selectError)
 
   const limit = Math.min(Math.max(parseInt(searchParams.get('limit') || '200', 10) || 200, 1), MAX_LIMIT)
@@ -78,7 +87,7 @@ export async function GET(req: NextRequest) {
   let query = sb.from(table).select(select).limit(limit)
 
   // Row scoping is applied regardless of the filters the caller sent.
-  const ownerCol = ownerColumnFor(table, role)
+  const ownerCol = ownerColumnFor(table, role, portals)
   if (ownerCol) query = query.eq(ownerCol, userId)
 
   if (orderBy && isValidIdentifier(orderBy)) {
@@ -120,13 +129,14 @@ export async function POST(req: NextRequest) {
   let ctx
   try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
   const role = ctx.session.role
+  const portals = ctx.portals
 
   const body = await req.json().catch(() => null)
   if (!body?.table || body.data === undefined) return fail('Missing table or data.', 400)
 
   const table = String(body.table)
   if (!isValidIdentifier(table)) return fail('Invalid table.', 400)
-  if (!canWrite(table, role)) return fail('You do not have permission to add to this.')
+  if (!canWrite(table, role, portals)) return fail('You do not have permission to add to this.')
 
   const rows = Array.isArray(body.data) ? body.data : [body.data]
   for (const row of rows) {
@@ -161,13 +171,22 @@ export async function PATCH(req: NextRequest) {
   try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
   const role = ctx.session.role
   const userId = ctx.session.userId
+  /*
+   * The user's RESOLVED portals, not their role's defaults.
+   *
+   * Lead access is derived from the `my_leads` portal (see lib/data/policy),
+   * and an administrator can grant that to one person from the staff screen.
+   * Reading it off the session means such a grant actually works instead of
+   * making them a lead recipient whose reads are refused.
+   */
+  const portals = ctx.portals
 
   const body = await req.json().catch(() => null)
   if (!body?.table || !body.data || !body.filters) return fail('Missing table, data or filters.', 400)
 
   const table = String(body.table)
   if (!isValidIdentifier(table)) return fail('Invalid table.', 400)
-  if (!canWrite(table, role)) return fail('You do not have permission to change this.')
+  if (!canWrite(table, role, portals)) return fail('You do not have permission to change this.')
 
   const blocked = Object.keys(body.data).find(k => UNWRITABLE_COLUMNS.includes(k))
   if (blocked) return fail(`The field "${blocked}" cannot be changed here.`, 400)
@@ -180,7 +199,7 @@ export async function PATCH(req: NextRequest) {
   let query = sb.from(table).update(body.data)
 
   // Scope the update to rows this user owns, where the table calls for it.
-  const ownerCol = ownerColumnFor(table, role)
+  const ownerCol = ownerColumnFor(table, role, portals)
   if (ownerCol) query = query.eq(ownerCol, userId)
 
   for (const { col, val } of filters) {
@@ -211,6 +230,15 @@ export async function DELETE(req: NextRequest) {
   try { ctx = await requireSession(req) } catch (e) { return (e as GuardError).response }
   const role = ctx.session.role
   const userId = ctx.session.userId
+  /*
+   * The user's RESOLVED portals, not their role's defaults.
+   *
+   * Lead access is derived from the `my_leads` portal (see lib/data/policy),
+   * and an administrator can grant that to one person from the staff screen.
+   * Reading it off the session means such a grant actually works instead of
+   * making them a lead recipient whose reads are refused.
+   */
+  const portals = ctx.portals
 
   const body = await req.json().catch(() => null)
   if (!body?.table || !body.filters?.length) return fail('Missing table or filters.', 400)
@@ -225,7 +253,7 @@ export async function DELETE(req: NextRequest) {
   const sb = createServiceClient()
   let query = sb.from(table).delete()
 
-  const ownerCol = ownerColumnFor(table, role)
+  const ownerCol = ownerColumnFor(table, role, portals)
   if (ownerCol) query = query.eq(ownerCol, userId)
   for (const { col, val } of filters) {
     if (ownerCol && col === ownerCol) continue

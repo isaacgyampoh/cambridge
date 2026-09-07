@@ -11,7 +11,6 @@ export default function MarketerNewLead() {
   const { confirm, dialog } = useConfirm()
   const router = useRouter()
   const [saving, setSaving] = useState(false)
-  const [myId, setMyId] = useState<string | null>(null)
   const [courses, setCourses] = useState<string[]>(FALLBACK_COURSES)
   const [form, setForm] = useState({
     full_name: '', phone: '', email: '', gender: '',
@@ -19,7 +18,6 @@ export default function MarketerNewLead() {
   })
 
   useEffect(() => {
-    fetch('/api/auth/me').then(r => r.json()).then(s => { if (s.valid) setMyId(s.userId) })
     fetch('/api/courses/public').then(r => r.json()).then(d => {
       if (d.courses?.length) setCourses([...d.courses, 'Other'])
     }).catch(() => {})
@@ -31,50 +29,77 @@ export default function MarketerNewLead() {
     e.preventDefault()
     if (!form.full_name.trim()) { toast.error('Full name is required'); return }
     if (!form.phone.trim()) { toast.error('Phone number is required'); return }
-    if (!myId) { toast.error('Could not identify your account'); return }
     setSaving(true)
+
+    /*
+     * ── WHY THIS POSTS TO /api/leads/create ──────────────────────────────
+     *
+     * It used to post to /api/leads/import, the BULK route, which is guarded
+     * by portals ['leads', 'pm_leads']. A marketing officer holds neither —
+     * their lead portal is `my_leads` — so this form answered every marketer,
+     * trainer, content manager and exam coordinator with
+     *
+     *     "You do not have access to this."
+     *
+     * for a lead they had gone out and found themselves. /api/leads/create
+     * takes one lead, resolves the owner from the session, and runs the same
+     * intake pipeline.
+     *
+     * The old `assigned_to: myId` is gone with it: it was read from
+     * /api/auth/me and sent from the browser, which is not where attribution
+     * should be decided. The server uses the session.
+     */
+    async function post(allowDuplicate: boolean) {
+      const res = await fetch('/api/leads/create', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          full_name: form.full_name.trim(),
+          phone: form.phone.trim(),
+          email: form.email.trim() || null,
+          gender: form.gender || null,
+          city: form.city.trim() || null,
+          course_interest: form.course_interest || null,
+          notes: form.notes.trim() || null,
+          source: 'manual',
+          allowDuplicate,
+        }),
+      })
+      const body = await res.json().catch(() => null)
+      return { res, body }
+    }
+
     try {
-      // Duplicate check
-      if (form.phone.trim() || form.email.trim()) {
-        const dup = await fetch('/api/leads/check-duplicate', {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ phone: form.phone.trim(), email: form.email.trim() }),
-        }).then(r => r.json()).catch(() => ({}))
-        if (dup.duplicate) {
-          const owner = dup.lead?.assignee?.full_name ? ` (currently with ${dup.lead.assignee.full_name})` : ''
-          const proceed = await confirm({
-            title: 'This person is already a lead',
-            message: `"${dup.lead.full_name}" already exists with this phone or email${owner}. Adding again creates a second record for the same person.`,
-            confirmLabel: 'Add anyway',
-          })
-          if (!proceed) { setSaving(false); return }
-        }
+      let { res, body } = await post(false)
+
+      // 409 means this phone or email is already a lead. The server says who,
+      // and the operator decides — adding the same person twice is a
+      // commission dispute, not a detail.
+      if (res.status === 409 && body?.duplicate) {
+        const proceed = await confirm({
+          title: 'This person is already a lead',
+          message: `${body.error} Adding them again creates a second record for the same person.`,
+          confirmLabel: 'Add anyway',
+        })
+        if (!proceed) { setSaving(false); return }
+        ;({ res, body } = await post(true))
       }
 
-      // Route through the intake pipeline so the lead is greeted by the AI on
-      // WhatsApp and enrolled in nurture, exactly like a webhook lead — just
-      // owned by the marketer who added it.
-      const res = await fetch('/api/leads/import', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ leads: [{
-          full_name: form.full_name.trim(),
-          phone: form.phone.trim().replace(/^0/, '233') || null,
-          email: form.email.trim() || null,
-          city: form.city || null,
-          source: 'manual',
-          landing_source: 'Added manually',
-          course_interest: form.course_interest || null,
-          notes: form.notes || null,
-          assigned_to: myId,
-        }] }),
-      })
-      const d = await res.json()
-      if (d.error) throw new Error(d.error)
+      /*
+       * Never a silent failure. The submit handler used to read only
+       * `d.error`, so any response without that field — a 500 HTML error
+       * page, a redirect to sign-in, a dropped connection — was treated as
+       * success and the marketer was told the lead had been added.
+       */
+      if (!res.ok || !body?.success) {
+        toast.error(body?.error || 'This lead could not be added. Please check the details and try again.')
+        setSaving(false)
+        return
+      }
 
-      toast.success(`${form.full_name} added to your leads`)
-      router.push('/marketer')
-    } catch (e: any) {
-      toast.error(e.message)
+      toast.success(`${form.full_name.trim()} added to your leads`)
+      router.push('/marketer/leads')
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
     } finally {
       setSaving(false)
     }
