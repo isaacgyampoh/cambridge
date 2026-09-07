@@ -161,24 +161,41 @@ export default function StaffPage() {
     }
   }
 
-  async function toggleActive(id: string, current: boolean) {
-    await fetch('/api/data', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json'},
-      body: JSON.stringify({ table: 'profiles', data: { is_active: !current }, filters: [{ col: 'id', val: id }] }),
+  /*
+   * ── WHY THESE NO LONGER PATCH /api/data ────────────────────────────────
+   *
+   * `is_active` is in UNWRITABLE_COLUMNS, so the PATCH that used to sit here
+   * came back 400 and the account stayed exactly as it was. Nothing read the
+   * response, so the screen said "Deactivated" — and a member of staff who
+   * had left kept working access while the administrator believed they had
+   * removed it. On the one control whose whole purpose is removing access,
+   * that is the worst possible way to fail.
+   *
+   * verifySession re-reads is_active on every request, so a real deactivation
+   * takes effect on the person's very next click. It just had to be written.
+   */
+  async function setAccess(id: string, patch: Record<string, unknown>, done: string) {
+    const res = await fetch('/api/admin/staff-access', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ id, ...patch }),
     })
-    toast.success(current ? 'Deactivated': 'Activated')
+    const d = await res.json().catch(() => null)
+    if (!res.ok || !d?.success) {
+      toast.error(d?.error || 'That change could not be saved. Please try again.')
+      return
+    }
+    toast.success(done)
     refetch()
   }
 
+  async function toggleActive(id: string, current: boolean) {
+    await setAccess(id, { is_active: !current }, current ? 'Deactivated' : 'Activated')
+  }
+
   async function toggleLeadPool(id: string, current: boolean) {
-    await fetch('/api/data', {
-      method: 'PATCH',
-      headers: { 'Content-Type': 'application/json'},
-      body: JSON.stringify({ table: 'profiles', data: { in_lead_pool: !current }, filters: [{ col: 'id', val: id }] }),
-    })
-    toast.success(current ? 'Removed from lead pool': 'Added to lead pool')
-    refetch()
+    await setAccess(id, { in_lead_pool: !current },
+      current ? 'Removed from lead pool' : 'Added to lead pool')
   }
 
   async function deleteStaff(id: string, name: string) {

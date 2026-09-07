@@ -5,7 +5,7 @@ import { recordAudit } from '@/lib/audit'
 import {
   canRead, canWrite, canDelete, ownerColumnFor, isValidIdentifier,
   embeddedRelations, FK_TARGETS, scrubRow,
-  SECRET_COLUMNS, MONEY_COLUMNS, ROLES_THAT_SEE_MONEY, UNWRITABLE_COLUMNS,
+  SECRET_COLUMNS, MONEY_COLUMNS, ROLES_THAT_SEE_MONEY, unwritableColumnsFor,
 } from '@/lib/data/policy'
 
 export const runtime = 'nodejs'
@@ -140,7 +140,7 @@ export async function POST(req: NextRequest) {
 
   const rows = Array.isArray(body.data) ? body.data : [body.data]
   for (const row of rows) {
-    const blocked = Object.keys(row || {}).find(k => UNWRITABLE_COLUMNS.includes(k))
+    const blocked = Object.keys(row || {}).find(k => unwritableColumnsFor(table).includes(k))
     if (blocked) return fail(`The field "${blocked}" cannot be set here.`, 400)
   }
 
@@ -188,7 +188,7 @@ export async function PATCH(req: NextRequest) {
   if (!isValidIdentifier(table)) return fail('Invalid table.', 400)
   if (!canWrite(table, role, portals)) return fail('You do not have permission to change this.')
 
-  const blocked = Object.keys(body.data).find(k => UNWRITABLE_COLUMNS.includes(k))
+  const blocked = Object.keys(body.data).find(k => unwritableColumnsFor(table).includes(k))
   if (blocked) return fail(`The field "${blocked}" cannot be changed here.`, 400)
 
   const filters: Filter[] = Array.isArray(body.filters) ? body.filters : []

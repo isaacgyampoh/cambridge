@@ -124,17 +124,37 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
 
   async function save() {
     setSaving(true)
-    await fetch('/api/data', {
-      method: 'PATCH',
+    /*
+     * ── WHY THIS NO LONGER PATCHES /api/data ─────────────────────────────
+     *
+     * It used to send
+     *
+     *     PATCH /api/data { table: 'profiles', data: { portals: [...] } }
+     *
+     * and `portals` is in UNWRITABLE_COLUMNS — deliberately, because that
+     * endpoint runs client-supplied writes with the service role, so anything
+     * on that list would let a signed-in user hand themselves a portal. The
+     * request came back 400.
+     *
+     * Nothing read it. The screen said "Permissions updated for <name>!" and
+     * went back to the list, and not one permission had changed — ever, for
+     * anybody. Which is why granting somebody the Leads portal never fixed
+     * their missing leads: the grant was never written.
+     */
+    const res = await fetch('/api/admin/staff-access', {
+      method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        table: 'profiles',
-        data: { portals: Array.from(selected) },
-        filters: [{ col: 'id', val: id }],
-      }),
+      body: JSON.stringify({ id, portals: Array.from(selected) }),
     })
-    toast.success(`Permissions updated for ${staff?.full_name}!`)
+    const d = await res.json().catch(() => null)
     setSaving(false)
+
+    if (!res.ok || !d?.success) {
+      toast.error(d?.error || 'Those permissions could not be saved. Please try again.')
+      return
+    }
+
+    toast.success(`Permissions updated for ${staff?.full_name}.`)
     router.push('/admin/staff')
   }
 

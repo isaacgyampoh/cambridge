@@ -73,12 +73,53 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
   async function reassign(marketerId: string) {
     try {
-      await mutate('PATCH', 'leads', { assigned_to: marketerId, assigned_by: userId, assigned_at: new Date().toISOString() }, [{ col: 'id', val: id }])
-      await fetch('/api/leads/assign', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ leadId: id, marketerId }) })
-      toast.success('Reassigned')
+      /*
+       * ── WHY THERE IS NO PATCH HERE ANY MORE ──────────────────────────
+       *
+       * This used to write leads.assigned_to directly through /api/data and
+       * THEN call /api/leads/assign. Doing both is what stopped every
+       * notification.
+       *
+       * assign_lead_to ends with
+       *
+       *     IF v_current IS NOT DISTINCT FROM p_marketer THEN
+       *       RETURN FALSE;   -- already theirs; nothing to record
+       *
+       * The PATCH had just made the lead theirs, so the RPC returned false,
+       * the route answered 409, and everything after that early return never
+       * ran: the SMS to the marketer, the WhatsApp to the lead, the audit
+       * entry, the lead_activities row, and onLeadAssigned — which is what
+       * increments the pending-SMS counter and writes the in-app
+       * notification.
+       *
+       * The 409 was discarded, and the operator was told
+       * "Lead assigned! Marketer notified via SMS & WhatsApp."
+       *
+       * Nobody was notified, ever, by either of these two screens.
+       *
+       * The PATCH also bypassed isEligible(), so a lead could be handed to
+       * somebody with no leads portal — assigned correctly, and invisible to
+       * them.
+       *
+       * The route does the whole job: eligibility, the locked write, the
+       * history row, the notifications. Its answer is read.
+       */
+      const res = await fetch('/api/leads/assign', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ leadId: id, marketerId }),
+      })
+      const d = await res.json().catch(() => null)
+
+      if (!res.ok || !d?.success) {
+        toast.error(d?.error || 'This lead could not be reassigned. Please try again.')
+        load()
+        return
+      }
+
+      toast.success('Reassigned. The marketer has been notified.')
       load()
-    } catch (e: any) {
-      toast.error(e.message || 'Failed to reassign')
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
     }
   }
 

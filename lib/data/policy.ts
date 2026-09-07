@@ -100,9 +100,8 @@ export const ROLES_THAT_SEE_MONEY = ['super_admin', 'administrator', 'accountant
  * table or role. Anything that grants access or represents a credential has
  * to go through a dedicated, audited route instead.
  */
-export const UNWRITABLE_COLUMNS = [
+export const GLOBALLY_UNWRITABLE = [
   'id', 'created_at',
-  'role', 'portals', 'is_active', 'permissions',
   'pin_hash', 'pin_set_at', 'must_change_pin', 'login_attempts', 'locked_until',
   // Recovery credentials (migration 0015). Enumerated explicitly rather than
   // trusted to a pattern match, because this list is what actually enforces it.
@@ -110,6 +109,56 @@ export const UNWRITABLE_COLUMNS = [
   'otp_code', 'otp_expires_at', 'otp_attempts',
   'session_token', 'marketer_code',
   'wasender_api_key', 'wawp_access_token',
+]
+
+/**
+ * Columns blocked only on the table where they decide access.
+ *
+ * ── WHY THIS IS NOT ONE FLAT LIST ──────────────────────────────────────────
+ *
+ * It was, and it was applied to every table. `role`, `portals`, `is_active`
+ * and `permissions` are dangerous on `profiles` — that is where they decide
+ * who somebody is and what they may do — and entirely ordinary everywhere
+ * else.
+ *
+ * `is_active` in particular is a plain business field on courses,
+ * knowledge_base and sequences. Blocking it globally meant:
+ *
+ *   - a course could not be activated or retired;
+ *   - a knowledge-base entry could not be switched off;
+ *   - a nurture sequence could not be paused, and a NEW one could not be
+ *     created at all, because the insert carries is_active: true.
+ *
+ * Each failed with a 400 that no caller read, so every one of those screens
+ * reported success and changed nothing.
+ *
+ * Scoping the list to the table restores those features without loosening
+ * profiles by a single column.
+ */
+export const UNWRITABLE_BY_TABLE: Record<string, string[]> = {
+  profiles: ['role', 'portals', 'is_active', 'permissions'],
+}
+
+/**
+ * Every column blocked for this table.
+ *
+ * Changing profiles.role, .portals or .is_active goes through
+ * /api/admin/staff-access instead: role-guarded, audited, refuses to let
+ * anyone grant access they do not hold themselves, and will not let the last
+ * active super admin be deactivated.
+ */
+export function unwritableColumnsFor(table: string): string[] {
+  return [...GLOBALLY_UNWRITABLE, ...(UNWRITABLE_BY_TABLE[table] || [])]
+}
+
+/**
+ * The union of both, for callers and tests that ask "is this column ever
+ * writable through the generic endpoint". Use unwritableColumnsFor() to
+ * decide about an actual request.
+ */
+export const UNWRITABLE_COLUMNS = [
+  ...GLOBALLY_UNWRITABLE,
+  ...Object.values(UNWRITABLE_BY_TABLE).flat(),
 ]
 
 /**

@@ -1,7 +1,7 @@
 'use client'
 import { useState } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
-import { useData, mutate } from '@/hooks/useData'
+import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import { SOURCE_COLORS, STATUS_COLORS } from '@/lib/utils'
 import { Users, TrendingUp, UserCheck, Clock, RefreshCw, Search } from 'lucide-react'
@@ -55,19 +55,54 @@ export default function PMAssign() {
     if (!marketerId) return
     setAssigning(leadId)
     try {
-      await mutate('PATCH', 'leads',
-        { assigned_to: marketerId, assigned_at: new Date().toISOString() },
-        [{ col: 'id', val: leadId }]
-      )
-      await fetch('/api/leads/assign', {
+      /*
+       * ── WHY THERE IS NO PATCH HERE ANY MORE ──────────────────────────
+       *
+       * This used to write leads.assigned_to directly through /api/data and
+       * THEN call /api/leads/assign. Doing both is what stopped every
+       * notification.
+       *
+       * assign_lead_to ends with
+       *
+       *     IF v_current IS NOT DISTINCT FROM p_marketer THEN
+       *       RETURN FALSE;   -- already theirs; nothing to record
+       *
+       * The PATCH had just made the lead theirs, so the RPC returned false,
+       * the route answered 409, and everything after that early return never
+       * ran: the SMS to the marketer, the WhatsApp to the lead, the audit
+       * entry, the lead_activities row, and onLeadAssigned — which is what
+       * increments the pending-SMS counter and writes the in-app
+       * notification.
+       *
+       * The 409 was discarded, and the operator was told
+       * "Lead assigned! Marketer notified via SMS & WhatsApp."
+       *
+       * Nobody was notified, ever, by either of these two screens.
+       *
+       * The PATCH also bypassed isEligible(), so a lead could be handed to
+       * somebody with no leads portal — assigned correctly, and invisible to
+       * them.
+       *
+       * The route does the whole job: eligibility, the locked write, the
+       * history row, the notifications. Its answer is read.
+       */
+      const res = await fetch('/api/leads/assign', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ leadId, marketerId }),
       })
-      toast.success('Lead assigned! Marketer notified via SMS & WhatsApp.')
+      const d = await res.json().catch(() => null)
+
+      if (!res.ok || !d?.success) {
+        toast.error(d?.error || 'That lead could not be assigned. Please try again.')
+        refetch()   // someone else may hold it now; show the truth
+        return
+      }
+
+      toast.success('Lead assigned. The marketer has been notified.')
       refetch()
-    } catch (e: any) {
-      toast.error(e.message)
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
     } finally {
       setAssigning(null)
     }

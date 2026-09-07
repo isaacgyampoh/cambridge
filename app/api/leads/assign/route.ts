@@ -69,6 +69,24 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
     )
   }
 
+  /*
+   * Who did it, recorded on the lead itself.
+   *
+   * assign_lead_to writes the actor into lead_assignments but not into
+   * leads.assigned_by, and the admin lead list reads that column to show
+   * "assigned by". The two callers that used to set it did so with a raw
+   * PATCH sent BEFORE this route — which is exactly what broke assignment
+   * notifications, because the PATCH left the lead already belonging to the
+   * marketer and assign_lead_to then returned false. Setting it here means no
+   * caller needs to write the leads table itself.
+   */
+  await sb.from('leads')
+    .update({ assigned_by: session.userId })
+    .eq('id', leadId)
+    .then(({ error }) => {
+      if (error) console.error('[leads/assign] could not record assigned_by:', error.message)
+    })
+
   const [{ data: lead }, { data: marketer }] = await Promise.all([
     sb.from('leads').select('full_name, phone, course_interest').eq('id', leadId).maybeSingle(),
     sb.from('profiles').select('full_name, phone, wa_intro').eq('id', marketerId).maybeSingle(),
