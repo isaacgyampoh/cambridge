@@ -136,3 +136,13 @@ export function canReachApi(
   if (!hit) return false
   return API_PORTALS[hit].some(portal => portals.includes(portal))
 }
+
+/**
+ * Who may see and act on money.
+ *
+ * Defined once. It was written out in app/api/fees/verify and again in
+ * lib/assistant/tools — identical today, which is exactly how a divergence
+ * gets introduced without anyone noticing that the AI assistant and the fees
+ * API disagree about who counts as finance.
+ */
+export const FINANCE_ROLES: string[] = ['super_admin', 'project_manager', 'accountant']

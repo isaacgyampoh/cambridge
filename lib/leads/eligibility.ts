@@ -37,8 +37,16 @@ export type Candidate = {
   weight: number
 }
 
-/** Portal that makes someone a lead recipient. */
-const LEADS_PORTAL = 'my_leads'
+/*
+ * Imported, not restated.
+ *
+ * lib/data/policy decides whether you may READ a lead from this same
+ * constant, and this file decides whether you may RECEIVE one. Two copies of
+ * the answer is precisely the shape that caused the bug both are now fixing:
+ * a content manager the distributor picked and the data layer refused.
+ */
+export { LEADS_PORTAL } from '@/lib/data/policy'
+import { LEADS_PORTAL } from '@/lib/data/policy'
 
 export type EligibilityOptions = {
   /** 'google' and 'website' can be restricted to specifically flagged staff. */

@@ -4,6 +4,7 @@ import { withGuard } from '@/lib/auth/guard'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { queueSMS } from '@/lib/notifications/sms'
 import { recordAudit } from '@/lib/audit'
+import { FINANCE_ROLES } from '@/lib/access/apiAccess'
 
 export const runtime = 'nodejs'
 
@@ -40,7 +41,6 @@ export const runtime = 'nodejs'
  * than being left to look like unfinished work.
  */
 
-const FINANCE_ROLES = ['super_admin', 'project_manager', 'accountant']
 
 export const GET = withGuard({ roles: FINANCE_ROLES }, async () => {
   const sb = createServiceClient()

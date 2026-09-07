@@ -2,6 +2,7 @@ import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import { autoAssignLead } from '@/lib/autoAssign'
 import { recordAudit } from '@/lib/audit'
+import { LEAD_SOURCES, canonicalPhone, phoneVariants } from '@/lib/leads/importValidation'
 
 /**
  * Make sure a submitted registration is visible in the pipeline.
@@ -43,30 +44,39 @@ export type LinkResult = {
  * when it is genuinely one of those. A registration reached through a
  * marketer's personal link is a referral; anything else is the website.
  */
-const LEAD_SOURCES = new Set([
-  'facebook', 'google', 'linkedin', 'website', 'referral', 'manual', 'walk_in',
-])
+/*
+ * ── WHY THESE COME FROM lib/leads/importValidation ─────────────────────────
+ *
+ * This file had its own LEAD_SOURCES, phoneVariants and canonicalPhone. The
+ * first two matched their originals character for character; the third did
+ * not, and the difference mattered.
+ *
+ * The shared canonicalPhone requires nine digits after the country code —
+ * a Ghanaian mobile — and returns null otherwise. The copy here had no length
+ * check at all:
+ *
+ *     return local ? `233${local}` : null
+ *
+ * so "024123" became "23324123" and a fourteen-digit paste became
+ * "23312345678901234". Both are truthy, so both passed the "no phone and no
+ * email" guard below and were written into leads.phone as a new lead.
+ *
+ * The result is a lead nobody can reach. normaliseRecipient rejects the
+ * number, so no SMS and no WhatsApp; and the same person enquiring properly
+ * later matches nothing, so they are created a second time and the marketer's
+ * history splits in two. The import path rejected exactly these rows. Only
+ * registrations let them through.
+ *
+ * resolveSource stays local because it genuinely differs: a registration with
+ * no usable UTM is a referral when it came through a marketer's link and the
+ * website otherwise, where an imported row falls back to 'manual'. It is
+ * built on the shared list so the two cannot disagree about what a source is.
+ */
 
 function resolveSource(utm?: string | null, marketerId?: string | null): string {
   const candidate = String(utm || '').trim().toLowerCase()
-  if (LEAD_SOURCES.has(candidate)) return candidate
+  if ((LEAD_SOURCES as readonly string[]).includes(candidate)) return candidate
   return marketerId ? 'referral' : 'website'
-}
-
-function phoneVariants(raw?: string | null): string[] {
-  const digits = String(raw || '').replace(/\D/g, '')
-  if (!digits) return []
-  const local = digits.replace(/^233/, '').replace(/^0/, '')
-  if (!local) return []
-  return Array.from(new Set([digits, local, `0${local}`, `233${local}`]))
-}
-
-/** Canonical storage form for a Ghanaian number: 233XXXXXXXXX. */
-function canonicalPhone(raw?: string | null): string | null {
-  const digits = String(raw || '').replace(/\D/g, '')
-  if (!digits) return null
-  const local = digits.replace(/^233/, '').replace(/^0/, '')
-  return local ? `233${local}` : null
 }
 
 export async function linkApplicationToLead(app: {

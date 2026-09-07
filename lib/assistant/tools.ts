@@ -1,8 +1,8 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { FINANCE_ROLES } from '@/lib/access/apiAccess'
 
 type Ctx = { userId: string; role: string; fullName?: string }
 
-const FINANCE_ROLES = ['super_admin', 'project_manager', 'accountant']
 const OVERSIGHT_ROLES = ['super_admin', 'project_manager']
 const SUPER_ONLY = ['super_admin']
 
