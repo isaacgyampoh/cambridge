@@ -19,26 +19,51 @@ const LABELS: Record<string, { name: string; desc: string; every: string }> = {
   tiers:              { name: 'Performance tiers', desc: 'Recalculates marketer tiers', every: 'weekly' },
 }
 
+/*
+ * How long ago, as a sentence. Module scope: reading the clock is not a
+ * render-time job, and React 19 reports it as an impure render.
+ */
+function ago(t: string | null | undefined) {
+  if (!t) return 'never'
+  const m = Math.floor((Date.now() - new Date(t).getTime()) / 60000)
+  if (m < 1) return 'just now'
+  if (m < 60) return `${m} min ago`
+  const h = Math.floor(m / 60)
+  if (h < 24) return `${h}h ago`
+  return `${Math.floor(h / 24)}d ago`
+}
+
 export default function AutomationPage() {
   const { data: runs, loading, refetch } = useData<CronRun>({ table: 'cron_runs', select: '*', limit: 50 })
   const [busy, setBusy] = useState<string | null>(null)
 
-  const ago = (t: string | null | undefined) => {
-    if (!t) return 'never'
-    const m = Math.floor((Date.now() - new Date(t).getTime()) / 60000)
-    if (m < 1) return 'just now'
-    if (m < 60) return `${m} min ago`
-    const h = Math.floor(m / 60)
-    if (h < 24) return `${h} hour${h === 1 ? '' : 's'} ago`
-    return `${Math.floor(h / 24)} day${Math.floor(h / 24) === 1 ? '' : 's'} ago`
-  }
-
+  /*
+   * Run the due tasks now.
+   *
+   * Posts to /api/admin/run-cron, which checks the session and then speaks to
+   * the cron runner with the real secret server-side. This used to call
+   * /api/cron/run?key=1024 directly from the browser — CRON_SECRET is not
+   * 1024, so the button had never once worked, and it could not have: putting
+   * the real secret here would hand it to anyone who opened the page.
+   */
   async function runNow(task?: string) {
     setBusy(task || 'all')
-    const d = await fetch(`/api/cron/run?key=1024${task ? `&task=${task}` : ''}`).then(r => r.json()).catch(() => ({ error: 'failed' }))
-    setBusy(null)
-    if (d.error) toast.error(d.error)
-    else { toast.success(`Ran ${d.ran} task${d.ran === 1 ? '' : 's'}`); refetch() }
+    try {
+      const res = await fetch(`/api/admin/run-cron${task ? `?task=${encodeURIComponent(task)}` : ''}`,
+        { method: 'POST' })
+      const d = await res.json().catch(() => ({}))
+
+      if (!res.ok || d.error) {
+        toast.error(d.error || 'Could not start the automations.')
+        return
+      }
+      toast.success(`Ran ${d.ran} task${d.ran === 1 ? '' : 's'}`)
+      refetch()
+    } catch {
+      toast.error('Could not reach the server.')
+    } finally {
+      setBusy(null)
+    }
   }
 
   /*
@@ -64,9 +89,23 @@ export default function AutomationPage() {
         <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
           At cron-job.org create a single job calling this URL every <b>5 minutes</b>:
         </p>
+        {/*
+          The placeholder is deliberate. This was printed with `key=1024`,
+          which is not the secret — so a scheduler configured from this screen
+          would have been rejected every five minutes, silently, while the page
+          claimed the automations were set up. The real value is CRON_SECRET in
+          the deployment environment, and it is not shown here: anyone who
+          could see this screen would then be able to trigger every automation
+          from outside the application.
+        */}
         <code className="block mt-2 text-[12px] bg-[var(--paper)] border border-[var(--line)] rounded-lg px-3 py-2 break-all">
-          https://portal.cambridge.edu.gh/api/cron/run?key=1024
+          https://portal.cambridge.edu.gh/api/cron/run?key=YOUR_CRON_SECRET
         </code>
+        <p className="text-[12px] text-[var(--ink-faint)] mt-2 leading-relaxed">
+          Replace <code className="font-mono">YOUR_CRON_SECRET</code> with the
+          CRON_SECRET value from the deployment settings. The button above does
+          not need it — it runs the tasks through your signed-in session.
+        </p>
       </Card>
 
       {loading ? <Spinner /> : (

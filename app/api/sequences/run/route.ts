@@ -15,7 +15,6 @@ import { sendSMS } from '@/lib/integrations/sms'
  * enrollment when steps run out.
  */
 export async function GET(req: NextRequest) {
-  const key = new URL(req.url).searchParams.get('key')
   if (!isValidCronRequest(req)) {
     return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   }

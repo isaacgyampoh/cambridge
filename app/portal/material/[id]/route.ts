@@ -68,7 +68,6 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
 
   // Read it server-side and stream it through. A private file has no public
   // address at all, so there is nothing for anyone to share or save.
-  let upstream: Response
   if (String(doc.file_url).startsWith('materials://')) {
     const path = String(doc.file_url).replace('materials://', '')
     const { data, error } = await sb.storage.from('materials').download(path)
@@ -82,7 +81,10 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
       },
     })
   }
-  upstream = await fetch(doc.file_url)
+  // Everything above returns, so this branch is the only one that reaches
+  // here: the declaration belongs with the assignment rather than being
+  // hoisted above a block that never falls through to it.
+  const upstream = await fetch(doc.file_url)
   if (!upstream.ok) return new NextResponse('Could not load the file', { status: 502 })
 
   return new NextResponse(upstream.body, {

@@ -7,7 +7,6 @@ export const runtime = 'nodejs'
 
 /** Cron: /api/class-reminders/run?key=SETUP_SECRET every ~15 min. */
 export async function GET(req: NextRequest) {
-  const key = new URL(req.url).searchParams.get('key')
   if (!isValidCronRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sb = createServiceClient()

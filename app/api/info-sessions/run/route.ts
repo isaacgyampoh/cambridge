@@ -11,7 +11,6 @@ export const runtime = 'nodejs'
  * Sends every scheduled session whose notify_at has passed.
  */
 export async function GET(req: NextRequest) {
-  const key = new URL(req.url).searchParams.get('key')
   if (!isValidCronRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sb = createServiceClient()

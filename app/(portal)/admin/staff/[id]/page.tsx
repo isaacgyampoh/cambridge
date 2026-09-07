@@ -65,7 +65,8 @@ export default function StaffPermissionsPage({ params }: { params: Promise<{ id:
     if (portalId === 'dashboard') return // always on
     setSelected(prev => {
       const next = new Set(prev)
-      next.has(portalId) ? next.delete(portalId) : next.add(portalId)
+      if (next.has(portalId)) next.delete(portalId)
+      else next.add(portalId)
       return next
     })
   }

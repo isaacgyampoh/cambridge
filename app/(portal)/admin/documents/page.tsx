@@ -175,7 +175,8 @@ export default function DocumentsPage() {
       body: JSON.stringify({ documentId: sendModal.id, studentIds: selectedStudents }),
     })
     const d = await res.json()
-    d.success ? toast.success(`Document sent to ${d.sent} students!`) : toast.error('Failed to send')
+    if (d.success) toast.success(`Document sent to ${d.sent} student${d.sent === 1 ? '' : 's'}.`)
+    else toast.error(d.error || 'Could not send that document.')
     setSending(false)
     setSendModal(null)
   }

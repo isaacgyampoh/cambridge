@@ -76,7 +76,8 @@ export default function SettingsPage() {
       const res = await fetch('/api/test/sms', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ phone: testPhone }) })
       const d = await res.json()
       setResult({ channel: 'SMS', ...d })
-      d.success ? toast.success('Test SMS sent — check the phone') : toast.error(d.hint || 'SMS failed')
+      if (d.success) toast.success('Test SMS sent — check the phone.')
+      else toast.error(d.hint || 'That SMS did not send.')
     } catch (e: any) { toast.error(e.message) }
     finally { setTesting(null) }
   }
@@ -90,7 +91,8 @@ export default function SettingsPage() {
       })
       const d = await res.json()
       setResult({ channel: 'WhatsApp', success: d.sent, ...d })
-      d.sent ? toast.success('Test WhatsApp sent') : toast.error(d.error || d.provider_response?.message || 'WhatsApp send failed — see details below')
+      if (d.sent) toast.success('Test WhatsApp message sent.')
+      else toast.error(d.error || d.provider_response?.message || 'That message did not send — see the details below.')
     } catch (e: any) { toast.error(e.message) }
     finally { setTesting(null) }
   }
@@ -200,7 +202,8 @@ export default function SettingsPage() {
             const d = await fetch('/api/test/ai').then(r => r.json()).catch(() => ({ error: 'failed' }))
             setTesting(null)
             setResult({ channel: 'AI', success: d.ok, hint: d.diagnosis, provider_response: d.sample_message ? { message: d.sample_message } : undefined, error: d.error })
-            d.ok ? toast.success('AI is working') : toast.error(d.diagnosis || 'AI not working')
+            if (d.ok) toast.success('The assistant is working.')
+            else toast.error(d.diagnosis || 'The assistant is not responding.')
           }} disabled={testing === 'ai'}>{testing === 'ai' ? 'Checking…' : 'Test AI'}</Button>
         </div>
         {result && (

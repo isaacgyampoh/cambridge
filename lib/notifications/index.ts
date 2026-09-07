@@ -64,9 +64,13 @@ export async function onReadyToJoin(lead: any, admissionId: string) {
       { lead_id: lead.id, admission_id: admissionId }
     )
     if (o.phone) {
-      isAccountant
-        ? await sendSMS(o.phone, SMS.readyToJoinToAccountant(lead.full_name))
-        : await sendSMS(o.phone, SMS.readyToJoinToOfficer(o.full_name, lead.full_name))
+      // An accountant is told a fee is due; an admissions officer is told a
+      // case needs processing. Different jobs, different message.
+      if (isAccountant) {
+        await sendSMS(o.phone, SMS.readyToJoinToAccountant(lead.full_name))
+      } else {
+        await sendSMS(o.phone, SMS.readyToJoinToOfficer(o.full_name, lead.full_name))
+      }
     }
   }
 

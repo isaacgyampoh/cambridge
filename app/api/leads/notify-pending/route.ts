@@ -13,7 +13,6 @@ export const runtime = 'nodejs'
  * batches group together), send ONE SMS with the total count and reset.
  */
 export async function GET(req: NextRequest) {
-  const key = new URL(req.url).searchParams.get('key')
   if (!isValidCronRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
 
   const sb = createServiceClient()

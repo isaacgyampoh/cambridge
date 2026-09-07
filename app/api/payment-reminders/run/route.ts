@@ -11,7 +11,6 @@ export const runtime = 'nodejs'
  * it: /api/payment-reminders/run?key=SETUP_SECRET
  */
 export async function GET(req: NextRequest) {
-  const key = new URL(req.url).searchParams.get('key')
   if (!isValidCronRequest(req)) return NextResponse.json({ error: 'Unauthorized' }, { status: 401 })
   const result = await broadcastPaymentReminders({})
   return NextResponse.json({ ran: true, ...result })

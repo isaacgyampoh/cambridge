@@ -1,5 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
-import { GraduationCap, Briefcase, ExternalLink } from 'lucide-react'
+import { GraduationCap, Briefcase, ArrowRight } from 'lucide-react'
+import Link from 'next/link'
 import { BRAND } from '@/lib/brand'
 import type { Alumnus } from '@/types'
 
@@ -157,13 +158,26 @@ export default async function PublicAlumniPage() {
       </main>
 
       <footer className="px-5 pb-10 text-center">
-        <a href="/apply"
+        {/*
+          /refer, not /apply.
+
+          /apply only exists as /apply/[marketerId] — a link belonging to a
+          particular member of staff. Bare /apply matches no route, so the
+          proxy sent it to /login: a prospective student who pressed
+          "Start your application" on a public page landed on a staff PIN
+          screen. /refer is the public route for somebody with no marketer,
+          and a course advisor picks the enquiry up from there.
+
+          Link rather than <a>, so it navigates in the app instead of
+          reloading the whole page.
+        */}
+        <Link href="/refer"
           className="inline-flex items-center gap-2 h-12 px-6 rounded-xl
             bg-[var(--accent)] text-[var(--accent-ink)] text-[15px] font-semibold
             hover:bg-[var(--accent-hover)] transition-colors">
-          Start your application
-          <ExternalLink size={16} aria-hidden="true" />
-        </a>
+          Enquire about a programme
+          <ArrowRight size={16} aria-hidden="true" />
+        </Link>
         <p className="text-[12px] text-[var(--ink-faint)] mt-6">
           {BRAND.name}
         </p>
