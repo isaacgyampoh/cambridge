@@ -57,15 +57,6 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
    */
   const [stats, setStats] = useState<{ alumni: number; courses: number; graduates: number } | null>(null)
 
-  /* Only the figures that exist. A zero is not a fact worth showing. */
-  const shownStats = stats
-    ? [
-        { n: stats.graduates, label: 'Graduates' },
-        { n: stats.alumni, label: 'Alumni' },
-        { n: stats.courses, label: 'Programmes' },
-      ].filter(x => x.n > 0)
-    : []
-
   useEffect(() => {
     let alive = true
     fetch('/api/public/stats')

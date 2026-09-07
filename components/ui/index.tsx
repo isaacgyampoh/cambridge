@@ -64,14 +64,13 @@ type BtnProps = {
   href?: string
   variant?: 'primary' | 'secondary' | 'ghost' | 'danger'
   size?: 'sm' | 'md'
-  icon?: React.ReactNode
   disabled?: boolean
   type?: 'button' | 'submit'
   className?: string
 }
 
 export function Button({
-  children, onClick, href, variant = 'primary', size = 'md', icon, disabled,
+  children, onClick, href, variant = 'primary', size = 'md', disabled,
   type = 'button', className = '', block = false,
 }: BtnProps & { block?: boolean }) {
   /*
@@ -96,7 +95,15 @@ export function Button({
     danger:    'bg-[var(--paper)] text-[var(--danger)] border border-[var(--danger)]/25 hover:bg-[var(--danger-soft)]',
   }
   const cls = `${base} ${sizes[size]} ${variants[variant]} ${block ? 'w-full' : ''} ${className}`
-  // Icons removed system-wide — text only.
+  /*
+   * An icon goes in the content, not in a prop.
+   *
+   *   <Button><Plus size={16} aria-hidden="true" /> Add lead</Button>
+   *
+   * There used to be an `icon` prop that this render ignored entirely, so a
+   * caller who passed one got nothing and no warning. The gap in `base`
+   * spaces an icon from its label already.
+   */
   if (href) return <Link href={href} className={cls}>{children}</Link>
   return <button type={type} onClick={onClick} disabled={disabled} className={cls}>{children}</button>
 }
@@ -126,15 +133,32 @@ export function Card({
 /* ─────────────────────────────────────────────
    StatCard — metric display
    ───────────────────────────────────────────── */
+/**
+ * A figure, its label, and optionally how it has been moving.
+ *
+ * ── TWO PROPS THAT DID NOTHING ─────────────────────────────────────────────
+ *
+ * `icon` was accepted, typed, and rendered inside `{false && icon && …}` — the
+ * branch was hardcoded off when icons were stripped from the system, and the
+ * prop was left in the signature. A caller passing one got silence.
+ *
+ * `spark` was worse: destructured and then never referenced anywhere in the
+ * markup. The conversions dashboard passes twelve months of real figures to
+ * it and has been drawing nothing. A Sparkline component existed the whole
+ * time.
+ *
+ * `icon` is gone rather than restored — the design system puts an icon in the
+ * content now, and no caller passes one. `spark` draws.
+ */
 export function StatCard({
-  label, value, sub, icon, accent = false, trend, spark,
+  label, value, sub, accent = false, trend, spark,
 }: {
   label: string
   value: React.ReactNode
   sub?: string
-  icon?: React.ReactNode
   accent?: boolean
   trend?: { value: string; up?: boolean }
+  /** A short series — the last twelve months, say. Drawn beside the figure. */
   spark?: number[]
 }) {
   return (
@@ -142,16 +166,10 @@ export function StatCard({
       ${accent
         ? 'bg-[var(--accent)] border-[var(--accent)] text-white'
         : 'bg-[var(--paper)] border-[var(--line)]'}`}>
-      <div className="flex items-start justify-between mb-3">
+      <div className="mb-3">
         <div className={`text-[14px] font-medium ${accent ? 'text-white/80' : 'text-[var(--ink-soft)]'}`}>
           {label}
         </div>
-        {false && icon && (
-          <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 -mr-1 -mt-1
-            ${accent ? 'bg-white/15 text-white' : 'bg-[var(--accent-soft)] text-[var(--accent)]'}`}>
-            {icon}
-          </div>
-        )}
       </div>
       <div className="flex items-end justify-between gap-3">
         <div>
@@ -170,6 +188,11 @@ export function StatCard({
             </div>
           )}
         </div>
+
+        {/* The shape of the figure over time, when the caller has it. */}
+        {spark && spark.length > 1 && (
+          <Sparkline data={spark} accent={accent} />
+        )}
       </div>
     </div>
   )
