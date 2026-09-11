@@ -4,6 +4,7 @@ import { useState, useEffect, useRef, useCallback } from 'react'
 import { Bell, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
+import { mutate } from '@/hooks/useData'
 
 interface Notif {
   id: string
@@ -71,26 +72,41 @@ export default function NotificationBell({ userId }: { userId: string | null }) 
 
   const unread = items.filter(i => !i.is_read).length
 
+  /*
+   * Marking read is optimistic, and stays optimistic — the badge should drop
+   * the moment it is tapped. What changed is that a failure puts it back.
+   *
+   * Both of these swallowed the result in a bare `catch {}`, so a refused
+   * write left the bell showing nothing unread while the server still had
+   * them. The next refresh brought the count back with no explanation, which
+   * looks like notifications arriving twice.
+   */
   async function markRead(id: string) {
+    const before = items
     setItems(prev => prev.map(i => i.id === id ? { ...i, is_read: true } : i))
     try {
-      await fetch('/api/data', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'notifications', data: { is_read: true }, filters: [{ col: 'id', val: id }] }),
-      })
-    } catch {}
+      await mutate('PATCH', 'notifications', { is_read: true }, [{ col: 'id', val: id }])
+    } catch {
+      setItems(before)
+    }
   }
 
   async function markAllRead() {
-    const ids = items.filter(i => !i.is_read).map(i => i.id)
+    const unread = items.filter(i => !i.is_read).map(i => i.id)
+    if (!unread.length) return
+
+    const before = items
     setItems(prev => prev.map(i => ({ ...i, is_read: true })))
-    for (const id of ids) {
-      try {
-        await fetch('/api/data', {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ table: 'notifications', data: { is_read: true }, filters: [{ col: 'id', val: id }] }),
-        })
-      } catch {}
+    try {
+      /*
+       * One request, not one per notification. This looped with an await
+       * inside, so twenty unread notifications meant twenty round trips in
+       * series — and a failure part-way left the rest unread with the bell
+       * showing all of them cleared.
+       */
+      await mutate('PATCH', 'notifications', { is_read: true }, [{ col: 'id', op: 'in', val: unread }])
+    } catch {
+      setItems(before)
     }
   }
 

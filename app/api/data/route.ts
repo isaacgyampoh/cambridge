@@ -202,9 +202,31 @@ export async function PATCH(req: NextRequest) {
   const ownerCol = ownerColumnFor(table, role, portals)
   if (ownerCol) query = query.eq(ownerCol, userId)
 
-  for (const { col, val } of filters) {
+  /*
+   * `eq`, and `in` for a list of specific rows.
+   *
+   * Only these two. A caller could already update any set of rows by sending
+   * one request per row — the notification bell did exactly that, twenty
+   * round trips in series to clear twenty notifications — so naming them in
+   * one request adds no reach, only one round trip instead of twenty.
+   *
+   * The comparison operators are deliberately NOT accepted here. `neq`, `gt`
+   * and friends would let a single request sweep a whole table, which is a
+   * different and much larger thing than naming the rows you mean. Row
+   * scoping above still applies either way.
+   */
+  for (const { col, op = 'eq', val } of filters) {
     if (ownerCol && col === ownerCol) continue
-    query = query.eq(col, val)
+    if (op === 'in') {
+      if (!Array.isArray(val) || !val.length || val.length > MAX_LIMIT) {
+        return fail('That list of rows is not valid.', 400)
+      }
+      query = query.in(col, val as string[])
+    } else if (op === 'eq') {
+      query = query.eq(col, val)
+    } else {
+      return fail(`Updates cannot filter with "${op}".`, 400)
+    }
   }
 
   const { error } = await query

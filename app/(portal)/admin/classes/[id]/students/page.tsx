@@ -10,6 +10,7 @@ import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 import { X } from 'lucide-react'
 import type { Application } from '@/types'
+import { mutate } from '@/hooks/useData'
 
 type Enrollment = {
   id: string
@@ -158,10 +159,9 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     const nowPaid = !e.fees_paid
     setActing(e.id)
     try {
-      await fetch('/api/data', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'class_enrollments', data: { fees_paid: nowPaid }, filters: [{ col: 'id', val: e.id }] }),
-      })
+      // mutate() throws, so the catch below reports a refusal instead of the
+      // screen quietly showing the fee as settled when it was not.
+      await mutate('PATCH', 'class_enrollments', { fees_paid: nowPaid }, [{ col: 'id', val: e.id }])
       // If they're now fully paid AND already completed, auto-issue the certificate
       if (nowPaid && e.status === 'completed') {
         const res = await fetch('/api/classes/complete', {

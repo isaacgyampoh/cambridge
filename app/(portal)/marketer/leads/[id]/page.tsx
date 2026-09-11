@@ -118,10 +118,9 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
 
   async function resumeAI() {
     try {
-      await fetch('/api/data', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'leads', data: { ai_paused: false, needs_human: false }, filters: [{ col: 'id', val: id }] }),
-      })
+      // mutate() throws on a refusal; the raw fetch it replaces did not, so
+      // "AI resumed" was announced whether or not anything had changed.
+      await mutate('PATCH', 'leads', { ai_paused: false, needs_human: false }, [{ col: 'id', val: id }])
       toast.success('AI resumed — it will handle new messages again.')
       load()
     } catch { toast.error('Could not resume AI') }

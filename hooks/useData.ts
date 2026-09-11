@@ -165,7 +165,8 @@ export async function mutate(
   // One row, or many: the insert path is used for bulk writes too, such as
   // recording a whole class's attendance in a single request.
   data: Record<string, unknown> | Record<string, unknown>[],
-  filters?: { col: string; val: FilterValue }[],
+  // `op` defaults to 'eq'; 'in' names a specific list of rows in one request.
+  filters?: { col: string; op?: 'eq' | 'in'; val: FilterValue | FilterValue[] }[],
   opts?: { upsert?: boolean; onConflict?: string }
 ) {
   const res = await fetch('/api/data', {

@@ -4,6 +4,7 @@ import { useState, useEffect } from 'react'
 import { toast } from 'sonner'
 import { CheckCircle2, AlertCircle, Copy, MessageSquare, CreditCard, Mail, Database, Smartphone, Sparkles } from 'lucide-react'
 import { PageHeader, Card, Button, SectionLabel, inputClass, Spinner } from '@/components/ui'
+import { mutate } from '@/hooks/useData'
 
 export default function SettingsPage() {
   /** What /api/config-status reports. Named so the JSX below is checked. */
@@ -57,16 +58,35 @@ export default function SettingsPage() {
   }, [])
 
   async function toggleAutoAssign(next: boolean) {
+    /*
+     * This switch decides whether incoming leads are distributed at all.
+     *
+     * It flipped optimistically and then swallowed every failure in a bare
+     * `catch {}` — no check, no message, no revert. A refused write left the
+     * switch showing the setting the operator had chosen while the database
+     * held the opposite, and the only way to find out was that leads stopped
+     * arriving, or kept arriving, for no visible reason.
+     *
+     * The optimistic flip is kept, because the switch should answer the
+     * thumb immediately. What is new is that it goes back if the write does
+     * not land, and says so.
+     */
+    const previous = autoAssign
     setAutoAssign(next)
     setSavingToggle(true)
     try {
-      // upsert the setting
-      await fetch('/api/data', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'settings', data: { key: 'auto_assign_leads', value: next ? 'true' : 'false' }, upsert: true, onConflict: 'key' }),
-      })
-    } catch {}
-    finally { setSavingToggle(false) }
+      await mutate('POST', 'settings',
+        { key: 'auto_assign_leads', value: next ? 'true' : 'false' },
+        undefined, { upsert: true, onConflict: 'key' })
+      toast.success(next ? 'New leads will be distributed automatically.' : 'Automatic distribution is off.')
+    } catch (e) {
+      setAutoAssign(previous)
+      toast.error(e instanceof Error && e.message !== 'Failed'
+        ? e.message
+        : 'That setting could not be saved. Please try again.')
+    } finally {
+      setSavingToggle(false)
+    }
   }
 
   async function testSMS() {

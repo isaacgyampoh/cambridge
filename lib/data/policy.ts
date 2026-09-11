@@ -44,7 +44,14 @@ export const READ_TABLES: Record<string, string[]> = {
  */
 export const WRITE_TABLES: Record<string, string[]> = {
   super_admin: [ALL_TABLES_WILDCARD],
-  administrator: ['leads','lead_activities','lead_comments','follow_up_queue','admissions','applications','courses','batches','class_sessions','class_signins','attendance','documents','alumni','knowledge_base','sequences','sequence_steps','testimonials','notifications','office_locations','program_points'],
+  /*
+   * class_enrollments was missing while batches, class_sessions, class_signins
+   * and attendance were all present — the same job, and /admin/classes is
+   * reachable on the `academics` portal an administrator holds. So marking a
+   * student's class fees as paid came back 403, and the screen (which did not
+   * read the response) said it had worked.
+   */
+  administrator: ['leads','lead_activities','lead_comments','follow_up_queue','admissions','applications','courses','batches','class_sessions','class_signins','attendance','class_enrollments','documents','alumni','knowledge_base','sequences','sequence_steps','testimonials','notifications','office_locations','program_points'],
   project_manager: ['leads','lead_activities','lead_comments','lead_status_logs','follow_up_queue','admissions','documents','batches','courses','class_enrollments','class_sessions','knowledge_base','sequences','sequence_steps','sequence_enrollments','notifications','program_points','alumni'],
   marketing_officer: ['leads','lead_activities','lead_comments','lead_status_logs','follow_up_queue','notifications'],
   admissions_officer: ['admissions','applications','leads','lead_activities','batches','notifications'],

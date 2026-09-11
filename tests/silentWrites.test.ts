@@ -3,7 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import {
-  unwritableColumnsFor, GLOBALLY_UNWRITABLE, UNWRITABLE_BY_TABLE,
+  unwritableColumnsFor, GLOBALLY_UNWRITABLE, UNWRITABLE_BY_TABLE, canWrite,
 } from '../lib/data/policy.ts'
 
 /**
@@ -181,5 +181,86 @@ describe('a lead is assigned once, by the route that notifies', () => {
     // it; the route does it now, so no caller needs to write leads at all.
     const route = codeOf('app/api/leads/assign/route.ts')
     assert.match(route, /update\(\{ assigned_by: session\.userId \}\)/)
+  })
+})
+
+describe('no write goes out through a raw fetch to the generic endpoint', () => {
+  /*
+   * mutate() throws on a refusal. A hand-rolled fetch to the same endpoint
+   * does not, so every one of these announced success whatever came back.
+   * Four were failing today rather than latently: the auto-assign switch, a
+   * WhatsApp intro line, a class fee marked paid by an administrator, and
+   * marking notifications read.
+   */
+  test('every /api/data write uses mutate', () => {
+    const offenders: string[] = []
+
+    for (const file of SCREENS) {
+      const src = codeOf(file)
+      for (const m of src.matchAll(/fetch\(\s*['"`]\/api\/data['"`]\s*,\s*\{([\s\S]{0,200})/g)) {
+        if (!/method:\s*'(POST|PATCH|DELETE)'/.test(m[1])) continue   // reads are fine
+        const line = src.slice(0, m.index).split('\n').length
+        offenders.push(`${file}:${line}`)
+      }
+    }
+
+    assert.deepEqual(offenders, [],
+      'these write through the generic endpoint without mutate(), so a 400 ' +
+      'or 403 is invisible and the screen reports success:\n  ' + offenders.join('\n  '))
+  })
+
+  test('the auto-assign switch reverts when the write is refused', () => {
+    // It decides whether incoming leads are distributed at all, and it used
+    // to flip optimistically into a bare catch {}.
+    const src = codeOf('app/(portal)/admin/settings/page.tsx')
+    assert.match(src, /const previous = autoAssign/,
+      'the switch has nothing to revert to')
+    assert.match(src, /setAutoAssign\(previous\)/,
+      'a refused write leaves the switch showing a setting the database does not hold')
+  })
+
+  test('the notification bell puts the badge back on failure', () => {
+    const src = codeOf('components/shared/NotificationBell.tsx')
+    assert.equal([...src.matchAll(/setItems\(before\)/g)].length, 2,
+      'marking read still swallows failures, so the count returns unexplained')
+  })
+
+  test('marking all read is one request, not one per notification', () => {
+    const src = codeOf('components/shared/NotificationBell.tsx')
+    assert.match(src, /op: 'in', val: unread/,
+      'twenty unread notifications means twenty round trips in series')
+  })
+
+  test('an administrator can work class enrolments', () => {
+    // batches, class_sessions, class_signins and attendance were all present;
+    // class_enrollments was not, and /admin/classes is on the academics
+    // portal an administrator holds.
+    for (const table of ['batches', 'class_sessions', 'attendance', 'class_enrollments']) {
+      assert.ok(canWrite(table, 'administrator', null),
+        `an administrator runs academics but cannot write ${table}`)
+    }
+  })
+})
+
+describe('bulk updates name their rows and nothing more', () => {
+  const route = codeOf('app/api/data/route.ts')
+
+  test('an update accepts eq and in', () => {
+    assert.match(route, /if \(op === 'in'\)/)
+    assert.match(route, /query\.in\(col, val as string\[\]\)/)
+  })
+
+  test('and refuses the comparison operators', () => {
+    /*
+     * `in` names specific rows — the same reach a loop of eq requests always
+     * had. `neq`, `gt` and friends would let one request sweep a whole table,
+     * which is a different and much larger thing.
+     */
+    assert.match(route, /Updates cannot filter with/,
+      'an update can filter with any operator, so one request can sweep a table')
+  })
+
+  test('an in-list is bounded and must be a real list', () => {
+    assert.match(route, /!Array\.isArray\(val\) \|\| !val\.length \|\| val\.length > MAX_LIMIT/)
   })
 })

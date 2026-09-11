@@ -8,6 +8,7 @@ import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 import type { Profile } from '@/types'
+import { mutate } from '@/hooks/useData'
 
 export default function WhatsAppLinesPage() {
   const { ask, dialog } = useConfirm()
@@ -43,10 +44,10 @@ export default function WhatsAppLinesPage() {
       const d = await res.json()
       if (!res.ok) { toast.error(d.error || 'Could not save'); return }
       // Save the personal intro line used by the AI assistant
-      await fetch('/api/data', {
-        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ table: 'profiles', data: { wa_intro: form.intro || null }, filters: [{ col: 'id', val: editing.id }] }),
-      })
+      // Through mutate(), so a refused intro is reported rather than folded
+      // into "WhatsApp line saved" — the line above IS checked, so this used
+      // to fail on its own and silently.
+      await mutate('PATCH', 'profiles', { wa_intro: form.intro || null }, [{ col: 'id', val: editing.id }])
       toast.success('WhatsApp line saved')
       setEditing(null)
       refetch()
