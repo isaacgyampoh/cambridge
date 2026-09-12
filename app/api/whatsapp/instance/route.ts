@@ -2,7 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
-import { lookup, unavailable } from '@/lib/db/lookup'
+import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
 
 /**
  * Save / update a person's own WhatsApp (WaSender) session credentials.
@@ -32,7 +32,7 @@ export async function POST(req: NextRequest) {
   if (status !== undefined) update.wasender_status = status
 
   const { error } = await sb.from('profiles').update(update).eq('id', target)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[whatsapp/instance]', error.message, 'that connection')
   return NextResponse.json({ success: true })
 }
 
@@ -45,8 +45,28 @@ export async function PUT(req: NextRequest) {
   const session = await verifySession(token)
   if (!session.valid) return NextResponse.json({ error: 'Not signed in' }, { status: 401 })
 
+  /*
+   * ── THE SAME GUARD POST HAS, WHICH THIS DID NOT ──────────────────────────
+   *
+   * `target` was `staffId || session.userId` with nothing checking it, so a
+   * client-supplied id was simply obeyed. Any signed-in member of staff could
+   * name a colleague and:
+   *
+   *   - send a WhatsApp message through THAT person's WaSender key, from
+   *     their line and against their account;
+   *   - read the provider's raw response for a key that is not theirs;
+   *   - and, because the write at the end of this handler is keyed on the
+   *     same `target`, set that colleague's wasender_status to
+   *     'disconnected' — quietly stopping their leads being messaged.
+   *
+   * POST has guarded exactly this since it was written. PUT is the same
+   * decision about the same column, so it gets the same rule.
+   */
   const { staffId } = await req.json()
-  const target = staffId || session.userId
+  const target = staffId && staffId !== session.userId ? staffId : session.userId
+  if (target !== session.userId && !['super_admin', 'project_manager'].includes(session.role || '')) {
+    return NextResponse.json({ error: 'You can only test your own WhatsApp line.' }, { status: 403 })
+  }
 
   const sb = createServiceClient()
   const { row: p, failed } = await lookup(
@@ -78,7 +98,10 @@ export async function PUT(req: NextRequest) {
     resp = await res.json().catch(() => ({}))
     ok = res.ok && resp?.success !== false
   } catch (e: any) {
-    resp = { error: e.message }
+    // The cause goes to the log, not to the browser: a fetch failure message
+    // can carry the full request URL, and this one is built with the key.
+    console.error('[whatsapp/instance] test send failed:', e?.message)
+    resp = { error: 'The test message could not be sent. Check the API key and the number.' }
   }
 
   await sb.from('profiles').update({ wasender_status: ok ? 'connected' : 'disconnected' }).eq('id', target)

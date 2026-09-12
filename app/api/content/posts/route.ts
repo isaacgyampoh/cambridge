@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 const ALLOWED = ['super_admin', 'project_manager', 'content_manager']
 
@@ -41,7 +42,7 @@ export async function POST(req: NextRequest) {
   } else {
     row.created_by = session.userId
     const { data, error } = await sb.from('content_posts').insert(row).select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return saveFailed('[content/posts]', error.message, 'that post')
     return NextResponse.json({ success: true, id: data.id })
   }
 }

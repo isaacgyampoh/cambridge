@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { saveFailed } from '@/lib/db/lookup'
 
 async function getRecipients(sb: any, target_type: string, target_filters: any) {
   let recipients: { phone: string; name: string; id: string; type: string }[] = []
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
     scheduled_at: scheduled_at || null,
   }).select().single()
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[broadcast]', error.message, 'that broadcast')
 
   // If scheduled, just save and return
   if (scheduled_at) {

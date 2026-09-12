@@ -3,7 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText, WA } from '@/lib/integrations/whatsapp'
-import { lookup, unavailable } from '@/lib/db/lookup'
+import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value
@@ -33,7 +33,7 @@ export async function POST(req: NextRequest) {
 
   if (error) {
     console.error('[Admissions] Insert error:', error)
-    return NextResponse.json({ error: error.message }, { status: 500 })
+    return saveFailed('[admissions]', error.message, 'that admission')
   }
 
   // Get all admissions officers and accountants

@@ -94,3 +94,34 @@ export function unavailable(where: string, reason: string, what = 'that'): NextR
     { status: 503 },
   )
 }
+
+/**
+ * The answer to give when a WRITE failed.
+ *
+ * ── WHY THE REAL MESSAGE DOES NOT GO BACK ──────────────────────────────────
+ *
+ * Twenty-eight routes answered a failed write with `error: error.message` —
+ * the raw Postgres text, handed to the browser. That text is written for
+ * whoever maintains the database, and it says so:
+ *
+ *   duplicate key value violates unique constraint "leads_email_key"
+ *     DETAIL: Key (email)=(kwame@example.com) already exists.
+ *
+ * The constraint name gives away the schema, and the DETAIL line gives away
+ * somebody else's email address to whoever typed it — which is the one thing
+ * a stranger probing a public form is looking for. Foreign-key and check
+ * violations name tables and columns the same way.
+ *
+ * So the cause is logged where the people who can act on it will see it, and
+ * the caller is told the thing they actually need to know: it did not save.
+ *
+ * 500, not 503: unlike a failed read this may well be the request's own
+ * fault, and "try again in a moment" would be a lie if it is.
+ */
+export function saveFailed(where: string, reason: string, what = 'that'): NextResponse {
+  console.error(`${where} write failed:`, reason)
+  return NextResponse.json(
+    { error: `We could not save ${what}. Please try again, or tell an administrator if it keeps happening.` },
+    { status: 500 },
+  )
+}

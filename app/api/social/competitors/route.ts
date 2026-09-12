@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'content_manager', 'project_manager']
@@ -27,7 +28,7 @@ export async function POST(req: NextRequest) {
     name: name.trim(), handle: handle?.trim() || null, platform: platform || 'facebook',
     notes: notes?.trim() || null, added_by: s.userId,
   }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[social/competitors]', error.message, 'that competitor')
   return NextResponse.json({ competitor: data })
 }
 

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { recordEvent } from '@/lib/chatbot/events'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager']
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     .not('status', 'in', '(registered,not_interested,lost)')
     .select('id')
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[admin/resume-ai]', error.message, 'that change')
 
   /*
    * This is the ONLY thing that resumes a paused conversation. Nothing does it

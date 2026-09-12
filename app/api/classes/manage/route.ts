@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager', 'trainer']
@@ -42,7 +43,7 @@ export async function PATCH(req: NextRequest) {
   update.updated_at = new Date().toISOString()
 
   const { error } = await sb.from('batches').update(update).eq('id', batchId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[classes/manage]', error.message, 'that class')
   return NextResponse.json({ success: true })
 }
 
@@ -68,6 +69,6 @@ export async function DELETE(req: NextRequest) {
 
   await sb.from('class_sessions').delete().eq('batch_id', batchId).then(() => {}, () => {})
   const { error } = await sb.from('batches').delete().eq('id', batchId)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[classes/manage]', error.message, 'that class')
   return NextResponse.json({ success: true })
 }

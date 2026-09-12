@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -28,7 +29,7 @@ export async function POST(req: NextRequest) {
     is_manual: true, manual_note: note.trim(),
     summary: note.trim().slice(0, 200),
   }, { onConflict: 'marketer_id,period,period_start' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[reports/manual]', error.message, 'that report')
 
   // Notify PMs so they see the manual report
   const { data: mgrs } = await sb.from('profiles').select('id').in('role', ['super_admin', 'project_manager']).eq('is_active', true).limit(10)

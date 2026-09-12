@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'project_manager', 'administrator']
@@ -22,6 +23,6 @@ export async function POST(req: NextRequest) {
   const col = source === 'google' ? 'gets_google_leads' : 'gets_website_leads'
   const sb = createServiceClient()
   const { error } = await sb.from('profiles').update({ [col]: !!enabled }).eq('id', marketer_id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[marketer/set-source-access]', error.message, 'those settings')
   return NextResponse.json({ success: true })
 }

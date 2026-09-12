@@ -30,6 +30,12 @@ export async function POST(req: NextRequest) {
     })
     return NextResponse.json({ result })
   } catch (e: any) {
-    return NextResponse.json({ error: e.message || 'AI failed' }, { status: 500 })
+    // Not e.message: an AI client's error text carries the provider endpoint,
+    // the model and sometimes a fragment of the request.
+    console.error('[social/strategy] AI call failed:', e?.message)
+    return NextResponse.json(
+      { error: 'The strategy could not be generated just now. Please try again in a moment.' },
+      { status: 500 },
+    )
   }
 }

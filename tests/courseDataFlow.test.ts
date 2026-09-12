@@ -133,7 +133,9 @@ describe('the public site shows both delivery modes', () => {
    * one number and had no way to learn the online cohort costs less, which is
    * the difference most likely to decide whether they enquire.
    */
-  const page = codeOf('app/page.tsx')
+  // The public front page. It sits at /welcome, not at '/', which belongs to
+  // the staff portal and redirects to the sign-in.
+  const page = codeOf('app/welcome/page.tsx')
 
   test('both fees are read', () => {
     assert.match(page, /const inPerson = ghs\(p\.feeInPerson\)/)

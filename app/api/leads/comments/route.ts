@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   const { data: saved, error } = await sb.from('lead_comments').insert({
     lead_id, author_id: s.userId, author_name: s.fullName || 'A marketer', comment: comment.trim(),
   }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[leads/comments]', error.message, 'your comment')
 
   // Notify PMs + admins immediately (in-app + SMS)
   const { data: lead } = await sb.from('leads').select('full_name').eq('id', lead_id).maybeSingle()

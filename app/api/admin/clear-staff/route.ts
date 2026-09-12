@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -43,7 +44,7 @@ export async function POST(req: NextRequest) {
   ]))
 
   const { error } = await sb.from('profiles').delete().in('id', ids)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[admin/clear-staff]', error.message, 'that change')
 
   // Free up the auth logins too
   await Promise.allSettled(ids.map((uid: string) => sb.auth.admin.deleteUser(uid)))

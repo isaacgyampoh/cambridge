@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { saveFailed } from '@/lib/db/lookup'
 
 /**
  * Shared links hub.
@@ -69,7 +70,7 @@ export async function POST(req: NextRequest) {
       batch_id: body.batch_id || null,
       posted_by: session.userId,
     }).select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return saveFailed('[links]', error.message, 'that link')
 
     // Notify the right audience
     const { data: people } = await sb.from('profiles').select('id, role').eq('is_active', true).neq('role', 'student')

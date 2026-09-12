@@ -3,7 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
-import { lookup, unavailable } from '@/lib/db/lookup'
+import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'exam_coordinator']
@@ -40,7 +40,7 @@ export async function POST(req: NextRequest) {
       answer: answer || null, send_offset_days: send_offset_days ?? null,
       created_by: s.userId,
     }).select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return saveFailed('[prep/content]', error.message, 'that content')
     return NextResponse.json({ success: true, content: data })
   }
 

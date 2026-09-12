@@ -1,4 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { canonicalPhone, phoneVariants } from '@/lib/leads/importValidation'
+import { lookup } from '@/lib/db/lookup'
 import { autoAssignLead } from '@/lib/autoAssign'
 import { SMS } from '@/lib/integrations/sms'
 import { queueSMS } from '@/lib/notifications/sms'
@@ -32,13 +34,22 @@ export type IncomingLead = {
   preferredMarketerId?: string | null  // assign straight to this marketer (personal referral link)
 }
 
+/**
+ * One spelling of a number, shared with the import pipeline.
+ *
+ * This used to be a second, private implementation, and it disagreed with the
+ * canonical one on exactly the inputs that matter. Given "00233201234567" it
+ * saw a leading zero, replaced it, and stored `2330233201234567` — a number
+ * that cannot be rung and that no dedupe variant will ever match again, so
+ * that person comes back as a new lead every time they enquire.
+ *
+ * A number that is not a Ghanaian mobile is kept as plain digits rather than
+ * discarded: the centre does take the occasional international enquiry, and a
+ * number somebody has to reformat by hand beats no number at all.
+ */
 function normalizePhone(p?: string | null): string | null {
   if (!p) return null
-  let d = p.replace(/[^\d]/g, '')
-  if (d.startsWith('0')) d = '233' + d.slice(1)
-  if (d.startsWith('233')) return d
-  if (d.length === 9) return '233' + d
-  return d || null
+  return canonicalPhone(p) ?? (String(p).replace(/\D/g, '') || null)
 }
 
 const PRETTY: Record<string, string> = {
@@ -51,14 +62,66 @@ export async function intakeLead(input: IncomingLead): Promise<{ leadId: string 
   const phone = normalizePhone(input.phone)
   const email = input.email?.trim().toLowerCase() || null
 
-  // 1) De-dupe: same phone or email in the last 60 days → don't create twice
+  /*
+   * 1) De-dupe: the same person in the last 60 days is not a second lead.
+   *
+   * ── WHY THIS IS TWO QUERIES AND NOT ONE `.or()` ──────────────────────────
+   *
+   * It was one, built by interpolation:
+   *
+   *     q.or(`phone.eq.${phone},email.eq.${email}`)
+   *
+   * `email` arrives in the body of a PUBLIC webhook — website, Facebook,
+   * Google, LinkedIn — and PostgREST parses that string as filter syntax, so
+   * a comma in the address is a new condition. An address of
+   * `x@y.com,assigned_to.not.is.null` produced
+   *
+   *     or=(phone.eq.233…,email.eq.x@y.com,assigned_to.not.is.null)
+   *
+   * which matches the first assigned lead of the last sixty days. The real
+   * lead is then never created — it is reported as a duplicate — and the
+   * caller is handed an unrelated lead's database id. Anyone who could post
+   * to a webhook could make enquiries disappear.
+   *
+   * Two `.eq`/`.in` queries take their values as values, so there is no
+   * string for an address to be part of.
+   *
+   * Matching on every spelling of the number, rather than just the canonical
+   * one, also catches the rows older code paths wrote as 0201234567 or
+   * 201234567 — those used to come back as new people.
+   */
   if (phone || email) {
     const since = new Date(Date.now() - 60 * 24 * 3600 * 1000).toISOString()
-    let q = sb.from('leads').select('id, assigned_to').gte('created_at', since)
-    if (phone && email) q = q.or(`phone.eq.${phone},email.eq.${email}`)
-    else if (phone) q = q.eq('phone', phone)
-    else if (email) q = q.eq('email', email)
-    const { data: existing } = await q.limit(1).maybeSingle()
+    let existing: { id: string; assigned_to: string | null } | null = null
+
+    const variants = phoneVariants(phone)
+    if (variants.length) {
+      const { row, failed } = await lookup(
+        sb.from('leads').select('id, assigned_to')
+          .gte('created_at', since).in('phone', variants).limit(1).maybeSingle(),
+      )
+      // Fail CLOSED. Read as "nobody matched", a failure here creates a
+      // second record for somebody already on file, and their history, owner
+      // and call notes stay behind on the first one.
+      if (failed) {
+        console.error('[intakeLead] duplicate check by phone failed:', failed)
+        return { leadId: null, assignedTo: null, duplicate: false }
+      }
+      existing = row
+    }
+
+    if (!existing && email) {
+      const { row, failed } = await lookup(
+        sb.from('leads').select('id, assigned_to')
+          .gte('created_at', since).eq('email', email).limit(1).maybeSingle(),
+      )
+      if (failed) {
+        console.error('[intakeLead] duplicate check by email failed:', failed)
+        return { leadId: null, assignedTo: null, duplicate: false }
+      }
+      existing = row
+    }
+
     if (existing) return { leadId: existing.id, assignedTo: existing.assigned_to || null, duplicate: true }
   }
 

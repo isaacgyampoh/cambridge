@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
+import { saveFailed } from '@/lib/db/lookup'
 
 /**
  * Enroll a lead into a drip sequence. Body: { leadId, sequenceId }
@@ -26,6 +27,6 @@ export async function POST(req: NextRequest) {
     current_step: 0, next_run_at: nextRun, status: 'active',
   }, { onConflict: 'sequence_id,lead_id' })
 
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[sequences/enroll]', error.message, 'that enrolment')
   return NextResponse.json({ success: true, nextRun })
 }

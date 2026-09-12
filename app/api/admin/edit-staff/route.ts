@@ -3,6 +3,7 @@ import { isValidPin, PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN } from '@/lib/auth/pin'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -56,7 +57,7 @@ export async function POST(req: NextRequest) {
   if (Object.keys(update).length === 0) return NextResponse.json({ error: 'Nothing to update.' }, { status: 400 })
 
   const { error } = await sb.from('profiles').update(update).eq('id', id)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[admin/edit-staff]', error.message, 'those changes')
 
   // Keep auth email in sync if it changed
   if (update.email) { try { await sb.auth.admin.updateUserById(id, { email: update.email }) } catch {} }

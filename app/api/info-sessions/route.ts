@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -36,7 +37,7 @@ export async function POST(req: NextRequest) {
     channels: channels || 'sms,whatsapp',
     created_by: session.userId,
   }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[info-sessions]', error.message, 'that session')
   return NextResponse.json({ session: data })
 }
 

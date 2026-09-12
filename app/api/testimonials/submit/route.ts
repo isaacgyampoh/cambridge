@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 /**
  * PUBLIC — a student submits their own testimonial via the shared link.
@@ -32,7 +33,7 @@ export async function POST(req: NextRequest) {
     approved: false,
     shared: false,
   })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[testimonials/submit]', error.message, 'your testimonial')
 
   // Auto-add to Alumni: anyone who submits a testimonial is an alumnus.
   // Avoid duplicating an existing alumni record for the same person.

@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
-import { lookup, unavailable } from '@/lib/db/lookup'
+import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
 
 /**
  * Enroll a registered student (by application) into a class batch.
@@ -50,7 +50,7 @@ export async function POST(req: NextRequest) {
     batch_id: batchId, application_id: applicationId, lead_id: app.lead_id,
     full_name: app.full_name, email: app.email, phone: app.phone, status: 'active',
   }, { onConflict: 'batch_id,application_id' })
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[classes/enroll]', error.message, 'that enrolment')
 
   // Auto-send the Zoom link to this new student if online + link present
   let zoomSent = false

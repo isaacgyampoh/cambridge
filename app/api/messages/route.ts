@@ -1,6 +1,8 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { z } from 'zod'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -16,6 +18,29 @@ export async function GET(req: NextRequest) {
   const withUser = req.nextUrl.searchParams.get('with')
 
   if (withUser) {
+    /*
+     * ── WHY THIS IS CHECKED BEFORE IT IS USED ────────────────────────────
+     *
+     * `with` is a query parameter, and it is interpolated into a PostgREST
+     * filter below. PostgREST parses that string as filter syntax, so a
+     * value carrying a bracket and a comma is not a value any more — it is
+     * more filter. Passing
+     *
+     *     with=00000000-0000-0000-0000-000000000000),or(id.not.is.null
+     *
+     * closed the `and(` early and added an always-true term to the top-level
+     * OR, so the query stopped being "the thread between these two people"
+     * and became "the two hundred most recent staff messages". Any signed-in
+     * member of staff could read everybody's private messages, including the
+     * ones about them.
+     *
+     * A UUID is hex and dashes, so once it has passed this it cannot carry
+     * syntax. The check is the fix — not the shape of the query below.
+     */
+    if (!z.string().uuid().safeParse(withUser).success) {
+      return NextResponse.json({ error: 'unknown conversation' }, { status: 400 })
+    }
+
     const { data } = await sb.from('staff_messages')
       .select('id, sender_id, recipient_id, body, audio_url, file_url, file_name, file_type, file_size, created_at, read_at')
       .or(`and(sender_id.eq.${me},recipient_id.eq.${withUser}),and(sender_id.eq.${withUser},recipient_id.eq.${me})`)
@@ -50,7 +75,7 @@ export async function POST(req: NextRequest) {
   const sb = createServiceClient()
   const { data, error } = await sb.from('staff_messages')
     .insert({ sender_id: session.userId, recipient_id: to, body: body?.trim() || null, audio_url: audio_url || null, file_url: file_url || null, file_name: file_name || null, file_type: file_type || null, file_size: file_size || null }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[messages]', error.message, 'your message')
 
   // Notify the recipient in-app
   try {

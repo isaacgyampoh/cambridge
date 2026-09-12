@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -40,7 +41,7 @@ export async function POST(req: NextRequest) {
 
   // Now delete the leads themselves
   const { error } = await sb.from('leads').delete().not('id', 'is', null)
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[admin/clear-leads]', error.message, 'that change')
 
   return NextResponse.json({ success: true, deleted: before || 0 })
 }

@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -35,6 +36,6 @@ export async function POST(req: NextRequest) {
     code, referrer_name: name.trim(),
     referrer_phone: phone?.trim() || null, referrer_email: email?.trim() || null,
   }).select().single()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[referrals/create]', error.message, 'that referral')
   return NextResponse.json({ code: data.code })
 }

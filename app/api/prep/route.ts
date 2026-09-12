@@ -3,7 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
-import { lookup, unavailable } from '@/lib/db/lookup'
+import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
 
 /**
  * Exam prep tracker.
@@ -94,7 +94,7 @@ export async function POST(req: NextRequest) {
       program_code: code, program_name: name, coordinator_id: coordinatorId,
       prep_status: 'ongoing',
     }).select().single()
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return saveFailed('[prep]', error.message, 'that record')
     await logPrep(sb, data.id, session, code, enr.full_name, 'added', `Added ${enr.full_name} to ${name || code || 'prep'} tracking`)
     return NextResponse.json({ success: true, record: data })
   }
@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
     // Capture what's being changed for the activity log
     const { data: before } = await sb.from('prep_records').select('*').eq('id', id).maybeSingle()
     const { error } = await sb.from('prep_records').update(fields).eq('id', id)
-    if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+    if (error) return saveFailed('[prep]', error.message, 'that record')
     // Build a human description of the change
     const changes: string[] = []
     for (const k of Object.keys(fields)) {

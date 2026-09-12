@@ -31,6 +31,9 @@ const PUBLIC = [
    * staff sign-in box.
    */
   '/login', '/setup', '/apply', '/refer', '/f/', '/j/', '/signin/', '/public-alumni',
+  // The public front page. It lives here rather than at '/', which belongs to
+  // the staff portal and redirects to the sign-in.
+  '/welcome',
   '/portal', '/class/',
   '/api/student/', '/api/auth/', '/api/setup/', '/api/signin/',
   '/api/classes/signin', '/api/classes/pay', '/api/fees/pay',
@@ -135,12 +138,15 @@ export async function proxy(request: NextRequest) {
   )
 
   /*
-   * The front page is public.
+   * '/' is let through so the page itself can redirect to /login.
    *
-   * Checked here rather than added to PUBLIC, and that is not fussiness: '/'
-   * ends with a slash, so isMatch would evaluate it as
+   * Checked here with === rather than added to PUBLIC, and that is not
+   * fussiness: '/' ends with a slash, so isMatch would evaluate it as
    * pathname.startsWith('/') — which is every route in the application. One
    * entry in that list would have made the whole product anonymous.
+   *
+   * Letting it pass costs nothing: the page is a redirect to /login, and
+   * /login is where an unauthenticated visitor would have been sent anyway.
    */
   if (pathname === '/') return pass()
 

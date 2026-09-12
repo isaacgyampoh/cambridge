@@ -27,7 +27,11 @@ export type LeadSource = typeof LEAD_SOURCES[number]
  * reason the operator can act on.
  */
 export function canonicalPhone(raw?: string | null): string | null {
-  const digits = String(raw ?? '').replace(/\D/g, '')
+  // The international dialling prefix, before anything else. Without this
+  // "00233201234567" keeps its zeros, fails the nine-digit test and is
+  // refused — or, in the intake path that kept its own copy of this rule, was
+  // turned into 2330233201234567 and stored as somebody's phone number.
+  const digits = String(raw ?? '').replace(/\D/g, '').replace(/^00/, '')
   if (!digits) return null
 
   const local = digits.replace(/^233/, '').replace(/^0/, '')
@@ -43,7 +47,7 @@ export function canonicalPhone(raw?: string | null): string | null {
  * dedupe that checks only one of those creates a duplicate.
  */
 export function phoneVariants(raw?: string | null): string[] {
-  const digits = String(raw ?? '').replace(/\D/g, '')
+  const digits = String(raw ?? '').replace(/\D/g, '').replace(/^00/, '')
   if (!digits) return []
   const local = digits.replace(/^233/, '').replace(/^0/, '')
   if (!local) return []

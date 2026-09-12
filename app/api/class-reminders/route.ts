@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { lookup, unavailable } from '@/lib/db/lookup'
+import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -62,7 +62,7 @@ export async function POST(req: NextRequest) {
   if (rows.length === 0) return NextResponse.json({ error: 'All chosen reminder times are already in the past.' }, { status: 400 })
 
   const { data, error } = await sb.from('class_reminders').insert(rows).select()
-  if (error) return NextResponse.json({ error: error.message }, { status: 500 })
+  if (error) return saveFailed('[class-reminders]', error.message, 'those reminders')
   return NextResponse.json({ reminders: data, created: data.length })
 }
 
