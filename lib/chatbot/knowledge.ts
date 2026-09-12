@@ -26,6 +26,7 @@ export { longDate, ghs, hasFacts } from '@/lib/chatbot/format'
 export type { KnowledgeBlocks, KnowledgeCounts } from '@/lib/chatbot/format'
 
 import type { KnowledgeBlocks } from '@/lib/chatbot/format'
+import type { LoadResult } from '@/lib/chatbot/programme'
 
 type KbRow = { kind?: string | null; category?: string | null; question?: string | null; answer?: string | null }
 
@@ -37,7 +38,7 @@ type KbRow = { kind?: string | null; category?: string | null; question?: string
  * than fall back on what the model happens to believe about a training centre
  * in Ghana. `counts` is how the caller tells them apart.
  */
-export async function loadKnowledge(): Promise<KnowledgeBlocks> {
+export async function loadKnowledge(): Promise<LoadResult<KnowledgeBlocks>> {
   const sb = createServiceClient()
   // courses and batches stay at zero here: lib/chatbot/programme owns them.
   const counts = { info: 0, faqs: 0, courses: 0, batches: 0 }
@@ -48,7 +49,19 @@ export async function loadKnowledge(): Promise<KnowledgeBlocks> {
     .eq('is_active', true)
     .order('sort_order', { ascending: true })
     .limit(200)
-  if (kbErr) console.error('[chatbot] knowledge_base unreadable:', kbErr.message)
+
+  /*
+   * A failed read is not an empty knowledge base.
+   *
+   * Returning empty blocks here would tell the caller the centre has written
+   * nothing down, which is a legitimate state it handles by answering from
+   * programme records alone. An unreadable table is not that, and the
+   * assistant must not carry on as though it were.
+   */
+  if (kbErr) {
+    console.error('[chatbot] knowledge_base unreadable:', kbErr.message)
+    return { ok: false, error: kbErr.message }
+  }
 
   const rows: KbRow[] = kb || []
   const infos = rows.filter(k => k.kind === 'info' && k.answer)
@@ -86,5 +99,5 @@ export async function loadKnowledge(): Promise<KnowledgeBlocks> {
     parts.push('COMMON QUESTIONS:\n' + faqs.map(f => `Q: ${f.question}\nA: ${f.answer}`).join('\n\n'))
   }
 
-  return { text: parts.join('\n\n'), counts }
+  return { ok: true, data: { text: parts.join('\n\n'), counts } }
 }

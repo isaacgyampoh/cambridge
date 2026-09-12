@@ -13,6 +13,8 @@ import {
 } from '@/lib/chatbot'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
+import { timingSafeEqual } from 'crypto'
+import { SECRETS } from '@/lib/config.server'
 
 /**
  * Incoming WhatsApp webhook (called by WaSender when a lead replies).
@@ -49,12 +51,85 @@ async function logInbound(sb: any, source: string, fromPhone: string | null, tex
 }
 
 
+/**
+ * Is this request allowed to reach the webhook?
+ *
+ * ── WHY THIS NOW EXISTS ────────────────────────────────────────────────────
+ *
+ * It did not. The comment here said "WaSender can sign webhooks with a secret.
+ * We record whether the signature matched, but NEVER reject on it" — and no
+ * check of any kind was implemented, so the comment described an intention
+ * rather than the code. WASENDER_WEBHOOK_SECRET was read in config.server and
+ * used nowhere.
+ *
+ * So this was a fully open endpoint on a public URL. A POST to it could create
+ * a lead, spend money on model calls, inject text into a conversation's
+ * history, and — the one that matters — cause the centre's WhatsApp line to
+ * send messages to any number the caller named.
+ *
+ * ── WHAT IS CHECKED, AND WHAT IS NOT INVENTED ──────────────────────────────
+ *
+ * A shared secret, supplied as a header or a query parameter. Not an HMAC
+ * signature: this repository cannot verify WaSender's signing scheme, and
+ * guessing at one would either reject every real delivery or accept every
+ * forged one. A shared secret is something the centre configures on both
+ * sides, which is exactly as strong as the secret and honest about it.
+ *
+ * ── AND WHY AN UNCONFIGURED SECRET STILL PASSES ────────────────────────────
+ *
+ * Turning this on by deploying it would silence a live WhatsApp line the
+ * moment this ships, which is a worse outage than the exposure. With no
+ * secret set the endpoint behaves exactly as before and says so on every
+ * request, and Assistant readiness reports it. Setting the variable turns the
+ * gate on.
+ */
+function webhookAllowed(req: NextRequest): { ok: true } | { ok: false; why: string } {
+  const expected = SECRETS.wasenderWebhookSecret
+  if (!expected) {
+    console.warn('[whatsapp webhook] OPEN — WASENDER_WEBHOOK_SECRET is not set, so anyone '
+      + 'who knows this URL can create leads and send messages from the centre\'s line.')
+    return { ok: true }
+  }
+
+  const url = new URL(req.url)
+  const supplied =
+    req.headers.get('x-webhook-secret')
+    || req.headers.get('x-wasender-secret')
+    || req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+    || url.searchParams.get('secret')
+    || url.searchParams.get('key')
+    || ''
+
+  if (!supplied) return { ok: false, why: 'no secret supplied' }
+
+  // Constant time, so the endpoint does not leak the secret a character at a
+  // time to somebody measuring how long it takes to say no.
+  const a = Buffer.from(supplied)
+  const b = Buffer.from(expected)
+  const match = a.length === b.length && timingSafeEqual(a, b)
+  return match ? { ok: true } : { ok: false, why: 'secret did not match' }
+}
+
 export async function POST(req: NextRequest) {
+  const allowed = webhookAllowed(req)
+  if (!allowed.ok) {
+    /*
+     * Recorded, because a webhook that has started being rejected looks
+     * exactly like one that has stopped being called — and the fix for those
+     * two is opposite.
+     */
+    console.error('[whatsapp webhook] rejected —', allowed.why)
+    try {
+      await createServiceClient().from('webhook_inbox').insert({
+        source: 'whatsapp', outcome: 'rejected',
+        detail: `Refused: ${allowed.why}`,
+      })
+    } catch { /* the refusal stands either way */ }
+    return NextResponse.json({ ok: false, error: 'Unauthorized' }, { status: 401 })
+  }
+
   // Anything that throws in here used to disappear as a bare 500 with no
   // record, which is indistinguishable from the webhook never being called.
-  // WaSender can sign webhooks with a secret. We record whether the signature
-  // matched, but NEVER reject on it — a mismatched or missing signature must
-  // not be the reason a lead goes unanswered.
   try {
     return await handleInbound(req)
   } catch (e: any) {

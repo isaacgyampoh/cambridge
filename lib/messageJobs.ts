@@ -47,5 +47,28 @@ export async function alreadyProcessed(eventId?: string | null): Promise<boolean
   if (!eventId) return false
   const sb = createServiceClient()
   const { error } = await sb.from('processed_events').insert({ event_id: eventId })
-  return !!error      // insert failed → we have seen this event before
+  if (!error) return false                     // first time we have seen it
+
+  /*
+   * ── A FAILED INSERT IS NOT THE SAME AS A DUPLICATE ──────────────────────
+   *
+   * This read `return !!error` — ANY error meant "already seen". A unique
+   * violation does mean that, and it is the case this exists for. Everything
+   * else does not: the table missing, a policy refusing the write, the
+   * database briefly unreachable. Each of those made every incoming message
+   * look like a retry, so the webhook returned early and the lead was never
+   * answered — silently, with no reply and no log, for as long as the
+   * condition lasted.
+   *
+   * Answering twice is a bad day. Never answering is a lost lead, and it
+   * looks identical to the webhook not being called at all. So an
+   * unrecognised failure processes the message and says so.
+   */
+  const duplicate = error.code === '23505'
+    || /duplicate key|unique constraint/i.test(error.message || '')
+  if (duplicate) return true
+
+  console.error('[messageJobs] could not record event', eventId,
+    '— processing it rather than dropping it:', error.message)
+  return false
 }

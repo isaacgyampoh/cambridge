@@ -3,7 +3,7 @@ import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { aiConfigured } from '@/lib/integrations/ai-client'
 import { SECRETS } from '@/lib/config.server'
-import { loadProgrammes } from '@/lib/chatbot/programme'
+import { loadProgrammes, type Programme } from '@/lib/chatbot/programme'
 import { loadKnowledge } from '@/lib/chatbot/knowledge'
 import { capabilityOf } from '@/lib/chatbot/programmeRules'
 import { eligibleMarketers } from '@/lib/leads/eligibility'
@@ -74,13 +74,34 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
    * It runs the real loader, then counts how many active programmes came back
    * with a fee on them.
    */
-  let programmes: Awaited<ReturnType<typeof loadProgrammes>> = []
+  /*
+   * A failed read and an empty centre are reported differently, because they
+   * are different problems: one is a database the assistant cannot reach, the
+   * other is a centre with nothing set up yet.
+   */
+  let programmes: Programme[] = []
+  let programmesFailed = false
   try {
-    programmes = await loadProgrammes()
+    const loaded = await loadProgrammes()
+    if (loaded.ok) {
+      programmes = loaded.data
+    } else {
+      programmesFailed = true
+      checks.push({ id: 'programmes', label: 'Programmes', status: 'fail',
+        detail: `The programme records could not be read: ${loaded.error}`,
+        fix: 'Every question about a programme, a fee or a date will be handed to a person until this is fixed. Check the courses table exists and the service key can read it.' })
+    }
   } catch (e) {
+    programmesFailed = true
     checks.push({ id: 'programmes', label: 'Programmes', status: 'fail',
       detail: `The programme loader threw: ${e instanceof Error ? e.message : e}`,
       fix: 'The courses table cannot be read at all. Check the service key and the table name.' })
+  }
+
+  if (!programmesFailed && !programmes.length) {
+    checks.push({ id: 'programmes', label: 'Programmes', status: 'fail',
+      detail: 'The courses table was read successfully and holds no active programmes.',
+      fix: 'Add at least one active programme under Academics → Courses. Until then the assistant has nothing to talk about.' })
   }
 
   if (programmes.length) {
@@ -134,7 +155,14 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
 
   // ── 5. The centre's own knowledge ────────────────────────────────────────
   try {
-    const k = await loadKnowledge()
+    const loadedK = await loadKnowledge()
+    if (!loadedK.ok) {
+      checks.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',
+        detail: `The knowledge base could not be read: ${loadedK.error}`,
+        fix: 'This is a read failure, not an empty table. The assistant hands every conversation to a person while it lasts.' })
+      throw new Error('handled')
+    }
+    const k = loadedK.data
     const total = k.counts.info + k.counts.faqs
     checks.push({
       id: 'knowledge', label: 'Knowledge base', status: total ? 'ok' : 'warn',
@@ -144,8 +172,10 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
       fix: total ? undefined : 'Add entries under Knowledge so it can answer where you are, how payment works, and what to bring.',
     })
   } catch (e) {
-    checks.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',
-      detail: `Could not be read: ${e instanceof Error ? e.message : e}` })
+    if (!(e instanceof Error && e.message === 'handled')) {
+      checks.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',
+        detail: `Could not be read: ${e instanceof Error ? e.message : e}` })
+    }
   }
 
   // ── 6. Who can receive a lead, and be named in a handover ────────────────
@@ -211,6 +241,16 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
       fix: (count || central) ? undefined : 'Connect a line under WhatsApp lines.',
     })
   } catch { /* as above */ }
+
+  // ── 9. Is the webhook open to anybody who knows the URL? ────────────────
+  checks.push(
+    SECRETS.wasenderWebhookSecret
+      ? { id: 'webhook', label: 'Webhook protection', status: 'ok',
+          detail: 'Incoming WhatsApp messages must carry the shared secret.' }
+      : { id: 'webhook', label: 'Webhook protection', status: 'fail',
+          detail: 'The WhatsApp webhook accepts any request. Anyone who knows the URL can create leads, spend model credit, and make the centre\'s line send messages to any number they choose.',
+          fix: 'Set WASENDER_WEBHOOK_SECRET in Vercel, then add the same value to the callback URL in WaSender as ?secret=… or an x-webhook-secret header. Until both sides carry it the endpoint stays open.' },
+  )
 
   const worst = checks.some(c => c.status === 'fail') ? 'fail'
     : checks.some(c => c.status === 'warn') ? 'warn' : 'ok'

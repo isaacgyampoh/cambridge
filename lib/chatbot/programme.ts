@@ -27,6 +27,25 @@ import type { Cohort, Programme } from '@/lib/chatbot/programmeRules'
 
 export * from '@/lib/chatbot/programmeRules'
 
+/**
+ * The result of a load that can genuinely fail.
+ *
+ * ── WHY THIS IS NOT JUST AN ARRAY ──────────────────────────────────────────
+ *
+ * It was. `loadProgrammes` returned `[]` when the query failed, which made a
+ * database error indistinguishable from a centre with no programmes — and the
+ * assistant treats the second as "find out which one they mean" rather than
+ * "something is wrong". That is the courses.price failure repeating in a new
+ * place: a silent empty result standing in for a broken read.
+ *
+ * NO DATA and DATA LOAD FAILED are different states and the callers behave
+ * differently on each. An empty centre is a conversation to have; an
+ * unreadable database is a conversation to hand to a person.
+ */
+export type LoadResult<T> =
+  | { ok: true; data: T }
+  | { ok: false; error: string }
+
 /** The columns the Course type and the admin screen both confirm exist. */
 const COURSE_COLUMNS =
   'id, name, code, description, duration, course_fee, course_fee_online, registration_fee, brochure_url'
@@ -55,7 +74,7 @@ function num(v: unknown): number | null {
  * so, because a schema that differs from this repository should cost detail
  * rather than costing the assistant every fact it has.
  */
-export async function loadProgrammes(): Promise<Programme[]> {
+export async function loadProgrammes(): Promise<LoadResult<Programme[]>> {
   const sb = createServiceClient()
 
   let rows: CourseRecord[] | null = null
@@ -68,15 +87,20 @@ export async function loadProgrammes(): Promise<Programme[]> {
     const minimal = await sb.from('courses').select(COURSE_MINIMAL)
       .eq('is_active', true).order('name').limit(100)
     if (minimal.error) {
+      /*
+       * Not an empty array. The caller must be able to tell this from a
+       * centre that has no programmes, because the right behaviour differs:
+       * one is a question to ask, the other is a conversation to hand over.
+       */
       console.error('[chatbot] courses unreadable entirely:', minimal.error.message)
-      return []
+      return { ok: false, error: minimal.error.message }
     }
     rows = minimal.data as CourseRecord[]
   } else {
     rows = full.data as CourseRecord[]
   }
 
-  if (!rows?.length) return []
+  if (!rows?.length) return { ok: true, data: [] }
 
   // Cohorts, in one read rather than one per programme.
   const byCourse = new Map<string, Cohort[]>()
@@ -102,17 +126,20 @@ export async function loadProgrammes(): Promise<Programme[]> {
     byCourse.set(courseId, list)
   }
 
-  return rows.map(r => ({
-    id: r.id,
-    name: r.name,
-    code: r.code || null,
-    description: r.description || null,
-    duration: r.duration || null,
-    feeInPerson: num(r.course_fee),
-    feeOnline: num(r.course_fee_online),
-    registrationFee: num(r.registration_fee),
-    brochureUrl: r.brochure_url || null,
-    cohorts: byCourse.get(r.id) || [],
-  }))
+  return {
+    ok: true,
+    data: rows.map(r => ({
+      id: r.id,
+      name: r.name,
+      code: r.code || null,
+      description: r.description || null,
+      duration: r.duration || null,
+      feeInPerson: num(r.course_fee),
+      feeOnline: num(r.course_fee_online),
+      registrationFee: num(r.registration_fee),
+      brochureUrl: r.brochure_url || null,
+      cohorts: byCourse.get(r.id) || [],
+    })),
+  }
 }
 

@@ -159,7 +159,25 @@ export async function chatbotReply(opts: {
     }
   }
 
-  const knowledge = await loadKnowledge()
+  /*
+   * ── A FAILED READ IS NOT AN EMPTY CENTRE ─────────────────────────────────
+   *
+   * If the programme records could not be READ, the assistant knows nothing
+   * and must not behave as though the centre simply has no programmes — that
+   * state it handles by asking which one they mean, which would be a
+   * conversation conducted entirely in the dark.
+   */
+  if (ctx.programmesUnavailable) {
+    console.error('[chatbot] programme records unreadable — handing to a person')
+    return { ...base, text: fallbackMessage(ctx), attachment: null, handoff: 'no_knowledge', actions: [] }
+  }
+
+  const loadedKnowledge = await loadKnowledge()
+  if (!loadedKnowledge.ok) {
+    console.error('[chatbot] knowledge unreadable — handing to a person:', loadedKnowledge.error)
+    return { ...base, text: fallbackMessage(ctx), attachment: null, handoff: 'no_knowledge', actions: [] }
+  }
+  const knowledge = loadedKnowledge.data
 
   /*
    * With nothing to answer from, the assistant does not answer. The prompt

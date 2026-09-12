@@ -41,6 +41,12 @@ export type LeadContext = {
   capability: ProgrammeCapability
   /** Everything on offer, for when no single programme is identified. */
   allProgrammes: Programme[]
+  /**
+   * True when the programme records could not be READ, as distinct from a
+   * centre that has none. The assistant hands over on the first and asks a
+   * question on the second, so the two must never collapse into each other.
+   */
+  programmesUnavailable: boolean
 
   status: string | null
   aiPaused: boolean
@@ -84,7 +90,11 @@ export async function buildLeadContext(opts: {
   const { lead, latestMessage } = opts
   const sb = createServiceClient()
 
-  const programmes = await loadProgrammes()
+  const loaded = await loadProgrammes()
+  const programmes = loaded.ok ? loaded.data : []
+  if (!loaded.ok) {
+    console.error('[chatbot] building a context with no programme data:', loaded.error)
+  }
 
   let marketerName: string | null = null
   let marketerCode: string | null = null
@@ -126,6 +136,7 @@ export async function buildLeadContext(opts: {
     programme,
     capability: programme ? capabilityOf(programme, registrationLink) : NO_CAPABILITY,
     allProgrammes: programmes,
+    programmesUnavailable: !loaded.ok,
 
     status: lead?.status || null,
     aiPaused: Boolean(lead?.ai_paused),
