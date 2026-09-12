@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifyStudent, STUDENT_COOKIE } from '@/lib/student/auth'
+import { lookup } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -17,16 +18,35 @@ export async function GET(req: NextRequest, ctx: { params: Promise<{ id: string 
   const { id } = await ctx.params
   const sb = createServiceClient()
 
-  const { data: doc } = await sb.from('documents')
-    .select('id, name, file_url, unlock_after_amount, course_id, type, section_no').eq('id', id).maybeSingle()
+  const { row: doc, failed: docFailed } = await lookup(sb.from('documents')
+    .select('id, name, file_url, unlock_after_amount, course_id, type, section_no').eq('id', id).maybeSingle())
+
+  // "Not found" is a statement about the file. A read that failed is a
+  // statement about us, and the student should be told to try again rather
+  // than that their material does not exist.
+  if (docFailed) {
+    console.error('[portal/material] could not read the document:', docFailed)
+    return new NextResponse('We could not load that just now. Please try again in a moment.', { status: 503 })
+  }
   if (!doc?.file_url || doc.type !== 'course_material') {
     return new NextResponse('Not found', { status: 404 })
   }
 
   // Every rule is checked here, on the server. Nothing in the browser can be
   // altered to reveal a locked file.
-  const { data: fee } = await sb.from('student_fees')
-    .select('amount_paid, total_fee, course_id').eq('lead_id', s.leadId).maybeSingle()
+  const { row: fee, failed: feeFailed } = await lookup(sb.from('student_fees')
+    .select('amount_paid, total_fee, course_id').eq('lead_id', s.leadId).maybeSingle())
+
+  /*
+   * "No enrolment found" to somebody who has paid for one is the worst
+   * sentence this route can produce, and a failed read produced it. The gate
+   * still fails CLOSED — no material is released — but it says which of the
+   * two things went wrong.
+   */
+  if (feeFailed) {
+    console.error('[portal/material] could not read the fee record:', feeFailed)
+    return new NextResponse('We could not check your enrolment just now. Please try again in a moment.', { status: 503 })
+  }
   if (!fee) return new NextResponse('No enrolment found.', { status: 403 })
 
   const paid = Number(fee.amount_paid || 0)

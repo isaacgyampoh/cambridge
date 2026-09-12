@@ -5,6 +5,7 @@ import { hashPIN, verifyPIN, getSessionFromCookies } from '@/lib/auth/pin'
 import { rateLimit, retryMessage } from '@/lib/auth/rateLimit'
 import { recordAudit } from '@/lib/audit'
 import { z } from 'zod'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -37,9 +38,13 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = createServiceClient()
-  const { data: profile } = await sb.from('profiles')
-    .select('pin_hash, must_change_pin').eq('id', session.userId).maybeSingle()
+  // A read that failed is not a session that ended. Telling somebody to sign
+  // in again when the database is unreachable sends them somewhere that will
+  // fail for the same reason.
+  const { row: profile, failed } = await lookup(sb.from('profiles')
+    .select('pin_hash, must_change_pin').eq('id', session.userId).maybeSingle())
 
+  if (failed) return unavailable('[auth/change-pin]', failed, 'your account')
   if (!profile) return NextResponse.json({ error: 'Please sign in again.' }, { status: 401 })
 
   /*

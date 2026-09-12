@@ -7,6 +7,7 @@ import {
 import { rateLimit, clientIp, retryMessage } from '@/lib/auth/rateLimit'
 import { timingSafeEqual } from 'crypto'
 import { z } from 'zod'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -39,10 +40,20 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = createServiceClient()
-  const { data: profile } = await sb.from('profiles')
+  /*
+   * A failed read is not an expired sign-in.
+   *
+   * This discarded the error, so a database blip produced `profile === null`
+   * and the person was told their sign-in had expired and to start again.
+   * Starting again hit the same blip, so they were told the same thing — a
+   * loop they cannot leave, phrased as their fault, at the one moment they
+   * are trying to get in.
+   */
+  const { row: profile, failed } = await lookup(sb.from('profiles')
     .select('id, full_name, role, email, is_active, must_change_pin, otp_code, otp_expires_at, otp_attempts')
-    .eq('id', userId).eq('is_active', true).maybeSingle()
+    .eq('id', userId).eq('is_active', true).maybeSingle())
 
+  if (failed) return unavailable('[auth/verify-otp]', failed, 'your sign-in')
   if (!profile) return NextResponse.json({ error: 'Your sign-in has expired. Please start again.' }, { status: 401 })
 
   if (!profile.otp_code || !profile.otp_expires_at || new Date(profile.otp_expires_at) < new Date()) {

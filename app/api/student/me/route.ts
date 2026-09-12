@@ -4,6 +4,7 @@ import { verifyStudent, STUDENT_COOKIE } from '@/lib/student/auth'
 import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { parseClassMode, classModeLabel } from '@/lib/classMode'
 import { classModeForLead } from '@/lib/registration/classModeForLead'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -13,8 +14,18 @@ export async function GET(req: NextRequest) {
   if (!s) return NextResponse.json({ error: 'unauth' }, { status: 401 })
 
   const sb = createServiceClient()
-  const { data: lead } = await sb.from('leads')
-    .select('id, full_name, phone, course_interest, assigned_to').eq('id', s.leadId).maybeSingle()
+  /*
+   * A failed read is not an invalid session.
+   *
+   * This returned 401 when `lead` was null, and null covered both "this
+   * student no longer exists" and "the database could not be read". So a blip
+   * signed a paying student out of their own portal, and signing back in hit
+   * the same blip.
+   */
+  const { row: lead, failed } = await lookup(sb.from('leads')
+    .select('id, full_name, phone, course_interest, assigned_to').eq('id', s.leadId).maybeSingle())
+
+  if (failed) return unavailable('[student/me]', failed, 'your portal')
   if (!lead) return NextResponse.json({ error: 'unauth' }, { status: 401 })
 
   // Fee ledger

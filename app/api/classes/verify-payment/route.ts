@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * Accountant verifies (or rejects) a pending class payment (bank/cash).
@@ -33,7 +34,16 @@ export async function POST(req: NextRequest) {
   const { paymentId, action, amount } = await req.json()
   const sb = createServiceClient()
 
-  const { data: pay } = await sb.from('class_payments').select('*').eq('id', paymentId).maybeSingle()
+  /*
+   * "Payment not found or already handled" is a statement an accountant acts
+   * on — they move on, or they enter it again. A failed read produced that
+   * sentence about a payment that was sitting there pending, so it is now
+   * distinguished from it.
+   */
+  const { row: pay, failed: payFailed } = await lookup(
+    sb.from('class_payments').select('*').eq('id', paymentId).maybeSingle())
+
+  if (payFailed) return unavailable('[classes/verify-payment]', payFailed, 'that payment')
   if (!pay || pay.status !== 'pending') return NextResponse.json({ error: 'Payment not found or already handled' }, { status: 400 })
 
   if (action === 'reject') {
@@ -43,7 +53,13 @@ export async function POST(req: NextRequest) {
 
   // verify — apply the confirmed amount (accountant may adjust for partial)
   const confirmed = Number(amount ?? pay.amount)
-  const { data: enr } = await sb.from('class_enrollments').select('*').eq('id', pay.enrollment_id).maybeSingle()
+  const { row: enr, failed: enrFailed } = await lookup(
+    sb.from('class_enrollments').select('*').eq('id', pay.enrollment_id).maybeSingle())
+
+  // Stopping here leaves the payment pending, which is the safe direction:
+  // it can be verified again. Applying it against an unread enrolment could
+  // not be undone.
+  if (enrFailed) return unavailable('[classes/verify-payment]', enrFailed, 'that student')
   if (!enr) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
   const newPaid = (Number(enr.amount_paid) || 0) + confirmed

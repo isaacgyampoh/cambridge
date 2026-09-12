@@ -1,10 +1,30 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import Image from 'next/image'
+import { lookup } from '@/lib/db/lookup'
 
 export default async function CertificateDownload({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const sb = createServiceClient()
-  const { data: cert } = await sb.from('certificates').select('*').eq('download_token', token).maybeSingle()
+  const { row: cert, failed } = await lookup(
+    sb.from('certificates').select('*').eq('download_token', token).maybeSingle())
+
+  /*
+   * "This link may be invalid or expired" to somebody who has just finished a
+   * programme and been sent their certificate is a hard thing to be told
+   * wrongly, and a failed read told it. The page says to try again instead,
+   * which is both true and actionable.
+   */
+  if (failed) {
+    console.error('[certificate] could not read the certificate:', failed)
+    return (
+      <div style={{ minHeight: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--canvas)', fontFamily: 'Inter, sans-serif' }}>
+        <div style={{ textAlign: 'center', padding: 24 }}>
+          <h1 style={{ color: 'var(--ink)' }}>We could not load your certificate</h1>
+          <p style={{ color: 'var(--ink-faint)' }}>Something went wrong on our side. Please try this link again in a moment.</p>
+        </div>
+      </div>
+    )
+  }
 
   if (!cert) {
     return (
