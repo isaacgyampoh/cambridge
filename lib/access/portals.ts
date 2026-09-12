@@ -62,7 +62,13 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   grp_socials: ['/content'],
   admissions:  ['/admin/admissions', '/admission', '/admission/process', '/admin/registrations'],
   finance:     ['/admin/finance', '/finance'],
-  broadcast:   ['/admin/broadcast', '/admin/links', '/admin/sms-delivery'],
+  /*
+   * /admin/sequences was in the navigation catalogue and in no portal at all,
+   * so the page existed and nobody could open it — the route guard derives
+   * access from portals, and no portal listed it. Nurture sequences are
+   * automated outbound messaging, which is what this portal already covers.
+   */
+  broadcast:   ['/admin/broadcast', '/admin/links', '/admin/sms-delivery', '/admin/sequences'],
   attendance:  ['/admin/attendance'],
   academics:   ['/admin/academics', '/admin/courses', '/admin/classes', '/admin/certificates', '/coordinator'],
   documents:   ['/admin/documents'],

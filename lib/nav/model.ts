@@ -78,7 +78,6 @@ const CATALOGUE: CatalogueEntry[] = [
   { id: 'insights', label: 'Insights', icon: 'insights', href: '/admin/insights', section: 'top' },
   { id: 'reports', label: 'Reports', icon: 'reports', href: '/reports', section: 'top' },
   { id: 'messages', label: 'Messages', icon: 'messages', href: '/messages', section: 'top' },
-  { id: 'notifications', label: 'Notifications', icon: 'bell', href: '/notifications', section: 'top' },
 
   /* ── Growth ── */
   { id: 'leads', label: 'Leads', icon: 'leads', href: '/admin/leads', section: 'growth', children: [
@@ -157,7 +156,7 @@ const CATALOGUE: CatalogueEntry[] = [
    * and was dropped when the shell was rebuilt: the page, its builder and its
    * cron runner all survived, but nothing linked to them any more.
    */
-  { id: 'sequences', label: 'Follow-up sequences', icon: 'sms', href: '/admin/sequences', section: 'comms' },
+  { id: 'sequences', label: 'Follow-up sequences', icon: 'sms', href: '/admin/sequences', section: 'messaging' },
   { id: 'knowledge', label: 'AI knowledge', icon: 'ai', href: '/admin/knowledge', section: 'messaging' },
   { id: 'conversations', label: 'AI conversations', icon: 'ai', href: '/admin/conversations', section: 'messaging' },
   { id: 'grp_automation', label: 'Automation', icon: 'broadcast', href: '/pm/info-sessions', section: 'messaging', children: [
@@ -206,6 +205,18 @@ const CATALOGUE: CatalogueEntry[] = [
  * Workspace is unlabelled: it is where you already are, and a heading over the
  * first two items is decoration.
  */
+/*
+ * Every section the catalogue uses must appear here AND in SECTION_ORDER.
+ *
+ * navFor builds the menu by walking SECTION_ORDER, so a section missing from
+ * it is not merely untitled — every item in it is dropped from the navigation
+ * entirely. `ops` was missing, and `ops` is where the receptionist's front
+ * desk lives: they signed in and their own screen, the only one their role
+ * really has, was not in the menu. They would have had to know the URL.
+ *
+ * tests/navigation asserts the two lists cover the catalogue, so a new
+ * section cannot be added and quietly swallow its contents.
+ */
 const SECTION_TITLES: Record<string, string | null> = {
   top: null,
   growth: 'Workspace',
@@ -213,11 +224,12 @@ const SECTION_TITLES: Record<string, string | null> = {
   finance: 'Finance',
   academics: 'Academics',
   messaging: 'Communication',
+  ops: 'Front desk',
   team: 'Operations',
   system: 'Settings',
 }
 
-const SECTION_ORDER = ['top', 'growth', 'enrolment', 'finance', 'academics', 'messaging', 'team', 'system']
+const SECTION_ORDER = ['top', 'growth', 'enrolment', 'finance', 'academics', 'messaging', 'ops', 'team', 'system']
 
 /* ─────────────────────────────────────────────
    Building a person's navigation
@@ -288,9 +300,31 @@ export function navFor(role: string, portals: string[]): NavSection[] {
   const holds = (portal: string) => role === 'super_admin' || portals.includes(portal)
 
   const items = CATALOGUE.flatMap<CatalogueEntry>(entry => {
-    // Drop a personal view when the person already has the full one.
+    /*
+     * Drop a personal view when the person already has the full one.
+     *
+     * ── EXCEPT WHERE THE PERSONAL VIEW DOES SOMETHING THE FULL ONE CANNOT ──
+     *
+     * `my_leads` is not only a filtered copy of `leads` any more. /marketer/leads
+     * carries the "Waiting for you" queue — the conversations the assistant has
+     * handed over and stopped replying to — and /admin/leads does not.
+     *
+     * Holding `my_leads` is also what makes somebody eligible to RECEIVE a
+     * lead, and a project manager, accountant and admissions officer all hold
+     * it by default. So each of them could be assigned a lead, have a handover
+     * raised on it, and have no route in their menu to the queue of people
+     * waiting on them. The notification links to the lead, but there was
+     * nowhere to browse.
+     *
+     * A super admin is excluded from the lead pool by eligibleMarketers, so
+     * for them it genuinely is a redundant copy and the original reasoning
+     * holds.
+     */
     const supersededBy = SUPERSEDED_BY[entry.id]
-    if (supersededBy && holds(supersededBy)) return []
+    const canBeAssignedLeads = entry.id === 'my_leads'
+      && role !== 'super_admin'
+      && portals.includes('my_leads')
+    if (supersededBy && holds(supersededBy) && !canBeAssignedLeads) return []
 
     /*
      * A section appears only if its own portal is held.

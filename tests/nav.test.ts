@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { navFor, tabsFor, allDestinations } from '../lib/nav/model.ts'
 import { canReachPage } from '../lib/access/pageAccess.ts'
 import { resolvePortals, ROLE_DEFAULTS, ROLE_HOME } from '../lib/access/portals.ts'
+import { readFileSync } from 'node:fs'
 
 /**
  * Navigation must never offer a link that access control refuses.
@@ -61,10 +62,23 @@ describe('every link shown is a link that opens', () => {
 describe('a super admin is not accidentally restricted', () => {
   test('sees every section in the catalogue', () => {
     const sections = navFor('super_admin', portalsFor('super_admin'))
-    // Eight sections are defined; a super admin passes every check, so all of
-    // them must survive the filter. Fewer would mean the filter is wrong
-    // rather than that access is.
-    assert.equal(sections.length, 8)
+
+    /*
+     * Every section the catalogue uses must survive the filter for a super
+     * admin, who passes every check. Fewer means the filter is wrong rather
+     * than that access is.
+     *
+     * Counted from the source rather than written as a number: this asserted
+     * 8, and adding the `ops` section — which had been dropping the
+     * receptionist's front desk from every menu — made it 9. A hard-coded
+     * total turns a correct fix into a failing test and invites somebody to
+     * edit the number without asking why it moved.
+     */
+    const defined = new Set(
+      [...readFileSync('lib/nav/model.ts', 'utf8').matchAll(/section: '(\w+)'/g)].map(m => m[1]),
+    )
+    assert.equal(sections.length, defined.size,
+      `a super admin sees ${sections.length} of ${defined.size} sections`)
     assert.ok(sections.some(s => s.id === 'system'))
     assert.ok(sections.some(s => s.id === 'finance'))
   })
