@@ -5,6 +5,7 @@ import { useState, useEffect, useRef } from 'react'
 import { PageHeader, Card, Spinner } from '@/components/ui'
 import { ROLE_LABELS } from '@/lib/utils'
 import { RemoteImage } from '@/components/shared/RemoteImage'
+import { postJson, messageFor } from '@/lib/api/post'
 
 /*
  * An optimistic message's local identity.
@@ -74,7 +75,8 @@ export default function Messages() {
         const optimistic = { id: optimisticId(), sender_id: me, recipient_id: active.id, audio_url: data.url, created_at: nowIso() }
         setThread(t => [...t, optimistic])
         setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
-        await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, audio_url: data.url }) })
+        await postJson('/api/messages', { to: active.id, audio_url: data.url },
+          { fallback: 'That voice note could not be sent.' })
       }
     } catch {
       toast.error('Could not send that voice note. Try again.')
@@ -94,7 +96,8 @@ export default function Messages() {
         const optimistic = { id: optimisticId(), sender_id: me, recipient_id: active.id, ...meta, created_at: nowIso() }
         setThread(t => [...t, optimistic])
         setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
-        await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, ...meta }) })
+        await postJson('/api/messages', { to: active.id, ...meta },
+          { fallback: 'That file could not be sent.' })
       } else { toast.error('That file could not be uploaded. Try again.') }
     } catch {
       toast.error('Could not send that file. Try again.')
@@ -125,7 +128,25 @@ export default function Messages() {
     const optimistic = { id: optimisticId(), sender_id: me, recipient_id: active.id, body, created_at: nowIso() }
     setThread(t => [...t, optimistic])
     setTimeout(() => scrollRef.current && (scrollRef.current.scrollTop = scrollRef.current.scrollHeight), 50)
-    await fetch('/api/messages', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ to: active.id, body }) })
+
+    /*
+     * The bubble is drawn before the send, which is right — a message should
+     * appear the instant it is sent. But the send itself was a bare fetch,
+     * which resolves on a refusal exactly as it does on success, so a message
+     * that never left sat in the thread looking delivered. The next poll,
+     * five seconds later, silently removed it.
+     *
+     * The bubble is taken back now, and the text put back in the box so it is
+     * not lost.
+     */
+    try {
+      await postJson('/api/messages', { to: active.id, body },
+        { fallback: 'That message could not be sent.' })
+    } catch (e) {
+      setThread(t => t.filter(m => m.id !== optimistic.id))
+      setInput(body)
+      toast.error(messageFor(e, 'That message could not be sent.'))
+    }
   }
 
   // Poll the open thread for new messages

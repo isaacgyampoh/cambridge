@@ -28,6 +28,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   const [step, setStep] = useState(1) // 1=form, 2=payment, 3=success
   const [submitting, setSubmitting] = useState(false)
   const [applicationId, setApplicationId] = useState<string | null>(null)
+  /** Set when the payment succeeded but the registration could not be completed. */
+  const [paymentWarning, setPaymentWarning] = useState<string | null>(null)
   const [utm, setUtm] = useState<Record<string, string>>({})
 
   // Capture ad-tracking parameters from the URL (e.g. ?utm_source=facebook)
@@ -53,6 +55,18 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
           if (v?.success) {
             try { sessionStorage.removeItem('cce_pay_ref'); sessionStorage.removeItem('cce_pay_app') } catch {}
             setApplicationId(appId || v.applicationId || '')
+            /*
+             * `recorded: false` means Paystack took the payment but our side
+             * could not finish the registration. The success screen still
+             * shows — they HAVE paid, and telling somebody who has just been
+             * charged that it failed would be worse — but they are told to
+             * make contact, and given the reference to quote.
+             *
+             * Before this, that case was indistinguishable from a clean
+             * success: the student saw the same screen and nobody at the
+             * centre had any reason to look for them.
+             */
+            if (v.recorded === false) setPaymentWarning(v.warning || null)
             setStep(3)
           } else {
             toast.error(v?.error || 'We could not confirm your payment. If you were charged, contact us.')
@@ -187,7 +201,23 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
   }
 
   if (step === 3) return (
-    <FeePayStep applicationId={applicationId} firstName={form.first_name} />
+    <>
+      {/*
+        Shown only when the payment went through and the registration did not.
+        Above the success screen, because it is the thing they must act on —
+        and warm rather than red: they have done nothing wrong, and their
+        money is not at risk.
+      */}
+      {paymentWarning && (
+        <div role="alert" className="max-w-md mx-auto mt-5 px-4">
+          <div className="rounded-2xl border border-[var(--warn)]/25 bg-[var(--warn-soft)] p-4">
+            <div className="text-[14px] font-semibold text-[var(--warn)]">Your payment went through</div>
+            <p className="text-[13px] text-[var(--ink-soft)] mt-2 leading-relaxed">{paymentWarning}</p>
+          </div>
+        </div>
+      )}
+      <FeePayStep applicationId={applicationId} firstName={form.first_name} />
+    </>
   )
 
   return (

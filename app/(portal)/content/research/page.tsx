@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Spinner, inputClass } from '@/components/ui'
 import { toast } from 'sonner'
+import { postJson, messageFor } from '@/lib/api/post'
 
 type Tab = 'strategy' | 'competitors' | 'shadow'
 
@@ -109,7 +110,12 @@ function CompetitorsTab() {
     else toast.error(d.error || 'Could not add')
   }
   async function remove(id: string) {
-    await fetch('/api/social/competitors', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    try {
+      await postJson('/api/social/competitors', { id },
+        { method: 'DELETE', fallback: 'That competitor could not be removed.' })
+    } catch (e) {
+      toast.error(messageFor(e, 'That competitor could not be removed.'))
+    }
     load()
   }
 

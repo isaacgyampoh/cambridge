@@ -7,6 +7,7 @@ import { BRAND } from '@/lib/brand'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 import { RemoteImage } from '@/components/shared/RemoteImage'
+import { postJson, messageFor } from '@/lib/api/post'
 
 const COURSES = ['Projects Management Professional','Corporate Training','Professional in Human Resources','Senior Professional in Human Resources','Software Agile Projects Management','Results-Based Monitoring and Evaluation']
 
@@ -55,7 +56,19 @@ export default function MyFlyers() {
       message: 'Its link stops working immediately, and anyone who already has it will see nothing.',
       confirmLabel: 'Delete flyer',
     })) return
-    await fetch('/api/flyers', { method: 'DELETE', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id }) })
+    /*
+     * The confirmation promised "its link stops working immediately". The
+     * delete had no error handling of any kind — not even a try/catch — so a
+     * refusal simply reloaded the list with the flyer still on it, and the
+     * marketer was left to work out from the screen alone that the thing they
+     * had just confirmed had not happened.
+     */
+    try {
+      await postJson('/api/flyers', { id }, { method: 'DELETE', fallback: 'That flyer could not be deleted.' })
+      toast.success('Flyer deleted. Its link no longer works.')
+    } catch (e) {
+      toast.error(messageFor(e, 'That flyer could not be deleted.'))
+    }
     load()
   }
 

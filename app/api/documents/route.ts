@@ -27,6 +27,7 @@ export async function POST(req: NextRequest) {
  if (!apiKey) return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
 
  let sent = 0
+  let failed = 0
  for (const student of students || []) {
  if (!student.email) continue
 
@@ -51,33 +52,64 @@ export async function POST(req: NextRequest) {
  </div>
 `
 
- try {
- await fetch('https://api.resend.com/emails', {
- method: 'POST',
- headers: {
- 'Authorization':`Bearer ${apiKey}`,
- 'Content-Type': 'application/json',
- },
- body: JSON.stringify({
- from: SECRETS.resendFromEmail || 'Cambridge CE <noreply@cambridge.edu.gh>',
- to: student.email,
- subject,
- html,
- }),
- })
+    /*
+     * Resend's answer is read.
+     *
+     * This used to send and move straight on: the email_logs row was written
+     * with status 'sent' and `sent` was incremented whatever came back. A
+     * rejected address, an exhausted quota or a bad API key was recorded as a
+     * delivered email and counted in the total reported to the operator —
+     * "Documents sent to 30 of 30 students" for documents nobody received,
+     * with a log that agreed.
+     */
+    let ok = false
+    let failure: string | null = null
+    try {
+      const res = await fetch('https://api.resend.com/emails', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${apiKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          from: SECRETS.resendFromEmail || 'Cambridge CE <noreply@cambridge.edu.gh>',
+          to: student.email,
+          subject,
+          html,
+        }),
+      })
+      const body = await res.json().catch(() => null)
+      ok = res.ok && !body?.error
+      if (!ok) {
+        failure = body?.error?.message || body?.message || `HTTP ${res.status}`
+        console.error('[Documents] Resend refused', student.email, '—', failure)
+      }
+    } catch (e) {
+      failure = e instanceof Error ? e.message : String(e)
+      console.error('[Documents] Email error:', e)
+    }
 
- await sb.from('email_logs').insert({
- recipient: student.email,
- subject,
- template: doc.type,
- status: 'sent',
- })
+    /*
+     * Logged as what actually happened, which is how anyone finds out later
+     * that a document never arrived.
+     *
+     * Only the four columns this insert has always used. email_logs predates
+     * supabase/migrations, so there is no schema here to check a new column
+     * against — and naming one that does not exist fails the whole statement,
+     * which is precisely how lead_assign_pending.last_sms_at silenced the
+     * assignment notifications. The reason for a failure goes to the server
+     * log above instead.
+     */
+    await sb.from('email_logs').insert({
+      recipient: student.email,
+      subject,
+      template: doc.type,
+      status: ok ? 'sent' : 'failed',
+    }).then(() => {}, err => console.error('[Documents] could not log email:', err?.message))
 
- sent++
- } catch (e) {
- console.error('[Documents] Email error:', e)
- }
- }
+    if (ok) sent++
+    else failed++
+  }
 
- return NextResponse.json({ success: true, sent })
+  return NextResponse.json({ success: true, sent, failed, total: sent + failed })
 }

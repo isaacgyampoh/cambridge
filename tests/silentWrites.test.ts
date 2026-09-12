@@ -264,3 +264,138 @@ describe('bulk updates name their rows and nothing more', () => {
     assert.match(route, /!Array\.isArray\(val\) \|\| !val\.length \|\| val\.length > MAX_LIMIT/)
   })
 })
+
+describe('no write anywhere reports success without reading the answer', () => {
+  /*
+   * The audit opened with eighteen of these. A bare fetch resolves on a 400,
+   * a 403 and a 500 exactly as it does on success, so every one of them
+   * announced that something had happened:
+   *
+   *   "Zoom link saved"        — for a class nobody could then join
+   *   "Removed"                — for a student still holding the class link
+   *   "Cancelled"              — for an info session whose invitations still went
+   *   "Asset added"            — for a brand asset the AI could never use
+   *   "Deleted"                — for a post the confirmation called permanent
+   *   "Admissions team notified" — for a lead nobody in admissions could see
+   *   "Alert sent to <name>"   — for a text message that never left
+   *
+   * postJson() and mutate() both throw, so the try/catch already wrapped
+   * around most of these call sites started doing its job.
+   */
+  /*
+   * The one write that must NOT report what happened.
+   *
+   * The student sign-in box shows the same "check your WhatsApp" screen for a
+   * registered number, an unregistered one, and a failed request. Anything
+   * else turns it into a way of asking "is this person a student here?" — so
+   * a stranger could enumerate the school's roll from a public page. The
+   * server logs its own failures.
+   */
+  const EXEMPT: [string, string][] = [
+    ['app/portal/login/page.tsx', '/api/student/link'],
+  ]
+
+  /*
+   * Server routes are checked too, and the three that were wrong there were
+   * the most expensive in the product:
+   *
+   *   /api/paystack/verify    took a payment, failed to record it, and
+   *                           returned success: true to the student
+   *   /api/paystack/reconcile the job that exists to FIND unrecorded
+   *                           payments, reporting ok on ones it had failed
+   *                           to reconcile
+   *   /api/documents          logging a refused email as status 'sent' and
+   *                           counting it in the total shown to the operator
+   */
+
+  test('every mutating fetch reads its response', () => {
+    const offenders: string[] = []
+
+    for (const file of SCREENS) {
+      const src = codeOf(file)
+      const lines = src.split('\n')
+
+      lines.forEach((line, i) => {
+        // `await fetch(...)` whose value goes nowhere.
+        if (!/^\s*await fetch\(/.test(line)) return
+        const call = lines.slice(i, i + 8).join('\n')
+        if (!/method:\s*'(POST|PATCH|PUT|DELETE)'/.test(call)) return
+        if (EXEMPT.some(([f, url]) => file === f && call.includes(url))) return
+        offenders.push(`${file}:${i + 1}`)
+      })
+    }
+
+    assert.deepEqual(offenders, [],
+      'these send a write and discard the result, so a refusal is ' +
+      'indistinguishable from success. Use postJson() from lib/api/post, or ' +
+      'mutate() for /api/data:\n  ' + offenders.join('\n  '))
+  })
+
+  test('postJson throws on a refusal, and carries the server’s own words', () => {
+    const src = codeOf('lib/api/post.ts')
+    assert.match(src, /if \(!res\.ok \|\|/, 'postJson does not check res.ok')
+    // Several routes answer 200 with { error } alongside a partial result.
+    assert.match(src, /'error' in json && json\.error/,
+      'a 200 carrying an error reads as success')
+    assert.match(src, /throw new ApiError/)
+  })
+
+  test('a request that never lands says so, rather than blaming the data', () => {
+    const src = codeOf('lib/api/post.ts')
+    assert.match(src, /could not reach the server/i,
+      'being offline is reported as a refused write')
+  })
+})
+
+describe('money and delivery are never assumed', () => {
+  test('a payment that could not be recorded says so', () => {
+    const route = codeOf('app/api/paystack/verify/route.ts')
+    assert.ok(!/\.catch\(\(\) => \{\}\)/.test(route),
+      'the completion call swallows its failure again — Paystack keeps the ' +
+      'money and nothing in this system knows')
+    assert.match(route, /PAID BUT NOT RECORDED/,
+      'a payment that was taken but not recorded is not logged distinctly')
+    assert.match(route, /recorded,/, 'the response does not carry whether it was recorded')
+    // success stays true: they HAVE paid, and saying otherwise to someone who
+    // has just been charged is worse than the problem being reported.
+    assert.match(route, /success: true,\n\s*recorded,/)
+  })
+
+  test('and the student is told to make contact', () => {
+    const page = codeOf('app/apply/[marketerId]/page.tsx')
+    assert.match(page, /v\.recorded === false/,
+      'the success screen is identical whether or not the registration completed')
+    assert.match(page, /paymentWarning &&/, 'the warning is never rendered')
+  })
+
+  test('reconciliation does not mark a failure reconciled', () => {
+    const route = codeOf('app/api/paystack/reconcile/route.ts')
+    assert.match(route, /if \(!complete\.ok \|\| body\?\.error\)/,
+      'the job that exists to find unrecorded payments reports ok without looking')
+    assert.match(route, /return \{ ok: false, reference, applicationId, reason \}/)
+  })
+
+  test('an email is logged as what happened, not as sent', () => {
+    const route = codeOf('app/api/documents/route.ts')
+    assert.match(route, /status: ok \? 'sent' : 'failed'/,
+      'a refused email is still recorded as delivered')
+    assert.match(route, /if \(ok\) sent\+\+/,
+      'a refused email is still counted in the total shown to the operator')
+    assert.match(route, /failed/, 'the caller is not told how many did not go')
+  })
+
+  test('the email log names only columns that have always been there', () => {
+    /*
+     * email_logs predates supabase/migrations, so there is no schema to check
+     * a new column against — and naming one that does not exist fails the
+     * whole statement. That is exactly how lead_assign_pending.last_sms_at
+     * silenced every lead-assignment notification.
+     */
+    const route = codeOf('app/api/documents/route.ts')
+    const insert = route.slice(route.indexOf("from('email_logs').insert("))
+    const fields = [...insert.slice(0, 300).matchAll(/^\s*(\w+)[,:]/gm)].map(m => m[1])
+    const known = ['recipient', 'subject', 'template', 'status']
+    assert.deepEqual(fields.filter(f => !known.includes(f)), [],
+      'an unverified column is being written to email_logs')
+  })
+})

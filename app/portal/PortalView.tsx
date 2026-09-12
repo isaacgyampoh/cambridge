@@ -1,6 +1,7 @@
 'use client'
 import { useEffect, useState, useCallback, useSyncExternalStore } from 'react'
 import MaterialViewer from './MaterialViewer'
+import { postJson, messageFor } from '@/lib/api/post'
 
 /**
  * The student portal.
@@ -600,8 +601,21 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
           </p>
           <Button tone="ghost" onClick={async () => {
             if (demo) { setNotice({ text: 'Sign out is disabled in the demo.', tone: 'ok' }); return }
-            await fetch('/api/student/auth', { method: 'DELETE' }).catch(() => {})
-            window.location.href = '/portal/login'
+            /*
+             * The server clears the session cookie, so a failed request leaves
+             * the student signed in. Redirecting anyway — which this did,
+             * inside a .catch that discarded the failure — looks exactly like
+             * having signed out, and students share phones.
+             */
+            try {
+              await postJson('/api/student/auth', {}, { method: 'DELETE', fallback: 'Sign-out failed.' })
+              window.location.href = '/portal/login'
+            } catch (e) {
+              setNotice({
+                text: `${messageFor(e, 'Sign-out failed.')} You are still signed in — please try again.`,
+                tone: 'danger',
+              })
+            }
           }}>
             Sign out
           </Button>

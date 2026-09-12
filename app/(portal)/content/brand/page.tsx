@@ -6,6 +6,7 @@ import { Copy, Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 import { RemoteImage } from '@/components/shared/RemoteImage'
+import { postJson, messageFor } from '@/lib/api/post'
 
 export default function BrandKit() {
   const { confirm, ask, dialog } = useConfirm()
@@ -41,8 +42,17 @@ export default function BrandKit() {
     // Cancelled — the upload is not recorded rather than filed as "Asset".
     if (typed === null) return
     const name = typed.trim() || 'Asset'
-    await fetch('/api/content/brand', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'add_asset', url, name }) })
-    toast.success('Asset added'); load()
+    // The file has already been uploaded by this point; this is the record of
+    // it. Announcing "Asset added" without reading the response meant a
+    // brand kit that looked complete and an asset the AI could never use.
+    try {
+      await postJson('/api/content/brand', { action: 'add_asset', url, name },
+        { fallback: 'That asset could not be added to the brand kit.' })
+      toast.success('Asset added')
+    } catch (e) {
+      toast.error(messageFor(e, 'That asset could not be added to the brand kit.'))
+    }
+    load()
   }
   async function delAsset(id: string) {
     if (!await confirm({
@@ -50,7 +60,12 @@ export default function BrandKit() {
       message: 'It is removed from the brand kit. Anything already published using it is unaffected.',
       confirmLabel: 'Remove asset',
     })) return
-    await fetch('/api/content/brand', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete_asset', id }) })
+    try {
+      await postJson('/api/content/brand', { action: 'delete_asset', id },
+        { fallback: 'That asset could not be removed.' })
+    } catch (e) {
+      toast.error(messageFor(e, 'That asset could not be removed.'))
+    }
     load()
   }
 

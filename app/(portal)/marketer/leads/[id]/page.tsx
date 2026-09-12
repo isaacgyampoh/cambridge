@@ -11,6 +11,7 @@ import Modal from '@/components/shared/Modal'
 import CallButton from '@/components/shared/CallButton'
 import { changeLeadStatus } from '@/lib/leadStatus'
 import { telHref, whatsappHref, mailtoHref } from '@/lib/ui/contact'
+import { postJson, messageFor } from '@/lib/api/post'
 
 const STATUSES = [
   { key: 'new', label: 'New'},
@@ -173,12 +174,25 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
       const result = await changeLeadStatus(id, newStatus)
       if (result.error) { toast.error(result.error); return }
       if (newStatus === 'ready_to_join') {
-        await fetch('/api/admissions', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json'},
-          body: JSON.stringify({ leadId: id }),
-        })
-        toast.success('Status updated! Admissions team notified.')
+        /*
+         * Two separate things, reported separately.
+         *
+         * The status change has already succeeded by this point — it is
+         * checked above. Creating the admission is the handoff to another
+         * team, and it can fail on its own: a duplicate, a missing course, a
+         * refused role. The bare fetch here did not throw, so a failed handoff
+         * was announced as "Admissions team notified" and the lead sat marked
+         * ready with nobody in admissions aware of them.
+         */
+        try {
+          await postJson('/api/admissions', { leadId: id },
+            { fallback: 'The admissions team could not be notified.' })
+          toast.success('Status updated. Admissions team notified.')
+        } catch (e) {
+          toast.warning(
+            `Status updated, but the admissions team was not notified — ${messageFor(e, 'the handoff failed')}. Tell them directly.`,
+          )
+        }
       } else {
         toast.success('Status updated')
       }

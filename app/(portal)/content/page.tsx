@@ -6,8 +6,9 @@ import FileUpload from '@/components/shared/FileUpload'
 import { Trash2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import { postJson, messageFor } from '@/lib/api/post'
 
-const PLATFORMS = ['facebook', 'instagram', 'linkedin', 'tiktok', 'whatsapp', 'x']
+const PLATFORMS =['facebook', 'instagram', 'linkedin', 'tiktok', 'whatsapp', 'x']
 const PLATFORM_LABEL: Record<string, string> = { facebook: 'Facebook', instagram: 'Instagram', linkedin: 'LinkedIn', tiktok: 'TikTok', whatsapp: 'WhatsApp', x: 'X (Twitter)' }
 
 export default function ContentStudio() {
@@ -82,8 +83,16 @@ export default function ContentStudio() {
       message: 'It is removed from the content calendar. This cannot be undone.',
       confirmLabel: 'Delete post',
     })) return
-    await fetch('/api/content/posts', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) })
-    toast.success('Deleted'); loadPosts()
+    // "Deleted" was announced without reading the response, on an action the
+    // confirmation had just described as impossible to undo.
+    try {
+      await postJson('/api/content/posts', { action: 'delete', id },
+        { fallback: 'That post could not be deleted.' })
+      toast.success('Deleted')
+    } catch (e) {
+      toast.error(messageFor(e, 'That post could not be deleted.'))
+    }
+    loadPosts()
   }
 
   return (

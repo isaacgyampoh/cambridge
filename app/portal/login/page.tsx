@@ -17,6 +17,20 @@ export default function StudentLogin() {
   async function send() {
     if (!phone.trim()) return
     setBusy(true)
+    /*
+     * ── THE RESULT IS DELIBERATELY IGNORED ───────────────────────────────
+     *
+     * Every outcome shows the same "check your WhatsApp" screen: a number
+     * that is registered, a number that is not, and a request that failed.
+     *
+     * That is the point. Anything else turns this box into a way of asking
+     * "is this person a student here?" — type a number, read the answer.
+     * A stranger could enumerate the school's roll from the public page.
+     *
+     * So this is the one write in the product that must NOT report what
+     * happened, and tests/silentWrites names it as the single exception. The
+     * server logs its own failures; the screen says nothing either way.
+     */
     await fetch('/api/student/link', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ phone: phone.trim() }),

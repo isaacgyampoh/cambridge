@@ -11,6 +11,7 @@ import { useConfirm } from '@/hooks/useConfirm'
 import { X } from 'lucide-react'
 import type { Application } from '@/types'
 import { mutate } from '@/hooks/useData'
+import { postJson, messageFor } from '@/lib/api/post'
 
 type Enrollment = {
   id: string
@@ -145,12 +146,17 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
     })) return
     setActing(e.id)
     try {
-      await fetch('/api/classes/enroll', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batchId, applicationId: e.application_id, remove: true }),
-      })
-      toast.success('Removed'); load()
-    } catch { toast.error('Failed') }
+      // The bare fetch this replaces resolved on a refusal exactly as it did
+      // on success, so "Removed" was shown for a student still enrolled —
+      // still holding the class link and the materials the confirmation had
+      // just said they would lose.
+      await postJson('/api/classes/enroll', { batchId, applicationId: e.application_id, remove: true },
+        { fallback: `${e.full_name} could not be removed from this class.` })
+      toast.success(`${e.full_name} removed from this class.`)
+      load()
+    } catch (err) {
+      toast.error(messageFor(err, `${e.full_name} could not be removed from this class.`))
+    }
     finally { setActing(null) }
   }
 

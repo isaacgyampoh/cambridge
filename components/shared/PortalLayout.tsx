@@ -19,6 +19,8 @@ import InstallButton from '@/components/shared/InstallButton'
 import { Avatar } from '@/components/ui'
 import { useRailPreference } from '@/hooks/useRailPreference'
 import { NAV_ICONS as ICONS } from '@/components/shared/navIcons'
+import { postJson, messageFor } from '@/lib/api/post'
+import { toast } from 'sonner'
 
 /**
  * The application shell.
@@ -207,9 +209,28 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
 
   const canGoBack = pathname.split('/').filter(Boolean).length > 2
 
+  /*
+   * Signing out is the server clearing the cookie, so a request that fails is
+   * a person who is still signed in.
+   *
+   * This sent the request, ignored the answer and redirected to /login
+   * regardless — which looks exactly like having signed out. On a shared
+   * machine at the centre, pressing Back would put the next person into the
+   * previous one's portal.
+   *
+   * If it fails, stay put and say so. A redirect that implies safety is worse
+   * than an error that does not.
+   */
+  const [signingOut, setSigningOut] = useState(false)
   const logout = useCallback(async () => {
-    await fetch('/api/auth/logout', { method: 'POST' })
-    router.replace('/login')
+    setSigningOut(true)
+    try {
+      await postJson('/api/auth/logout', {}, { fallback: 'Sign-out failed.' })
+      router.replace('/login')
+    } catch (e) {
+      setSigningOut(false)
+      toast.error(`${messageFor(e, 'Sign-out failed.')} You are still signed in — please try again.`)
+    }
   }, [router])
 
   if (loading) {
@@ -355,7 +376,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                   hover:bg-[var(--line-soft)] transition-colors">
                 <Shield size={13} aria-hidden="true" /> PIN
               </Link>
-              <button type="button" onClick={logout}
+              <button type="button" onClick={logout} disabled={signingOut}
                 className="flex-1 inline-flex items-center justify-center gap-1.5 min-h-[40px] rounded-xl
                   text-[12px] font-medium text-[var(--ink-faint)] hover:text-[var(--danger)]
                   hover:bg-[var(--danger-soft)] transition-colors">
@@ -366,7 +387,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         ) : (
           <div className="flex flex-col items-center gap-2">
             <Avatar name={profile?.full_name || ''} size="sm" />
-            <button type="button" onClick={logout} aria-label="Sign out" title="Sign out"
+            <button type="button" onClick={logout} disabled={signingOut} aria-label="Sign out" title="Sign out"
               className="w-10 h-10 grid place-items-center text-[var(--ink-faint)]
                 hover:text-[var(--danger)] hover:bg-[var(--danger-soft)] rounded-xl transition-colors">
               <LogOut size={15} aria-hidden="true" />
@@ -541,7 +562,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                       hover:bg-[var(--line-soft)] transition-colors">
                     <Shield size={15} aria-hidden="true" /> Change PIN
                   </Link>
-                  <button role="menuitem" type="button" onClick={logout}
+                  <button role="menuitem" type="button" onClick={logout} disabled={signingOut}
                     className="w-full flex items-center gap-2.5 px-3.5 py-3 text-[13px]
                       text-[var(--danger)] hover:bg-[var(--danger-soft)] transition-colors">
                     <LogOut size={15} aria-hidden="true" /> Sign out

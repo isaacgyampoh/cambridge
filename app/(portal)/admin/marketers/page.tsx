@@ -6,6 +6,7 @@ import { toast } from 'sonner'
 import Modal from '@/components/shared/Modal'
 import { Card, EmptyState, LoadingState, ErrorState, PageHeader } from '@/components/ui'
 import { apiQuery, ApiQueryError } from '@/lib/api/query'
+import { postJson, messageFor } from '@/lib/api/post'
 
 interface MarketerStats {
   id: string
@@ -195,28 +196,59 @@ export default function MarketerPerformancePage() {
     if (!alertMsg.trim()) { toast.error('Write a message first'); return }
     setSendingAlert(true)
 
-    // In-app notification
-    await mutate('POST', 'notifications', {
-      user_id: marketer.id,
-      type: 'system',
-      title: 'Performance Alert from Management',
-      body: alertMsg,
-      data: { from: 'admin', type: 'performance_alert'},
-    })
-
-    // SMS if phone available
-    if (marketer.phone) {
-      await fetch('/api/sms', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json'},
-        body: JSON.stringify({ phone: marketer.phone, message: `CCE Management: ${alertMsg}` }),
+    /*
+     * ── TWO SENDS, REPORTED SEPARATELY ───────────────────────────────────
+     *
+     * Neither of these was checked. mutate() does throw, but nothing caught
+     * it, so a refused notification became an unhandled rejection and the
+     * toast below never ran at all — the dialog simply sat there. The SMS was
+     * a bare fetch, which does not throw, so a failed text was folded into
+     * "Alert sent to <name>".
+     *
+     * They are different deliveries and they fail independently: the person
+     * may have no phone on file, or the SMS balance may be out, while the
+     * in-app notification is fine. Saying "alert sent" for a text that was
+     * never sent is how a manager comes to believe a marketer has been warned.
+     */
+    let inApp = false
+    try {
+      await mutate('POST', 'notifications', {
+        user_id: marketer.id,
+        type: 'system',
+        title: 'Performance Alert from Management',
+        body: alertMsg,
+        data: { from: 'admin', type: 'performance_alert' },
       })
+      inApp = true
+    } catch (e) {
+      toast.error(messageFor(e, 'That alert could not be delivered to their portal.'))
     }
 
-    toast.success(`Alert sent to ${marketer.full_name}`)
-    setAlertMsg('')
+    let sms: 'sent' | 'failed' | 'no-number' = 'no-number'
+    if (marketer.phone) {
+      try {
+        await postJson('/api/sms',
+          { phone: marketer.phone, message: `CCE Management: ${alertMsg}` },
+          { fallback: 'The text message could not be sent.' })
+        sms = 'sent'
+      } catch (e) {
+        sms = 'failed'
+        toast.error(messageFor(e, 'The text message could not be sent.'))
+      }
+    }
+
+    if (inApp || sms === 'sent') {
+      const first = marketer.full_name.split(' ')[0]
+      toast.success(
+        sms === 'sent' ? `Alert sent to ${first} in the portal and by text.`
+        : sms === 'failed' ? `${first} has the alert in their portal, but the text did not go.`
+        : `Alert sent to ${first} in the portal. No phone number on file to text.`,
+      )
+      setAlertMsg('')
+      setSelected(null)
+    }
+
     setSendingAlert(false)
-    setSelected(null)
   }
 
   const STATUS_CONFIG = {

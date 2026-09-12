@@ -30,6 +30,7 @@ type BadgeTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'mute
 import { exportToExcel } from '@/lib/utils/export'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import { postJson, messageFor } from '@/lib/api/post'
 
 /*
  * The stages people actually sort leads by, as tabs.
@@ -203,7 +204,25 @@ export default function AdminLeads() {
     // Give any unassigned lead an owner first (registered ones are NOT sent the
     // sales greeting), then clear the rest.
     toast.loading('Assigning unassigned leads…', { id: 'clean' })
-    await fetch('/api/leads/assign-unassigned', { method: 'POST' }).catch(() => {})
+    /*
+     * This step is not optional, and its failure was being thrown away.
+     *
+     * The purge that follows deletes what is left over. Assigning first is
+     * what keeps a lead nobody owns from being counted as rubbish — so an
+     * assignment that quietly failed did not merely skip a step, it turned
+     * leads that should have been given to a marketer into leads about to be
+     * deleted.
+     */
+    try {
+      await postJson('/api/leads/assign-unassigned', {},
+        { fallback: 'The unassigned leads could not be given an owner.' })
+    } catch (e) {
+      toast.error(
+        `${messageFor(e, 'The unassigned leads could not be given an owner.')} Nothing has been deleted.`,
+        { id: 'clean' },
+      )
+      return
+    }
     const dry = await fetch('/api/admin/purge-leads?mode=keep_clean').then(r => r.json()).catch(() => null)
     if (!dry || dry.error) { toast.error(dry?.error || 'Could not check', { id: 'clean' }); return }
     toast.dismiss('clean')

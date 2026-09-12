@@ -4,6 +4,7 @@ import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Field, inputClass, textareaClass, Spinner, EmptyState, Badge } from '@/components/ui'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import { postJson, messageFor } from '@/lib/api/post'
 
 export default function InfoSessions() {
   const { confirm, dialog } = useConfirm()
@@ -57,8 +58,20 @@ export default function InfoSessions() {
   }
 
   async function cancel(id: string) {
-    await fetch('/api/info-sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'cancel' }) })
-    toast.success('Cancelled'); load()
+    /*
+     * "Cancelled" was announced before anything had been read back, with no
+     * try/catch around it. A session that is still scheduled — and whose
+     * invitations will still go out to every targeted lead — showing as
+     * cancelled is the wrong way round to be wrong.
+     */
+    try {
+      await postJson('/api/info-sessions', { id, action: 'cancel' },
+        { method: 'PATCH', fallback: 'That session could not be cancelled.' })
+      toast.success('Cancelled. No invitations will be sent.')
+    } catch (e) {
+      toast.error(messageFor(e, 'That session could not be cancelled.'))
+    }
+    load()
   }
 
   async function sendNow(id: string, title: string) {

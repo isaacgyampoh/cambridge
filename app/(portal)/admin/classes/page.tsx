@@ -9,6 +9,7 @@ import { formatDate } from '@/lib/utils'
 import Modal from '@/components/shared/Modal'
 import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass } from '@/components/ui'
 import { useConfirm } from '@/hooks/useConfirm'
+import { postJson, messageFor } from '@/lib/api/post'
 
 export default function ClassesPage() {
   const { confirm, dialog } = useConfirm()
@@ -65,13 +66,15 @@ export default function ClassesPage() {
     const link = zoomEdits[batchId] ?? currentLink ?? ''
     setZoomSending(batchId)
     try {
-      await fetch('/api/classes/zoom', {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ batchId, zoomLink: link.trim(), send: false }),
-      })
+      // Through postJson, which throws on a refusal. The bare fetch it
+      // replaces resolved on a 400 or a 403 exactly as it did on success, so
+      // "Zoom link saved" was announced either way — and a class whose link
+      // was never stored is one nobody can join.
+      await postJson('/api/classes/zoom', { batchId, zoomLink: link.trim(), send: false },
+        { fallback: 'That Zoom link could not be saved.' })
       toast.success('Zoom link saved')
       load()
-    } catch (e: any) { toast.error(e.message) }
+    } catch (e) { toast.error(messageFor(e, 'That Zoom link could not be saved.')) }
     finally { setZoomSending(null) }
   }
   const [form, setForm] = useState<any>({

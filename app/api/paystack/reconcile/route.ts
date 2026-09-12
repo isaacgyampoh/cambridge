@@ -86,10 +86,24 @@ async function verifyAndComplete(reference: string, origin: string) {
     const applicationId = data.data?.metadata?.application_id
       || (reference.startsWith('CCE-APP-') ? reference.slice('CCE-APP-'.length).replace(/-\d+$/, '') : null)
     if (!applicationId) return { ok: false, reference, reason: 'no application id' }
-    await fetch(`${origin}/api/applications/complete`, {
+    /*
+     * Reconciliation exists to catch a payment that Paystack took and this
+     * system did not record. It reported `ok: true` without looking at
+     * whether completion had worked — so the one job whose entire purpose is
+     * finding unrecorded payments would mark a payment reconciled that it had
+     * failed to reconcile, and never look at it again.
+     */
+    const complete = await fetch(`${origin}/api/applications/complete`, {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ applicationId, paystack_ref: reference }),
     })
+    const body = await complete.json().catch(() => null)
+    if (!complete.ok || body?.error) {
+      const reason = body?.error || `completion failed (HTTP ${complete.status})`
+      console.error('[paystack/reconcile] PAID BUT NOT RECORDED —',
+        'reference:', reference, 'application:', applicationId, '—', reason)
+      return { ok: false, reference, applicationId, reason }
+    }
     return { ok: true, reference, applicationId }
   } catch (e: any) {
     return { ok: false, reference, reason: e?.message || 'error' }

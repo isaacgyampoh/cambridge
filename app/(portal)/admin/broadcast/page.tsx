@@ -11,6 +11,7 @@ import {
 } from '@/components/ui'
 import { Send, Plus, X, Video, Calendar, Megaphone, Link2, Trash2 } from 'lucide-react'
 import { useConfirm } from '@/hooks/useConfirm'
+import { postJson, messageFor } from '@/lib/api/post'
 
 type Broadcast = {
   id: string
@@ -149,8 +150,14 @@ export default function BroadcastPage() {
       message: 'It disappears from every staff member\u2019s My Links. The destination itself is not affected.',
       confirmLabel: 'Remove link',
     })) return
-    await fetch('/api/links', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'remove', id }) })
-    toast.success('Link removed'); loadLinks()
+    try {
+      await postJson('/api/links', { action: 'remove', id },
+        { fallback: 'That link could not be removed.' })
+      toast.success('Link removed')
+    } catch (e) {
+      toast.error(messageFor(e, 'That link could not be removed.'))
+    }
+    loadLinks()
   }
 
   async function sendNow(broadcastId: string) {

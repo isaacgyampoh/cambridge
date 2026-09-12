@@ -3,6 +3,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { PageHeader, Card, Button, Spinner, EmptyState, inputClass, Field } from '@/components/ui'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
+import { postJson, messageFor } from '@/lib/api/post'
 
 const KINDS = [
   { value: 'tip', label: 'Exam tip' },
@@ -81,8 +82,14 @@ export default function PrepContentPage() {
       message: 'Coordinators will no longer be able to send it to students.',
       confirmLabel: 'Remove',
     })) return
-    await fetch('/api/prep/content', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ action: 'delete', id }) })
-    toast.success('Removed'); load()
+    try {
+      await postJson('/api/prep/content', { action: 'delete', id },
+        { fallback: 'That could not be removed from the content bank.' })
+      toast.success('Removed')
+    } catch (e) {
+      toast.error(messageFor(e, 'That could not be removed from the content bank.'))
+    }
+    load()
   }
 
   return (
