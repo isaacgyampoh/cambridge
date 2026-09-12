@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * Send the marketer's registration link to a lead via WhatsApp.
@@ -19,16 +20,20 @@ export async function POST(req: NextRequest) {
   if (!leadId) return NextResponse.json({ error: 'Missing leadId' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: lead } = await sb.from('leads')
-    .select('id, full_name, phone, assigned_to').eq('id', leadId).maybeSingle()
+  const { row: lead, failed: leadFailed } = await lookup(
+    sb.from('leads').select('id, full_name, phone, assigned_to').eq('id', leadId).maybeSingle(),
+  )
+  if (leadFailed) return unavailable('[leads/send-link]', leadFailed, 'that lead')
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
   if (!lead.phone) return NextResponse.json({ error: 'Lead has no phone number' }, { status: 400 })
 
   // The marketer (assignee, else current user) and their link
   const marketerId = lead.assigned_to || session.userId
-  const { data: marketer } = await sb.from('profiles')
-    .select('full_name, marketer_code').eq('id', marketerId!).maybeSingle()
+  const { row: marketer, failed: marketerFailed } = await lookup(
+    sb.from('profiles').select('full_name, marketer_code').eq('id', marketerId!).maybeSingle(),
+  )
 
+  if (marketerFailed) return unavailable('[leads/send-link]', marketerFailed, 'that marketer')
   if (!marketer?.marketer_code) {
     return NextResponse.json({ error: 'No registration link set for this marketer' }, { status: 400 })
   }

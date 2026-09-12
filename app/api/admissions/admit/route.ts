@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { sendAdmissionLetter } from '@/lib/integrations/email'
 import { queueSMS } from '@/lib/notifications/sms'
 import { recordAudit } from '@/lib/audit'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -24,9 +25,12 @@ export async function POST(req: NextRequest) {
   if (!admissionId) return NextResponse.json({ error: 'Missing admissionId' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: adm } = await sb.from('admissions')
-    .select('*, student:student_id(full_name, email, phone), course:course_id(name)')
-    .eq('id', admissionId).maybeSingle()
+  const { row: adm, failed } = await lookup(
+    sb.from('admissions')
+      .select('*, student:student_id(full_name, email, phone), course:course_id(name)')
+      .eq('id', admissionId).maybeSingle(),
+  )
+  if (failed) return unavailable('[admissions/admit]', failed, 'that admission')
   if (!adm) return NextResponse.json({ error: 'Admission not found' }, { status: 404 })
 
   // Generate admission number if missing

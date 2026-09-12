@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { recordAudit } from '@/lib/audit'
 import { PORTAL_PATHS, PORTAL_EXACT_PATHS } from '@/lib/access/portals'
 import { z } from 'zod'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -76,9 +77,12 @@ export const POST = withGuard({ portals: ['staff'] }, async (req: NextRequest, {
   const sb = createServiceClient()
   const superAdmin = session.role === 'super_admin'
 
-  const { data: target } = await sb.from('profiles')
-    .select('id, full_name, role, is_active').eq('id', id).maybeSingle()
+  const { row: target, failed } = await lookup(
+    sb.from('profiles').select('id, full_name, role, is_active').eq('id', id).maybeSingle(),
+  )
 
+  // Same reason as delete-staff: the super-admin guard below reads target.role.
+  if (failed) return unavailable('[admin/staff-access]', failed, 'that staff member')
   if (!target) {
     return NextResponse.json({ error: 'That staff member no longer exists.' }, { status: 404 })
   }

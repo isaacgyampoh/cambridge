@@ -3,6 +3,7 @@ import { releaseMaterialsFor } from '@/lib/materialRelease'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * PUBLIC — records a class payment made at sign-in.
@@ -23,8 +24,14 @@ export async function POST(req: NextRequest) {
   if (!(amt > 0)) return NextResponse.json({ error: 'Enter a valid amount' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: enr } = await sb.from('class_enrollments')
-    .select('id, batch_id, lead_id, full_name, phone, total_fee, amount_paid, balance').eq('id', enrollmentId).maybeSingle()
+  // The payment below is applied on top of enr.amount_paid, so a failed read
+  // here must never be taken for an absent student.
+  const { row: enr, failed } = await lookup(
+    sb.from('class_enrollments')
+      .select('id, batch_id, lead_id, full_name, phone, total_fee, amount_paid, balance')
+      .eq('id', enrollmentId).maybeSingle(),
+  )
+  if (failed) return unavailable('[classes/pay]', failed, 'that student')
   if (!enr) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
   const inv = invoiceNo()

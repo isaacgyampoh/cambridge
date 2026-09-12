@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { renderPersonalisedDoc } from '@/lib/documentFill'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -21,8 +22,10 @@ export async function POST(req: NextRequest) {
   if (!batchId) return NextResponse.json({ error: 'Choose a class.' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: batch } = await sb.from('batches')
-    .select('id, name, course_id, courses(name)').eq('id', batchId).maybeSingle()
+  const { row: batch, failed: batchFailed } = await lookup(
+    sb.from('batches').select('id, name, course_id, courses(name)').eq('id', batchId).maybeSingle(),
+  )
+  if (batchFailed) return unavailable('[certificates/issue]', batchFailed, 'that class')
   if (!batch) return NextResponse.json({ error: 'Class not found.' }, { status: 404 })
 
   // The template you uploaded, for this course if there is one

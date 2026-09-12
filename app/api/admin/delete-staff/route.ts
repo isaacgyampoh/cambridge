@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -23,7 +24,12 @@ export async function POST(req: NextRequest) {
   if (id === session.userId) return NextResponse.json({ error: 'You cannot delete your own account.' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: target } = await sb.from('profiles').select('id, role, full_name').eq('id', id).maybeSingle()
+  const { row: target, failed } = await lookup(
+    sb.from('profiles').select('id, role, full_name').eq('id', id).maybeSingle(),
+  )
+  // A failed read must not reach the super-admin guard below: it decides on
+  // target.role, and a null target would skip it rather than enforce it.
+  if (failed) return unavailable('[admin/delete-staff]', failed, 'that staff member')
   if (!target) return NextResponse.json({ error: 'Staff not found.' }, { status: 404 })
   if (target.role === 'super_admin') return NextResponse.json({ error: 'A super admin cannot be deleted.' }, { status: 400 })
 

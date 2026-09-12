@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmailGeneric } from '@/lib/integrations/email'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -24,7 +25,10 @@ export async function POST(req: NextRequest) {
   if (!batchId || (!link && !note)) return NextResponse.json({ error: 'Provide a link or a note' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: batch } = await sb.from('batches').select('id, name, course:course_id(name)').eq('id', batchId).maybeSingle()
+  const { row: batch, failed } = await lookup(
+    sb.from('batches').select('id, name, course:course_id(name)').eq('id', batchId).maybeSingle(),
+  )
+  if (failed) return unavailable('[classes/materials]', failed, 'that class')
   if (!batch) return NextResponse.json({ error: 'Class not found' }, { status: 404 })
 
   const { data: enrolled } = await sb.from('class_enrollments')

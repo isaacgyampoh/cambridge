@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -37,7 +38,10 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = createServiceClient()
-  const { data: batch } = await sb.from('batches').select('zoom_link').eq('id', batch_id).maybeSingle()
+  const { row: batch, failed } = await lookup(
+    sb.from('batches').select('zoom_link').eq('id', batch_id).maybeSingle(),
+  )
+  if (failed) return unavailable('[class-reminders]', failed, 'that class')
   if (!batch?.zoom_link) return NextResponse.json({ error: 'This class has no Zoom link set. Add one on the class first.' }, { status: 400 })
 
   // Each offset (minutes-before-class) becomes its own scheduled reminder row.

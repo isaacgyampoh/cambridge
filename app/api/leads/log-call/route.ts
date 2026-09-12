@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -19,7 +20,10 @@ export async function POST(req: NextRequest) {
   const sb = createServiceClient()
 
   // Confirm the lead exists (and, for non-oversight, that it's theirs)
-  const { data: lead } = await sb.from('leads').select('id, status, assigned_to').eq('id', lead_id).maybeSingle()
+  const { row: lead, failed } = await lookup(
+    sb.from('leads').select('id, status, assigned_to').eq('id', lead_id).maybeSingle(),
+  )
+  if (failed) return unavailable('[leads/log-call]', failed, 'that lead')
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
 
   const oversight = ['super_admin', 'project_manager'].includes(session.role)

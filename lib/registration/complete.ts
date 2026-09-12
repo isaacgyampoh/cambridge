@@ -8,6 +8,7 @@ import { queueSMS } from '@/lib/notifications/sms'
 import { resolveDocument } from '@/lib/documents/resolve'
 import { parseClassMode, classModeLabel, type ClassMode } from '@/lib/classMode'
 import { recordAudit } from '@/lib/audit'
+import { lookup } from '@/lib/db/lookup'
 
 /**
  * Complete a paid registration.
@@ -85,10 +86,37 @@ export async function completeApplication(
     return { ok: true, alreadyProcessed: true, admissionNumber: done?.admission_number || null }
   }
 
-  const { data: app } = await sb.from('applications')
-    .select('*, course:course_id(id, name, course_fee, course_fee_online)')
-    .eq('id', applicationId).maybeSingle()
+  /*
+   * Give the claim back.
+   *
+   * The claim above means "this registration has been completed". When a read
+   * fails part-way through, it has NOT been, and leaving the claim in place
+   * would wedge a paid registration for good: every retry — the Paystack
+   * webhook's, or the student reloading the return page — would collide with
+   * the claim and be told it was already processed, so the admission, the
+   * letter and the fee ledger would never be created and nobody would be
+   * told. Releasing it lets a retry do the work.
+   *
+   * Retrying is safe because every step is guarded by a check that is now
+   * fail-CLOSED: the lead lookup, the remuneration check and the admission
+   * lookup all stop on a failed read rather than reading it as "nothing
+   * there". Before that, a retry would have duplicated all three.
+   */
+  const retryable = async (where: string, reason: string): Promise<CompletionResult> => {
+    console.error(`[complete] ${where} read failed for ${applicationId}:`, reason)
+    await sb.from('message_jobs').delete()
+      .eq('dedupe_key', `app_complete:${applicationId}`)
+      .then(() => {}, () => {})
+    return { ok: false, reason: 'We could not finish this registration just now. Please try again in a moment.' }
+  }
 
+  const { row: app, failed: appFailed } = await lookup(
+    sb.from('applications')
+      .select('*, course:course_id(id, name, course_fee, course_fee_online)')
+      .eq('id', applicationId).maybeSingle(),
+  )
+
+  if (appFailed) return retryable('application', appFailed)
   if (!app) return { ok: false, reason: 'Application not found' }
 
   const course = (app as { course?: { id: string; name: string; course_fee?: number; course_fee_online?: number } }).course
@@ -115,17 +143,29 @@ export async function completeApplication(
   if (!leadId && (app.phone || app.email)) {
     const phone233 = app.phone ? String(app.phone).replace(/^0/, '233') : null
     const phone0 = app.phone ? String(app.phone).replace(/^233/, '0') : null
+    /*
+     * These two find the student's existing lead. Read as absent when they
+     * merely failed, a second lead is created for somebody already in the
+     * system — so the history, the assigned marketer and the call notes stay
+     * on the first one while everything new lands on the second.
+     */
     let existing: { id: string } | null = null
     if (phone233) {
-      const { data } = await sb.from('leads').select('id')
-        .in('phone', [phone233, phone0].filter(Boolean) as string[])
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      existing = data
+      const { row, failed } = await lookup(
+        sb.from('leads').select('id')
+          .in('phone', [phone233, phone0].filter(Boolean) as string[])
+          .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      )
+      if (failed) return retryable('lead by phone', failed)
+      existing = row
     }
     if (!existing && app.email) {
-      const { data } = await sb.from('leads').select('id').eq('email', app.email)
-        .order('created_at', { ascending: false }).limit(1).maybeSingle()
-      existing = data
+      const { row, failed } = await lookup(
+        sb.from('leads').select('id').eq('email', app.email)
+          .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+      )
+      if (failed) return retryable('lead by email', failed)
+      existing = row
     }
     if (existing) {
       leadId = existing.id
@@ -155,14 +195,28 @@ export async function completeApplication(
     }).then(() => {}, () => {})
   }
 
-  const { data: lead } = await sb.from('leads').select('*').eq('id', leadId).maybeSingle()
+  // creditTo falls back to lead.assigned_to. A failed read here would quietly
+  // credit nobody for a registration somebody earned.
+  const { row: lead, failed: leadFailed } = await lookup(
+    sb.from('leads').select('*').eq('id', leadId).maybeSingle(),
+  )
+  if (leadFailed) return retryable('lead', leadFailed)
   const creditTo = app.marketer_id || lead?.assigned_to || null
   const isPaid = app.payment_status === 'paid'
 
   // ── 2. Credit remuneration ──
   if (isPaid && creditTo) {
-    const { data: already } = await sb.from('marketer_enrollments')
-      .select('id').eq('lead_id', leadId).limit(1).maybeSingle()
+    /*
+     * The one guard standing between this student and a second lot of points
+     * and a second GHS 200. It failed OPEN: a failed read looked exactly like
+     * "not credited yet", and the marketer was paid twice for one
+     * registration, with nothing in the record to show why.
+     */
+    const { row: already, failed: alreadyFailed } = await lookup(
+      sb.from('marketer_enrollments')
+        .select('id').eq('lead_id', leadId).limit(1).maybeSingle(),
+    )
+    if (alreadyFailed) return retryable('remuneration check', alreadyFailed)
 
     if (!already) {
       const { data: programs } = await sb.from('program_points').select('*').eq('is_active', true)
@@ -199,8 +253,17 @@ export async function completeApplication(
 
   // ── 4. Admission record ──
   let admissionNo = ''
-  const { data: existingAdm } = await sb.from('admissions')
-    .select('id, admission_number, admission_letter_sent').eq('lead_id', leadId).maybeSingle()
+  /*
+   * Same shape again, and the most visible to the student: read as absent,
+   * this takes the branch below that mints a SECOND admission number from the
+   * sequence, and leaves letterAlreadySent false so a duplicate admission
+   * letter goes out over the first one.
+   */
+  const { row: existingAdm, failed: admFailed } = await lookup(
+    sb.from('admissions')
+      .select('id, admission_number, admission_letter_sent').eq('lead_id', leadId).maybeSingle(),
+  )
+  if (admFailed) return retryable('admission', admFailed)
   const letterAlreadySent = existingAdm?.admission_letter_sent === true
 
   if (!existingAdm) {

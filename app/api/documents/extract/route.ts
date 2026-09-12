@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -21,8 +22,10 @@ export async function POST(req: NextRequest) {
   if (!documentId) return NextResponse.json({ error: 'Missing document' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: doc } = await sb.from('documents')
-    .select('id, file_url, file_name, name').eq('id', documentId).maybeSingle()
+  const { row: doc, failed } = await lookup(
+    sb.from('documents').select('id, file_url, file_name, name').eq('id', documentId).maybeSingle(),
+  )
+  if (failed) return unavailable('[documents/extract]', failed, 'that document')
   if (!doc?.file_url) return NextResponse.json({ error: 'Document not found' }, { status: 404 })
 
   let text = ''

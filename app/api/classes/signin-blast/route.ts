@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { CONFIG } from '@/lib/config'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * On-duty staff clicks one button -> the class sign-in link fans out to
@@ -24,7 +25,10 @@ export async function POST(req: NextRequest) {
   if (!batchId) return NextResponse.json({ error: 'Missing batchId' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: batch } = await sb.from('batches').select('id, name').eq('id', batchId).maybeSingle()
+  const { row: batch, failed } = await lookup(
+    sb.from('batches').select('id, name').eq('id', batchId).maybeSingle(),
+  )
+  if (failed) return unavailable('[classes/signin-blast]', failed, 'that class')
   if (!batch) return NextResponse.json({ error: 'Class not found' }, { status: 404 })
 
   // Active students of this class, with their registering marketer's line

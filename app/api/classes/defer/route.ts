@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager', 'accountant', 'admissions_officer', 'trainer']
@@ -24,13 +25,18 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = createServiceClient()
-  const { data: enr } = await sb.from('class_enrollments')
-    .select('id, lead_id, batch_id, full_name, phone, total_fee, amount_paid, balance')
-    .eq('id', enrollmentId).maybeSingle()
+  const { row: enr, failed: enrFailed } = await lookup(
+    sb.from('class_enrollments')
+      .select('id, lead_id, batch_id, full_name, phone, total_fee, amount_paid, balance')
+      .eq('id', enrollmentId).maybeSingle(),
+  )
+  if (enrFailed) return unavailable('[classes/defer]', enrFailed, 'that student')
   if (!enr) return NextResponse.json({ error: 'Student not found.' }, { status: 404 })
 
-  const { data: toBatch } = await sb.from('batches')
-    .select('id, name, start_date, schedule').eq('id', toBatchId).maybeSingle()
+  const { row: toBatch, failed: batchFailed } = await lookup(
+    sb.from('batches').select('id, name, start_date, schedule').eq('id', toBatchId).maybeSingle(),
+  )
+  if (batchFailed) return unavailable('[classes/defer]', batchFailed, 'that class')
   if (!toBatch) return NextResponse.json({ error: 'That class could not be found.' }, { status: 404 })
 
   // Move them, keeping what they have paid.

@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'exam_coordinator']
@@ -50,7 +51,10 @@ export async function POST(req: NextRequest) {
 
   // Manual send: blast a piece of content to all active-prep students in its programme
   if (body.action === 'send') {
-    const { data: content } = await sb.from('prep_content').select('*').eq('id', body.id).maybeSingle()
+    const { row: content, failed } = await lookup(
+      sb.from('prep_content').select('*').eq('id', body.id).maybeSingle(),
+    )
+    if (failed) return unavailable('[prep/content]', failed, 'that content')
     if (!content) return NextResponse.json({ error: 'Content not found.' }, { status: 404 })
 
     const { data: students } = await sb.from('prep_records')

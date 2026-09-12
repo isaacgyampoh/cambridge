@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { recordAudit } from '@/lib/audit'
 import { verifySession } from '@/lib/auth/pin'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * Lead ownership conflict resolution.
@@ -63,7 +64,10 @@ export async function POST(req: NextRequest) {
     const { leadId, reason } = body
     if (!leadId) return NextResponse.json({ error: 'Missing lead' }, { status: 400 })
 
-    const { data: lead } = await sb.from('leads').select('id, assigned_to, full_name').eq('id', leadId).maybeSingle()
+    const { row: lead, failed } = await lookup(
+      sb.from('leads').select('id, assigned_to, full_name').eq('id', leadId).maybeSingle(),
+    )
+    if (failed) return unavailable('[leads/transfer]', failed, 'that lead')
     if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
     if (lead.assigned_to === session.userId) {
       return NextResponse.json({ error: 'This lead is already yours' }, { status: 400 })
@@ -97,7 +101,10 @@ export async function POST(req: NextRequest) {
       return NextResponse.json({ error: 'Not permitted' }, { status: 403 })
     }
     const { requestId, note } = body
-    const { data: tr } = await sb.from('lead_transfer_requests').select('*').eq('id', requestId).maybeSingle()
+    const { row: tr, failed: trFailed } = await lookup(
+      sb.from('lead_transfer_requests').select('*').eq('id', requestId).maybeSingle(),
+    )
+    if (trFailed) return unavailable('[leads/transfer]', trFailed, 'that request')
     if (!tr || tr.status !== 'pending') return NextResponse.json({ error: 'Request not found or already decided' }, { status: 400 })
 
     const approving = body.action === 'approve'

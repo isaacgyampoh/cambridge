@@ -1,6 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup } from '@/lib/db/lookup'
 
 /**
  * Send one class reminder: the batch's Zoom link to every enrolled student
@@ -8,7 +9,19 @@ import { sendSMS } from '@/lib/integrations/sms'
  */
 export async function broadcastClassReminder(reminderId: string) {
   const sb = createServiceClient()
-  const { data: r } = await sb.from('class_reminders').select('*, batch:batch_id(name, zoom_link)').eq('id', reminderId).maybeSingle()
+  /*
+   * "Already sent" is a claim about this reminder, and a failed read cannot
+   * support it. The cron runner treats that answer as final and moves on, so
+   * a blip here means a class is never reminded and the reason recorded is a
+   * sentence that was not true.
+   */
+  const { row: r, failed } = await lookup(
+    sb.from('class_reminders').select('*, batch:batch_id(name, zoom_link)').eq('id', reminderId).maybeSingle(),
+  )
+  if (failed) {
+    console.error('[classReminderBroadcast] reminder read failed:', failed)
+    return { error: 'We could not read this reminder just now. Please try again in a moment.', retryable: true }
+  }
   if (!r || r.status !== 'scheduled') return { error: 'Reminder not found or already sent.' }
 
   const batch = (r as any).batch

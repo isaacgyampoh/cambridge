@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -7,9 +8,12 @@ export async function GET(req: NextRequest) {
   const id = new URL(req.url).searchParams.get('id')
   if (!id) return NextResponse.json({ error: 'missing' }, { status: 400 })
   const sb = createServiceClient()
-  const { data: flyer } = await sb.from('flyers')
-    .select('id, title, course, image_url, marketer_id, profiles:marketer_id(full_name, marketer_code)')
-    .eq('id', id).maybeSingle()
+  const { row: flyer, failed } = await lookup(
+    sb.from('flyers')
+      .select('id, title, course, image_url, marketer_id, profiles:marketer_id(full_name, marketer_code)')
+      .eq('id', id).maybeSingle(),
+  )
+  if (failed) return unavailable('[flyers/public]', failed, 'this flyer')
   if (!flyer) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
   // count a view

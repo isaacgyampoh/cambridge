@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { formatDate } from '@/lib/utils'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 type ReminderType = '1_week' | '2_days' | 'day' | 'class_day'
 
@@ -51,10 +52,12 @@ export async function POST(req: NextRequest) {
  const sb = createServiceClient()
 
  // Load batch with full details
- const { data: batch } = await sb.from('batches')
- .select('*, courses(*)')
- .eq('id', batchId).single()
-
+ // maybeSingle, not single: single() reports "no rows" as an error, which
+ // would make a missing batch indistinguishable from a failed read.
+ const { row: batch, failed } = await lookup(
+ sb.from('batches').select('*, courses(*)').eq('id', batchId).maybeSingle(),
+ )
+ if (failed) return unavailable('[reminders/personalized]', failed, 'that class')
  if (!batch) return NextResponse.json({ error: 'Batch not found' }, { status: 404 })
 
  // Get all enrolled students with their marketer relationship

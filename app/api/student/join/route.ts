@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifyStudent, STUDENT_COOKIE } from '@/lib/student/auth'
 import crypto from 'crypto'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -15,9 +16,12 @@ export async function POST(req: NextRequest) {
   if (!s) return NextResponse.json({ error: 'unauth' }, { status: 401 })
 
   const sb = createServiceClient()
-  const { data: enr } = await sb.from('class_enrollments')
-    .select('id, batch_id, total_fee, amount_paid').eq('lead_id', s.leadId)
-    .order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const { row: enr, failed } = await lookup(
+    sb.from('class_enrollments')
+      .select('id, batch_id, total_fee, amount_paid').eq('lead_id', s.leadId)
+      .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+  )
+  if (failed) return unavailable('[student/join]', failed, 'your class')
   if (!enr?.batch_id) return NextResponse.json({ error: 'no_class' }, { status: 404 })
 
   const { data: b } = await sb.from('batches')

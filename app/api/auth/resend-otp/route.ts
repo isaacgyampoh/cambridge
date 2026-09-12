@@ -6,6 +6,7 @@ import { sendOTPEmail } from '@/lib/integrations/email'
 import { recordAudit } from '@/lib/audit'
 import { SECRETS } from '@/lib/config.server'
 import { z } from 'zod'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -69,14 +70,26 @@ export async function POST(req: NextRequest) {
   }
 
   const sb = createServiceClient()
-  const { data: profile } = await sb.from('profiles')
-    .select('id, full_name, email, otp_expires_at')
-    .eq('id', userId).eq('is_active', true).maybeSingle()
+  const { row: profile, failed } = await lookup(
+    sb.from('profiles')
+      .select('id, full_name, email, otp_expires_at')
+      .eq('id', userId).eq('is_active', true).maybeSingle(),
+  )
 
   // Same refusal whether the account is unknown, inactive, has no address, or
   // is simply not mid-sign-in — none of that should be discoverable here.
   const STALE = { error: 'That sign-in has expired. Please enter your PIN again.' }
 
+  /*
+   * A failed read is NOT a stale sign-in, and saying it is creates a loop
+   * with no way out: the person is told to enter their PIN again, does, and
+   * is told the same thing, for as long as the read keeps failing.
+   *
+   * 503 gives nothing away that STALE was protecting — it is the same answer
+   * for every account, including ones that do not exist — and it is the only
+   * one of the two that tells the person something true.
+   */
+  if (failed) return unavailable('[auth/resend-otp]', failed, 'your sign-in')
   if (!profile?.email) return NextResponse.json(STALE, { status: 401 })
   if (!profile.otp_expires_at || new Date(profile.otp_expires_at) < new Date()) {
     return NextResponse.json(STALE, { status: 401 })

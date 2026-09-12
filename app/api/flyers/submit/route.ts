@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { intakeLead } from '@/lib/leadIntake'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -10,7 +11,12 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Name and a phone or email are required.' }, { status: 400 })
   }
   const sb = createServiceClient()
-  const { data: flyer } = await sb.from('flyers').select('marketer_id, course').eq('id', flyer_id).maybeSingle()
+  // flyer.marketer_id is the attribution for the lead created below. Reading
+  // it wrongly as absent would turn away somebody trying to enquire.
+  const { row: flyer, failed } = await lookup(
+    sb.from('flyers').select('marketer_id, course').eq('id', flyer_id).maybeSingle(),
+  )
+  if (failed) return unavailable('[flyers/submit]', failed, 'this flyer')
   if (!flyer) return NextResponse.json({ error: 'Flyer not found.' }, { status: 404 })
 
   const { leadId, assignedTo, duplicate } = await intakeLead({

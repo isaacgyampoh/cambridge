@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { recordAudit } from '@/lib/audit'
 import { verifySession } from '@/lib/auth/pin'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * UNIFIED lead status change — the single path every page uses.
@@ -54,8 +55,13 @@ export async function POST(req: NextRequest) {
   if (!leadId || !status) return NextResponse.json({ error: 'Missing leadId or status' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: lead } = await sb.from('leads')
-    .select('id, full_name, assigned_to, status, course_interest').eq('id', leadId).maybeSingle()
+  // lead.status decides whether this is the transition that awards points and
+  // commission, so a failed read must not be mistaken for a missing lead.
+  const { row: lead, failed } = await lookup(
+    sb.from('leads')
+      .select('id, full_name, assigned_to, status, course_interest').eq('id', leadId).maybeSingle(),
+  )
+  if (failed) return unavailable('[leads/status]', failed, 'that lead')
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
 
   const wasRegistered = lead.status === 'registered'

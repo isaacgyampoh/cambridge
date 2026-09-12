@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { onClassReminder } from '@/lib/notifications'
 import { formatDate } from '@/lib/utils'
 import { verifySession } from '@/lib/auth/pin'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value
@@ -15,10 +16,12 @@ export async function POST(req: NextRequest) {
 
   const sb = createServiceClient()
 
-  const { data: batch } = await sb.from('batches')
-    .select('*, courses(*)')
-    .eq('id', batchId).single()
-
+  // maybeSingle, not single: single() reports "no rows" as an error, which
+  // would make a missing batch indistinguishable from a failed read.
+  const { row: batch, failed } = await lookup(
+    sb.from('batches').select('*, courses(*)').eq('id', batchId).maybeSingle(),
+  )
+  if (failed) return unavailable('[reminders]', failed, 'that class')
   if (!batch) return NextResponse.json({ error: 'Batch not found' }, { status: 404 })
 
   // Get all enrolled students

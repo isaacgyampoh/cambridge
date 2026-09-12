@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * Enroll a registered student (by application) into a class batch.
@@ -29,13 +30,19 @@ export async function POST(req: NextRequest) {
   }
 
   // Pull the applicant + batch
-  const { data: app } = await sb.from('applications')
-    .select('id, lead_id, full_name, email, phone').eq('id', applicationId).maybeSingle()
+  const { row: app, failed: appFailed } = await lookup(
+    sb.from('applications')
+      .select('id, lead_id, full_name, email, phone').eq('id', applicationId).maybeSingle(),
+  )
+  if (appFailed) return unavailable('[classes/enroll]', appFailed, 'that application')
   if (!app) return NextResponse.json({ error: 'Application not found' }, { status: 404 })
 
-  const { data: batch } = await sb.from('batches')
-    .select('id, name, class_type, zoom_link, schedule, course:course_id(name)')
-    .eq('id', batchId).maybeSingle()
+  const { row: batch, failed: batchFailed } = await lookup(
+    sb.from('batches')
+      .select('id, name, class_type, zoom_link, schedule, course:course_id(name)')
+      .eq('id', batchId).maybeSingle(),
+  )
+  if (batchFailed) return unavailable('[classes/enroll]', batchFailed, 'that class')
   if (!batch) return NextResponse.json({ error: 'Class not found' }, { status: 404 })
 
   // Enroll (idempotent)

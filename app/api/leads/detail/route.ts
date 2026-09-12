@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -19,10 +20,15 @@ export async function GET(req: NextRequest) {
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: lead } = await sb.from('leads')
-    .select('*, assignee:assigned_to(full_name)')
-    .eq('id', id).maybeSingle()
+  const { row: lead, failed } = await lookup(
+    sb.from('leads')
+      .select('*, assignee:assigned_to(full_name)')
+      .eq('id', id).maybeSingle(),
+  )
 
+  // The ownership check below reads lead.assigned_to, so a failed read has to
+  // stop here rather than be answered as "no such lead".
+  if (failed) return unavailable('[leads/detail]', failed, 'that lead')
   if (!lead) return NextResponse.json({ error: 'not_found' }, { status: 404 })
 
   // Access: oversight roles see any; everyone else only their own lead.

@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmailGeneric } from '@/lib/integrations/email'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -35,9 +36,12 @@ export async function POST(req: NextRequest) {
   if (!zoomLink) return NextResponse.json({ error: 'No link to send' }, { status: 400 })
 
   // Get the batch + enrolled students
-  const { data: batch } = await sb.from('batches')
-    .select('id, name, schedule, course:course_id(name)')
-    .eq('id', batchId).maybeSingle()
+  const { row: batch, failed } = await lookup(
+    sb.from('batches')
+      .select('id, name, schedule, course:course_id(name)')
+      .eq('id', batchId).maybeSingle(),
+  )
+  if (failed) return unavailable('[classes/zoom]', failed, 'that class')
   if (!batch) return NextResponse.json({ error: 'Class not found' }, { status: 404 })
 
   const { data: enrolled } = await sb.from('class_enrollments')

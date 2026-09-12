@@ -5,6 +5,7 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmailGeneric } from '@/lib/integrations/email'
 import { CONFIG } from '@/lib/config'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -30,9 +31,14 @@ export async function POST(req: NextRequest) {
   if (!enrollmentId) return NextResponse.json({ error: 'Missing enrollmentId' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: enr } = await sb.from('class_enrollments')
-    .select('*, batch:batch_id(name, course:course_id(name))')
-    .eq('id', enrollmentId).maybeSingle()
+  const { row: enr, failed } = await lookup(
+    sb.from('class_enrollments')
+      .select('*, batch:batch_id(name, course:course_id(name))')
+      .eq('id', enrollmentId).maybeSingle(),
+  )
+  // The completion and fees gates below read enr. A failed read must stop
+  // here rather than fall through them as "not found".
+  if (failed) return unavailable('[certificates]', failed, 'that enrolment')
   if (!enr) return NextResponse.json({ error: 'Enrollment not found' }, { status: 404 })
 
   // Gate: must have completed AND paid full school fees

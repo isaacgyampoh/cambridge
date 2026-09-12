@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 // Haversine distance in metres
 function distanceMeters(lat1: number, lng1: number, lat2: number, lng2: number): number {
@@ -27,7 +28,12 @@ export async function POST(req: NextRequest) {
   const sb = createServiceClient()
 
   // Find nearest active office
-  const { data: offices } = await sb.from('office_locations').select('*').eq('is_active', true)
+  const { row: offices, failed: officeFailed } = await lookup(
+    sb.from('office_locations').select('*').eq('is_active', true),
+  )
+  // Otherwise a failed read tells staff their employer never configured an
+  // office, and sends them to an administrator who has nothing to fix.
+  if (officeFailed) return unavailable('[staff-attendance]', officeFailed, 'the office locations')
   if (!offices?.length) {
     return NextResponse.json({ error: 'No office location has been set up yet. Ask your administrator to configure it.' }, { status: 400 })
   }
@@ -52,8 +58,17 @@ export async function POST(req: NextRequest) {
   const now = new Date().toISOString()
 
   // Existing record for today?
-  const { data: existing } = await sb.from('staff_attendance')
-    .select('*').eq('staff_id', session.userId).eq('date', today).maybeSingle()
+  const { row: existing, failed: existingFailed } = await lookup(
+    sb.from('staff_attendance')
+      .select('*').eq('staff_id', session.userId).eq('date', today).maybeSingle(),
+  )
+  /*
+   * Both branches below turn on this row, and each is wrong in its own way if
+   * a failed read is taken for "nothing today": clocking out says you never
+   * clocked in, and clocking in skips the already-clocked-in guard and
+   * upserts over this morning's real arrival time.
+   */
+  if (existingFailed) return unavailable('[staff-attendance]', existingFailed, 'today\u2019s attendance')
 
   if (action === 'out') {
     if (!existing) return NextResponse.json({ error: 'You have not clocked in today.' }, { status: 400 })

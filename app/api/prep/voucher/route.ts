@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const COORD = ['super_admin', 'administrator', 'exam_coordinator']
@@ -40,12 +41,20 @@ export async function POST(req: NextRequest) {
   // ── Coordinator requests a voucher for a ready student ──
   if (body.action === 'request') {
     if (!COORD.includes(s.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
-    const { data: rec } = await sb.from('prep_records').select('*').eq('id', body.prep_record_id).maybeSingle()
+    const { row: rec, failed } = await lookup(
+      sb.from('prep_records').select('*').eq('id', body.prep_record_id).maybeSingle(),
+    )
+    if (failed) return unavailable('[prep/voucher]', failed, 'that student')
     if (!rec) return NextResponse.json({ error: 'Student not found.' }, { status: 404 })
 
-    // Prevent duplicate open requests
-    const { data: openReq } = await sb.from('voucher_requests')
-      .select('id').eq('prep_record_id', rec.id).eq('status', 'pending').maybeSingle()
+    // Prevent duplicate open requests. This one fails OPEN if left unchecked —
+    // a failed read looks like "no pending request", and a second voucher is
+    // requested for a student who already has one waiting.
+    const { row: openReq, failed: openFailed } = await lookup(
+      sb.from('voucher_requests')
+        .select('id').eq('prep_record_id', rec.id).eq('status', 'pending').maybeSingle(),
+    )
+    if (openFailed) return unavailable('[prep/voucher]', openFailed, 'that student\u2019s voucher requests')
     if (openReq) return NextResponse.json({ error: 'A voucher request for this student is already pending.' }, { status: 400 })
 
     const { data: reqRow } = await sb.from('voucher_requests').insert({
@@ -106,7 +115,10 @@ export async function POST(req: NextRequest) {
     if (!FINANCE.includes(s.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
     if (!body.voucher_code?.trim()) return NextResponse.json({ error: 'Voucher code is required.' }, { status: 400 })
 
-    const { data: reqRow } = await sb.from('voucher_requests').select('*').eq('id', body.request_id).maybeSingle()
+    const { row: reqRow, failed: reqFailed } = await lookup(
+      sb.from('voucher_requests').select('*').eq('id', body.request_id).maybeSingle(),
+    )
+    if (reqFailed) return unavailable('[prep/voucher]', reqFailed, 'that request')
     if (!reqRow) return NextResponse.json({ error: 'Request not found.' }, { status: 404 })
 
     // Assign to the student's prep record + mark request fulfilled

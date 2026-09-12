@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmail } from '@/lib/integrations/email'
+import { lookup } from '@/lib/db/lookup'
 
 /**
  * Broadcast one info session: SMS / WhatsApp / email every targeted lead,
@@ -10,7 +11,15 @@ import { sendEmail } from '@/lib/integrations/email'
  */
 export async function broadcastInfoSession(sessionId: string) {
   const sb = createServiceClient()
-  const { data: s } = await sb.from('info_sessions').select('*').eq('id', sessionId).maybeSingle()
+  // As in classReminderBroadcast: a failed read must not be reported as an
+  // info session that has already gone out.
+  const { row: s, failed } = await lookup(
+    sb.from('info_sessions').select('*').eq('id', sessionId).maybeSingle(),
+  )
+  if (failed) {
+    console.error('[infoSessionBroadcast] session read failed:', failed)
+    return { error: 'We could not read this session just now. Please try again in a moment.', retryable: true }
+  }
   if (!s || s.status !== 'scheduled') return { error: 'Session not found or already sent.' }
 
   // Audience — include the lead's assigned marketer so their join link is

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * Save / update a person's own WhatsApp (WaSender) session credentials.
@@ -48,10 +49,13 @@ export async function PUT(req: NextRequest) {
   const target = staffId || session.userId
 
   const sb = createServiceClient()
-  const { data: p } = await sb.from('profiles')
-    .select('wasender_api_key, phone, wasender_phone, full_name')
-    .eq('id', target).maybeSingle()
+  const { row: p, failed } = await lookup(
+    sb.from('profiles')
+      .select('wasender_api_key, phone, wasender_phone, full_name')
+      .eq('id', target).maybeSingle(),
+  )
 
+  if (failed) return unavailable('[whatsapp/instance]', failed, 'that connection')
   if (!p?.wasender_api_key) {
     return NextResponse.json({ error: 'No WaSender API key set for this person yet.' }, { status: 400 })
   }

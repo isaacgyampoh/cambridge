@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 async function getRecipients(sb: any, target_type: string, target_filters: any) {
   let recipients: { phone: string; name: string; id: string; type: string }[] = []
@@ -54,7 +55,10 @@ export async function POST(req: NextRequest) {
   if (!broadcastId) return NextResponse.json({ error: 'Missing broadcastId' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { data: b } = await sb.from('broadcasts').select('*').eq('id', broadcastId).maybeSingle()
+  const { row: b, failed: bcFailed } = await lookup(
+    sb.from('broadcasts').select('*').eq('id', broadcastId).maybeSingle(),
+  )
+  if (bcFailed) return unavailable('[broadcast/send-now]', bcFailed, 'that broadcast')
   if (!b) return NextResponse.json({ error: 'Broadcast not found' }, { status: 404 })
 
   // Recompute recipients from the saved target_type (works for old drafts too)

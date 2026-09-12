@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 /**
  * Exam prep tracker.
@@ -69,8 +70,11 @@ export async function POST(req: NextRequest) {
 
   if (body.action === 'add') {
     // Pull the enrollment to seed the record
-    const { data: enr } = await sb.from('class_enrollments')
-      .select('*, batch:batch_id(course:course_id(name, code))').eq('id', body.enrollmentId).maybeSingle()
+    const { row: enr, failed } = await lookup(
+      sb.from('class_enrollments')
+        .select('*, batch:batch_id(course:course_id(name, code))').eq('id', body.enrollmentId).maybeSingle(),
+    )
+    if (failed) return unavailable('[prep]', failed, 'that student')
     if (!enr) return NextResponse.json({ error: 'Student not found' }, { status: 404 })
 
     const code = (enr as any).batch?.course?.code || null

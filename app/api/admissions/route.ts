@@ -3,6 +3,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText, WA } from '@/lib/integrations/whatsapp'
+import { lookup, unavailable } from '@/lib/db/lookup'
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value
@@ -15,7 +16,12 @@ export async function POST(req: NextRequest) {
 
   const sb = createServiceClient()
 
-  const { data: lead } = await sb.from('leads').select('*, course:course_interest').eq('id', leadId).single()
+  // maybeSingle, not single: single() reports "no rows" as an error, which
+  // would make a genuinely missing lead indistinguishable from a failed read.
+  const { row: lead, failed } = await lookup(
+    sb.from('leads').select('*, course:course_interest').eq('id', leadId).maybeSingle(),
+  )
+  if (failed) return unavailable('[admissions]', failed, 'that lead')
   if (!lead) return NextResponse.json({ error: 'Lead not found' }, { status: 404 })
 
   // Create admission record
