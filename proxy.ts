@@ -23,7 +23,14 @@ const SERVICE_KEY = process.env.SUPABASE_SERVICE_KEY || ''
 /** Paths reachable without a session. Order matters only for readability. */
 const PUBLIC = [
   '/certificate/', '/testimonial/', '/api/testimonials/',
-  '/login', '/setup', '/apply/', '/refer', '/f/', '/j/', '/signin/', '/public-alumni',
+  /*
+   * '/apply' without the trailing slash, so BOTH forms are public: the
+   * personal link /apply/CODE, and the general enquiry at /apply that the
+   * front page sends people to. With '/apply/' the bare route was not matched
+   * and every visitor without somebody's referral code was redirected to a
+   * staff sign-in box.
+   */
+  '/login', '/setup', '/apply', '/refer', '/f/', '/j/', '/signin/', '/public-alumni',
   '/portal', '/class/',
   '/api/student/', '/api/auth/', '/api/setup/', '/api/signin/',
   '/api/classes/signin', '/api/classes/pay', '/api/fees/pay',
@@ -127,8 +134,17 @@ export async function proxy(request: NextRequest) {
     NextResponse.redirect(new URL(path, request.url)), isDev
   )
 
+  /*
+   * The front page is public.
+   *
+   * Checked here rather than added to PUBLIC, and that is not fussiness: '/'
+   * ends with a slash, so isMatch would evaluate it as
+   * pathname.startsWith('/') — which is every route in the application. One
+   * entry in that list would have made the whole product anonymous.
+   */
+  if (pathname === '/') return pass()
+
   if (isMatch(pathname, PUBLIC)) return pass()
-  if (pathname === '/') return goto('/login')
 
   // Scheduled jobs authenticate themselves inside the handler.
   if (isMatch(pathname, CRON_PATHS)) return pass()
