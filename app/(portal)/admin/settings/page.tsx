@@ -14,8 +14,15 @@ export default function SettingsPage() {
     storage?: boolean; senderId?: string
   }
   /** What /api/admin/chatbot-check reports, so the JSX below is checked. */
-  type BotCheck = { id: string; label: string; status: 'ok' | 'warn' | 'fail'; detail: string; fix?: string }
-  type BotReport = { status: 'ok' | 'warn' | 'fail'; summary: string; checks: BotCheck[] }
+  type BotCheck = {
+    id: string; label: string; status: 'ok' | 'warn' | 'fail'
+    detail: string; fix?: string; scope?: 'core' | 'integration'
+  }
+  type BotReport = {
+    status: 'ok' | 'warn' | 'fail'; summary: string
+    integrationSummary?: string
+    checks: BotCheck[]; integrations?: BotCheck[]
+  }
 
   const [bot, setBot] = useState<BotReport | null>(null)
   const [botBusy, setBotBusy] = useState(false)
@@ -197,13 +204,16 @@ export default function SettingsPage() {
                   : bot.status === 'warn' ? 'text-[var(--warn)]' : 'text-[var(--ok)]'}`}>
                   {bot.summary}
                 </div>
+                {bot.integrationSummary && (
+                  <p className="t-sub mt-1">{bot.integrationSummary}</p>
+                )}
               </div>
               <Button variant="secondary" onClick={runBotCheck} disabled={botBusy}>
                 {botBusy ? 'Checking…' : 'Check again'}
               </Button>
             </div>
             <ul className="divide-y divide-[var(--line-soft)]">
-              {bot.checks.map(c => (
+              {[...bot.checks, ...(bot.integrations || [])].map(c => (
                 <li key={c.id} className="py-3 flex gap-3">
                   <span aria-hidden="true" className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
                     c.status === 'fail' ? 'bg-[var(--danger)]'
@@ -213,6 +223,17 @@ export default function SettingsPage() {
                     <p className="text-[13px] text-[var(--ink-soft)] mt-0.5 leading-relaxed">{c.detail}</p>
                     {c.fix && (
                       <p className="text-[13px] text-[var(--warn)] mt-1 leading-relaxed">{c.fix}</p>
+                    )}
+                    {c.scope === 'integration' && c.status !== 'ok' && (
+                      /*
+                        A channel that is off by choice reads as a failure
+                        unless it is labelled. It is deferred, and the product
+                        behind it works.
+                      */
+                      <span className="inline-block mt-1.5 text-[11px] font-semibold uppercase tracking-wide
+                        text-[var(--ink-faint)] bg-[var(--line-soft)] rounded px-1.5 py-0.5">
+                        Deferred
+                      </span>
                     )}
                   </div>
                 </li>

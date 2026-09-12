@@ -76,8 +76,20 @@ export function nextStage(current: Stage, signal: StageSignal): Stage {
   if (signal.handedOver) return 'HANDED_OVER'
 
   const candidate = stageFor(signal)
-  // Never move backwards. The deepest point reached is where the lead is.
-  return DEPTH[candidate] > DEPTH[current] ? candidate : current
+
+  /*
+   * Never move BACKWARDS — but a signal at the same depth is not backwards.
+   *
+   * This was `>`, which meant a lead who asked the fee and then asked for the
+   * brochure stayed on "Asking about fees": the two sit at the same depth, so
+   * the newer and more actionable signal was discarded and the marketer's
+   * queue described the wrong thing.
+   *
+   * Depth exists to stop a later idle question demoting a hot lead. Between
+   * two signals of equal weight the more recent one is the better description
+   * of where the conversation actually is.
+   */
+  return DEPTH[candidate] >= DEPTH[current] ? candidate : current
 }
 
 function stageFor(signal: StageSignal): Stage {

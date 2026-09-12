@@ -6,6 +6,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import {
   type SmsProvider, type SendOutcome, classifyFailure, extractMessageId,
 } from '@/lib/notifications/provider'
+import { recordingProviderFor } from '@/lib/messaging'
 
 /**
  * Arkesel SMS transport.
@@ -59,6 +60,27 @@ export async function deliverSMS(to: string, message: string): Promise<DeliveryR
   }
   if (!message?.trim()) {
     return { ok: false, permanent: true, error: 'Empty message' }
+  }
+
+  /*
+   * ── NO SMS CREDENTIALS: RECORD, DO NOT FAIL ──────────────────────────────
+   *
+   * Text messages are deliberately disconnected. Failing every send would
+   * make every flow that follows one unreachable — the assignment
+   * notification, the voucher request, the class reminder — so none of them
+   * could be exercised at all.
+   *
+   * The recording provider takes it instead: the message is kept, the send
+   * reports success so the logic continues, and the sms_logs row the caller
+   * writes says `recorded`. Assistant readiness reports the channel as
+   * deferred rather than broken. Setting ARKESEL_API_KEY skips this entirely.
+   */
+  const recorder = recordingProviderFor('sms')
+  if (recorder) {
+    const result = await recorder.send({ to: recipient, body: message, kind: 'text' })
+    // Not permanent: a recorded message is not a rejected one, and nothing
+    // about it should make the queue give up on the number.
+    return { ok: result.ok, permanent: false, response: { provider: recorder.id, recorded: true } }
   }
 
   let apiKey: string

@@ -7,6 +7,7 @@ import { loadProgrammes, type Programme } from '@/lib/chatbot/programme'
 import { loadKnowledge } from '@/lib/chatbot/knowledge'
 import { capabilityOf } from '@/lib/chatbot/programmeRules'
 import { eligibleMarketers } from '@/lib/leads/eligibility'
+import { channelStatuses } from '@/lib/messaging'
 
 export const runtime = 'nodejs'
 
@@ -49,14 +50,25 @@ type Check = {
   detail: string
   /** What to do about it, when there is something to do. */
   fix?: string
+  /**
+   * `core` is the product itself: data, rules, permissions, the assistant.
+   * `integration` is a channel to the outside world.
+   *
+   * They are reported separately and the overall verdict comes from `core`
+   * alone. A channel that is deliberately disconnected is deferred, not
+   * broken — and a system that calls itself broken for a reason its owner
+   * chose is a system nobody reads the warnings of.
+   */
+  scope: 'core' | 'integration'
 }
 
 export const GET = withGuard({ portals: ['settings'] }, async () => {
   const sb = createServiceClient()
-  const checks: Check[] = []
+  const core: Omit<Check, 'scope'>[] = []
+  const integration: Omit<Check, 'scope'>[] = []
 
   // ── 1. The model ─────────────────────────────────────────────────────────
-  checks.push(
+  core.push(
     !SECRETS.aiAssistantEnabled
       ? { id: 'model', label: 'AI replies', status: 'warn',
           detail: 'Switched off in configuration. The assistant will not answer anything.',
@@ -87,30 +99,30 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
       programmes = loaded.data
     } else {
       programmesFailed = true
-      checks.push({ id: 'programmes', label: 'Programmes', status: 'fail',
+      core.push({ id: 'programmes', label: 'Programmes', status: 'fail',
         detail: `The programme records could not be read: ${loaded.error}`,
         fix: 'Every question about a programme, a fee or a date will be handed to a person until this is fixed. Check the courses table exists and the service key can read it.' })
     }
   } catch (e) {
     programmesFailed = true
-    checks.push({ id: 'programmes', label: 'Programmes', status: 'fail',
+    core.push({ id: 'programmes', label: 'Programmes', status: 'fail',
       detail: `The programme loader threw: ${e instanceof Error ? e.message : e}`,
       fix: 'The courses table cannot be read at all. Check the service key and the table name.' })
   }
 
   if (!programmesFailed && !programmes.length) {
-    checks.push({ id: 'programmes', label: 'Programmes', status: 'fail',
+    core.push({ id: 'programmes', label: 'Programmes', status: 'fail',
       detail: 'The courses table was read successfully and holds no active programmes.',
       fix: 'Add at least one active programme under Academics → Courses. Until then the assistant has nothing to talk about.' })
   }
 
   if (programmes.length) {
     const withFee = programmes.filter(p => p.feeInPerson !== null || p.feeOnline !== null)
-    checks.push({
+    core.push({
       id: 'programmes', label: 'Programmes', status: 'ok',
       detail: `${programmes.length} active programme${programmes.length === 1 ? '' : 's'} loaded.`,
     })
-    checks.push(
+    core.push(
       withFee.length === programmes.length
         ? { id: 'fees', label: 'Course fees', status: 'ok',
             detail: `All ${programmes.length} have a fee recorded.` }
@@ -125,7 +137,7 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
 
     // ── 3. Brochures and cohorts, per programme ────────────────────────────
     const withBrochure = programmes.filter(p => p.brochureUrl)
-    checks.push({
+    core.push({
       id: 'brochures', label: 'Brochures', status: withBrochure.length ? 'ok' : 'warn',
       detail: `${withBrochure.length} of ${programmes.length} have a brochure on file.`,
       fix: withBrochure.length === programmes.length ? undefined
@@ -133,7 +145,7 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
     })
 
     const withCohort = programmes.filter(p => p.cohorts.length)
-    checks.push({
+    core.push({
       id: 'cohorts', label: 'Scheduled cohorts', status: withCohort.length ? 'ok' : 'warn',
       detail: `${withCohort.length} of ${programmes.length} have a class running or starting soon.`,
       fix: withCohort.length ? undefined
@@ -146,7 +158,7 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
     const sample = programmes[0]
     const cap = capabilityOf(sample, 'https://example/apply/CODE')
     const able = Object.entries(cap).filter(([, v]) => v).map(([k]) => k.replace('can', ''))
-    checks.push({
+    core.push({
       id: 'actions', label: 'Options offered to a lead', status: able.length > 1 ? 'ok' : 'warn',
       detail: `For "${sample.name}" the assistant can offer: ${able.length ? able.join(', ') : 'nothing but speaking to a person'}.`,
       fix: able.length > 1 ? undefined : 'Add a fee, a brochure and a scheduled class so the assistant has something to offer.',
@@ -157,14 +169,14 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
   try {
     const loadedK = await loadKnowledge()
     if (!loadedK.ok) {
-      checks.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',
+      core.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',
         detail: `The knowledge base could not be read: ${loadedK.error}`,
         fix: 'This is a read failure, not an empty table. The assistant hands every conversation to a person while it lasts.' })
       throw new Error('handled')
     }
     const k = loadedK.data
     const total = k.counts.info + k.counts.faqs
-    checks.push({
+    core.push({
       id: 'knowledge', label: 'Knowledge base', status: total ? 'ok' : 'warn',
       detail: total
         ? `${k.counts.info} facts and ${k.counts.faqs} questions the assistant may answer from.`
@@ -173,7 +185,7 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
     })
   } catch (e) {
     if (!(e instanceof Error && e.message === 'handled')) {
-      checks.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',
+      core.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',
         detail: `Could not be read: ${e instanceof Error ? e.message : e}` })
     }
   }
@@ -181,7 +193,7 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
   // ── 6. Who can receive a lead, and be named in a handover ────────────────
   try {
     const pool = await eligibleMarketers()
-    checks.push({
+    core.push({
       id: 'pool', label: 'Lead recipients', status: pool.length ? 'ok' : 'fail',
       detail: pool.length
         ? `${pool.length} can receive a lead.`
@@ -192,14 +204,14 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
     const { count: withCode } = await sb.from('profiles')
       .select('id', { count: 'exact', head: true })
       .not('marketer_code', 'is', null)
-    checks.push({
+    core.push({
       id: 'links', label: 'Registration links', status: (withCode || 0) >= pool.length ? 'ok' : 'warn',
       detail: `${withCode || 0} staff have a personal registration code.`,
       fix: (withCode || 0) >= pool.length ? undefined
         : 'Anyone without one cannot have registration offered to their leads, because there is nowhere to send them.',
     })
   } catch (e) {
-    checks.push({ id: 'pool', label: 'Lead recipients', status: 'fail',
+    core.push({ id: 'pool', label: 'Lead recipients', status: 'fail',
       detail: `Could not be read: ${e instanceof Error ? e.message : e}` })
   }
 
@@ -211,7 +223,7 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
       .select('id', { count: 'exact', head: true }).eq('ai_paused', true)
     const orphaned = Math.max(0, (paused || 0) - (waiting || 0))
 
-    checks.push({
+    core.push({
       id: 'waiting', label: 'Waiting for a person', status: (waiting || 0) > 10 ? 'warn' : 'ok',
       detail: `${waiting || 0} conversation${waiting === 1 ? '' : 's'} handed over and waiting.`,
       fix: (waiting || 0) > 10
@@ -220,7 +232,7 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
     })
 
     if (orphaned > 0) {
-      checks.push({
+      core.push({
         id: 'orphaned', label: 'Paused without a handover', status: 'warn',
         detail: `${orphaned} lead${orphaned === 1 ? ' is' : 's are'} paused but not marked as waiting for anyone. Nobody is answering them.`,
         fix: 'These are usually a colleague replying on the line. If that is not it, Resume AI under Settings clears them.',
@@ -228,22 +240,33 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
     }
   } catch { /* the counts are a nicety; their absence is not a failure */ }
 
-  // ── 8. A line to send from ───────────────────────────────────────────────
-  try {
-    const { count } = await sb.from('profiles')
-      .select('id', { count: 'exact', head: true }).eq('wasender_status', 'connected')
-    const central = !!SECRETS.wasenderApiKey
-    checks.push({
-      id: 'whatsapp', label: 'WhatsApp line', status: (count || central) ? 'ok' : 'fail',
-      detail: count ? `${count} connected line${count === 1 ? '' : 's'}${central ? ', plus the central line' : ''}.`
-        : central ? 'The central line only. Replies will not come from a marketer’s own number.'
-        : 'No connected line. Nothing the assistant writes can be delivered.',
-      fix: (count || central) ? undefined : 'Connect a line under WhatsApp lines.',
-    })
-  } catch { /* as above */ }
+  /*
+   * ── INTEGRATIONS, REPORTED SEPARATELY ────────────────────────────────────
+   *
+   * WhatsApp and SMS are deliberately disconnected while the product is being
+   * finished. A channel that is off by choice is DEFERRED, not broken, and it
+   * does not count towards the verdict — a system that calls itself broken for
+   * a reason its owner chose is a system whose warnings nobody reads.
+   *
+   * What IS a core failure is the webhook being open, because that is a
+   * property of this application rather than of a provider.
+   */
+  for (const ch of channelStatuses()) {
+    integration.push(
+      ch.delivers
+        ? { id: ch.channel, label: ch.channel === 'whatsapp' ? 'WhatsApp' : 'Text messages',
+            status: 'ok', detail: `Connected through ${ch.provider}. Messages reach people.` }
+        : { id: ch.channel, label: ch.channel === 'whatsapp' ? 'WhatsApp' : 'Text messages',
+            status: 'warn',
+            detail: 'Not connected. Messages are recorded rather than delivered, so every flow behind them still runs and nothing reaches a person.',
+            fix: ch.channel === 'whatsapp'
+              ? 'Set WASENDER_API_KEY when the line is ready. Nothing else changes.'
+              : 'Set ARKESEL_API_KEY when there is credit. Nothing else changes.' },
+    )
+  }
 
-  // ── 9. Is the webhook open to anybody who knows the URL? ────────────────
-  checks.push(
+  // The webhook is this application's own door, not a provider's.
+  core.push(
     SECRETS.wasenderWebhookSecret
       ? { id: 'webhook', label: 'Webhook protection', status: 'ok',
           detail: 'Incoming WhatsApp messages must carry the shared secret.' }
@@ -252,14 +275,20 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
           fix: 'Set WASENDER_WEBHOOK_SECRET in Vercel, then add the same value to the callback URL in WaSender as ?secret=… or an x-webhook-secret header. Until both sides carry it the endpoint stays open.' },
   )
 
-  const worst = checks.some(c => c.status === 'fail') ? 'fail'
-    : checks.some(c => c.status === 'warn') ? 'warn' : 'ok'
+  const worst = core.some(c => c.status === 'fail') ? 'fail'
+    : core.some(c => c.status === 'warn') ? 'warn' : 'ok'
+
+  const deferred = integration.filter(c => c.status !== 'ok').length
 
   return NextResponse.json({
     status: worst,
     summary: worst === 'ok' ? 'The assistant has everything it needs.'
       : worst === 'warn' ? 'The assistant will work, but some answers will go to a person.'
       : 'The assistant cannot do part of its job. See below.',
-    checks,
+    integrationSummary: deferred
+      ? `${deferred} channel${deferred === 1 ? '' : 's'} not connected. Messages are recorded, not delivered.`
+      : 'All channels connected.',
+    checks: core.map(c => ({ ...c, scope: 'core' as const })),
+    integrations: integration.map(c => ({ ...c, scope: 'integration' as const })),
   })
 })

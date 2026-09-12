@@ -1,5 +1,6 @@
 import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
+import { recordingProviderFor } from '@/lib/messaging'
 
 // WaSender API — https://wasenderapi.com
 const WASENDER_URL = SECRETS.wasenderUrl || 'https://wasenderapi.com/api/send-message'
@@ -42,8 +43,42 @@ async function wasenderSend(
   mediaUrl?: string,
   senderId?: string | null,
 ): Promise<boolean> {
-  const { key: apiKey, profileId } = await resolveApiKey(senderId)
   const phone = normalizePhone(to)
+
+  /*
+   * ── NO LINE CONFIGURED: RECORD, DO NOT FAIL ──────────────────────────────
+   *
+   * This used to log a failure and return false. That is right when a line is
+   * supposed to exist and does not — and wrong while WhatsApp is deliberately
+   * disconnected, which is the situation the centre is in now. Every message
+   * failing meant every flow that follows a successful send was unreachable,
+   * so nothing downstream of a WhatsApp message could be exercised at all.
+   *
+   * The recording provider takes it instead: the message is kept, the send
+   * reports success so the business logic continues, and whatsapp_logs marks
+   * it `recorded` rather than `sent` so no screen implies a person received
+   * anything. Assistant readiness reports the channel as deferred, not broken.
+   *
+   * When WASENDER_API_KEY is set this branch is not taken and the real
+   * provider sends, with no other change anywhere.
+   */
+  const recorder = recordingProviderFor('whatsapp')
+  if (recorder) {
+    const result = await recorder.send({
+      to: phone, body: message, kind: type,
+      mediaUrl: mediaUrl ?? null, senderId: senderId ?? null,
+    })
+    try {
+      const sb = createServiceClient()
+      await sb.from('whatsapp_logs').insert({
+        recipient: phone, message, status: 'recorded',
+        provider_response: { provider: recorder.id, detail: result.detail },
+      })
+    } catch { /* the recording is the point; the log is a nicety */ }
+    return result.ok
+  }
+
+  const { key: apiKey, profileId } = await resolveApiKey(senderId)
 
   if (!apiKey) {
     console.error('[WaSender] No API key configured — set WASENDER_API_KEY')
