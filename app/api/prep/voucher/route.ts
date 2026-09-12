@@ -66,12 +66,35 @@ export async function POST(req: NextRequest) {
         }).then(() => {}, () => {})
         // SMS to accountants only (avoid spamming super admins)
       }
-      // One SMS to the finance line(s)
+      /*
+       * One SMS to the finance line(s).
+       *
+       * This is the whole point of the request: a student is ready to sit
+       * their exam and somebody in finance has to go and buy the voucher.
+       * Every failure here was swallowed by a bare catch, so if no text
+       * arrived nobody knew one had been attempted — the student simply
+       * waited, and the in-app notification was the only thing left carrying
+       * it.
+       */
       const smsTargets = (financeStaff || []).filter((f: any) => f.phone).slice(0, 3)
+      let reached = 0
       for (const f of smsTargets) {
-        try { await sendSMS(f.phone, `CCE: Voucher requested for ${rec.student_name} (${rec.program_name || rec.program_code}). Please buy and input it in the finance portal.`) } catch {}
+        try {
+          await sendSMS(f.phone, `CCE: Voucher requested for ${rec.student_name} (${rec.program_name || rec.program_code}). Please buy and input it in the finance portal.`)
+          reached++
+        } catch (e) {
+          console.error('[voucher] could not text finance', f.phone, e instanceof Error ? e.message : e)
+        }
       }
-    } catch {}
+      if (smsTargets.length && !reached) {
+        console.error('[voucher] NOBODY IN FINANCE WAS TEXTED for', rec.student_name,
+          '— the request exists in the portal only')
+      }
+    } catch (e) {
+      // The request row is already written; only the alerting failed.
+      console.error('[voucher] could not alert finance for', rec.student_name,
+        e instanceof Error ? e.message : e)
+    }
 
     // Log on the prep record
     try { await sb.from('prep_activity').insert({ prep_record_id: rec.id, coordinator_id: s.userId, action: 'voucher_requested', detail: `Requested voucher for ${rec.student_name}` }) } catch {}

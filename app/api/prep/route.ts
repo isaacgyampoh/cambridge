@@ -133,9 +133,31 @@ export async function POST(req: NextRequest) {
             const link = `${appUrl}/refer?m=${coord.marketer_code}`
             msg += `\n\nIf you know anyone who'd benefit from our programmes, we'd love a referral — share this link: ${link}`
           }
-          try { await sendWhatsAppText(rec.phone, msg) } catch { try { await sendSMS(rec.phone, msg) } catch {} }
+          /*
+           * WhatsApp first, SMS if that fails — and a log if both do.
+           *
+           * Both attempts sat in bare catches, so a student who passed their
+           * exam could be congratulated by nobody, with the referral link
+           * that goes with it never sent, and no trace anywhere that it had
+           * not happened.
+           */
+          try {
+            await sendWhatsAppText(rec.phone, msg)
+          } catch {
+            try {
+              await sendSMS(rec.phone, msg)
+            } catch (e) {
+              console.error('[prep] could not congratulate', rec.student_name, rec.phone,
+                '— neither WhatsApp nor SMS:', e instanceof Error ? e.message : e)
+            }
+          }
         }
-      } catch {}
+      } catch (e) {
+        // The pass itself is already recorded; only the message failed.
+        // `before` rather than `rec`, which is scoped inside the try.
+        console.error('[prep] pass notification failed for', before?.student_name,
+          e instanceof Error ? e.message : e)
+      }
     }
     return NextResponse.json({ success: true })
   }
