@@ -2,6 +2,7 @@ import 'server-only'
 import { SECRETS } from '@/lib/config.server'
 import { aiComplete, aiConfigured } from '@/lib/integrations/ai-client'
 import { loadKnowledge } from '@/lib/chatbot/knowledge'
+import { allowedAmounts, unsupportedAmounts } from '@/lib/chatbot/moneyGuard'
 import { hasFacts } from '@/lib/chatbot/format'
 import { buildSystemPrompt, buildOpeningPrompt, selfDescription } from '@/lib/chatbot/persona'
 import { classify, scoreIntent, ESCALATING, type Intent, type IntentScore } from '@/lib/chatbot/intent'
@@ -57,8 +58,14 @@ export type ChatbotReply = {
   score: IntentScore
   /** Offered with the reply, so the caller can record what was on the table. */
   actions: Action[]
-  /** Why there is no text. */
-  skipped?: 'disabled' | 'no-model' | 'model-failed'
+  /**
+   * Why the model's reply was not the thing sent.
+   *
+   * `unsupported-amount` is not a failure of the model being absent — it is a
+   * reply that arrived, was read, and was refused because it quoted a price
+   * the centre has no record of.
+   */
+  skipped?: 'disabled' | 'no-model' | 'model-failed' | 'unsupported-amount'
 }
 
 /** Escalating intents, mapped to the reason recorded against the handover. */
@@ -205,6 +212,45 @@ export async function chatbotReply(opts: {
   }
 
   const text = forWhatsApp(raw)
+
+  /*
+   * ── WHAT IT SAID, AGAINST WHAT IS ON FILE ────────────────────────────────
+   *
+   * Every guard above this point asks whether the assistant HAS the facts.
+   * None asked whether the sentence it produced matches them. The prompt
+   * requests that, and a prompt is a request: a model holding "PMP, GHS
+   * 3,950" will sometimes write 4,000 — rounding, merging two programmes, or
+   * simply completing the shape of the question.
+   *
+   * A wrong fee is the most expensive sentence this product can send. It goes
+   * to a stranger, in a marketer's name, and the centre is then left either
+   * honouring a price it never set or telling somebody it has gone up since
+   * they decided to enrol.
+   *
+   * So the reply is not sent. Handing to a person is the same answer this
+   * file gives every other time it cannot stand behind what it would say, and
+   * it is recoverable in a way that a quoted number is not.
+   */
+  const known = allowedAmounts(
+    ctx.programme ? [ctx.programme, ...ctx.allProgrammes] : ctx.allProgrammes,
+    knowledge.text,
+  )
+  const invented = unsupportedAmounts(text, known)
+  if (invented.length) {
+    console.error(
+      '[chatbot] reply quoted an amount that is not on file:', invented.join(', '),
+      '— handing to a person instead of sending it',
+    )
+    return {
+      ...base,
+      text: fallbackMessage(ctx),
+      attachment: null,
+      handoff: 'assistant_unsure',
+      actions: [],
+      skipped: 'unsupported-amount',
+    }
+  }
+
   const actions = actionsFor({
     capability: ctx.capability,
     stage: base.stage,

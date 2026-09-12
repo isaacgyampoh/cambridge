@@ -703,6 +703,20 @@ async function handleInbound(req: NextRequest) {
   })
 
   const answer = await chatbotReply({ message: text, ctx, history, offered })
+
+  /*
+   * The assistant tried to quote a price the centre has no record of, and the
+   * reply was withheld. Recorded where staff actually look, not only in a
+   * server log nobody reads: it usually means a course record is missing its
+   * fee, so the model had nothing to anchor to and produced a number. That is
+   * fixable on the Courses screen, by whoever sees this.
+   */
+  if (answer.skipped === 'unsupported-amount') {
+    await logInbound(sb, 'whatsapp', phone, text, 'wrong_fee_withheld',
+      'The assistant quoted a fee that is not on file. The reply was not sent and a colleague was asked to take over. '
+      + 'Check that this programme has its fee recorded.', null)
+  }
+
   let reply = answer.text
 
   let answeredBy = 'skipped'

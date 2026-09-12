@@ -9,6 +9,8 @@ import { toast } from 'sonner'
 const TONE: Record<string, any> = {
   replied: 'success', ignored_not_lead: 'warning', paused: 'neutral',
   handoff: 'warning', no_reply: 'danger', error: 'danger',
+  wrong_fee_withheld: 'danger',
+  unknown_line: 'warning', line_lookup_failed: 'warning',
 }
 const LABEL: Record<string, string> = {
   replied: 'Replied',
@@ -17,6 +19,13 @@ const LABEL: Record<string, string> = {
   handoff: 'Handed to staff',
   no_reply: 'No reply produced',
   error: 'Could not read message',
+  // The assistant produced a price nothing on file supports, so it was not
+  // sent. Almost always a course record with no fee recorded.
+  wrong_fee_withheld: 'Wrong fee — not sent',
+  // A message arrived on a number no marketer has connected; usually a
+  // marketer changed their line and their profile still holds the old one.
+  unknown_line: 'Unrecognised WhatsApp line',
+  line_lookup_failed: 'Could not check the line',
 }
 
 export default function WebhookLogPage() {
