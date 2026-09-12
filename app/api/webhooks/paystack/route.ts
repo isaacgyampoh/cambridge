@@ -10,6 +10,7 @@ import {
   verifyPaystackSignature, classifyPayment, eventKey,
   minorUnitsToGHS, amountIsAcceptable, type PaystackEvent,
 } from '@/lib/payments/verify'
+import { lookup } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 export const maxDuration = 60
@@ -121,9 +122,42 @@ async function handleApplicationPayment(
   sb: SB, applicationId: string, reference: string,
   amount: number, event: PaystackEvent, req: NextRequest
 ) {
-  const { data: app } = await sb.from('applications')
-    .select('*, course:course_id(id, name, registration_fee)')
-    .eq('id', applicationId).maybeSingle()
+  const { row: app, failed } = await lookup(
+    sb.from('applications')
+      .select('*, course:course_id(id, name, registration_fee)')
+      .eq('id', applicationId).maybeSingle(),
+  )
+
+  /*
+   * ── A FAILED READ IS NOT AN UNKNOWN APPLICATION ──────────────────────────
+   *
+   * This is the most expensive confusion in the file. Both outcomes used to
+   * land in the branch below, which records `payment.unknown_application` and
+   * answers 200 — and 200 is Paystack's signal that the webhook was handled,
+   * so it stops retrying.
+   *
+   * Money has already changed hands by the time this runs. If the read simply
+   * blipped, that 200 threw away the only notification the centre gets: the
+   * student has paid, no registration is completed, no admission is created,
+   * no letter is sent, and the audit line says the application did not exist.
+   * Nobody is looking for a payment that was recorded as belonging to nobody.
+   *
+   * 500 instead, so Paystack redelivers. A duplicate delivery is harmless —
+   * completeApplication claims each application exactly once — while a
+   * delivery that never comes back cannot be recovered from.
+   */
+  if (failed) {
+    console.error('[paystack] could not read application', applicationId, '—', failed)
+    await recordAudit({
+      action: 'payment.application_unreadable', resource: 'applications',
+      resourceId: applicationId, success: false,
+      metadata: { reference, reason: failed }, request: req,
+    })
+    return NextResponse.json(
+      { received: false, error: 'Could not read the application. Please redeliver.' },
+      { status: 500 },
+    )
+  }
 
   if (!app) {
     await recordAudit({

@@ -255,9 +255,12 @@ describe('registration cannot do the same thing twice', () => {
      * alreadyProcessed, and the admission, letter and fee ledger are never
      * created for a registration that was paid for.
      */
-    assert.match(src, /from\('message_jobs'\)\.delete\(\)/,
+    assert.match(src, /releaseJob\(`app_complete:\$\{applicationId\}`\)/,
       'retryable() must give the claim back.')
-    assert.match(src, /\.eq\('dedupe_key', `app_complete:\$\{applicationId\}`\)/)
+    // And the helper it delegates to must actually remove the claim, or the
+    // call above is a no-op that reads as a fix.
+    assert.match(codeOf('lib/messageJobs.ts'), /from\('message_jobs'\)\.delete\(\)\.eq\('dedupe_key', dedupeKey\)/,
+      'releaseJob must delete the claim row.')
   })
 
   test('the answer given to the caller is one they can act on', () => {
@@ -297,5 +300,97 @@ describe('uniqueness and duplicate checks fail closed', () => {
     const guard = src.indexOf('existingFailed) return unavailable')
     const out = src.indexOf("action === 'out'")
     assert.ok(guard > 0 && guard < out, 'The guard must precede the clock-out branch.')
+  })
+})
+
+/**
+ * ─── THE FAIL-OPEN HALF, CONTINUED ──────────────────────────────────────────
+ *
+ * A refusal announces itself. These do not: each is a guard written so that a
+ * failed read reads as "it has not happened yet", and the thing then happens
+ * a second time — or, worse, a first time that never comes.
+ */
+describe('a payment is never lost to a failed read', () => {
+  const src = codeOf('app/api/webhooks/paystack/route.ts')
+
+  test('an unreadable application asks Paystack to redeliver', () => {
+    /*
+     * The branch below it answers 200 and records `unknown_application`. 200
+     * is Paystack's signal that the webhook was handled, so it stops
+     * retrying — and the money has already changed hands. A blip meant the
+     * student had paid, no registration existed, and the audit line said the
+     * application did not exist. Nobody goes looking for that.
+     */
+    assert.match(src, /if \(failed\)[\s\S]{0,700}status: 500/,
+      'A failed read must be answered with a retryable status, not 200.')
+    assert.match(src, /payment\.application_unreadable/,
+      'It must be distinguishable in the audit from a genuinely unknown application.')
+  })
+
+  test('and a genuinely unknown application still settles at 200', () => {
+    // Redelivering that forever would achieve nothing.
+    assert.match(src, /payment\.unknown_application[\s\S]{0,400}received: true/)
+  })
+})
+
+describe('a student cannot be issued two certificates', () => {
+  const src = codeOf('app/api/classes/complete/route.ts')
+
+  test('the duplicate check stops on a failed read', () => {
+    assert.match(src, /const \{ row: existing, failed: certFailed \} = await lookup\(/)
+    assert.match(src, /if \(certFailed\)/,
+      'Read as "none yet", a failed read mints a second certificate number.')
+  })
+
+  test('and says so rather than reporting one was issued', () => {
+    assert.match(src, /if \(certFailed\)[\s\S]{0,400}certIssued: false/)
+  })
+})
+
+describe('a lead is never taken off the marketer who owns it', () => {
+  const src = codeOf('lib/autoAssign.ts')
+
+  test('an unreadable owner stops instead of falling into the lottery', () => {
+    /*
+     * The claim above runs with p_force: false, so reaching that read means
+     * the lead IS owned. Falling through went on to assign_lead_atomic — the
+     * one path whose job is giving a lead to somebody new.
+     */
+    assert.match(src, /const \{ row: lead, failed \} = await lookup\(/)
+    const guard = src.indexOf('if (failed)')
+    const lottery = src.indexOf('assign_lead_atomic')
+    assert.ok(guard > 0 && guard < lottery,
+      'The guard must come before the lottery, or it guards nothing.')
+    assert.match(src.slice(guard, lottery), /return null/,
+      'It must stop, not continue.')
+  })
+})
+
+describe('a claim is given back when the work never happened', () => {
+  test('releaseJob removes the row, so the job can be claimed again', () => {
+    const src = codeOf('lib/messageJobs.ts')
+    assert.match(src, /export async function releaseJob/)
+    assert.match(src, /from\('message_jobs'\)\.delete\(\)\.eq\('dedupe_key', dedupeKey\)/)
+  })
+
+  test('markSent(false) is NOT a retry — which is why releaseJob exists', () => {
+    /*
+     * claimJob succeeds by inserting a unique dedupe_key and never consults
+     * `status`, so a row marked 'failed' is as permanently claimed as one
+     * marked 'sent'. That is right for work that was attempted and rejected,
+     * and wrong for work that never began.
+     */
+    const src = codeOf('lib/messageJobs.ts')
+    assert.match(src, /status: ok \? 'sent' : 'failed'/)
+    assert.ok(!/claimJob[\s\S]{0,400}status/.test(src),
+      'If claimJob ever consults status, this whole distinction needs revisiting.')
+  })
+
+  test('the welcome gallery hands its claim back rather than going unsent forever', () => {
+    const src = codeOf('lib/leadWelcome.ts')
+    assert.match(src, /if \(failed\)[\s\S]{0,200}releaseJob\(galleryKey\)/,
+      'The claim is already held here; marking it failed means never sending it.')
+    // And a genuine absence still settles, because there is nothing to retry.
+    assert.match(src, /else \{[\s\S]{0,160}markSent\(galleryKey, false\)/)
   })
 })

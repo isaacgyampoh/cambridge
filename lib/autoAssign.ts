@@ -3,6 +3,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { chatbotOpening, buildLeadContext } from '@/lib/chatbot'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { eligibleMarketers, isEligible } from '@/lib/leads/eligibility'
+import { lookup } from '@/lib/db/lookup'
 
 /**
  * Assign a lead to a marketer.
@@ -52,8 +53,32 @@ export async function autoAssignLead(
       await onLeadAssigned(leadId, preferredMarketerId)
       return preferredMarketerId
     }
-    // Not claimed → it already had an owner. Report that owner.
-    const { data: lead } = await sb.from('leads').select('assigned_to').eq('id', leadId).maybeSingle()
+    /*
+     * Not claimed → it already had an owner. Report that owner.
+     *
+     * ── AND STOP IF WE CANNOT READ WHO ──────────────────────────────────
+     *
+     * The claim above ran with p_force: false precisely so a lead that is
+     * already owned is never stolen. Reaching here means it IS owned. If this
+     * read then fails, `lead?.assigned_to` is undefined and execution used to
+     * carry on into the weighted lottery below — which is the one code path
+     * that exists to give a lead to somebody new.
+     *
+     * So a database blip could take a lead off the marketer who already had
+     * it, and the only trace would be an assignment that looked ordinary.
+     * That is somebody's commission.
+     *
+     * Returning null says "not assigned by me", which every caller already
+     * handles: the lead keeps the owner it has, and nothing is announced to
+     * anybody who has not earned it.
+     */
+    const { row: lead, failed } = await lookup(
+      sb.from('leads').select('assigned_to').eq('id', leadId).maybeSingle(),
+    )
+    if (failed) {
+      console.error('[autoAssign] lead', leadId, 'is already owned but the owner could not be read:', failed)
+      return null
+    }
     if (lead?.assigned_to) return lead.assigned_to
   }
 

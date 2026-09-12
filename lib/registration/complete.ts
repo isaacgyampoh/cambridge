@@ -9,6 +9,7 @@ import { resolveDocument } from '@/lib/documents/resolve'
 import { parseClassMode, classModeLabel, type ClassMode } from '@/lib/classMode'
 import { recordAudit } from '@/lib/audit'
 import { lookup } from '@/lib/db/lookup'
+import { releaseJob } from '@/lib/messageJobs'
 
 /**
  * Complete a paid registration.
@@ -104,9 +105,9 @@ export async function completeApplication(
    */
   const retryable = async (where: string, reason: string): Promise<CompletionResult> => {
     console.error(`[complete] ${where} read failed for ${applicationId}:`, reason)
-    await sb.from('message_jobs').delete()
-      .eq('dedupe_key', `app_complete:${applicationId}`)
-      .then(() => {}, () => {})
+    // The shared helper, so "give the claim back" is one behaviour and not
+    // two implementations that can drift.
+    await releaseJob(`app_complete:${applicationId}`)
     return { ok: false, reason: 'We could not finish this registration just now. Please try again in a moment.' }
   }
 

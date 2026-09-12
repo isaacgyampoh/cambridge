@@ -34,6 +34,30 @@ export async function claimJob(opts: {
   return !error
 }
 
+/**
+ * Give a claim back, so the work can be attempted again.
+ *
+ * ── WHY THIS IS NOT markSent(key, false) ───────────────────────────────────
+ *
+ * claimJob succeeds by inserting a row whose dedupe_key is unique. Once that
+ * row exists NOTHING re-claims it — `status` is never consulted, so a job
+ * marked 'failed' is just as permanently claimed as one marked 'sent'.
+ *
+ * That is correct for work that genuinely was attempted: a WhatsApp message
+ * the provider rejected should not be retried in a loop. It is wrong for work
+ * that never happened at all, which is what a failed read leaves behind — the
+ * claim says the gallery was sent, and the lead is simply never sent it, for
+ * good, with a row recording the opposite.
+ *
+ * So: markSent(key, false) for "we tried and it did not work", and this for
+ * "we never got as far as trying".
+ */
+export async function releaseJob(dedupeKey: string) {
+  const sb = createServiceClient()
+  const { error } = await sb.from('message_jobs').delete().eq('dedupe_key', dedupeKey)
+  if (error) console.error('[messageJobs] could not release', dedupeKey, '—', error.message)
+}
+
 export async function markSent(dedupeKey: string, ok = true) {
   const sb = createServiceClient()
   await sb.from('message_jobs').update({

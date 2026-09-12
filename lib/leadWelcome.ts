@@ -1,9 +1,10 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
-import { claimJob, markSent } from '@/lib/messageJobs'
+import { claimJob, markSent, releaseJob } from '@/lib/messageJobs'
 import { findCourse } from '@/lib/courseMatch'
 import { resolveBrochure } from '@/lib/documents/resolve'
 import { recordEvent } from '@/lib/chatbot/events'
+import { lookup } from '@/lib/db/lookup'
 
 /**
  * What a new lead receives: a short hello, then the gallery, then the brochure
@@ -59,10 +60,24 @@ export async function sendWelcomePack(opts: {
   // 2) The gallery.
   const galleryKey = `welcome_gallery:${opts.leadId}`
   if (await claimJob({ dedupeKey: galleryKey, leadId: opts.leadId, phone: opts.phone, kind: 'gallery' })) {
-    const { data: gallery } = await sb.from('documents')
-      .select('file_url, name').eq('is_gallery', true).eq('is_active', true)
-      .order('created_at', { ascending: false }).limit(1).maybeSingle()
-    if (gallery?.file_url) {
+    const { row: gallery, failed } = await lookup(
+      sb.from('documents')
+        .select('file_url, name').eq('is_gallery', true).eq('is_active', true)
+        .order('created_at', { ascending: false }).limit(1).maybeSingle(),
+    )
+    /*
+     * A failed read is not "there is no gallery". The claim is already held at
+     * this point, and nothing ever re-claims it, so marking it failed here
+     * would mean this lead is never sent the gallery — not now and not on any
+     * later run — while the record says it was dealt with. Hand the claim back
+     * instead and let the next attempt do it properly.
+     */
+    if (failed) {
+      // Only this step is abandoned. The brochure below is a different claim
+      // and a different promise to the same person.
+      console.error('[leadWelcome] gallery read failed:', failed)
+      await releaseJob(galleryKey)
+    } else if (gallery?.file_url) {
       const ok = await sendWhatsAppMedia(opts.phone, 'A look at our centre and past classes.', gallery.file_url, opts.marketerId || null)
       await markSent(galleryKey, ok)
       if (ok) {
@@ -70,6 +85,7 @@ export async function sendWelcomePack(opts: {
         await new Promise(r => setTimeout(r, 5000 + Math.random() * 4000))
       }
     } else {
+      // Genuinely no gallery on file — nothing to retry.
       await markSent(galleryKey, false)
     }
   }

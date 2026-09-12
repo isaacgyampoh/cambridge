@@ -44,7 +44,28 @@ export default function DocumentsPage() {
   const [posList, setPosList] = useState<any[]>([])
   const [previewing, setPreviewing] = useState(false)
 
-  useEffect(() => { setPosList(posDoc?.field_positions || []) }, [posDoc])
+  /*
+   * Opening the positions editor takes a copy of that document's saved
+   * positions to edit.
+   *
+   * This was an effect keyed on posDoc. Seeding editable state from an effect
+   * means the editor renders once with the PREVIOUS document's positions
+   * before the effect corrects it — so switching straight from one template to
+   * another showed the wrong coordinates for a frame, and any click landing in
+   * that frame edited the new document using the old document's numbers.
+   *
+   * Setting both together in the handler makes that gap impossible: there is
+   * no render in which the two disagree.
+   */
+  function openPositions(doc: any) {
+    setPosDoc(doc)
+    setPosList(doc?.field_positions || [])
+  }
+
+  function closePositions() {
+    setPosDoc(null)
+    setPosList([])
+  }
 
   function setPos(key: string, prop: string, val: string) {
     setPosList(list => {
@@ -510,7 +531,7 @@ export default function DocumentsPage() {
 
       {/* Field position editor */}
       {posDoc && (
-        <Modal open={!!posDoc} onClose={() => setPosDoc(null)} maxWidth="max-w-lg">
+        <Modal open={!!posDoc} onClose={closePositions} maxWidth="max-w-lg">
           <div className="p-6">
             <h2 className="font-semibold text-[var(--ink)] mb-1">Position fields</h2>
             <p className="text-[13px] text-[var(--ink-soft)] mb-4">
@@ -542,7 +563,7 @@ export default function DocumentsPage() {
                 className="h-11 px-5 rounded-xl bg-[var(--accent)] text-white text-sm font-semibold disabled:opacity-50">
                 {previewing ? 'Generating…' : 'Save & preview'}
               </button>
-              <button onClick={() => setPosDoc(null)}
+              <button onClick={closePositions}
                 className="h-11 px-5 rounded-2xl border border-[var(--line)] text-[var(--ink-soft)] text-sm font-medium">Close</button>
             </div>
             <p className="text-[12px] text-[var(--ink-faint)] mt-3">
@@ -619,7 +640,7 @@ export default function DocumentsPage() {
                 </div>
                 <div className="flex gap-1 ml-2">
                   {doc.is_template && (
-                    <button onClick={() => setPosDoc(doc)}
+                    <button onClick={() => openPositions(doc)}
                       className="text-[12px] font-semibold text-[var(--accent)] mr-3">Position fields</button>
                   )}
                   {doc.is_template && (

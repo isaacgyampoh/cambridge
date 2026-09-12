@@ -5,6 +5,7 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmailGeneric } from '@/lib/integrations/email'
 import { CONFIG } from '@/lib/config'
+import { lookup } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
@@ -51,8 +52,29 @@ export async function POST(req: NextRequest) {
   const courseName = (enr as any).batch?.course?.name || 'the programme'
   const month = new Date().toLocaleDateString('en-GH', { month: 'long', year: 'numeric' })
 
-  // Avoid duplicate certificate
-  const { data: existing } = await sb.from('certificates').select('id, download_token').eq('enrollment_id', enrollmentId).maybeSingle()
+  /*
+   * Avoid a duplicate certificate.
+   *
+   * This is the only thing standing between a student and a SECOND
+   * certificate — a second certificate number minted from the random range,
+   * a second download token, and two documents in circulation for one
+   * completion, each of which verifies. Read as "no certificate yet", a
+   * failed read produces exactly that.
+   *
+   * So a failure stops here. The class is already marked completed above, and
+   * completing again is harmless, so the honest answer is to say the
+   * certificate was not issued and let it be retried.
+   */
+  const { row: existing, failed: certFailed } = await lookup(
+    sb.from('certificates').select('id, download_token').eq('enrollment_id', enrollmentId).maybeSingle(),
+  )
+  if (certFailed) {
+    console.error('[classes/complete] certificate check failed:', certFailed)
+    return NextResponse.json({
+      success: true, certIssued: false,
+      note: 'Marked complete. The certificate could not be checked just now — try issuing it again in a moment.',
+    })
+  }
   const dl = existing?.download_token || token()
   if (!existing) {
     const certNo = `CCE/CERT/${new Date().getFullYear()}/${String(Math.floor(1000 + Math.random() * 9000))}`
