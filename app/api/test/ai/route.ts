@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
-import { chatbotOpening } from '@/lib/chatbot'
+import { chatbotOpening, buildLeadContext } from '@/lib/chatbot'
 import { aiConfigured } from '@/lib/integrations/ai-client'
 import { SECRETS } from '@/lib/config.server'
 
@@ -32,11 +32,12 @@ export async function GET(req: NextRequest) {
   let message: string | null = null
   let error: string | null = null
   try {
-    message = await chatbotOpening({
-      leadName: 'Kwame Boateng',
-      humanName: 'Ama',
-      courseInterest: 'Projects Management Professional (PMP)',
+    // A real context, so the sample shows what a lead would actually get —
+    // including the numbered options, which depend on the live programme data.
+    const ctx = await buildLeadContext({
+      lead: { id: 'preview', full_name: 'Kwame Boateng', course_interest: 'Projects Management Professional (PMP)' },
     })
+    message = (await chatbotOpening(ctx))?.text || null
   } catch (e: any) { error = e?.message || 'AI call failed' }
 
   return NextResponse.json({

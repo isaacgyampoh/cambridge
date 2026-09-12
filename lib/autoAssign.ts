@@ -1,6 +1,6 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
-import { chatbotOpening } from '@/lib/chatbot'
+import { chatbotOpening, buildLeadContext } from '@/lib/chatbot'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { eligibleMarketers, isEligible } from '@/lib/leads/eligibility'
 
@@ -166,11 +166,9 @@ export async function onLeadAssigned(leadId: string, marketerId: string): Promis
        * The marketer's name is still passed, but only so a handover can name
        * who is picking it up.
        */
-      const opening = await chatbotOpening({
-        leadName: lead.full_name,
-        humanName: marketer?.full_name,
-        courseInterest: lead.course_interest,
-      })
+      const ctx = await buildLeadContext({ lead: { ...lead, id: leadId, assigned_to: marketerId } })
+      const opened = await chatbotOpening(ctx)
+      const opening = opened?.text || null
       if (opening && await sendWhatsAppText(lead.phone, opening, marketerId)) {
         await sb.from('ai_conversations').insert({
           lead_id: leadId,

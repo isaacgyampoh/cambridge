@@ -39,25 +39,37 @@ describe('the assistant does not pretend to be a person', () => {
       'the marketer-voiced assistant is back in the tree')
   })
 
-  test('nothing writes in a named marketer’s voice', () => {
-    // The old prompt was built from `marketerName` and `marketerIntro`, and
-    // the reply was written in the first person as that person.
-    assert.ok(!/marketerIntro|marketerName/.test(codeOf(persona)),
-      'the persona is being built from a marketer identity again')
+  test('the marketer is named as a colleague, never as the author', () => {
+    /*
+     * The line the brief draws: use the marketer's context and name — "the
+     * virtual assistant supporting Ruth" — and never claim Ruth typed it. So
+     * the name IS in the prompt, and what must not be there is the old
+     * instruction to write as her.
+     */
+    const code = codeOf(persona)
+    assert.match(code, /virtual assistant supporting/,
+      'the assistant no longer says whose enquiry it is helping with')
+    assert.match(code, /must NEVER write as though/,
+      'nothing forbids the assistant from writing as the colleague')
+    assert.ok(!/You ARE \$\{|You ARE [A-Z]/.test(code),
+      'the assistant is being told it IS the marketer again')
+    assert.ok(!/marketerIntro/.test(code),
+      'the marketer\u2019s personal opening line is being borrowed again')
     assert.ok(!/marketerIntro/.test(codeOf(webhook)),
       'the webhook still passes a marketer voice to the assistant')
   })
 
   test('it says what it is when asked', () => {
-    assert.match(persona, /you are an assistant, not a member of staff/i)
-    assert.match(persona, /asks whether you are a human, a bot, or a real person/i,
+    assert.match(persona, /You are an assistant working alongside/i)
+    assert.match(persona, /asked whether you are a human or a bot/i,
       'the prompt does not tell it how to answer the one question that matters')
   })
 
   test('it never claims to have acted in the world', () => {
     // "I'll call you" from something that cannot call is the tell that costs
     // trust, because the call never comes.
-    assert.match(persona, /Never say "I'll call you"/i)
+    assert.match(persona, /You\s+cannot\s+ring anybody/i)
+    assert.match(persona, /Never claim to have called, met, or done anything/i)
   })
 
   test('the reply is no longer delayed to look human', () => {
@@ -168,7 +180,7 @@ describe('it answers only from real records', () => {
      */
     assert.equal(hasFacts({ text: '', counts: { info: 0, faqs: 0, courses: 0, batches: 0 } }), false)
     assert.equal(hasFacts({ text: 'x', counts: { info: 0, faqs: 0, courses: 1, batches: 0 } }), true)
-    assert.match(chatbot, /if \(!hasFacts\(knowledge\)\)/,
+    assert.match(chatbot, /if \(!hasFacts\(knowledge\) && !ctx\.programme\)/,
       'the assistant will answer questions of fact with nothing to answer from')
     assert.match(chatbot, /handoff: 'no_knowledge'/)
   })
@@ -206,8 +218,10 @@ describe('it answers only from real records', () => {
 
   test('the prompt forbids guessing, in the strongest terms available', () => {
     assert.match(persona, /NEVER GUESS/)
-    assert.match(persona, /has my payment cleared/i,
-      'the examples of what it may not guess have been thinned out')
+    assert.match(persona, /NOT RECORDED or NONE SCHEDULED/,
+      'the prompt no longer tells the assistant what an absent fact looks like')
+    assert.match(persona, /Never state a payment status/i,
+      'the examples of what it may not state have been thinned out')
   })
 })
 
@@ -248,24 +262,44 @@ describe('a handover is not undone by the next message', () => {
       'the auto-resume clears handovers again')
   })
 
-  test('the quiet-hours net covers the causes that are actually written', () => {
+  test('a handover is never resumed on a timer', () => {
     /*
-     * It tested for 'human'. Nothing ever wrote 'human' — the webhook writes
-     * 'manual' — so the net never fired once and a lead whose marketer went
-     * quiet stayed unanswered until somebody noticed.
+     * The brief is explicit: once handed over, the assistant must not resume
+     * because another message arrived. The lead asked for a person. An
+     * assistant returning hours later, having said a colleague was taking
+     * over, reads as the centre ignoring them — and on a payment question it
+     * would go back to saying it cannot check, for ever.
+     *
+     * A pause ends two ways: a colleague replies, or somebody presses Resume
+     * AI. There is no third.
      */
-    const resume = readFileSync('lib/aiResume.ts', 'utf8')
-    assert.match(resume, /cause !== 'manual' && cause !== 'assistant'/,
-      'the resume path checks for a value nothing writes')
-    assert.match(resume, /lead\.updated_at/,
-      'an assistant handover has no last_human_at and would resume immediately')
+    const resume = codeOf(readFileSync('lib/aiResume.ts', 'utf8'))
+    assert.ok(!/QUIET_HOURS|3600000|last_human_at/.test(resume),
+      'a timer that resumes a handover is back')
+    assert.match(resume, /isKnownCause\(lead\.ai_paused_by\)\) return false/,
+      'a recorded pause is being resumed automatically')
   })
 
-  test('it measures from a column that exists', () => {
+  test('the pause causes are one documented set, with no stragglers', () => {
+    /*
+     * 'human' lived in this file and nowhere else — nothing ever wrote it,
+     * which is why the resume path never fired once.
+     */
+    const resume = codeOf(readFileSync('lib/aiResume.ts', 'utf8'))
+    assert.match(resume, /PAUSE_CAUSES = \['manual', 'assistant'\]/)
+    assert.ok(!/'human'/.test(resume), 'a cause nothing writes is back in the model')
+
+    // And the two that are written must both be in the set.
+    assert.match(codeOf(readFileSync('app/api/webhooks/whatsapp/route.ts', 'utf8')), /ai_paused_by: takeOver \? 'manual'/)
+    assert.match(codeOf(readFileSync('lib/chatbot/handoff.ts', 'utf8')), /ai_paused_by: 'assistant'/)
+  })
+
+  test('it selects only columns that exist', () => {
     // Naming one that does not fails the whole select. That is how
     // lead_assign_pending.last_sms_at silenced every assignment notification.
     const resume = codeOf(readFileSync('lib/aiResume.ts', 'utf8'))
     assert.ok(!/ai_paused_at/.test(resume),
       'ai_paused_at is not a column on leads — the select would fail as a unit')
+    assert.match(resume, /select\('id, ai_paused, ai_paused_by'\)/)
   })
 })

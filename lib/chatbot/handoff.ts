@@ -1,5 +1,6 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
+import { recordEvent } from '@/lib/chatbot/events'
 
 /**
  * Passing a conversation to a person.
@@ -51,8 +52,12 @@ export async function handOffToHuman(opts: {
   reason: HandoffReason
   /** The lead's last message, so the colleague can see what they walked into. */
   lastMessage?: string | null
+  /** Which programme this is about, where one has been identified. */
+  programme?: string | null
+  /** How close they are to registering, so a queue can be ordered. */
+  score?: string | null
 }): Promise<HandoffResult> {
-  const { leadId, reason, lastMessage } = opts
+  const { leadId, reason, lastMessage, programme, score } = opts
   const sb = createServiceClient()
 
   try {
@@ -87,29 +92,62 @@ export async function handOffToHuman(opts: {
       return { handed: false, toName: owner, alreadyWaiting: false }
     }
 
-    await sb.from('lead_activities').insert({
-      lead_id: leadId,
-      activity_type: 'note',
-      subject: 'Passed to a person',
-      description: `${HANDOFF_LABEL[reason]}.${lastMessage ? ` They said: "${String(lastMessage).slice(0, 200)}"` : ''}`,
-      created_by: null,
-    }).then(() => {}, () => { /* the handover itself already succeeded */ })
+    /*
+     * The handover, recorded as an event.
+     *
+     * This is what makes it durable: section 15 of the brief wants the reason
+     * and the time persisted, and there is no column for either on `leads` —
+     * that table predates supabase/migrations and migrations here are applied
+     * by hand, so a new column would be dead until somebody ran the SQL.
+     * lead_activities has a timestamp and a body, exists today, and is already
+     * on the lead's screen. loadState reads these back, which is also how the
+     * assistant knows not to hand the same conversation over twice.
+     */
+    await recordEvent({
+      leadId,
+      event: 'HANDOVER_CREATED',
+      detail: [
+        HANDOFF_LABEL[reason],
+        programme ? `Programme: ${programme}` : null,
+        score ? `Intent: ${score}` : null,
+        lastMessage ? `They said: "${String(lastMessage).slice(0, 200)}"` : null,
+      ].filter(Boolean).join('. '),
+    })
+    await recordEvent({ leadId, event: 'AI_PAUSED', detail: HANDOFF_LABEL[reason] })
 
     /*
      * Telling the colleague. Without this the lead is marked and nobody
      * knows — the queue fills and the person waits.
      */
     if (lead.assigned_to) {
+      /*
+       * Enough context to act on, not just "a lead needs attention".
+       *
+       * Section 19 of the brief. A marketer opening this should already know
+       * who it is, which programme, why the assistant stepped back and what
+       * the person actually said — so they can answer rather than start by
+       * reading the whole thread.
+       */
+      const body = [
+        `${lead.full_name || 'A lead'}${programme ? ` — ${programme}` : ''}`,
+        `Why: ${HANDOFF_LABEL[reason].toLowerCase()}`,
+        lastMessage ? `They said: "${String(lastMessage).slice(0, 140)}"` : null,
+        score === 'READY_TO_REGISTER' ? 'They are ready to register.' : null,
+      ].filter(Boolean).join('\n')
+
       const { error: notifyErr } = await sb.from('notifications').insert({
         user_id: lead.assigned_to,
         type: 'lead',
-        title: 'A lead is asking for you',
-        body: `${lead.full_name || 'A lead'} — ${HANDOFF_LABEL[reason].toLowerCase()}.`,
+        title: score === 'READY_TO_REGISTER' ? 'A lead is ready to register' : 'A lead is asking for you',
+        body,
         link: `/marketer/leads/${leadId}`,
       })
       if (notifyErr) {
         console.error('[chatbot] HANDOVER NOT ANNOUNCED for lead', leadId,
           '— marked for a person, nobody told:', notifyErr.message)
+        await recordEvent({ leadId, event: 'MARKETER_NOT_NOTIFIED', detail: notifyErr.message })
+      } else {
+        await recordEvent({ leadId, event: 'MARKETER_NOTIFIED', detail: lead.full_name || null })
       }
     } else {
       console.error('[chatbot] handover with no owner — lead', leadId,

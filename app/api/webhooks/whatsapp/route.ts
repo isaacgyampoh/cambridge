@@ -8,7 +8,9 @@ import { readConversation } from '@/lib/integrations/conversationState'
 import { maybeResumeAI } from '@/lib/aiResume'
 import { sendSMS } from '@/lib/integrations/sms'
 import { intakeLead } from '@/lib/leadIntake'
-import { chatbotReply, handOffToHuman } from '@/lib/chatbot'
+import {
+  chatbotReply, handOffToHuman, buildLeadContext, recordEvent, actionsFor,
+} from '@/lib/chatbot'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
 
@@ -67,6 +69,30 @@ export async function POST(req: NextRequest) {
     // Always answer 200 — providers disable webhooks that keep erroring.
     return NextResponse.json({ ok: false, error: String(e?.message || e).slice(0, 200) })
   }
+}
+
+/**
+ * Tell the lead's owner that something the assistant promised did not happen.
+ *
+ * Its own function because a promise that failed silently is the failure this
+ * webhook keeps having: a brochure or a link the lead was told to expect, and
+ * nobody aware it never arrived.
+ */
+async function notifyOwner(
+  sb: ReturnType<typeof createServiceClient>,
+  lead: { id: string; assigned_to?: string | null } | null,
+  title: string,
+  body: string,
+): Promise<void> {
+  if (!lead?.assigned_to) {
+    console.error('[whatsapp]', title, '— and the lead has no owner to tell:', lead?.id)
+    return
+  }
+  const { error } = await sb.from('notifications').insert({
+    user_id: lead.assigned_to, type: 'handoff', title, body,
+    link: `/marketer/leads/${lead.id}`,
+  })
+  if (error) console.error('[whatsapp] could not notify owner of:', title, error.message)
 }
 
 async function handleInbound(req: NextRequest) {
@@ -528,21 +554,32 @@ async function handleInbound(req: NextRequest) {
   // guessing. Hand it to the marketer instead of inventing context.
 
   /*
-   * The Cambridge assistant answers — openly, as the centre's assistant.
+   * ── THE LEAD'S WHOLE CONTEXT, BEFORE THE MODEL SEES ANYTHING ─────────────
    *
-   * It replaces an agent that wrote in the assigned marketer's voice and was
-   * forbidden from admitting it was software or offering a person. The
-   * marketer's name and wa_intro are no longer passed in, because nothing
-   * speaks in their voice any more; their name is passed only so a handover
-   * can say who is picking it up.
+   * Who they are, which colleague is handling them, which programme they
+   * actually asked about, what it really costs, whether a brochure exists,
+   * and how far this conversation has already got. The model is handed facts
+   * rather than trusted to recall them.
    */
-  const answer = await chatbotReply(text, {
-    leadName: lead?.full_name,
-    profession: (lead as any)?.profession || null,
-    humanName: marketer?.full_name,
-    courseInterest: lead?.course_interest,
-    registrationLink: marketer?.marketer_code ? `${CONFIG.appUrl}/apply/${marketer.marketer_code}` : null,
-  }, history)
+  const ctx = await buildLeadContext({ lead, latestMessage: text })
+
+  /*
+   * What was on the table last time.
+   *
+   * Recomputed rather than stored: actionsFor is deterministic given the
+   * capability, the stage and what has already been taken, and all three are
+   * derived from recorded events. So the same call that produced the previous
+   * message's options produces them again, and a reply of "2" can be resolved
+   * without a column to keep them in.
+   */
+  const offered = actionsFor({
+    capability: ctx.capability,
+    stage: ctx.state.stage,
+    taken: ctx.state.taken,
+    humanName: ctx.marketerName,
+  })
+
+  const answer = await chatbotReply({ message: text, ctx, history, offered })
   let reply = answer.text
 
   let answeredBy = 'skipped'
@@ -582,11 +619,39 @@ async function handleInbound(req: NextRequest) {
      * just made ("I'll ask Ama to pick this up") with nobody told about it,
      * which is the failure the whole handover path exists to prevent.
      */
+    /*
+     * What just happened, recorded where a person can see it.
+     *
+     * These are the events the conversation's state is later derived from —
+     * see lib/chatbot/events — so this is not only an audit trail. A brochure
+     * request that is never recorded is one the assistant will ask about
+     * again next time.
+     */
+    if (ok && lead?.id) {
+      if (answer.intent === 'brochure') {
+        await recordEvent({ leadId: lead.id, event: 'BROCHURE_REQUESTED', detail: ctx.programme?.name || null })
+      }
+      if (answer.intent === 'register') {
+        await recordEvent({ leadId: lead.id, event: 'REGISTRATION_INTENT', detail: ctx.programme?.name || null })
+      }
+      if (answer.intent === 'human') {
+        await recordEvent({ leadId: lead.id, event: 'HUMAN_REQUESTED', detail: String(text).slice(0, 200) })
+      }
+      if (answer.intent === 'payment') {
+        await recordEvent({ leadId: lead.id, event: 'PAYMENT_ESCALATED', detail: String(text).slice(0, 200) })
+      }
+      if (ctx.programme && ctx.state.stage === 'NEW') {
+        await recordEvent({ leadId: lead.id, event: 'PROGRAMME_SELECTED', detail: ctx.programme.name })
+      }
+    }
+
     if (ok && answer.handoff && lead?.id) {
       const result = await handOffToHuman({
         leadId: lead.id,
         reason: answer.handoff,
         lastMessage: text,
+        programme: ctx.programme?.name || null,
+        score: answer.score,
       })
       if (!result.handed) {
         console.error('[whatsapp] told the lead a colleague would pick it up, but the handover failed —',
@@ -594,46 +659,66 @@ async function handleInbound(req: NextRequest) {
       }
     }
 
-    // If the assistant said it would send the link, it MUST arrive. Otherwise
-    // a student is left waiting for something that was never queued — the
-    // promise and the delivery have to be the same act, not two.
-    const promisedLink = ok && /(send|share)[^.]{0,30}\b(link|form)\b|\blink\b[^.]{0,20}(shortly|in a (minute|moment)|coming)/i.test(reply)
-    if (promisedLink && marketer?.marketer_code) {
-      const key = `promised_link:${lead.id}:${msgId || Math.floor(Date.now() / 300000)}`
-      if (await claimJob({ dedupeKey: key, leadId: lead.id, phone, kind: 'registration_link', sourceEvent: msgId || null })) {
-        const link = `${CONFIG.appUrl}/apply/${marketer.marketer_code}`
-        await new Promise(r => setTimeout(r, 18000 + Math.random() * 10000))
+    /*
+     * ── THE ATTACHMENT THE APPLICATION DECIDED ON ─────────────────────────
+     *
+     * This used to detect a promised link by running a regular expression
+     * over the model's own words — "(send|share)...\b(link|form)\b" — which
+     * meant a file was sent because of how a sentence happened to be phrased.
+     * A reply that promised the link in different words sent nothing, and a
+     * reply that merely mentioned one sent it unasked.
+     *
+     * The application decides now. chatbotReply returns an attachment only
+     * when the intent was registration or a brochure AND the record actually
+     * holds a URL for it, so the promise and the delivery are the same act.
+     */
+    if (ok && answer.attachment && lead?.id) {
+      const { kind, url } = answer.attachment
+      const key = `attachment:${kind}:${lead.id}:${msgId || Math.floor(Date.now() / 300000)}`
+      if (await claimJob({ dedupeKey: key, leadId: lead.id, phone, kind, sourceEvent: msgId || null })) {
+        // A beat, so it arrives as a follow-up rather than on top of the reply.
+        await new Promise(r => setTimeout(r, 1500 + Math.random() * 1000))
         const { data: still } = await sb.from('leads').select('ai_paused').eq('id', lead.id).maybeSingle()
-        if (!still?.ai_paused) {
-          const linkOk = await sendWhatsAppText(phone, link, marketer.id)
-          await markSent(key, linkOk)
-          if (linkOk) {
-            await new Promise(r => setTimeout(r, 4000 + Math.random() * 3000))
-            await sendWhatsAppText(phone,
-              'This is the registration link I mentioned. Please click on it to continue with your application.',
-              marketer.id)
-            await sb.from('ai_conversations').insert({
-              phone, lead_id: lead.id, marketer_id: marketer.id,
-              incoming_text: null, reply_text: link, answered_by: 'ai_link',
-            }).then(() => {}, () => {})
-          } else {
-            // It failed. Tell a human rather than leaving the student waiting.
+
+        if (still?.ai_paused) {
+          await markSent(key, false)
+        } else if (kind === 'brochure') {
+          const sent = await sendWhatsAppMedia(phone, '', url, marketer?.id || null)
+          await markSent(key, sent)
+          await recordEvent({
+            leadId: lead.id,
+            event: sent ? 'BROCHURE_SENT' : 'BROCHURE_UNAVAILABLE',
+            detail: sent ? ctx.programme?.name || null : 'The file would not send',
+          })
+          if (!sent) {
             await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
-              'Promised the registration link but it could not be sent', null)
-            if (lead.assigned_to) {
-              await sb.from('notifications').insert({
-                user_id: lead.assigned_to, type: 'handoff',
-                title: 'Registration link did not send',
-                body: `${lead.full_name || phone} was promised the link but it failed to send. Please send it yourself.`,
-                link: `/marketer/leads/${lead.id}`,
-              }).then(() => {}, () => {})
-            }
+              'Promised the brochure but the file would not send', null)
+            await notifyOwner(sb, lead, 'Brochure did not send',
+              `${lead.full_name || phone} was promised the ${ctx.programme?.name || 'programme'} brochure and it failed to send. Please send it yourself.`)
           }
         } else {
-          await markSent(key, false)
+          const linkOk = await sendWhatsAppText(phone, url, marketer?.id || null)
+          await markSent(key, linkOk)
+          if (linkOk) {
+            await recordEvent({ leadId: lead.id, event: 'REGISTRATION_LINK_SENT', detail: ctx.programme?.name || null })
+            await new Promise(r => setTimeout(r, 2500 + Math.random() * 1500))
+            await sendWhatsAppText(phone,
+              'That is the registration link. Fill it in and pay the registration fee to secure your place.',
+              marketer?.id || null)
+            await sb.from('ai_conversations').insert({
+              phone, lead_id: lead.id, marketer_id: marketer?.id || null,
+              incoming_text: null, reply_text: url, answered_by: 'ai_link',
+            }).then(() => {}, () => {})
+          } else {
+            await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
+              'Promised the registration link but it could not be sent', null)
+            await notifyOwner(sb, lead, 'Registration link did not send',
+              `${lead.full_name || phone} was promised the link but it failed to send. Please send it yourself.`)
+          }
         }
       }
     }
+
     if (!ok) {
       await logInbound(sb, 'whatsapp', phone, text, 'send_failed',
         'A reply was written but WhatsApp would not accept it — check the line', null)

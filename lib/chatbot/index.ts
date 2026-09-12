@@ -1,133 +1,277 @@
 import 'server-only'
 import { SECRETS } from '@/lib/config.server'
 import { aiComplete, aiConfigured } from '@/lib/integrations/ai-client'
-import { loadKnowledge, hasFacts } from '@/lib/chatbot/knowledge'
-import { buildSystemPrompt, buildOpeningPrompt, type ChatbotContext } from '@/lib/chatbot/persona'
-import { needsHumanOutright, promisedFollowUp, forWhatsApp, type HandoffReason } from '@/lib/chatbot/rules'
+import { loadKnowledge } from '@/lib/chatbot/knowledge'
+import { hasFacts } from '@/lib/chatbot/format'
+import { buildSystemPrompt, buildOpeningPrompt, selfDescription } from '@/lib/chatbot/persona'
+import { classify, scoreIntent, ESCALATING, type Intent, type IntentScore } from '@/lib/chatbot/intent'
+import { nextStage, type Stage } from '@/lib/chatbot/stage'
+import { actionsFor, renderActions, matchAction, type Action, type ActionId } from '@/lib/chatbot/actions'
+import { forWhatsApp, promisedFollowUp, type HandoffReason } from '@/lib/chatbot/rules'
+import type { LeadContext } from '@/lib/chatbot/context'
 
 /**
- * The Cambridge assistant.
+ * The Cambridge sales and admissions assistant.
  *
- * Answers on WhatsApp as the centre's assistant, captures what it learns, and
- * hands over to a named colleague. It replaces an agent that wrote in the
- * assigned marketer's voice and was forbidden from admitting it was software
- * or offering a person — see lib/chatbot/persona for what changed and why.
+ * A lead-conversion engine with a conversational interface, not a model that
+ * answers WhatsApp messages. The division of responsibility is the design:
  *
- * Three capabilities, and nothing beyond them:
+ *   THE APPLICATION owns truth. Programme facts, fees, dates, brochure
+ *   availability, whether registration is possible, who the colleague is,
+ *   when a person must be reached, what state the conversation is in, and
+ *   what happens when any of it fails.
  *
- *   ANSWER   from the knowledge base, the programme list and the real class
- *            schedule. Never from what the model happens to believe.
- *   CAPTURE  what they do, what they want, how warm they are — written to the
- *            lead by the caller through readConversation.
- *   HAND OFF to the colleague who owns the lead, whenever a person serves them
- *            better.
+ *   THE MODEL owns language. Wording, tone, nuance, and reading what somebody
+ *   meant. Nothing else.
  *
- * It reads nothing private. A question about somebody's own payment or class
- * is a handover, not an answer, because this assistant cannot see their record
- * and must not appear to.
+ * Reversing those is how a chatbot invents a fee.
  */
 
 export { handOffToHuman } from '@/lib/chatbot/handoff'
 export { needsHumanOutright, forWhatsApp, promisedFollowUp } from '@/lib/chatbot/rules'
+export { classify, classifyAll, scoreIntent } from '@/lib/chatbot/intent'
+export { buildLeadContext, LEAD_COLUMNS } from '@/lib/chatbot/context'
+export { recordEvent, loadState } from '@/lib/chatbot/events'
+export { actionsFor, renderActions, matchAction } from '@/lib/chatbot/actions'
+export { selfDescription } from '@/lib/chatbot/persona'
 export type { HandoffReason } from '@/lib/chatbot/rules'
+export type { LeadContext } from '@/lib/chatbot/context'
+export type { Stage } from '@/lib/chatbot/stage'
+export type { Intent, IntentScore } from '@/lib/chatbot/intent'
+export type { Action, ActionId } from '@/lib/chatbot/actions'
 
 export type ChatTurn = { role: 'user' | 'assistant'; content: string }
 
 export type ChatbotReply = {
   /** What to send. Null when the assistant should stay silent. */
   text: string | null
-  /** Set when this conversation should go to a person, and why. */
+  /** Sent on its own, after the text. A brochure or a registration link. */
+  attachment: { kind: 'brochure' | 'registration'; url: string } | null
+  /** Set when this conversation must now go to a person, and why. */
   handoff: HandoffReason | null
-  /** Why there is no text, for the inbound log. */
+  /** Where the conversation has got to, after this message. */
+  stage: Stage
+  /** What the lead was asking for. */
+  intent: Intent
+  /** How close they are to registering. Internal — never quoted to the lead. */
+  score: IntentScore
+  /** Offered with the reply, so the caller can record what was on the table. */
+  actions: Action[]
+  /** Why there is no text. */
   skipped?: 'disabled' | 'no-model' | 'model-failed'
+}
+
+/** Escalating intents, mapped to the reason recorded against the handover. */
+const HANDOFF_FOR: Partial<Record<Intent, HandoffReason>> = {
+  human: 'asked_for_person',
+  payment: 'own_record',
+  complaint: 'complaint',
 }
 
 /**
  * Answer one incoming message.
  *
- * Returns the text to send and whether the conversation should now go to a
- * person. It does NOT perform the handover — the caller does that, because
- * only the caller knows the lead id and whether the message was actually
- * delivered.
+ * Does NOT perform the handover or record events — the caller does both,
+ * because only the caller knows whether the message was actually delivered.
+ * A handover raised for a reply that never arrived would pause the assistant
+ * on a conversation where nobody had been told anything.
  */
-export async function chatbotReply(
-  incomingText: string,
-  ctx: ChatbotContext,
-  history: ChatTurn[] = [],
-): Promise<ChatbotReply> {
-  if (!SECRETS.aiAssistantEnabled) return { text: null, handoff: null, skipped: 'disabled' }
-  if (!aiConfigured()) return { text: null, handoff: null, skipped: 'no-model' }
+export async function chatbotReply(opts: {
+  message: string
+  ctx: LeadContext
+  history?: ChatTurn[]
+  /** What was offered last time, so a reply of "2" can be understood. */
+  offered?: Action[]
+}): Promise<ChatbotReply> {
+  const { message, ctx, history = [], offered = [] } = opts
+  const stage0 = ctx.state.stage
 
   /*
-   * The deterministic handovers run FIRST, before any model call.
-   *
-   * Somebody asking for a human, or asking where their payment has got to,
-   * must reach a person whether or not the model is available, in credit, or
-   * correct that day. These are the two cases where being clever is the wrong
-   * behaviour.
+   * A reply to the numbered options is turned into the thing it meant, before
+   * anything else looks at it. "2" carries no intent of its own; "Fees" does.
    */
-  const outright = needsHumanOutright(incomingText)
-  if (outright) {
-    const who = ctx.humanName?.split(' ')[0]
+  const chosen = matchAction(message, offered)
+  const effective = chosen ? actionAsMessage(chosen.id) : message
+
+  const intent = classify(effective)
+  const score = scoreIntent(effective, history.map(h => h.content))
+
+  const base = {
+    intent, score,
+    stage: nextStage(stage0, { intent, hasProgramme: Boolean(ctx.programme), hasProfession: Boolean(ctx.profession) }),
+  }
+
+  if (!SECRETS.aiAssistantEnabled) {
+    return { ...base, text: null, attachment: null, handoff: null, actions: [], skipped: 'disabled' }
+  }
+
+  /*
+   * ── ESCALATION HAPPENS BEFORE THE MODEL ──────────────────────────────────
+   *
+   * Somebody asking for a person, asking where their payment went, or making
+   * a complaint reaches a person whether or not the model is available, in
+   * credit, or right that day — and without the model being given a chance to
+   * reassure them out of it. Section 16 of the brief.
+   */
+  if (ESCALATING.has(intent)) {
     return {
-      text: outright === 'own_record'
-        ? `That one I can't check from here. ${who ? `I'll ask ${who} to look it up and come back to you.` : `I'll get someone to look it up and come back to you.`}`
-        : `Of course. ${who ? `I'll ask ${who} to pick this up with you.` : `I'll get someone from the team to pick this up with you.`}`,
-      handoff: outright,
+      ...base,
+      text: escalationMessage(intent, ctx),
+      attachment: null,
+      handoff: HANDOFF_FOR[intent]!,
+      actions: [],
+    }
+  }
+
+  if (!aiConfigured()) {
+    return { ...base, text: fallbackMessage(ctx), attachment: null, handoff: 'assistant_unsure', actions: [], skipped: 'no-model' }
+  }
+
+  /*
+   * A brochure is a file, not a sentence. The application decides whether one
+   * exists; the model never claims it does.
+   */
+  if (intent === 'brochure') {
+    if (ctx.programme && ctx.capability.canSendBrochure && ctx.programme.brochureUrl) {
+      const actions = actionsFor({
+        capability: ctx.capability, stage: base.stage,
+        taken: [...ctx.state.taken, 'brochure'], humanName: ctx.marketerName,
+      })
+      return {
+        ...base,
+        text: `Sending you the ${ctx.programme.name} brochure now.` + renderActions(actions),
+        attachment: { kind: 'brochure', url: ctx.programme.brochureUrl },
+        handoff: null,
+        actions,
+      }
+    }
+    /*
+     * Asked for something that does not exist. It is never offered, so this is
+     * somebody asking unprompted — and it goes to a person rather than
+     * becoming an apology that leads nowhere.
+     */
+    return {
+      ...base,
+      text: `I don't have a brochure on file for that one. ${byName(ctx, 'will send you the details directly')}.`,
+      attachment: null,
+      handoff: 'assistant_unsure',
+      actions: [],
     }
   }
 
   const knowledge = await loadKnowledge()
 
   /*
-   * With nothing to answer from, the assistant does not answer.
-   *
-   * The prompt says so too, but a prompt is a request and this is a rule: a
-   * model with no facts and a question about fees will produce a number. The
-   * conversation goes to a person instead.
+   * With nothing to answer from, the assistant does not answer. The prompt
+   * says so too, but a prompt is a request and this is a rule: a model with
+   * no facts and a question about fees will produce a number.
    */
-  if (!hasFacts(knowledge)) {
-    console.error('[chatbot] no knowledge available — handing the conversation to a person')
-    const who = ctx.humanName?.split(' ')[0]
-    return {
-      text: `Let me get you the right details on that. ${who ? `I'll ask ${who} to come back to you shortly.` : `Someone from the team will come back to you shortly.`}`,
-      handoff: 'no_knowledge',
-    }
+  if (!hasFacts(knowledge) && !ctx.programme) {
+    console.error('[chatbot] no programme and no knowledge — handing to a person')
+    return { ...base, text: fallbackMessage(ctx), attachment: null, handoff: 'no_knowledge', actions: [] }
   }
 
-  const reply = await aiComplete({
-    system: buildSystemPrompt(ctx, knowledge),
-    messages: [...history.slice(-8), { role: 'user', content: incomingText }],
+  const raw = await aiComplete({
+    system: buildSystemPrompt({ ctx, knowledge, stage: base.stage }),
+    messages: [...history.slice(-8), { role: 'user', content: effective }],
     maxTokens: 400,
   })
 
-  if (!reply) return { text: null, handoff: null, skipped: 'model-failed' }
+  if (!raw) {
+    /*
+     * The model failed. Section 27: do not leave the lead unanswered. They get
+     * a straight answer and a person, rather than silence.
+     */
+    console.error('[chatbot] model returned nothing — falling back to a person')
+    return { ...base, text: fallbackMessage(ctx), attachment: null, handoff: 'assistant_unsure', actions: [], skipped: 'model-failed' }
+  }
 
-  const text = forWhatsApp(reply)
+  const text = forWhatsApp(raw)
+  const actions = actionsFor({
+    capability: ctx.capability,
+    stage: base.stage,
+    taken: ctx.state.taken,
+    humanName: ctx.marketerName,
+  })
 
   /*
-   * If the assistant said it would check something, or that a colleague would
-   * come back, that is a promise — and a promise nobody was told about is
-   * worse than never making it. The same sentence that reassures the lead
-   * raises the handover.
+   * Registration is an intent, never a completion. The link goes separately;
+   * being registered means having filled it in and paid, which this assistant
+   * cannot see and must not claim.
    */
-  return { text, handoff: promisedFollowUp(text) ? 'assistant_unsure' : null }
+  const attachment = intent === 'register' && ctx.capability.canRegister && ctx.registrationLink
+    ? { kind: 'registration' as const, url: ctx.registrationLink }
+    : null
+
+  return {
+    ...base,
+    text: text + renderActions(actions),
+    attachment,
+    // A promise to check is a promise somebody has to keep.
+    handoff: promisedFollowUp(text) ? 'assistant_unsure' : null,
+    actions,
+  }
+}
+
+/** What choosing a numbered option means, in words the classifier understands. */
+function actionAsMessage(id: ActionId): string {
+  switch (id) {
+    case 'view_programme': return 'Tell me about the programme'
+    case 'view_fees': return 'How much is it?'
+    case 'view_schedule': return 'When does it start?'
+    case 'brochure': return 'Please send me the brochure'
+    case 'register': return 'I want to register'
+    case 'speak_to_human': return 'I would like to speak to someone'
+    default: return 'I have a question'
+  }
+}
+
+/** "Ruth will…" where a colleague is known, "someone will…" where not. */
+function byName(ctx: LeadContext, verb: string): string {
+  const first = ctx.marketerName?.split(' ')[0]
+  return first ? `${first} ${verb}` : `Someone from the team ${verb}`
+}
+
+function escalationMessage(intent: Intent, ctx: LeadContext): string {
+  switch (intent) {
+    case 'payment':
+      return `That one I can't check from here. ${byName(ctx, 'will look it up and come back to you')}.`
+    case 'complaint':
+      return `I'm sorry about that. ${byName(ctx, 'is picking this up personally')}.`
+    default:
+      return `Of course. ${byName(ctx, 'will take it from here')}.`
+  }
+}
+
+/** Said when the assistant cannot help, whatever the cause. Never silence. */
+function fallbackMessage(ctx: LeadContext): string {
+  return `Thanks for your message. I can't get to that detail right now, so ${byName(ctx, 'is picking it up for you')}.`
 }
 
 /**
  * The first message to a newly assigned lead.
  *
- * Introduces the centre and the assistant honestly, then asks the one question
- * that makes every later answer useful: what they do for a living.
+ * Introduces the centre and the colleague handling the enquiry, names the
+ * programme they asked about, and asks the one question that makes every
+ * later answer useful.
  */
-export async function chatbotOpening(ctx: ChatbotContext): Promise<string | null> {
+export async function chatbotOpening(ctx: LeadContext): Promise<{ text: string; actions: Action[] } | null> {
   if (!SECRETS.aiAssistantEnabled || !aiConfigured()) return null
 
-  const reply = await aiComplete({
+  const raw = await aiComplete({
     system: buildOpeningPrompt(ctx),
     messages: [{ role: 'user', content: 'Write the opening message.' }],
     maxTokens: 300,
   })
+  if (!raw) return null
 
-  return reply ? forWhatsApp(reply) : null
+  const actions = actionsFor({
+    capability: ctx.capability,
+    stage: 'DISCOVERY',
+    humanName: ctx.marketerName,
+  })
+
+  return { text: forWhatsApp(raw) + renderActions(actions), actions }
 }
+
+void selfDescription

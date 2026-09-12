@@ -112,7 +112,7 @@ export default function MarketerLeads() {
 
   const { data: leads, state, refetch } = useData<Lead>({
     table: 'leads',
-    select: 'id, full_name, phone, email, status, course_interest, follow_up_at, created_at, updated_at',
+    select: 'id, full_name, phone, email, status, course_interest, follow_up_at, created_at, updated_at, needs_human, ai_paused',
     filters: myId ? [{ col: 'assigned_to', op: 'eq', val: myId }] : [],
     orderBy: 'updated_at',
     enabled: !!myId,
@@ -122,17 +122,37 @@ export default function MarketerLeads() {
 
   const overdue = useMemo(() => leads.filter(isOverdue), [leads])
 
+  /*
+   * Leads the assistant has stepped back from.
+   *
+   * `needs_human` is set by lib/chatbot/handoff when somebody asked for a
+   * person, raised a payment they had already made, complained, or asked
+   * something the assistant had no facts for. The assistant has told them a
+   * colleague is coming, and stopped replying — so until somebody here opens
+   * it, nobody is answering that conversation at all.
+   *
+   * That makes it the only queue on this screen where waiting has a cost, so
+   * it comes first and it is counted separately from status.
+   */
+  const waiting = useMemo(
+    () => leads.filter(l => (l as Lead & { needs_human?: boolean }).needs_human),
+    [leads],
+  )
+
   const counts = useMemo(() => {
-    const out: Record<string, number> = { all: leads.length, overdue: overdue.length }
+    const out: Record<string, number> = {
+      all: leads.length, overdue: overdue.length, waiting: waiting.length,
+    }
     for (const lead of leads) out[lead.status] = (out[lead.status] || 0) + 1
     return out
-  }, [leads, overdue])
+  }, [leads, overdue, waiting])
 
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return leads.filter(lead => {
       if (tab === 'overdue' && !isOverdue(lead)) return false
-      if (tab !== 'all' && tab !== 'overdue' && lead.status !== tab) return false
+      if (tab === 'waiting' && !(lead as Lead & { needs_human?: boolean }).needs_human) return false
+      if (tab !== 'all' && tab !== 'overdue' && tab !== 'waiting' && lead.status !== tab) return false
       if (!needle) return true
       // Phone is searched in both spellings, so 0201234567 and 233201234567
       // both find the same person.
@@ -146,6 +166,9 @@ export default function MarketerLeads() {
   }, [leads, tab, query])
 
   const tabs = useMemo(() => [
+    // Waiting first: these are people the assistant has already promised a
+    // colleague to, and nobody is answering them until somebody here does.
+    ...(counts.waiting ? [{ key: 'waiting', label: 'Waiting for you', count: counts.waiting }] : []),
     { key: 'all', label: 'All', count: counts.all },
     ...(counts.overdue ? [{ key: 'overdue', label: 'Overdue', count: counts.overdue }] : []),
     ...FILTERS.filter(s => counts[s]).map(s => ({
