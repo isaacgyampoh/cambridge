@@ -13,6 +13,12 @@ export default function SettingsPage() {
     wawpCentral?: boolean; wawpLines?: number; ai?: boolean; resend?: boolean
     storage?: boolean; senderId?: string
   }
+  /** What /api/admin/chatbot-check reports, so the JSX below is checked. */
+  type BotCheck = { id: string; label: string; status: 'ok' | 'warn' | 'fail'; detail: string; fix?: string }
+  type BotReport = { status: 'ok' | 'warn' | 'fail'; summary: string; checks: BotCheck[] }
+
+  const [bot, setBot] = useState<BotReport | null>(null)
+  const [botBusy, setBotBusy] = useState(false)
   const [status, setStatus] = useState<ConfigStatus | null>(null)
   const [loading, setLoading] = useState(true)
   const [testing, setTesting] = useState<string | null>(null)
@@ -139,9 +145,82 @@ export default function SettingsPage() {
 
   function copy(text: string) { navigator.clipboard.writeText(text); toast.success('Copied') }
 
+  async function runBotCheck() {
+    setBotBusy(true)
+    try {
+      const res = await fetch('/api/admin/chatbot-check')
+      const d = await res.json().catch(() => null)
+      if (!res.ok || !d?.checks) {
+        toast.error(d?.error || 'The check could not be run.')
+        return
+      }
+      setBot(d)
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
+    } finally {
+      setBotBusy(false)
+    }
+  }
+
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="System" title="Settings" description="Integrations, delivery tests and webhook endpoints." />
+
+      {/*
+        Whether the assistant can actually do its job with THIS centre's data.
+        The tests prove a fee present in a record reaches the model, and that
+        one absent is never invented — they cannot prove your courses have
+        fees on them. This runs the assistant's own loaders and says what came
+        back.
+      */}
+      <SectionLabel>Assistant readiness</SectionLabel>
+      <Card className="p-5 mb-10">
+        {!bot ? (
+          <div className="flex items-center justify-between gap-4">
+            <div className="min-w-0">
+              <div className="text-[15px] font-semibold text-[var(--ink)]">Check what the assistant can answer</div>
+              <p className="t-sub mt-1 leading-relaxed">
+                Runs the assistant&rsquo;s own data loaders against your live records and reports
+                what it found — fees, brochures, class dates, who can receive a lead.
+              </p>
+            </div>
+            <Button variant="secondary" onClick={runBotCheck} disabled={botBusy}>
+              {botBusy ? 'Checking…' : 'Run check'}
+            </Button>
+          </div>
+        ) : (
+          <>
+            <div className="flex items-start justify-between gap-4 mb-4">
+              <div className="min-w-0">
+                <div className={`text-[15px] font-semibold ${
+                  bot.status === 'fail' ? 'text-[var(--danger)]'
+                  : bot.status === 'warn' ? 'text-[var(--warn)]' : 'text-[var(--ok)]'}`}>
+                  {bot.summary}
+                </div>
+              </div>
+              <Button variant="secondary" onClick={runBotCheck} disabled={botBusy}>
+                {botBusy ? 'Checking…' : 'Check again'}
+              </Button>
+            </div>
+            <ul className="divide-y divide-[var(--line-soft)]">
+              {bot.checks.map(c => (
+                <li key={c.id} className="py-3 flex gap-3">
+                  <span aria-hidden="true" className={`mt-1.5 w-2 h-2 rounded-full flex-shrink-0 ${
+                    c.status === 'fail' ? 'bg-[var(--danger)]'
+                    : c.status === 'warn' ? 'bg-[var(--warn)]' : 'bg-[var(--ok)]'}`} />
+                  <div className="min-w-0">
+                    <div className="text-[14px] font-semibold text-[var(--ink)]">{c.label}</div>
+                    <p className="text-[13px] text-[var(--ink-soft)] mt-0.5 leading-relaxed">{c.detail}</p>
+                    {c.fix && (
+                      <p className="text-[13px] text-[var(--warn)] mt-1 leading-relaxed">{c.fix}</p>
+                    )}
+                  </div>
+                </li>
+              ))}
+            </ul>
+          </>
+        )}
+      </Card>
 
       {/* Lead assignment */}
       <SectionLabel>Lead assignment</SectionLabel>

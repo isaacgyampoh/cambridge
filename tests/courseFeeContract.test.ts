@@ -253,3 +253,53 @@ describe('no outbound message poses as the marketer', () => {
     assert.match(welcome, /event: 'CHAT_STARTED'/)
   })
 })
+
+describe('the centre can check the contract against its own data', () => {
+  /*
+   * A repository cannot tell you what is in a database. These tests prove
+   * that a fee present in a record reaches the model, and that one absent is
+   * never invented — they cannot prove this centre's courses have fees on
+   * them, and that is precisely what the `price` bug turned on.
+   *
+   * /api/admin/chatbot-check closes that gap by running the assistant's OWN
+   * loaders against the live database, so a schema that has drifted shows up
+   * as the assistant losing an ability rather than as nothing at all.
+   */
+  const route = codeOf('app/api/admin/chatbot-check/route.ts')
+
+  test('it runs the real loaders, not a re-implemented query', () => {
+    // A second query written for the check could pass while the one the
+    // conversation actually uses fails.
+    assert.match(route, /await loadProgrammes\(\)/,
+      'the check queries courses itself instead of using the assistant\u2019s loader')
+    assert.match(route, /await loadKnowledge\(\)/)
+    assert.match(route, /await eligibleMarketers\(\)/)
+    assert.ok(!/from\('courses'\)/.test(route),
+      'the check reads courses directly, so it can disagree with the assistant')
+  })
+
+  test('no fee on any programme is a failure, not a warning', () => {
+    /*
+     * It is the exact state the `price` bug produced, and it is not degraded
+     * service — the assistant refuses every question about price.
+     */
+    assert.match(route, /withFee\.length === 0/)
+    assert.match(route, /Not one active programme has a fee/)
+    assert.match(route, /the database column differs from course_fee/,
+      'the failure does not tell the reader what to check when the fees ARE set')
+  })
+
+  test('it is guarded, and read-only', () => {
+    assert.match(route, /withGuard\(\{ portals: \['settings'\] \}/)
+    assert.ok(!/export const POST|export const PATCH|export const DELETE/.test(route),
+      'a diagnostic that can change something is not a diagnostic')
+  })
+
+  test('every check says what to do when something is wrong', () => {
+    // A red dot with no remedy is a worry, not a diagnostic.
+    const withStatus = [...route.matchAll(/status: '(warn|fail)'/g)].length
+    const withFix = [...route.matchAll(/fix:/g)].length
+    assert.ok(withFix >= withStatus / 2,
+      `${withStatus} failing states but only ${withFix} suggested fixes`)
+  })
+})
