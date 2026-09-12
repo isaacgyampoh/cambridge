@@ -126,9 +126,30 @@ export async function POST(req: NextRequest) {
     if (m && m.is_active !== false) marketerId = m.id
   }
 
-  // Confirm the programme exists before writing anything against it.
-  const { data: course } = await sb.from('courses')
+  /*
+   * Confirm the programme exists before writing anything against it.
+   *
+   * The error is read now, and it changes what the applicant is told. This
+   * destructured only `data`, so a database that refused the read produced
+   * `course === null` and the person was told
+   *
+   *     "That programme is not open for registration."
+   *
+   * The programme was open. The database was briefly unreachable, and
+   * somebody trying to register was told the course was closed and went away.
+   * A registration lost to an outage, phrased as a decision the centre had
+   * made.
+   */
+  const { data: course, error: courseErr } = await sb.from('courses')
     .select('id, is_active').eq('id', body.course_id).maybeSingle()
+
+  if (courseErr) {
+    console.error('[applications/submit] could not verify the programme:', courseErr.message)
+    return NextResponse.json(
+      { error: 'We could not confirm that programme just now. Please try again in a moment.' },
+      { status: 503 },
+    )
+  }
   if (!course || course.is_active === false) {
     return NextResponse.json({ error: 'That programme is not open for registration.' }, { status: 400 })
   }

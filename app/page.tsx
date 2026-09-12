@@ -164,7 +164,18 @@ export default async function Home() {
 
             <ul className="mt-7 grid gap-3 sm:grid-cols-2">
               {programmes.map(p => {
-                const fee = ghs(p.feeInPerson ?? p.feeOnline)
+                /*
+                 * BOTH fees, where both are recorded.
+                 *
+                 * A programme is run in person and online at different prices
+                 * — course_fee and course_fee_online — and this showed only
+                 * the first. Somebody reading the page saw one number and had
+                 * no way to learn that the online cohort costs less, which is
+                 * the difference most likely to decide whether they enquire.
+                 */
+                const inPerson = ghs(p.feeInPerson)
+                const online = ghs(p.feeOnline)
+                const bothDiffer = inPerson && online && p.feeInPerson !== p.feeOnline
                 const cohort = nextCohort(p)
                 return (
                   <li key={p.id}
@@ -182,12 +193,23 @@ export default async function Home() {
                       dash where a number should be.
                     */}
                     <dl className="mt-4 flex flex-wrap gap-x-5 gap-y-1.5 text-[13px]">
-                      {fee && (
+                      {bothDiffer ? (
+                        <>
+                          <div className="flex gap-1.5">
+                            <dt className="text-[var(--ink-faint)]">In person</dt>
+                            <dd className="font-semibold text-[var(--ink)]">{inPerson}</dd>
+                          </div>
+                          <div className="flex gap-1.5">
+                            <dt className="text-[var(--ink-faint)]">Online</dt>
+                            <dd className="font-semibold text-[var(--ink)]">{online}</dd>
+                          </div>
+                        </>
+                      ) : (inPerson || online) ? (
                         <div className="flex gap-1.5">
                           <dt className="text-[var(--ink-faint)]">Fee</dt>
-                          <dd className="font-semibold text-[var(--ink)]">{fee}</dd>
+                          <dd className="font-semibold text-[var(--ink)]">{inPerson || online}</dd>
                         </div>
-                      )}
+                      ) : null}
                       {p.duration && (
                         <div className="flex gap-1.5">
                           <dt className="text-[var(--ink-faint)]">Duration</dt>

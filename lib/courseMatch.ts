@@ -13,7 +13,7 @@ export async function findCourse(interest?: string | null) {
   if (!raw) return null
 
   const sb = createServiceClient()
-  const { data: courses } = await sb.from('courses')
+  const { data: courses, error } = await sb.from('courses')
     /*
      * `course_fee`, not `price`.
      *
@@ -30,6 +30,17 @@ export async function findCourse(interest?: string | null) {
      */
     .select('id, name, code, course_fee, course_fee_online, duration, brochure_url')
     .eq('is_active', true).limit(200)
+
+  /*
+   * A refused read is not a centre with no courses. Returning null either way
+   * means the brochure is not sent and the programme is not identified, with
+   * nothing anywhere to say why — which is precisely how an invalid service
+   * key was mistaken, in a written audit, for an empty courses table.
+   */
+  if (error) {
+    console.error('[courseMatch] could not read courses:', error.message)
+    return null
+  }
   if (!courses?.length) return null
 
   const norm = (s: string) => String(s || '').toLowerCase().replace(/[^a-z0-9]/g, '')
@@ -91,8 +102,9 @@ export async function findBrochure(courseId?: string | null): Promise<string | n
     if (data?.file_url) return data.file_url
 
     // The course's own field is the next best thing.
-    const { data: co } = await sb.from('courses')
+    const { data: co, error: coErr } = await sb.from('courses')
       .select('brochure_url').eq('id', courseId).maybeSingle()
+    if (coErr) console.error('[resolveBrochure] could not read the course brochure:', coErr.message)
     if (co?.brochure_url) return co.brochure_url
   }
 
@@ -101,7 +113,8 @@ export async function findBrochure(courseId?: string | null): Promise<string | n
   // a course from the list, and sending another course's brochure instead is
   // far worse than sending none.
   if (courseId) {
-    const { data: co } = await sb.from('courses').select('name, code').eq('id', courseId).maybeSingle()
+    const { data: co, error: nameErr } = await sb.from('courses').select('name, code').eq('id', courseId).maybeSingle()
+    if (nameErr) console.error('[resolveBrochure] could not read the course name:', nameErr.message)
     const terms = [co?.code, co?.name].filter(Boolean) as string[]
     if (terms.length) {
       const { data: named } = await sb.from('documents')
@@ -113,8 +126,22 @@ export async function findBrochure(courseId?: string | null): Promise<string | n
       if (hit?.file_url) return hit.file_url
     }
 
-    // A general brochure is only safe if it does not name a DIFFERENT course.
-    const { data: allCourses } = await sb.from('courses').select('name, code').eq('is_active', true).limit(200)
+    /*
+     * A general brochure is only safe if it does not name a DIFFERENT course.
+     *
+     * The error is read, and a failure stops here rather than continuing.
+     * Without the list, `others` was empty and the check below passed
+     * vacuously — so a read that failed turned a safety guard into an
+     * approval, and the lead could be sent another programme's brochure. The
+     * comment two blocks up says that is far worse than sending none, and it
+     * is right.
+     */
+    const { data: allCourses, error: allErr } = await sb.from('courses')
+      .select('name, code').eq('is_active', true).limit(200)
+    if (allErr) {
+      console.error('[resolveBrochure] cannot check a general brochure is safe to send:', allErr.message)
+      return null
+    }
     const others = (allCourses || []).filter((x: any) => x.code !== co?.code)
 
     const { data: generals } = await sb.from('documents')
