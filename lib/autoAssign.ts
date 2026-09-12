@@ -1,6 +1,6 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
-import { generateOpeningMessage } from '@/lib/integrations/ai-assistant'
+import { chatbotOpening } from '@/lib/chatbot'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { eligibleMarketers, isEligible } from '@/lib/leads/eligibility'
 
@@ -157,9 +157,18 @@ export async function onLeadAssigned(leadId: string, marketerId: string): Promis
         if (pack.sent) return          // the welcome pack IS the opening
       } catch (e) { console.error('[onLeadAssigned] welcome pack:', e) }
 
-      const opening = await generateOpeningMessage({
+      /*
+       * The opening now introduces the centre and its assistant, and says a
+       * colleague is there whenever they want one. It used to open in the
+       * assigned marketer's voice — "Hi, this is Kwame from Cambridge" — for a
+       * message no Kwame had written or seen.
+       *
+       * The marketer's name is still passed, but only so a handover can name
+       * who is picking it up.
+       */
+      const opening = await chatbotOpening({
         leadName: lead.full_name,
-        marketerName: marketer?.full_name || 'Cambridge',
+        humanName: marketer?.full_name,
         courseInterest: lead.course_interest,
       })
       if (opening && await sendWhatsAppText(lead.phone, opening, marketerId)) {

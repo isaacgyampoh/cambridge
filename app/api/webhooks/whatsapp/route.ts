@@ -8,7 +8,7 @@ import { readConversation } from '@/lib/integrations/conversationState'
 import { maybeResumeAI } from '@/lib/aiResume'
 import { sendSMS } from '@/lib/integrations/sms'
 import { intakeLead } from '@/lib/leadIntake'
-import { generateAssistantReply } from '@/lib/integrations/ai-assistant'
+import { chatbotReply, handOffToHuman } from '@/lib/chatbot'
 import { sendWhatsAppText, sendWhatsAppMedia } from '@/lib/integrations/whatsapp'
 import { CONFIG } from '@/lib/config'
 
@@ -331,12 +331,30 @@ async function handleInbound(req: NextRequest) {
     const { count: humanTurns } = await sb.from('ai_conversations')
       .select('id', { count: 'exact', head: true })
       .in('phone', variants).eq('answered_by', 'human')
-    if (!humanTurns || (lead as any).ai_paused_by !== 'manual') {
+    /*
+     * Only an ORPHANED pause is cleared here.
+     *
+     * This read `!humanTurns || ai_paused_by !== 'manual'`, which resumed
+     * anything that was not a manual takeover — including, once the assistant
+     * could hand over, its own handovers. The conversation would be marked for
+     * a colleague and the assistant would carry on talking over them on the
+     * very next message.
+     *
+     * What this clause is actually for is narrower: a pause with no recorded
+     * cause AND no human reply behind it, left by the earlier fault that
+     * misread a lead's own message as staff typing. That is a pause nobody
+     * meant, and it is the only one safe to drop on sight.
+     *
+     * Everything with a recorded cause goes to maybeResumeAI, which resumes it
+     * after a quiet period instead of immediately.
+     */
+    const pausedBy = (lead as { ai_paused_by?: string | null }).ai_paused_by || null
+    if (!humanTurns && !pausedBy) {
       await sb.from('leads').update({
         ai_paused: false, needs_human: false, ai_paused_by: null,
       }).eq('id', lead.id).then(() => {}, () => {})
       await logInbound(sb, 'whatsapp', phone, text, 'auto_resumed',
-        'Pause had no matching human reply — assistant resumed', null)
+        'Pause had no recorded cause and no human reply — assistant resumed', null)
       paused = false
     } else {
       const resumed = await maybeResumeAI(lead.id)
@@ -509,27 +527,37 @@ async function handleInbound(req: NextRequest) {
   // something said outside the system — we cannot see it, so answering would be
   // guessing. Hand it to the marketer instead of inventing context.
 
-  // Generate the AI reply
-  let reply = await generateAssistantReply(text, {
+  /*
+   * The Cambridge assistant answers — openly, as the centre's assistant.
+   *
+   * It replaces an agent that wrote in the assigned marketer's voice and was
+   * forbidden from admitting it was software or offering a person. The
+   * marketer's name and wa_intro are no longer passed in, because nothing
+   * speaks in their voice any more; their name is passed only so a handover
+   * can say who is picking it up.
+   */
+  const answer = await chatbotReply(text, {
     leadName: lead?.full_name,
     profession: (lead as any)?.profession || null,
-    marketerName: marketer?.full_name,
-    marketerIntro: marketer?.wa_intro,
+    humanName: marketer?.full_name,
     courseInterest: lead?.course_interest,
     registrationLink: marketer?.marketer_code ? `${CONFIG.appUrl}/apply/${marketer.marketer_code}` : null,
   }, history)
+  let reply = answer.text
 
   let answeredBy = 'skipped'
   if (reply) {
-    // Nobody types a considered answer in half a second. Wait a believable
-    // moment, longer for longer replies, before sending — an instant response
-    // is the clearest sign a machine is on the other end.
-    const words = String(reply).trim().split(/\s+/).length
-    // About ten seconds — long enough to read as human, short enough to feel
-    // attentive.
-    const think = 4000 + Math.random() * 4000
-    const typing = Math.min(words * 260, 7000)
-    await new Promise(r => setTimeout(r, Math.min(think + typing, 14000)))
+    /*
+     * A short, honest pause — not a disguise.
+     *
+     * This used to wait up to fourteen seconds, deliberately, because "an
+     * instant response is the clearest sign a machine is on the other end".
+     * The centre is no longer hiding that, so the delay has no purpose left
+     * and an assistant that answers promptly is simply better. What remains
+     * is a beat so the reply does not land on top of the person's own message
+     * in the thread.
+     */
+    await new Promise(r => setTimeout(r, 900 + Math.random() * 700))
 
     // Someone may have written again while we waited, or a colleague may have
     // stepped in. Check before sending something now out of date.
@@ -544,6 +572,27 @@ async function handleInbound(req: NextRequest) {
     // Send back via the marketer's own line (falls back to central inside sender)
     const ok = await sendWhatsAppText(phone, reply, marketer?.id || null)
     answeredBy = ok ? 'ai' : 'fallback'
+
+    /*
+     * The handover runs only once the reply has actually been delivered.
+     *
+     * Order matters both ways. Marking first would pause the assistant before
+     * the person had been told anybody was coming — they would simply stop
+     * hearing back. Not marking at all would leave the promise the assistant
+     * just made ("I'll ask Ama to pick this up") with nobody told about it,
+     * which is the failure the whole handover path exists to prevent.
+     */
+    if (ok && answer.handoff && lead?.id) {
+      const result = await handOffToHuman({
+        leadId: lead.id,
+        reason: answer.handoff,
+        lastMessage: text,
+      })
+      if (!result.handed) {
+        console.error('[whatsapp] told the lead a colleague would pick it up, but the handover failed —',
+          'lead', lead.id, 'reason', answer.handoff)
+      }
+    }
 
     // If the assistant said it would send the link, it MUST arrive. Otherwise
     // a student is left waiting for something that was never queued — the

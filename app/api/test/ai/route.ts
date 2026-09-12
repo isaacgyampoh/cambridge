@@ -1,6 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
-import { generateOpeningMessage } from '@/lib/integrations/ai-assistant'
+import { chatbotOpening } from '@/lib/chatbot'
 import { aiConfigured } from '@/lib/integrations/ai-client'
 import { SECRETS } from '@/lib/config.server'
 
@@ -32,9 +32,9 @@ export async function GET(req: NextRequest) {
   let message: string | null = null
   let error: string | null = null
   try {
-    message = await generateOpeningMessage({
+    message = await chatbotOpening({
       leadName: 'Kwame Boateng',
-      marketerName: 'Ama',
+      humanName: 'Ama',
       courseInterest: 'Projects Management Professional (PMP)',
     })
   } catch (e: any) { error = e?.message || 'AI call failed' }
