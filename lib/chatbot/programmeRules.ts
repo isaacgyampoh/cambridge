@@ -57,9 +57,26 @@ export type ProgrammeCapability = {
   canRegister: boolean
 }
 
+/**
+ * Is this a fee that can actually be stated?
+ *
+ * `!== null` was not enough. The Programme type says `number | null`, but a
+ * row that arrives with the field absent gives `undefined`, which is not null
+ * — so canQuoteFee came out true, ghs() then returned nothing for it, and the
+ * description emitted a bare "Fee:" with no figure after it. An empty label
+ * is worse than a stated absence: it tells the model a fee exists and leaves
+ * it to supply one.
+ *
+ * Zero is excluded for the same reason it is excluded in the loader: it is an
+ * empty field that happens to be numeric, not a programme given away free.
+ */
+function quotable(v: number | null | undefined): v is number {
+  return typeof v === 'number' && Number.isFinite(v) && v > 0
+}
+
 export function capabilityOf(p: Programme, registrationLink: string | null): ProgrammeCapability {
   return {
-    canQuoteFee: p.feeInPerson !== null || p.feeOnline !== null,
+    canQuoteFee: quotable(p.feeInPerson) || quotable(p.feeOnline),
     canShowSchedule: p.cohorts.length > 0,
     canSendBrochure: Boolean(p.brochureUrl),
     // Registration is a real link belonging to a marketer. Without one there
@@ -131,12 +148,16 @@ export function describeProgramme(p: Programme, cap: ProgrammeCapability): strin
   if (p.description) lines.push(`What it covers: ${p.description}`)
   if (p.duration) lines.push(`Duration: ${p.duration}`)
 
-  if (cap.canQuoteFee) {
-    const parts: string[] = []
-    if (p.feeInPerson !== null) parts.push(`${ghs(p.feeInPerson)} in person`)
-    if (p.feeOnline !== null) parts.push(`${ghs(p.feeOnline)} online`)
+  const parts: string[] = []
+  if (quotable(p.feeInPerson)) parts.push(`${ghs(p.feeInPerson)} in person`)
+  if (quotable(p.feeOnline)) parts.push(`${ghs(p.feeOnline)} online`)
+
+  // `parts.length`, not `cap.canQuoteFee`: the two agree, and depending on the
+  // list that is actually about to be printed means a bare "Fee:" cannot be
+  // emitted however the two ever drift apart.
+  if (parts.length) {
     lines.push(`Fee: ${parts.join(', ')}`)
-    if (p.registrationFee !== null) lines.push(`Registration fee: ${ghs(p.registrationFee)}`)
+    if (quotable(p.registrationFee)) lines.push(`Registration fee: ${ghs(p.registrationFee)}`)
   } else {
     lines.push('Fee: NOT RECORDED. You do not know this programme\'s fee. Do not state one, do not estimate, do not compare it to another programme. Say you will have it confirmed.')
   }

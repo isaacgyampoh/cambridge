@@ -2,7 +2,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync, existsSync } from 'node:fs'
 import { needsHumanOutright, HANDOFF_LABEL, forWhatsApp, promisedFollowUp } from '../lib/chatbot/rules.ts'
-import { courseLine, batchLine, ghs, longDate, hasFacts } from '../lib/chatbot/format.ts'
+import { ghs, longDate, hasFacts } from '../lib/chatbot/format.ts'
 
 /**
  * THE CAMBRIDGE ASSISTANT.
@@ -198,23 +198,13 @@ describe('it answers only from real records', () => {
     assert.equal(longDate('rubbish'), null, 'an unparseable date would reach the lead')
   })
 
-  test('a programme line carries only what the row holds', () => {
-    assert.equal(courseLine({ name: 'PMP', price: 3950, duration: '8 weeks' }),
-      '- PMP — GHS 3,950, 8 weeks')
-    // No price on the record means no price in the message. It must not be
-    // filled in, guessed, or left as "GHS null".
-    assert.equal(courseLine({ name: 'PMP', price: null, duration: null }), '- PMP')
-  })
-
-  test('a class line never invents a date', () => {
-    assert.equal(
-      batchLine({ name: 'B1', class_type: 'online', status: 'upcoming', start_date: '2026-03-03', courses: { name: 'PMP' } }),
-      '- PMP (online), starts 3 March 2026')
-    assert.equal(
-      batchLine({ name: 'B1', class_type: 'physical', status: 'upcoming', start_date: null, venue: null, courses: { name: 'PMP' } }),
-      '- PMP',
-      'a cohort with no start date must not acquire one')
-  })
+  /*
+   * courseLine() and batchLine() were removed with the duplicate course read
+   * that used them — they rendered from a `price` field nothing writes. What
+   * they guarded is now guarded against the live path in
+   * tests/chatbotProgramme: a programme with no fee produces no fee, and a
+   * cohort with no start date does not acquire one.
+   */
 
   test('the prompt forbids guessing, in the strongest terms available', () => {
     assert.match(persona, /NEVER GUESS/)

@@ -14,7 +14,21 @@ export async function findCourse(interest?: string | null) {
 
   const sb = createServiceClient()
   const { data: courses } = await sb.from('courses')
-    .select('id, name, code, price, duration, brochure_url')
+    /*
+     * `course_fee`, not `price`.
+     *
+     * This selected `price`, which nothing in this application has ever
+     * written. The Course interface declares course_fee, course_fee_online and
+     * registration_fee; the admin screen that creates and edits a course
+     * writes those three; the academics, courses and invoice screens all read
+     * course_fee. `price` appeared only in this select and in the chatbot's
+     * knowledge loader — both read paths, never a write.
+     *
+     * PostgREST fails the WHOLE select on a column that does not exist, so
+     * either this returned nothing at all, or it returned a field nobody
+     * populates. Either way no fee reached a caller.
+     */
+    .select('id, name, code, course_fee, course_fee_online, duration, brochure_url')
     .eq('is_active', true).limit(200)
   if (!courses?.length) return null
 

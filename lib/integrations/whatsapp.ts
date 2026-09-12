@@ -138,13 +138,29 @@ export async function sendWhatsAppMedia(to: string, message: string, mediaUrl: s
 // ── WhatsApp Message Templates ───────────────────────────────
 
 export const WA = {
-  leadAssigned: (leadName: string, marketerName: string, courseInterest?: string | null, marketerIntro?: string | null) => {
+  /*
+   * ── THIS USED TO POSE AS THE MARKETER ─────────────────────────────────
+   *
+   * It read "Hi Ama, I'm Ruth from Cambridge Center of Excellence" — for a
+   * message Ruth had not written, sent automatically on every manual
+   * assignment from /api/leads/assign and from lib/notifications.
+   *
+   * `marketerIntro` is the marketer's own wa_intro line, which makes it worse
+   * rather than better: their real words, sent in their name, at a moment
+   * they knew nothing about.
+   *
+   * It names Ruth as the colleague looking after them, and says what is
+   * writing. The question at the end is unchanged — it is the one that makes
+   * everything after it useful.
+   */
+  leadAssigned: (leadName: string, marketerName: string, courseInterest?: string | null) => {
     const first = (leadName || '').split(' ')[0] || 'there'
-    const m = (marketerName || '').split(' ')[0] || 'your advisor'
+    const m = (marketerName || '').split(' ')[0]
     const course = courseInterest ? ` in *${courseInterest}*` : ''
-    const intro = marketerIntro || `I'm ${m}`
-    // Short, no sign-off, no corporate phrasing. It reads like a person.
-    return `Hi ${first}, ${intro} from Cambridge Center of Excellence. I saw you showed interest in${course || ' our programmes'}. What do you currently do for work?`
+    const helper = m
+      ? `I'm the virtual assistant supporting ${m}, who is handling your enquiry`
+      : `I'm the centre's virtual assistant`
+    return `Hi ${first}, this is Cambridge Center of Excellence. ${helper}. I saw you showed interest in${course || ' our programmes'}. What do you currently do for work?`
   },
 
   applicationConfirmed: (name: string, course: string) =>
@@ -173,9 +189,11 @@ export const WA = {
 
 export async function notifyLeadAssigned(
   leadPhone: string, leadName: string, marketerName: string, senderId?: string | null,
-  courseInterest?: string | null, marketerIntro?: string | null,
+  courseInterest?: string | null,
 ): Promise<boolean> {
-  return sendWhatsAppText(leadPhone, WA.leadAssigned(leadName, marketerName, courseInterest, marketerIntro), senderId)
+  // marketerIntro is gone: it was the marketer's own wa_intro line, sent in
+  // their name for a message they had not written. See WA.leadAssigned.
+  return sendWhatsAppText(leadPhone, WA.leadAssigned(leadName, marketerName, courseInterest), senderId)
 }
 
 export async function notifyClassReminder(

@@ -119,7 +119,7 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
     try {
       await sendWhatsAppText(
         lead.phone,
-        WA.leadAssigned(lead.full_name, marketer?.full_name || '', lead.course_interest, marketer?.wa_intro),
+        WA.leadAssigned(lead.full_name, marketer?.full_name || '', lead.course_interest),
         marketerId,
       )
     } catch { /* the lead is assigned regardless */ }

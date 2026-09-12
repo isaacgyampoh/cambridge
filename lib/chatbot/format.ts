@@ -20,23 +20,6 @@ export type KnowledgeBlocks = {
   counts: KnowledgeCounts
 }
 
-export type CourseRow = {
-  name: string
-  code?: string | null
-  price?: number | string | null
-  duration?: string | null
-}
-
-export type BatchRow = {
-  name: string
-  class_type?: string | null
-  status?: string | null
-  start_date?: string | null
-  schedule?: string | null
-  venue?: string | null
-  courses?: { name?: string | null } | null
-}
-
 /** A date a Ghanaian reader recognises: 3 March 2026. Null if it is not one. */
 export function longDate(value: string | null | undefined): string | null {
   if (!value) return null
@@ -57,23 +40,16 @@ export function ghs(amount: number | string | null | undefined): string | null {
   return Number.isFinite(n) ? `GHS ${n.toLocaleString('en-GH')}` : null
 }
 
-/** One programme, as a line the assistant may quote verbatim. */
-export function courseLine(c: CourseRow): string {
-  const fee = ghs(c.price)
-  return `- ${c.name}${fee ? ` — ${fee}` : ''}${c.duration ? `, ${c.duration}` : ''}`
-}
-
-/** One cohort. A start date appears only when the row actually has one. */
-export function batchLine(b: BatchRow): string {
-  const starts = longDate(b.start_date)
-  const where = b.class_type === 'online'
-    ? ' (online)'
-    : b.venue ? ` (in person, ${b.venue})` : ''
-  return `- ${b.courses?.name || b.name}${where}`
-    + `${starts ? `, starts ${starts}` : ''}`
-    + `${b.schedule ? `, ${b.schedule}` : ''}`
-    + `${b.status === 'ongoing' ? ' — already running' : ''}`
-}
+/*
+ * courseLine() and batchLine() used to live here, along with CourseRow and
+ * BatchRow. They rendered a programme from a row whose fee field was `price`
+ * — a column nothing in this application writes — and they are gone with the
+ * duplicate course read that used them.
+ *
+ * lib/chatbot/programmeRules.describeProgramme does that job now, from the
+ * canonical course_fee, and states an absent fee as absent rather than
+ * leaving it out.
+ */
 
 /**
  * Is there enough here to answer a question of fact at all?
