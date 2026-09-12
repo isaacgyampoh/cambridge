@@ -88,7 +88,14 @@ export const PORTAL_PATHS: Record<string, string[]> = {
   messages:    ['/messages'],
   my_links:    ['/links'],
   my_attendance: ['/marketer/attendance'],
-  prep:        ['/coordinator'],  settings:    ['/admin/settings', '/admin/automation', '/admin/webhook-log', '/admin/sms-delivery'],
+  prep:        ['/coordinator'],
+  /*
+   * /admin/chatbot is the assistant's readiness overview. It sits under
+   * `settings` on purpose: the endpoint it renders,
+   * /api/admin/chatbot-check, is guarded by this same portal, so the menu
+   * entry and the data behind it cannot disagree about who may see it.
+   */
+  settings:    ['/admin/settings', '/admin/automation', '/admin/webhook-log', '/admin/sms-delivery', '/admin/chatbot'],
 }
 
 export const ROLE_DEFAULTS: Record<string, string[]> = {

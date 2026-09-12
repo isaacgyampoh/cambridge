@@ -17,6 +17,20 @@ export interface Inbound {
   mediaType: string | null
   senderName: string | null
   eventName: string | null
+  /**
+   * WHICH OF OUR LINES THIS ARRIVED ON.
+   *
+   * Every marketer connects their own WhatsApp number, so an inbound message
+   * carries two identities, not one: the person who sent it, and the line
+   * they chose to send it to. Only the sender was ever read, so the second
+   * was thrown away — and a stranger who messaged Ruth's number became a lead
+   * belonging to whichever marketer the weighted lottery happened to pick,
+   * answered in that marketer's voice, from that marketer's line. The
+   * prospect messaged Ruth and someone else replied.
+   *
+   * Digits, or null when the provider did not say.
+   */
+  receivedOn: string | null
 }
 
 // The provider's own guidance: remoteJid is often a Linked ID (…@lid), NOT a
@@ -29,6 +43,18 @@ const TEXT_PRIMARY = /^(messagebody)$/i
 const TEXT_KEYS = /^(conversation|text|body|caption|message|content|extendedtext)$/i
 const NAME_KEYS = /^(pushname|notifyname|sendername|name|contactname)$/i
 const MEDIA_KEYS = /(audiomessage|voicemessage|pttmessage|imagemessage|videomessage|documentmessage|stickermessage)$/i
+
+/*
+ * Keys that name OUR line rather than the sender's.
+ *
+ * Deliberately narrow, and deliberately not sharing any key with the sender
+ * patterns above. `recipient` and `to` are the obvious candidates and are
+ * excluded on purpose: on an outbound echo (fromMe) those hold the LEAD's
+ * number, so reading them here would file the conversation under the
+ * prospect's own number as though it were one of ours — and every provider
+ * sends those echoes.
+ */
+const LINE_KEYS = /^(instanceid|instance_id|instance|sessionid|session_id|sessionname|session|owner|ownerjid|selfjid|myjid|meid|accountphone|hostnumber|businessphone|displayphone|displayphonenumber|phonenumberid)$/i
 
 /** A WhatsApp id or phone number, normalised to digits. */
 function asPhone(v: unknown, allowLid = false): string | null {
@@ -56,7 +82,7 @@ function asPhone(v: unknown, allowLid = false): string | null {
  * skip the guard by accident.
  */
 export function parseInbound(body: unknown): Inbound {
-  const out: Inbound = { phone: null, lid: null, text: null, fromMe: false, mediaType: null, senderName: null, eventName: null }
+  const out: Inbound = { phone: null, lid: null, text: null, fromMe: false, mediaType: null, senderName: null, eventName: null, receivedOn: null }
   if (!body || typeof body !== 'object') return out
 
   const top = body as Record<string, unknown>
@@ -99,6 +125,14 @@ export function parseInbound(body: unknown): Inbound {
       if (!out.lid && typeof val === 'string' && /@lid$/i.test(val)) {
         const digits = val.split('@')[0].replace(/[^0-9]/g, '')
         if (digits) out.lid = digits
+      }
+
+      // which of our lines it came in on
+      if (!out.receivedOn && LINE_KEYS.test(key)) {
+        // allowLid: some providers name the account by its linked id, and a
+        // marketer's line can be recorded either way.
+        const p = asPhone(val, true)
+        if (p) out.receivedOn = p
       }
 
       // their name

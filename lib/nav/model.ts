@@ -150,15 +150,31 @@ const CATALOGUE: CatalogueEntry[] = [
     { label: 'Broadcast & links', href: '/admin/broadcast' },
     { label: 'SMS delivery', href: '/admin/sms-delivery' },
   ]},
-  { id: 'wa_lines', label: 'WhatsApp lines', icon: 'broadcast', href: '/admin/whatsapp', section: 'messaging' },
+  { id: 'wa_lines', label: 'WhatsApp lines', icon: 'broadcast', href: '/admin/whatsapp', section: 'chatbot' },
   /*
    * Follow-up sequences. This existed as "Follow-up Sequences" in the sidebar
    * and was dropped when the shell was rebuilt: the page, its builder and its
    * cron runner all survived, but nothing linked to them any more.
    */
   { id: 'sequences', label: 'Follow-up sequences', icon: 'sms', href: '/admin/sequences', section: 'messaging' },
-  { id: 'knowledge', label: 'AI knowledge', icon: 'ai', href: '/admin/knowledge', section: 'messaging' },
-  { id: 'conversations', label: 'AI conversations', icon: 'ai', href: '/admin/conversations', section: 'messaging' },
+  { id: 'knowledge', label: 'Knowledge', icon: 'ai', href: '/admin/knowledge', section: 'chatbot' },
+  { id: 'conversations', label: 'Conversations', icon: 'ai', href: '/admin/conversations', section: 'chatbot' },
+
+  /* ── Chatbot ──
+   *
+   * The assistant's own screens, gathered under one heading. Every one of
+   * these already existed and is in the same place it was; only the grouping
+   * changed. They sat under "Communication" beside Broadcast and Follow-up
+   * sequences, which are outbound marketing and a different job entirely — so
+   * "is the assistant working?" was a question you answered by visiting four
+   * unrelated-looking menu entries.
+   *
+   * `chatbot_overview` deliberately has no PORTAL_PATHS entry of its own. It
+   * is reachable through the `settings` portal, which is what guards the
+   * readiness endpoint it renders, so the menu and the API cannot disagree
+   * about who may see it.
+   */
+  { id: 'chatbot_overview', label: 'Overview', icon: 'ai', href: '/admin/chatbot', section: 'chatbot' },
   { id: 'grp_automation', label: 'Automation', icon: 'broadcast', href: '/pm/info-sessions', section: 'messaging', children: [
     { label: 'Info sessions', href: '/pm/info-sessions' },
     { label: 'Class reminders', href: '/classes/reminders' },
@@ -224,12 +240,13 @@ const SECTION_TITLES: Record<string, string | null> = {
   finance: 'Finance',
   academics: 'Academics',
   messaging: 'Communication',
+  chatbot: 'Chatbot',
   ops: 'Front desk',
   team: 'Operations',
   system: 'Settings',
 }
 
-const SECTION_ORDER = ['top', 'growth', 'enrolment', 'finance', 'academics', 'messaging', 'ops', 'team', 'system']
+const SECTION_ORDER = ['top', 'growth', 'enrolment', 'finance', 'academics', 'messaging', 'chatbot', 'ops', 'team', 'system']
 
 /* ─────────────────────────────────────────────
    Building a person's navigation
@@ -483,6 +500,7 @@ const SECTION_LABELS: [string, string][] = [
   ['finance', 'Finance'],
   ['academics', 'Classes & training'],
   ['messaging', 'Messaging'],
+  ['chatbot', 'Chatbot'],
   ['comms', 'Communication'],
   ['team', 'Team'],
   ['ops', 'Operations'],

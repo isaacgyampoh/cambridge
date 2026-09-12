@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { parseInbound } from '@/lib/parseInbound'
+import { ownerOfLine, isKnownLine } from '@/lib/whatsapp/lineOwnerRules'
+import { lookup } from '@/lib/db/lookup'
 import { claimJob, markSent, alreadyProcessed } from '@/lib/messageJobs'
 import { findCourse } from '@/lib/courseMatch'
 import { resolveBrochure } from '@/lib/documents/resolve'
@@ -340,6 +342,48 @@ async function handleInbound(req: NextRequest) {
     }
   }
 
+  /*
+   * ── WHOSE LINE WAS THIS? ─────────────────────────────────────────────────
+   *
+   * Read only when we are about to create a lead. For a lead that already
+   * exists the answer changes nothing: who owns them is settled by the ERP's
+   * own assignment rules, and a message arriving on a second line does not
+   * move a colleague's lead away from them.
+   *
+   * For a NEW enquiry it settles everything. Without it, somebody who
+   * deliberately messaged Ruth's number was passed to the weighted lottery
+   * like an anonymous web form and could be given to any marketer at all —
+   * who then answered in their own voice, from their own line.
+   */
+  let lineOwner: string | null = null
+  if (!lead?.id && parsed.receivedOn) {
+    const { row: lines, failed: linesFailed } = await lookup(
+      sb.from('profiles')
+        .select('id, wasender_phone, is_active')
+        .not('wasender_phone', 'is', null),
+    )
+    if (linesFailed) {
+      // Not fatal: fall through to the ordinary assignment rules rather than
+      // turn away a real enquiry. But say so, because every lead that arrives
+      // while this is failing is credited to the wrong marketer.
+      console.error('[webhooks/whatsapp] could not read connected lines:', linesFailed)
+      await logInbound(sb, 'whatsapp', phone, text, 'line_lookup_failed',
+        'Could not read the connected WhatsApp lines — lead assigned by the usual rules', null)
+    } else {
+      const known = (lines || []).map(m => ({
+        id: m.id, line: m.wasender_phone, active: m.is_active !== false,
+      }))
+      lineOwner = ownerOfLine(parsed.receivedOn, known)
+      if (!lineOwner && !isKnownLine(parsed.receivedOn, known)) {
+        // Worth recording: it usually means a marketer changed their number
+        // and their profile still holds the old one, so every lead from that
+        // line is being misfiled.
+        await logInbound(sb, 'whatsapp', phone, text, 'unknown_line',
+          `Message arrived on ${parsed.receivedOn}, which no marketer has connected`, null)
+      }
+    }
+  }
+
   if (!lead?.id) {
     try {
       const created = await intakeLead({
@@ -347,6 +391,10 @@ async function handleInbound(req: NextRequest) {
         phone,
         source: 'whatsapp',
         landing_source: 'Messaged us on WhatsApp',
+        // The marketer they actually messaged. Null falls through to the
+        // weighted lottery, which is the right answer only when we genuinely
+        // do not know whose line it was.
+        preferredMarketerId: lineOwner,
       })
       if (created?.leadId) {
         const { data: fresh } = await sb.from('leads')
