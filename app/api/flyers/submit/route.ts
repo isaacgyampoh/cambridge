@@ -32,9 +32,35 @@ export async function POST(req: NextRequest) {
 
   if (leadId && !duplicate) {
     try {
-      const { data: f } = await sb.from('flyers').select('leads').eq('id', flyer_id).maybeSingle()
-      await sb.from('flyers').update({ leads: (f?.leads || 0) + 1 }).eq('id', flyer_id)
+      /*
+       * Read-then-write, so the read failing does not just lose a count — it
+       * DESTROYS one. `(f?.leads || 0) + 1` turns an unreadable row into 1,
+       * so a flyer that had brought in forty-seven leads is written back as
+       * having brought in one, and the marketer's record of their own work is
+       * gone with no way to recover the number.
+       *
+       * Skipping is the only safe way to be wrong here: one uncounted lead is
+       * recoverable from the leads table itself, and a reset total is not.
+       */
+      const { row: f, failed } = await lookup(
+        sb.from('flyers').select('leads').eq('id', flyer_id).maybeSingle(),
+      )
+      if (failed) {
+        console.error('[flyers/submit] flyer count not incremented — read failed:', failed)
+      } else if (f) {
+        await sb.from('flyers').update({ leads: (f.leads || 0) + 1 }).eq('id', flyer_id)
+      }
     } catch {}
   }
-  return NextResponse.json({ success: true, leadId, assignedTo, duplicate })
+
+  // No database ids to a public caller: the landing page reads `success` and
+  // nothing else, and `duplicate` would answer "is this number already in
+  // your system?" for anybody who asked.
+  if (!leadId) {
+    return NextResponse.json(
+      { error: 'We could not record your details just now. Please try again in a moment.' },
+      { status: 503 },
+    )
+  }
+  return NextResponse.json({ success: true })
 }
