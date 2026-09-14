@@ -143,6 +143,17 @@ export type SessionInfo = {
   email?: string
   phone?: string
   portals?: string[] | null
+  /**
+   * Set when the session could not be CHECKED, as distinct from being absent
+   * or expired.
+   *
+   * Both used to arrive as `{ valid: false }`, and every caller reads that as
+   * "signed out" — so one unreadable moment told every member of staff their
+   * session had expired, on every request at once. It is the same distinction
+   * the proxy draws before this is ever reached; this is the layer beneath it,
+   * used by every API route through requireSession.
+   */
+  failed?: string
 }
 
 /** Resolve a raw session token to its user, or `{ valid: false }`. */
@@ -150,11 +161,18 @@ export async function verifySession(token: string): Promise<SessionInfo> {
   if (!token) return { valid: false }
 
   const sb = createServiceClient()
-  const { data } = await sb.from('pin_sessions')
+  const { data, error } = await sb.from('pin_sessions')
     .select('user_id, expires_at, profiles(role, full_name, email, phone, portals, is_active)')
     .eq('session_token', hashToken(token))
     .gt('expires_at', new Date().toISOString())
     .maybeSingle()
+
+  // Not signed out — unknown. The caller decides, and access still fails
+  // closed, but nobody is told something untrue about their account.
+  if (error) {
+    console.error('[auth] session lookup failed:', error.message)
+    return { valid: false, failed: error.message }
+  }
 
   if (!data) return { valid: false }
 

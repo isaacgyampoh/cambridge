@@ -1,6 +1,10 @@
 import { existsSync } from 'node:fs'
 import { join } from 'node:path'
 import { Suspense } from 'react'
+import { cookies } from 'next/headers'
+import { redirect } from 'next/navigation'
+import { verifySession, SESSION_COOKIE } from '@/lib/auth/pin'
+import { ROLE_HOME } from '@/lib/access/portals'
 import LoginForm from './LoginForm'
 
 /**
@@ -38,7 +42,45 @@ const HERO_CANDIDATES = [
   'brand/login-hero.webp',
 ] as const
 
-export default function LoginPage() {
+/**
+ * Somebody who is already signed in does not need to sign in.
+ *
+ * ── WHY THIS MATTERS MOST TO THE INSTALLED APP ─────────────────────────────
+ *
+ * The PWA starts at `/`, which redirects here. Without this check that is
+ * where it stopped: a member of staff whose session is valid for another
+ * eighty-nine days opened the app they use all day and was asked for their
+ * PIN, every single time.
+ *
+ * The session cookie was doing its job throughout. Nothing read it on the way
+ * in, so the fact that they were signed in only became apparent after they
+ * had proved it again.
+ *
+ * ── AND WHY IT IS SAFE ─────────────────────────────────────────────────────
+ *
+ * It uses the existing verifier and the existing ROLE_HOME map — no second
+ * authentication path, and no decision this file makes on its own. A session
+ * that cannot be VERIFIED falls through to the form rather than guessing, so
+ * a database blip shows the PIN box (which is recoverable) instead of
+ * admitting anybody (which is not).
+ *
+ * Signing out clears the cookie before returning here, so it does not bounce
+ * the person straight back in.
+ */
+async function signedInDestination(): Promise<string | null> {
+  const token = (await cookies()).get(SESSION_COOKIE)?.value
+  if (!token) return null
+
+  const session = await verifySession(token)
+  if (session.failed || !session.valid || !session.role) return null
+
+  return ROLE_HOME[session.role] || '/admin'
+}
+
+export default async function LoginPage() {
+  const destination = await signedInDestination()
+  if (destination) redirect(destination)
+
   /*
    * Resolved once on the server. The result is a URL for the client to render
    * or null, and null is a supported state: the screen falls back to the calm

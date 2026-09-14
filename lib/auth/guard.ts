@@ -45,6 +45,19 @@ export async function requireSession(
   if (!token) throw new GuardError(401, 'Please sign in to continue.')
 
   const session = await verifySession(token)
+
+  /*
+   * A session that could not be CHECKED is not an expired one.
+   *
+   * 401 is what the client treats as "sign in again", so answering it here
+   * during a database blip logs a member of staff out of a screen they are
+   * working in and sends them back to the PIN box for a fault that was never
+   * theirs. 503 says what is true: try again in a moment.
+   */
+  if (session.failed) {
+    throw new GuardError(503, 'We could not verify your session just now. Please try again in a moment.')
+  }
+
   if (!session.valid || !session.userId || !session.role) {
     throw new GuardError(401, 'Your session has expired. Please sign in again.')
   }
