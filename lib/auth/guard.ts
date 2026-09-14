@@ -171,13 +171,49 @@ export function describeSetupAuth(req: NextRequest): SetupAuthAttempt {
   const url = new URL(req.url)
 
   const header = req.headers.get('authorization')?.replace(/^Bearer\s+/i, '')
+  const rawQuery = url.search.startsWith('?') ? url.search.slice(1) : url.search
+
   const fromKey = url.searchParams.get('key')
   const fromSecret = url.searchParams.get('secret')
 
   const where: SetupAuthAttempt['where'] =
-    header ? 'header' : fromKey ? 'query:key' : fromSecret ? 'query:secret' : 'none'
+    header ? 'header' : fromKey !== null ? 'query:key' : fromSecret !== null ? 'query:secret' : 'none'
 
-  const supplied = (header || fromKey || fromSecret || '').trim()
+  /*
+   * ── READING A SECRET OUT OF A QUERY STRING ───────────────────────────────
+   *
+   * The note above says a '+', '&' or '%' in a secret does not survive the
+   * trip. That was written as a reason to PREFER the header — and then
+   * /setup/unlock was built specifically for browser ?key= delivery, because
+   * somebody locked out of their own portal cannot send a header from a
+   * phone. It inherited the flaw, and the symptom is the one the note
+   * predicted: "Not authorised" every time, with no indication why.
+   *
+   * So rather than one reading of the query, every plausible reading is
+   * tried:
+   *
+   *   - what URLSearchParams says      (correct when the secret was encoded)
+   *   - the raw value, '+' preserved   (correct when it was pasted verbatim)
+   *   - the raw value to the END of the query string, so an '&' inside the
+   *     secret is not read as the start of another parameter
+   *
+   * This does NOT loosen anything. Each candidate is compared, in constant
+   * time, against the real secret; a value that is not the secret matches
+   * none of them. What it removes is a way for the CORRECT secret to be
+   * rejected because of how a browser packed it.
+   *
+   * '#' is the one that cannot be repaired here: a browser treats it as the
+   * start of a fragment and never sends what follows, so the server cannot
+   * see it to begin with. That case is named in the hint below.
+   */
+  const candidates = header
+    ? [header]
+    : [
+        fromKey ?? '',
+        fromSecret ?? '',
+        ...rawCandidates(rawQuery, 'key'),
+        ...rawCandidates(rawQuery, 'secret'),
+      ]
 
   let expected = ''
   try {
@@ -187,12 +223,50 @@ export function describeSetupAuth(req: NextRequest): SetupAuthAttempt {
     return { ok: false, where, configured: false, lengthMatch: false }
   }
 
-  return {
-    ok: safeEqual(supplied, expected),
-    where,
-    configured: true,
-    lengthMatch: supplied.length === expected.length,
+  let ok = false
+  let bestLengthMatch = false
+  for (const candidate of candidates) {
+    const trimmed = candidate.trim()
+    if (!trimmed) continue
+    // Every candidate is checked even once one has matched, so the work done
+    // does not depend on WHICH reading was the right one.
+    if (safeEqual(trimmed, expected)) ok = true
+    if (trimmed.length === expected.length) bestLengthMatch = true
   }
+
+  return { ok, where, configured: true, lengthMatch: bestLengthMatch }
+}
+
+/**
+ * Readings of one query parameter that URLSearchParams does not give you.
+ *
+ * Returns the raw slice with '+' left alone, and the slice running to the end
+ * of the query string so an '&' inside the value is not treated as a
+ * separator. Percent escapes are decoded where they decode cleanly; a value
+ * containing a bare '%' is also offered undecoded, because that is what a
+ * verbatim paste actually contains.
+ */
+function rawCandidates(rawQuery: string, param: string): string[] {
+  const marker = `${param}=`
+  const at = rawQuery.startsWith(marker)
+    ? 0
+    : rawQuery.indexOf(`&${marker}`) >= 0
+      ? rawQuery.indexOf(`&${marker}`) + 1
+      : -1
+  if (at < 0) return []
+
+  const afterName = rawQuery.slice(at + marker.length)
+  const upToNextParam = afterName.split('&')[0]
+
+  const out = new Set<string>([afterName, upToNextParam])
+  for (const value of [afterName, upToNextParam]) {
+    try {
+      out.add(decodeURIComponent(value))
+    } catch {
+      // A bare '%' makes this throw. The undecoded form is already included.
+    }
+  }
+  return [...out]
 }
 
 /** Constant-time string comparison that does not leak length through timing. */

@@ -67,11 +67,20 @@ export async function GET(req: NextRequest) {
       metadata: { secretConfigured: attempt.configured, suppliedVia: attempt.where, via: 'link' },
     })
     /*
-     * Deliberately says nothing about the secret — not whether one was
-     * supplied, not whether it was the right length. Somebody who opened this
-     * without authorisation learns only that it did not work.
+     * Says nothing about the SECRET — not its length, not whether one is
+     * configured. What it can safely describe is the caller's own request:
+     * whether a key arrived at all, and whether it shows the fingerprints of
+     * a URL having mangled it on the way.
+     *
+     * That distinction is the whole difference between "you have the wrong
+     * value" and "your value is right but the link ate part of it", and
+     * without it the two are indistinguishable — which is exactly how this
+     * endpoint wasted an afternoon.
      */
-    return NextResponse.json({ error: 'Not authorised.' }, { status: 401 })
+    return NextResponse.json({
+      error: 'Not authorised.',
+      hint: unlockHint(req),
+    }, { status: 401 })
   }
 
   // allowReset, because the account this is used for already has a PIN
@@ -94,4 +103,40 @@ export async function GET(req: NextRequest) {
    * address bar by the time /setup renders.
    */
   return NextResponse.redirect(new URL('/setup', req.url), 303)
+}
+
+
+/**
+ * Why this attempt may have failed, described entirely from the caller's own
+ * input. Nothing here is derived from the real secret.
+ */
+function unlockHint(req: NextRequest): string {
+  const raw = new URL(req.url).search
+  const supplied = new URL(req.url).searchParams.get('key')
+    ?? new URL(req.url).searchParams.get('secret')
+
+  if (supplied === null) {
+    return 'No key was supplied. Open this link with ?key=… appended, or send the secret as an Authorization: Bearer header.'
+  }
+  if (!supplied.trim()) {
+    return 'The key was empty.'
+  }
+  /*
+   * A space in the received value almost always means the secret contained a
+   * '+' and the browser sent it as a space. The server now tries that reading
+   * too, so reaching here having seen one means the value really is wrong —
+   * but it is worth naming, because it is the likeliest thing a person has
+   * already half-noticed.
+   */
+  if (/\s/.test(supplied)) {
+    return 'The key arrived containing a space, which usually means it holds a "+" that the URL converted. '
+      + 'Try percent-encoding it (+ becomes %2B), or send it as an Authorization: Bearer header instead.'
+  }
+  if (raw.includes('%') && !/%[0-9a-fA-F]{2}/.test(raw)) {
+    return 'The key contains a "%" that is not a valid escape, so part of it was lost. '
+      + 'Percent-encode it (% becomes %25), or use an Authorization: Bearer header.'
+  }
+  return 'That key was not accepted. If it contains + & % or #, a URL will alter it — '
+    + 'send it as an Authorization: Bearer header instead, which is not encoded. '
+    + 'A "#" in particular is never sent to the server at all.'
 }
