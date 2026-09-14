@@ -173,9 +173,12 @@ export function IconButton({
  * screen that does mean something.
  */
 const AVATAR_TINTS = [
-  'bg-[#E8F2ED] text-[#127A5A]',
+  // The two green-family entries follow the palette rather than repeating it;
+  // they held the pre-lift values and would otherwise have stayed dark after
+  // the greens moved.
+  'bg-[var(--brand-soft)] text-[var(--accent)]',
   'bg-[#EDF1EF] text-[#4A6B5E]',
-  'bg-[#E6EEEB] text-[#0B3B2E]',
+  'bg-[#E6EEEB] text-[var(--brand)]',
   'bg-[#F0F3F1] text-[#5A6B64]',
 ]
 

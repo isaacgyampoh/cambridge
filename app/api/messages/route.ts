@@ -106,7 +106,7 @@ export async function POST(req: NextRequest) {
           `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:28px 24px;color:#1a2230">
             <p style="font-size:15px;line-height:1.6">Hi ${first},</p>
             <p style="font-size:15px;line-height:1.6">You have a new message from <b>${session.fullName || 'a colleague'}</b> on the Cambridge portal.</p>
-            <p style="font-size:14px;color:#5A6B64;line-height:1.6">Log in to read and reply: <a href="https://portal.cambridge.edu.gh/messages" style="color:#127A5A">portal.cambridge.edu.gh/messages</a></p>
+            <p style="font-size:14px;color:#5A6B64;line-height:1.6">Log in to read and reply: <a href="https://portal.cambridge.edu.gh/messages" style="color:#1A7F61">portal.cambridge.edu.gh/messages</a></p>
           </div>`,
           `You have a new message from ${session.fullName || 'a colleague'} on the Cambridge portal. Log in to reply: https://portal.cambridge.edu.gh/messages`
         )

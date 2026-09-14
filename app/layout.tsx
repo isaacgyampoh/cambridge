@@ -59,7 +59,11 @@ export const viewport: Viewport = {
    * Kept in step with --brand in globals.css and theme_color in
    * public/manifest.json; all three must say the same thing.
    */
-  themeColor: '#0B3B2E',
+  /*
+   * Must agree with public/manifest.json. Two copies of one colour is how the
+   * browser chrome ends up a different green from the application it frames.
+   */
+  themeColor: '#15664D',
 }
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {

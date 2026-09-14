@@ -38,13 +38,27 @@
      --brand is the deep tone used for a solid surface where one is genuinely
      wanted (the sign-in mark, a filled primary button on a dark ground).
      --accent is the working green: buttons, active tabs, links. */
-  --brand:       #0B3B2E;   /* deep forest — solid surfaces */
-  --brand-deep:  #072A21;   /* pressed */
+  /* ── Lightened, deliberately and by measurement ──────────────────────────
+     The greens were near-black. --brand sat at L* 21.6 and 12.5:1 against
+     white — a contrast budget four times what white text on it needs, spent
+     entirely on making the colour dark. It read as black with a green cast
+     rather than as green, and it was the PWA theme colour, so it was the
+     first thing anybody saw.
+
+     The ceiling is --accent, which carries white text: WCAG AA wants 4.5:1
+     for that, and the old value had only 0.8 of headroom. It is now 4.94:1 —
+     lighter, and still passing with room to spare. That is the whole reason
+     the accent moves less than the brand does; going further would fail the
+     label on every primary button in the product.
+
+     Hue and saturation are unchanged. This is the same green, further up. */
+  --brand:       #15664D;   /* forest — solid surfaces. 6.91:1 on white */
+  --brand-deep:  #104C3A;   /* pressed. 9.92:1 */
   --brand-soft:  #E8F2ED;   /* tinted fill behind an icon or a chip */
   --brand-line:  #C4DACF;   /* a border in the brand family */
 
-  --accent:      #127A5A;   /* the working green */
-  --accent-hover:#0E6249;
+  --accent:      #1A7F61;   /* the working green. 4.94:1 — AA for white text */
+  --accent-hover:#176E54;   /* hover deepens toward the brand. 6.19:1 */
   --accent-ink:  #FFFFFF;
   --accent-soft: var(--brand-soft);
   --accent-line: var(--brand-line);

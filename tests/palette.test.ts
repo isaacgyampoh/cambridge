@@ -29,8 +29,19 @@ import { join } from 'node:path'
  * These tests are what stop it happening on the next palette.
  */
 
-const BRAND = '#0B3B2E'      // the dark surface: app bar, tab bar
-const ACCENT = '#127A5A'     // the working green
+/*
+ * Lifted from #0B3B2E / #127A5A, which were near-black.
+ *
+ * --brand sat at L* 21.6 and 12.5:1 against white — four times the contrast
+ * white text on it needs, spent entirely on darkness. It read as black with a
+ * green cast rather than as green, and it was the PWA theme colour, so it was
+ * the first thing anybody saw.
+ *
+ * --accent moved least, and the test below says why: it carries white text,
+ * so 4.5:1 is a floor rather than a preference.
+ */
+const BRAND = '#15664D'      // the dark surface: app bar, tab bar
+const ACCENT = '#1A7F61'     // the working green
 const PAPER = '#FFFFFF'      // surface
 const CANVAS = '#F6F8F7'     // page ground
 
@@ -170,5 +181,101 @@ describe('the sign-in photograph', () => {
     const form = readFileSync('app/(auth)/login/LoginForm.tsx', 'utf8')
     assert.ok(!/['"]\/brand\/login-hero/.test(form),
       'the form hardcodes a photograph path instead of using the resolved one')
+  })
+})
+
+
+/**
+ * ─── THE ACCENT CARRIES WHITE TEXT ──────────────────────────────────────────
+ *
+ * Which makes 4.5:1 a floor, not a preference — every primary button in the
+ * product is white on this colour.
+ *
+ * The values were pinned here before without ever being measured, so "too
+ * dark" and "too light" were both a rename away and neither would have failed
+ * anything. These assert the property the hex is chosen FOR, so the next
+ * person to move the green finds out immediately if they have moved it past
+ * what the label on a button can survive.
+ */
+function relativeLuminance(hex: string): number {
+  const h = hex.replace('#', '')
+  const channel = (v: number) => {
+    const c = v / 255
+    return c <= 0.04045 ? c / 12.92 : ((c + 0.055) / 1.055) ** 2.4
+  }
+  const [r, g, b] = [0, 2, 4].map(i => channel(parseInt(h.slice(i, i + 2), 16)))
+  return 0.2126 * r + 0.7152 * g + 0.0722 * b
+}
+
+function contrast(a: string, b: string): number {
+  const [x, y] = [relativeLuminance(a), relativeLuminance(b)]
+  const [hi, lo] = x > y ? [x, y] : [y, x]
+  return (hi + 0.05) / (lo + 0.05)
+}
+
+/** CIE L*, the perceptual lightness. Used only to assert direction. */
+function lightness(hex: string): number {
+  const y = relativeLuminance(hex)
+  return y > 0.008856 ? 116 * y ** (1 / 3) - 16 : 903.3 * y
+}
+
+describe('the greens are legible and in the right order', () => {
+  const css = readFileSync('app/globals.css', 'utf8')
+  const tokenValue = (name: string): string => {
+    const m = css.match(new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`))
+    assert.ok(m, `--${name} is not defined as a hex value`)
+    return m![1]
+  }
+
+  test('white text on the accent passes AA', () => {
+    const ratio = contrast(tokenValue('accent'), '#FFFFFF')
+    assert.ok(ratio >= 4.5,
+      `white on --accent is ${ratio.toFixed(2)}:1 — below the 4.5:1 AA floor for body text. `
+      + 'Every primary button in the product is white on this colour.')
+  })
+
+  test('and so does white on the brand', () => {
+    const ratio = contrast(tokenValue('brand'), '#FFFFFF')
+    assert.ok(ratio >= 4.5, `white on --brand is ${ratio.toFixed(2)}:1`)
+  })
+
+  test('the accent is still readable against the page ground', () => {
+    // It is used for links and icons on --canvas, not only as a fill.
+    const ratio = contrast(tokenValue('accent'), CANVAS)
+    assert.ok(ratio >= 3, `--accent on --canvas is ${ratio.toFixed(2)}:1 — below the 3:1 UI floor.`)
+  })
+
+  test('hover deepens rather than lightens', () => {
+    assert.ok(lightness(tokenValue('accent-hover')) < lightness(tokenValue('accent')),
+      'a hover state that gets lighter reads as disabled')
+  })
+
+  test('pressed is deeper than the brand', () => {
+    assert.ok(lightness(tokenValue('brand-deep')) < lightness(tokenValue('brand')))
+  })
+
+  test('the greens are no longer near-black', () => {
+    /*
+     * The complaint that prompted this. Below about L* 30 a saturated green
+     * stops reading as green at all and becomes a very dark neutral.
+     */
+    assert.ok(lightness(tokenValue('brand')) > 30,
+      `--brand is L* ${lightness(tokenValue('brand')).toFixed(1)} — dark enough to read as black.`)
+    assert.ok(lightness(tokenValue('accent')) > 40,
+      `--accent is L* ${lightness(tokenValue('accent')).toFixed(1)}`)
+  })
+
+  test('no screen keeps a copy of the pre-lift greens', () => {
+    // They were in four places outside globals.css and would have stayed dark.
+    const stale = ['#0B3B2E', '#127A5A', '#072A21', '#0E6249']
+    const offenders: string[] = []
+    for (const file of [...sourceFiles('app'), ...sourceFiles('components')]) {
+      const src = readFileSync(file, 'utf8')
+      for (const hex of stale) {
+        if (src.includes(hex)) offenders.push(`${file} — ${hex}`)
+      }
+    }
+    assert.deepEqual(offenders.map(o => o.replace(/^.*?cambridge\//, '')), [],
+      'a pre-lift green is hardcoded somewhere and will not have moved')
   })
 })
