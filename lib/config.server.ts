@@ -79,6 +79,16 @@ export const SECRETS = {
   get smtpUser() { return optional('SMTP_USER') },
   get smtpPass() { return optional('SMTP_PASS') },
   get resendApiKey() { return optional('RESEND_API_KEY') },
+
+  /*
+   * Where a super admin recovery code is sent.
+   *
+   * The super admin signs in with a PIN and has no corporate mailbox — that
+   * stays true. This address is used for ONE thing: receiving a code when the
+   * PIN has been forgotten and the recovery PIN is not to hand. It is never a
+   * login identity, never shown in a response, and never reaches the browser.
+   */
+  get superAdminRecoveryEmail() { return optional('SUPER_ADMIN_RECOVERY_EMAIL') },
   get resendFromEmail() { return optional('EMAIL_FROM', 'Cambridge CE <portal@cambridge.edu.gh>') },
 
   // ── AUTH ────────────────────────────────────────────────────

@@ -1,6 +1,7 @@
 import 'server-only'
-import { randomBytes, randomInt } from 'crypto'
+import { randomBytes, randomInt, randomUUID, timingSafeEqual } from 'crypto'
 import { createServiceClient } from '@/lib/supabase/server'
+import { SECRETS } from '@/lib/config.server'
 import { hashPIN, verifyPIN, hashToken, generateOTP } from '@/lib/auth/pin'
 import {
   generatePin, isValidPin, pinRejectionReason, OTP_LENGTH, NO_MAILBOX_ROLES,
@@ -376,4 +377,112 @@ function maskEmail(email: string): string {
   const at = email.lastIndexOf('@')
   if (at < 1) return 'your corporate email'
   return `${email[0]}${'•'.repeat(5)}${email.slice(at)}`
+}
+
+
+/**
+ * SUPER ADMIN RECOVERY BY EMAIL — the emergency route.
+ *
+ * ── WHY THIS EXISTS ALONGSIDE THE RECOVERY PIN ─────────────────────────────
+ *
+ * The super admin's normal self-service route is recovery PIN -> new PIN, with
+ * no code, because they have no corporate mailbox. That works only for
+ * somebody who has the recovery PIN. When both PINs are gone, the only way
+ * back was a SETUP_SECRET window — a link, a query string and an encoding
+ * problem, at the exact moment the owner is locked out and least able to
+ * debug it.
+ *
+ * So: one address, configured on the server, that can receive a code. It is
+ * NOT a login identity. The super admin still signs in with a PIN, still skips
+ * the OTP on normal sign-in, and this address is never a username.
+ *
+ * ── WHAT STOPS IT BEING AN ORACLE ──────────────────────────────────────────
+ *
+ * A wrong address and a right one must be indistinguishable, or this becomes
+ * a way to discover the recovery mailbox by guessing. So the response shape,
+ * the status and the timing are identical either way: a mismatch still returns
+ * a userId, just a random one that no profile owns, and verifying a code
+ * against it fails exactly as a wrong code does.
+ *
+ * The comparison is constant-time and case-insensitive, because an email
+ * address is not case-sensitive in its domain and people capitalise the local
+ * part inconsistently.
+ */
+export type SuperAdminRecoveryStart =
+  | { ok: true; userId: string; expiresInSeconds: number; code?: string; email?: string; fullName?: string }
+  | { ok: false; reason: string; status: number }
+
+export async function startSuperAdminRecoveryByEmail(
+  supplied: string,
+): Promise<SuperAdminRecoveryStart> {
+  const configured = SECRETS.superAdminRecoveryEmail
+
+  if (!configured) {
+    /*
+     * Told plainly. This reveals nothing about any address — only that the
+     * deployment has not been given one — and the owner needs to know which
+     * single variable to set rather than being met with a generic failure.
+     */
+    return {
+      ok: false,
+      status: 503,
+      reason: 'Super admin recovery by email is not configured on this deployment. '
+        + 'Set SUPER_ADMIN_RECOVERY_EMAIL and try again.',
+    }
+  }
+
+  const matches = sameAddress(supplied, configured)
+
+  const sb = createServiceClient()
+  const { data: account, error } = await sb.from('profiles')
+    .select('id, full_name, role, is_active')
+    .eq('role', 'super_admin')
+    .eq('is_active', true)
+    .limit(1)
+    .maybeSingle()
+
+  if (error) {
+    console.error('[recover] could not load the super admin:', error.message)
+    return { ok: false, reason: 'Recovery is unavailable right now. Please try again.', status: 500 }
+  }
+
+  if (!matches || !account) {
+    /*
+     * The same shape as success. A random id belongs to no profile, so the
+     * next step fails identically to a wrong code — and nothing here says
+     * which of the two went wrong.
+     */
+    return { ok: true, userId: randomUUID(), expiresInSeconds: OTP_MINUTES * 60 }
+  }
+
+  const code = generateOTP(OTP_LENGTH)
+  const expires = new Date(Date.now() + OTP_MINUTES * 60_000).toISOString()
+
+  const { error: writeErr } = await sb.from('profiles').update({
+    otp_code: hashToken(code),      // never stored in the clear
+    otp_expires_at: expires,
+    otp_attempts: 0,
+  }).eq('id', account.id)
+
+  if (writeErr) {
+    console.error('[recover] could not store the super admin code:', writeErr.message)
+    return { ok: false, reason: 'Recovery is unavailable right now. Please try again.', status: 500 }
+  }
+
+  return {
+    ok: true,
+    userId: account.id,
+    expiresInSeconds: OTP_MINUTES * 60,
+    code,
+    email: configured,
+    fullName: account.full_name as string,
+  }
+}
+
+/** Case-insensitive, constant-time address comparison. */
+function sameAddress(a: string, b: string): boolean {
+  const x = Buffer.from(String(a || '').trim().toLowerCase())
+  const y = Buffer.from(String(b || '').trim().toLowerCase())
+  if (x.length !== y.length) return false
+  return timingSafeEqual(x, y)
 }

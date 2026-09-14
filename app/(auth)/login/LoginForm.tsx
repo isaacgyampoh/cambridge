@@ -31,7 +31,7 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
   const hasHero = Boolean(heroSrc)
   const [heroOk, setHeroOk] = useState(hasHero)
   const [step,    setStep]    = useState<
-    'pin' | 'otp' | 'set-pin' | 'recover-pin' | 'recover-otp' | 'recover-new'
+    'pin' | 'otp' | 'set-pin' | 'recover-pin' | 'recover-email' | 'recover-otp' | 'recover-new'
   >('pin')
   const [pin,     setPin]     = useState('')
   /* The emailed code. A different length from the PIN, deliberately. */
@@ -53,6 +53,46 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
   const [recoverNew, setRecoverNew] = useState('')
   const [recoverConfirm, setRecoverConfirm] = useState('')
   const [resetToken, setResetToken] = useState('')
+  /* Super admin recovery: one configured address, used only to receive a code. */
+  const [recoverEmail, setRecoverEmail] = useState('')
+
+  /**
+   * Start super admin recovery.
+   *
+   * Reuses the shared OTP steps from here on — the code is checked by
+   * /recover/verify and the new PIN set by /recover/complete, exactly as for
+   * staff. Only the way the code is REQUESTED differs.
+   */
+  async function startSuperAdminRecovery() {
+    if (loading || !recoverEmail.trim()) return
+    setLoading(true); setError('')
+    try {
+      const d = await fetch('/api/auth/recover/super-admin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: recoverEmail.trim() }),
+      }).then(r => r.json())
+
+      if (!d.success) {
+        setError(d.error || 'Recovery could not be started.')
+        return
+      }
+      /*
+       * Deliberately the same path whether or not the address matched. The
+       * server answers identically, so a wrong address simply fails at the
+       * code step — which is what stops this becoming a way to discover the
+       * recovery mailbox by guessing.
+       */
+      setOtpUserId(d.userId)
+      setEmailHint('the recovery email')
+      setCodeLeft(d.expiresInSeconds || 600)
+      setOtp('')
+      setStep('recover-otp')
+    } catch {
+      setError('Recovery could not be started. Please try again.')
+    } finally {
+      setLoading(false)
+    }
+  }
 
   async function submitPin(pinStr: string) {
     busy.current = true; setLoading(true); setError('')
@@ -518,8 +558,8 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
                   Reset your PIN
                 </h2>
                 <p className="text-[var(--ink-soft)] text-sm">
-                  Enter your {PIN_LENGTH}-digit recovery PIN. If your account uses email
-                  verification, we will send a code to confirm it is you.
+                  Enter your {PIN_LENGTH}-digit recovery PIN. Staff accounts then receive a
+                  code by email; the super admin goes straight to choosing a new PIN.
                 </p>
               </div>
 
@@ -552,6 +592,72 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
               <p className="text-xs text-[var(--ink-faint)] mt-6 leading-relaxed">
                 No recovery PIN? Ask a super admin to reset your PIN from the Staff page.
               </p>
+
+              {/*
+                The super admin's own way back.
+                Their normal route is the recovery PIN above — no code, because
+                they have no corporate mailbox. This is for when that PIN is
+                gone too, and it is the difference between a locked-out owner
+                and a deployment secret in a query string.
+              */}
+              <button
+                onClick={() => { setStep('recover-email'); setError(''); setRecoverEmail('') }}
+                className="mt-3 text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
+                Super admin recovery
+              </button>
+            </>
+          )}
+
+          {step === 'recover-email' && (
+            <>
+              <div className="mb-8">
+                <h2 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)] mb-1.5">
+                  Super admin PIN recovery
+                </h2>
+                <p className="text-[var(--ink-soft)] text-sm">
+                  Enter the recovery email configured for the super admin. We will send a
+                  verification code to it.
+                </p>
+              </div>
+
+              <form onSubmit={e => { e.preventDefault(); startSuperAdminRecovery() }}>
+                <label htmlFor="recovery-email" className="block text-[13px] font-medium text-[var(--ink)]">
+                  Recovery email
+                </label>
+                {/*
+                  16px, or iOS Safari zooms the page on focus and the person
+                  loses their place — on the one screen where they are already
+                  locked out and anxious.
+                */}
+                <input
+                  id="recovery-email" type="email" inputMode="email" autoComplete="off"
+                  autoFocus value={recoverEmail} onChange={e => setRecoverEmail(e.target.value)}
+                  disabled={loading} enterKeyHint="send"
+                  className="mt-1.5 w-full min-h-[48px] rounded-xl border border-[var(--line)]
+                    bg-[var(--canvas)] px-3.5 text-[16px] text-[var(--ink)]" />
+
+                <button type="submit" disabled={loading || !recoverEmail.trim()}
+                  className="mt-4 w-full min-h-[48px] rounded-xl bg-[var(--accent)]
+                    text-[var(--accent-ink)] text-[15px] font-semibold disabled:opacity-60">
+                  {loading ? 'Sending…' : 'Send code'}
+                </button>
+              </form>
+
+              {error && !loading && (
+                <div role="alert"
+                  className="mt-6 px-4 py-3 bg-[var(--danger-soft)] border border-[var(--danger)]/15
+                    rounded-xl text-sm text-[var(--danger)]">
+                  {error}
+                </div>
+              )}
+
+              <button
+                onClick={() => { setStep('recover-pin'); setError('') }}
+                className="mt-6 text-[13px] text-[var(--ink-faint)] hover:text-[var(--ink)] hover:underline
+                  focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded px-1 -mx-1">
+                Back
+              </button>
             </>
           )}
 
