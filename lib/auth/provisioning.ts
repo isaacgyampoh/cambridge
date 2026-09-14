@@ -5,6 +5,7 @@ import { hashPIN, verifyPIN, hashToken } from '@/lib/auth/pin'
 import { generatePin } from '@/lib/auth/pinPolicy'
 import { CONFIG } from '@/lib/config'
 import { SECRETS } from '@/lib/config.server'
+import { usesEmailVerification } from '@/lib/auth/pinPolicy'
 
 /**
  * First-run provisioning of the super admin, from a browser.
@@ -94,21 +95,37 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
   const hasRecoveryPin = (admins || []).some(a => Boolean(a.recovery_pin_hash))
 
   /*
-   * Can the owner actually get back in on their own?
+   * Can the owner get back in on their own?
    *
-   * Three things have to hold, and holding two of them is worth nothing:
-   * a recovery PIN, an address on the account, and a configured sender to
-   * deliver the code. The reason is spelled out because "incomplete" with no
-   * explanation sends somebody looking in the wrong place.
+   * ── THE ANSWER DEPENDS ON THE ROLE, AND I GOT THIS WRONG ─────────────────
+   *
+   * This first asked three questions — recovery PIN, an address on the
+   * account, a configured sender — and reported the super admin as
+   * incomplete because RESEND_API_KEY is unset.
+   *
+   * That is a staff rule applied to an account it does not govern. The super
+   * admin is in NO_MAILBOX_ROLES: they have no corporate mailbox, sign-in
+   * skips the OTP for them, and lib/auth/recovery.ts branches on the same
+   * list so their Forgot PIN goes recovery PIN -> new PIN with no code at
+   * all. Email is not on their path, so an unconfigured mailer cannot block
+   * it, and saying otherwise sent the owner looking for a fault that was not
+   * there.
+   *
+   * So: for a no-mailbox role the recovery PIN IS the whole route. For
+   * everybody else the emailed code still has to be deliverable.
    */
+  const superAdminUsesEmail = usesEmailVerification('super_admin')
+
   const hasRecoveryEmail = (admins || []).some(a => Boolean(a.email && String(a.email).includes('@')))
   const canSendEmail = Boolean(SECRETS.resendApiKey)
 
-  const recoveryBlockedReason =
-    !hasRecoveryPin
-      ? 'No recovery PIN is set, so there is no way back in without SETUP_SECRET.'
+  const recoveryBlockedReason = !hasRecoveryPin
+    ? 'No recovery PIN is set, so the only way back in is a setup window.'
+    : !superAdminUsesEmail
+      // PIN-only, by design. Nothing else to check.
+      ? null
       : !hasRecoveryEmail
-        ? 'The super admin has no email address, so the one-time code has nowhere to go.'
+        ? 'This account has no email address, so the one-time code has nowhere to go.'
         : !canSendEmail
           ? 'RESEND_API_KEY is not configured, so the one-time code cannot be sent.'
           : null

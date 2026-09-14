@@ -52,6 +52,35 @@ describe('readiness asks whether recovery can COMPLETE', () => {
     assert.match(provisioning, /RESEND_API_KEY is not configured/)
   })
 
+  test('a PIN-only role is not judged by an email rule', () => {
+    /*
+     * This was the bug in the first version of this check. It asked for an
+     * address and a configured sender unconditionally, and reported the super
+     * admin as incomplete because RESEND_API_KEY was unset — a staff rule
+     * applied to an account it does not govern.
+     *
+     * super_admin is in NO_MAILBOX_ROLES. Sign-in skips the OTP for them and
+     * recovery.ts branches on the same list, so their Forgot PIN runs
+     * recovery PIN -> new PIN with no code at all. Email is not on their path.
+     */
+    assert.match(provisioning, /usesEmailVerification\('super_admin'\)/)
+    assert.match(provisioning, /!superAdminUsesEmail/,
+      'A no-mailbox role must short-circuit before the email checks.')
+
+    // And the branch order matters: the email tests must sit AFTER it.
+    const block = provisioning.slice(provisioning.indexOf('const recoveryBlockedReason'))
+    const shortCircuit = block.indexOf('!superAdminUsesEmail')
+    const emailTest = block.indexOf('hasRecoveryEmail')
+    assert.ok(shortCircuit > 0 && shortCircuit < emailTest,
+      'The email checks must be unreachable for a PIN-only role.')
+  })
+
+  test('the one thing a PIN-only account still needs is a recovery PIN', () => {
+    // Without it there is no self-service route at all, whatever the role.
+    const block = provisioning.slice(provisioning.indexOf('const recoveryBlockedReason'))
+    assert.match(block.slice(0, 200), /!hasRecoveryPin/)
+  })
+
   test('the address itself is never returned', () => {
     /*
      * This state is served to an anonymous browser — /api/setup/provision is
@@ -109,5 +138,123 @@ describe('the setup screen says so', () => {
      */
     assert.match(page, /opened on the server by whoever manages this deployment/)
     assert.ok(!/SETUP_SECRET/.test(page), 'A public page must not name the deployment secret.')
+  })
+})
+
+/**
+ * ─── THE SUPER ADMIN IS PIN-ONLY, END TO END ────────────────────────────────
+ *
+ *   secure setup link  →  temporary PIN  →  new 4-digit PIN  →  portal
+ *
+ * No email, no password, no code, no Resend, at any step. The pieces already
+ * existed; these assert that they still line up, because the failure mode is
+ * one branch acquiring an email dependency the others do not have — and the
+ * account that would be locked out by it is the one that can lock everybody
+ * else out.
+ */
+describe('super admin sign-in never touches email', () => {
+  const verifyPin = codeOf('app/api/auth/verify-pin/route.ts')
+  const policy = codeOf('lib/auth/pinPolicy.ts')
+
+  test('the role is declared PIN-only in one place', () => {
+    assert.match(policy, /NO_MAILBOX_ROLES: readonly string\[\] = \['super_admin'\]/)
+  })
+
+  test('sign-in reads that list rather than a second copy', () => {
+    assert.match(verifyPin, /OTP_EXEMPT_ROLES: readonly string\[\] = NO_MAILBOX_ROLES/,
+      'Two lists would drift, and the account can then be signed in but not recovered.')
+  })
+
+  test('an exempt role skips the OTP entirely', () => {
+    assert.match(verifyPin, /if \(!SECRETS\.otpEnabled \|\| otpExempt\)/)
+  })
+
+  test('and the missing-email refusal cannot catch them', () => {
+    /*
+     * That guard exists so an incomplete staff record cannot become an OTP
+     * bypass. It must not fire for a role that legitimately has no mailbox.
+     */
+    assert.match(verifyPin, /if \(!otpExempt && SECRETS\.otpEnabled && !profile\.email\)/)
+  })
+
+  test('a single-factor sign-in is still written to the audit log', () => {
+    // Full access granted on one factor is worth recording, exemption or not.
+    assert.match(verifyPin, /auth\.login_without_otp/)
+  })
+})
+
+describe('super admin recovery never touches email', () => {
+  const recovery = codeOf('lib/auth/recovery.ts')
+  const start = codeOf('app/api/auth/recover/start/route.ts')
+  const form = codeOf('app/(auth)/login/LoginForm.tsx')
+
+  test('recovery branches on the same list sign-in does', () => {
+    assert.match(recovery, /SELF_RECOVERING_ROLES = NO_MAILBOX_ROLES/)
+  })
+
+  test('no code is produced for a PIN-only account', () => {
+    assert.match(start, /if \(!result\.needsCode\)/)
+    assert.match(start, /resetToken: result\.resetToken/,
+      'Recovery is already authorised; there is nothing to email.')
+  })
+
+  test('and the form goes straight to choosing a new PIN', () => {
+    assert.match(form, /if \(d\.needsCode === false && d\.resetToken\)/)
+    assert.match(form, /setStep\('recover-new'\)/)
+  })
+})
+
+describe('the provisioning flow forces a new PIN and lands in the portal', () => {
+  const provisioning = codeOf('lib/auth/provisioning.ts')
+  const verifyPin = codeOf('app/api/auth/verify-pin/route.ts')
+  const form = codeOf('app/(auth)/login/LoginForm.tsx')
+
+  test('the issued PIN cannot become the permanent one', () => {
+    assert.match(provisioning, /must_change_pin: true/,
+      'They chose neither PIN, so they must choose their own at first sign-in.')
+  })
+
+  test('the recovery PIN is NOT rotated by completing a recovery', () => {
+    /*
+     * It is what gets them back next time; rotating it silently would remove
+     * the route they think they still have.
+     *
+     * Asserted on the WRITE, not on the comment that explains it — codeOf
+     * strips comments, and a test that passes because of prose proves nothing
+     * about the code.
+     */
+    const recovery = codeOf('lib/auth/recovery.ts')
+    const write = recovery.slice(recovery.indexOf('pin_set_at:'), recovery.indexOf('.eq(\'id\', profile.id)'))
+    assert.ok(write.length > 0, 'the recovery write must still be there')
+    assert.ok(!/recovery_pin_hash/.test(write),
+      'Completing a recovery must not overwrite the recovery PIN.')
+    // And the reset token IS consumed, because that one is single use.
+    assert.match(write, /reset_token_hash: null/)
+  })
+
+  test('sign-in reports the obligation, and the form honours it', () => {
+    assert.match(verifyPin, /mustChangePIN: Boolean\(profile\.must_change_pin\)/)
+    assert.match(form, /if \(d\.mustChangePIN\) \{ setStep\('set-pin'\); return \}/,
+      'The step must not be skippable.')
+  })
+
+  test('a session exists before the new PIN is chosen', () => {
+    // So setting it is an authenticated action, not a second anonymous one.
+    assert.match(verifyPin, /res\.cookies\.set\(SESSION_COOKIE, token, SESSION_COOKIE_OPTIONS\)/)
+  })
+
+  test('the new PIN is hashed, never stored as typed', () => {
+    assert.match(provisioning, /pin_hash: await hashPIN\(signInPin\)/)
+    assert.match(codeOf('app/api/auth/change-pin/route.ts'), /hashPIN\(/)
+  })
+
+  test('the new PIN must pass the policy', () => {
+    assert.match(codeOf('app/api/auth/change-pin/route.ts'), /pinRejectionReason\(/)
+  })
+
+  test('and the destination is the portal, not a public page', () => {
+    assert.match(verifyPin, /redirect: ROLE_PORTAL\[profile\.role\] \|\| '\/admin'/)
+    assert.ok(!/welcome|\/m\/|refer/.test(form.slice(form.indexOf('mustChangePIN'), form.indexOf('mustChangePIN') + 400)),
+      'A provisioned super admin must never land on marketing.')
   })
 })
