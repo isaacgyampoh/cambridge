@@ -31,6 +31,11 @@ const PUBLIC = [
    * staff sign-in box.
    */
   '/login', '/setup', '/apply', '/refer', '/f/', '/j/', '/signin/', '/public-alumni',
+  // A member of staff's permanent marketing link. Public by design: it is
+  // shared on WhatsApp, printed on cards and put behind QR codes. It exposes
+  // the current promotion and the sharer's name, and nothing else — see
+  // lib/marketing/link.ts for what is deliberately not selected.
+  '/m/',
   // The public front page. It lives here rather than at '/', which belongs to
   // the staff portal and redirects to the sign-in.
   '/welcome',

@@ -83,6 +83,24 @@ export default function MyFlyers() {
    * flyer image, so WhatsApp and Facebook render the flyer itself as the
    * preview. Repeating the details in the text would only compete with it.
    */
+  /*
+   * WhatsApp, explicitly — the same reasoning as ShareLink.
+   *
+   * shareFlyer below uses the native sheet, which does not exist on most
+   * desktop browsers and quietly falls back to copying. Flyers are shared to
+   * WhatsApp more than anywhere else, so it gets an action that works on a
+   * laptop as well as a phone.
+   *
+   * The message is the link and a short line. The link is what matters: /f/{id}
+   * serves Open Graph metadata naming the flyer image, so WhatsApp renders the
+   * flyer itself as the preview.
+   */
+  function whatsappHref(f: { id: string; title?: string | null; course?: string | null }) {
+    const title = f.title || f.course || `Training at ${BRAND.shortName}`
+    const text = `${title} — ${BRAND.name}\n${linkFor(f.id)}`
+    return `https://wa.me/?text=${encodeURIComponent(text)}`
+  }
+
   async function shareFlyer(f: { id: string; title?: string | null; course?: string | null }) {
     const url = linkFor(f.id)
     const title = f.title || f.course || `Training at ${BRAND.shortName}`
@@ -155,6 +173,13 @@ export default function MyFlyers() {
                           hover:bg-[var(--accent-hover)] transition-colors">
                         Copy link
                       </button>
+                      <a href={whatsappHref(f)} target="_blank" rel="noopener noreferrer"
+                        aria-label={`Share ${f.title || 'flyer'} on WhatsApp`}
+                        className="inline-flex items-center justify-center gap-1.5 flex-1 h-10
+                          rounded-xl border border-[var(--line)] text-[13px] font-semibold
+                          text-[var(--ink)] hover:bg-[var(--canvas)] transition-colors">
+                        WhatsApp
+                      </a>
                       <button type="button" onClick={() => shareFlyer(f)}
                         className="flex-1 h-11 sm:h-9 rounded-lg border border-[var(--line)]
                           text-[var(--ink)] text-[13px] font-semibold

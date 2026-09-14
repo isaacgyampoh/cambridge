@@ -1,7 +1,7 @@
 'use client'
 
 import { useState } from 'react'
-import { Copy, Check, Share2, ExternalLink } from 'lucide-react'
+import { Copy, Check, Share2, ExternalLink, MessageCircle } from 'lucide-react'
 import { toast } from 'sonner'
 
 /**
@@ -68,6 +68,25 @@ export function ShareLink({
 
   const canShare = typeof navigator !== 'undefined' && Boolean(navigator.share)
 
+  /*
+   * WhatsApp, explicitly.
+   *
+   * The native share sheet above is the better route on a phone — it offers
+   * every app the person actually has. But navigator.share does not exist on
+   * most desktop browsers, so that button simply is not rendered there, and a
+   * member of staff at a laptop was left with Copy and nowhere to put it.
+   * WhatsApp is where these links are shared, so it gets its own action that
+   * works on both: wa.me opens WhatsApp Web on a desktop and the app on a
+   * phone.
+   *
+   * The text carries the link, and nothing else of substance. The LINK is
+   * what renders the preview — the flyer image for /f, the current programme
+   * card for /m — so repeating the details in the message would only compete
+   * with the picture underneath it.
+   */
+  const whatsappHref =
+    `https://wa.me/?text=${encodeURIComponent(shareText ? `${shareText} ${url}` : url)}`
+
   return (
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5">
       <p className="text-[13px] font-semibold text-[var(--ink)]">{label}</p>
@@ -95,6 +114,15 @@ export function ShareLink({
             ? <><Check size={16} aria-hidden="true" /> Copied</>
             : <><Copy size={16} aria-hidden="true" /> Copy link</>}
         </button>
+
+        <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
+          aria-label={`Share ${label} on WhatsApp`}
+          className="inline-flex items-center justify-center gap-2 flex-1 h-11 rounded-xl
+            border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)]
+            text-[14px] font-semibold hover:bg-[var(--canvas)] transition-colors
+            focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+          <MessageCircle size={16} aria-hidden="true" /> WhatsApp
+        </a>
 
         {canShare && (
           <button type="button" onClick={share}

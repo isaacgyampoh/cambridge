@@ -85,6 +85,20 @@ export default function MarketerLink() {
     ? `${CONFIG.appUrl}/apply/${profile.marketer_code}`
     : null
 
+  /*
+   * The permanent marketing link.
+   *
+   * Same identifier as the other two — marketer_code — so all three name the
+   * same person and nothing new had to be issued. What makes this one
+   * different is that it does not point at a form: it shows whatever the
+   * centre is currently running, decided when the page is opened. It can go
+   * on a QR code, a printed card or an Instagram bio and still be correct
+   * next term.
+   */
+  const marketingUrl = profile?.marketer_code
+    ? `${CONFIG.appUrl}/m/${profile.marketer_code}`
+    : ''
+
   const applicationColumns: Column<Application>[] = [
     { key: 'name', header: 'Name', primary: true, render: a => a.full_name },
     { key: 'email', header: 'Email', secondary: true, render: a => a.email || '—' },
@@ -136,6 +150,15 @@ export default function MarketerLink() {
 
       {appUrl ? (
         <div className="space-y-3.5 mb-8">
+          {marketingUrl && (
+            <ShareLink
+              url={marketingUrl}
+              label="Your marketing link"
+              hint="Shows whatever we are currently running — the programme, the start date and the fee. It never needs replacing, so put it on a flyer, a QR code or your status."
+              shareText={`Professional training at ${BRAND.name}:`}
+            />
+          )}
+
           <ShareLink
             url={appUrl}
             label="Your registration link"
