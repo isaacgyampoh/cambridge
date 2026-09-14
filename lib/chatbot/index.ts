@@ -4,6 +4,7 @@ import { aiComplete, aiConfigured } from '@/lib/integrations/ai-client'
 import { loadKnowledge } from '@/lib/chatbot/knowledge'
 import { allowedAmounts, unsupportedAmounts } from '@/lib/chatbot/moneyGuard'
 import { hasFacts } from '@/lib/chatbot/format'
+import { askedDeliveryMode } from '@/lib/chatbot/deliveryMode'
 import { buildSystemPrompt, buildOpeningPrompt, selfDescription } from '@/lib/chatbot/persona'
 import { classify, scoreIntent, ESCALATING, type Intent, type IntentScore } from '@/lib/chatbot/intent'
 import { nextStage, type Stage } from '@/lib/chatbot/stage'
@@ -197,7 +198,12 @@ export async function chatbotReply(opts: {
   }
 
   const raw = await aiComplete({
-    system: buildSystemPrompt({ ctx, knowledge, stage: base.stage }),
+    /*
+     * `effective` rather than the raw message: a reply of "2" has already been
+     * turned into the thing it meant, so choosing an option says as much
+     * about mode as typing the words would.
+     */
+    system: buildSystemPrompt({ ctx, knowledge, stage: base.stage, askedMode: askedDeliveryMode(effective) }),
     messages: [...history.slice(-8), { role: 'user', content: effective }],
     maxTokens: 400,
   })

@@ -4,6 +4,7 @@ import { hasFacts } from '@/lib/chatbot/format'
 import { describeProgramme } from '@/lib/chatbot/programme'
 import type { LeadContext } from '@/lib/chatbot/context'
 import type { Stage } from '@/lib/chatbot/stage'
+import type { DeliveryAsk } from '@/lib/chatbot/deliveryMode'
 
 /**
  * Who the assistant is, and what it is allowed to say.
@@ -43,11 +44,36 @@ export function buildSystemPrompt(opts: {
   ctx: LeadContext
   knowledge: KnowledgeBlocks
   stage: Stage
+  /** The way of attending they asked about, when their message said. */
+  askedMode?: DeliveryAsk
 }): string {
-  const { ctx, knowledge, stage } = opts
+  const { ctx, knowledge, stage, askedMode } = opts
   const firstName = ctx.leadName?.split(' ')[0] || null
   const colleague = ctx.marketerName?.split(' ')[0] || null
   const grounded = hasFacts(knowledge) || Boolean(ctx.programme)
+
+  /*
+   * The fee that actually answers their question.
+   *
+   * The programme block below carries both figures, which is correct — but a
+   * model handed "4,950 in person, 3,950 online" and asked "how much is
+   * virtual PMP?" will often give both, or the first. Two thousand cedis of
+   * ambiguity, quoted in a marketer's name.
+   *
+   * Stated only when their message named a mode AND a fee is recorded for it.
+   * Otherwise nothing is added and both stand, which is the honest answer to
+   * a question that did not specify.
+   */
+  const modeFee = (() => {
+    if (!askedMode || !ctx.programme) return ''
+    const fee = askedMode === 'online' ? ctx.programme.feeOnline : ctx.programme.feeInPerson
+    if (typeof fee !== 'number' || fee <= 0) return ''
+    const word = askedMode === 'online' ? 'online' : 'in person'
+    return `\n\nTHEY ASKED ABOUT ATTENDING ${word.toUpperCase()}.\n`
+      + `The fee for ${ctx.programme.name} ${word} is GHS ${fee.toLocaleString('en-GH')}. `
+      + `Quote THAT figure. Do not lead with the other one, and do not average or combine them. `
+      + `You may mention the other only if they ask to compare.`
+  })()
 
   const programmeBlock = ctx.programme
     ? describeProgramme(ctx.programme, ctx.capability)
@@ -143,7 +169,7 @@ There is no registration link available for this conversation. Do not offer
 registration and do not invent a process. ${colleague ? `Say ${colleague} will sort it out with them.` : 'Say a colleague will sort it out with them.'}`}
 
 ── THE PROGRAMME ──────────────────────────────────────────────────────────
-${programmeBlock}
+${programmeBlock}${modeFee}
 
 ${hasFacts(knowledge) ? `── THE CENTRE ─────────────────────────────────────────────────────────────\n${knowledge.text}` : ''}`
 }

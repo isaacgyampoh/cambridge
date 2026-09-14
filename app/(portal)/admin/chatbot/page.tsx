@@ -72,6 +72,47 @@ export default function ChatbotOverviewPage() {
   const [attempt, setAttempt] = useState(0)
 
   /*
+   * Try it, without a WhatsApp account.
+   *
+   * Everything except the transport can be exercised today — lead resolution,
+   * the real fees, the knowledge base, intent, the money guard, the handover
+   * decision. Waiting for credentials to find out whether any of it is right
+   * would mean discovering it in front of a customer.
+   */
+  type Sim = {
+    lead: { found: boolean; name: string | null; assigned: boolean }
+    programme: { name: string; feeInPerson: number | null; feeOnline: number | null } | null
+    reply: {
+      text: string | null; intent: string; stage: string
+      handoff: string | null; skipped: string | null
+      attachment: string | null; actions: string[]
+    }
+    whatsappConnected: boolean
+  }
+  const [simPhone, setSimPhone] = useState('')
+  const [simText, setSimText] = useState('')
+  const [sim, setSim] = useState<Sim | null>(null)
+  const [simError, setSimError] = useState<string | null>(null)
+  const [simBusy, setSimBusy] = useState(false)
+
+  async function runSimulation() {
+    setSimBusy(true); setSimError(null); setSim(null)
+    try {
+      const res = await fetch('/api/admin/chatbot-simulate', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ phone: simPhone, message: simText }),
+      })
+      const d = await res.json()
+      if (!res.ok) setSimError(d.error || 'That did not run.')
+      else setSim(d)
+    } catch {
+      setSimError('That did not run. Please try again.')
+    } finally {
+      setSimBusy(false)
+    }
+  }
+
+  /*
    * The effect starts the request and nothing else.
    *
    * `loading` already begins true, so there is no state to set on the way in —
@@ -104,6 +145,62 @@ export default function ChatbotOverviewPage() {
         description="Whether the assistant can do its job, and where its work is kept."
         actions={<Button onClick={recheck} variant="secondary">Re-check</Button>}
       />
+
+      {/*
+        Deliberately says "nothing is sent" on the panel itself, not only in
+        the response. An administrator testing a phrasing against a real
+        lead's context must never wonder whether they just texted them.
+      */}
+      <Card className="p-4 sm:p-5 mb-5">
+        <h2 className="text-[14px] font-semibold text-[var(--ink)]">Try the assistant</h2>
+        <p className="t-sub mt-1">
+          Runs the real assistant against a real lead&rsquo;s context. Nothing is sent,
+          nothing is saved, and the lead is not contacted.
+        </p>
+
+        <div className="mt-3 space-y-2.5">
+          <input
+            value={simPhone} onChange={e => setSimPhone(e.target.value)}
+            inputMode="tel" placeholder="Lead's phone, e.g. 0201234567"
+            className="w-full h-11 rounded-xl border border-[var(--line)] bg-[var(--canvas)]
+              px-3.5 text-[14px] text-[var(--ink)]" />
+          <textarea
+            value={simText} onChange={e => setSimText(e.target.value)}
+            rows={2} placeholder="What would they say? e.g. How much is virtual PMP?"
+            className="w-full rounded-xl border border-[var(--line)] bg-[var(--canvas)]
+              px-3.5 py-2.5 text-[14px] text-[var(--ink)] resize-y" />
+          <Button onClick={runSimulation} disabled={simBusy || !simPhone.trim() || !simText.trim()}>
+            {simBusy ? 'Running…' : 'Run'}
+          </Button>
+        </div>
+
+        {simError && <p className="mt-3 text-[13px] text-[var(--bad)]">{simError}</p>}
+
+        {sim && (
+          <div className="mt-4 space-y-3 border-t border-[var(--line-soft)] pt-4">
+            <div className="flex flex-wrap gap-1.5">
+              <Badge tone={sim.lead.found ? 'success' : 'warning'}>
+                {sim.lead.found ? `Lead: ${sim.lead.name || 'unnamed'}` : 'Not a lead yet'}
+              </Badge>
+              {sim.programme && <Badge tone="neutral">{sim.programme.name}</Badge>}
+              <Badge tone="neutral">{sim.reply.intent}</Badge>
+              <Badge tone="neutral">{sim.reply.stage}</Badge>
+              {sim.reply.handoff && <Badge tone="warning">Hands over: {sim.reply.handoff}</Badge>}
+              {sim.reply.skipped && <Badge tone="danger">Withheld: {sim.reply.skipped}</Badge>}
+            </div>
+
+            <div className="rounded-xl bg-[var(--canvas)] border border-[var(--line)] p-3.5">
+              <p className="text-[14px] text-[var(--ink)] whitespace-pre-wrap">
+                {sim.reply.text || <span className="text-[var(--ink-faint)]">No reply — see the badges above.</span>}
+              </p>
+            </div>
+
+            <p className="t-meta">
+              Not sent. WhatsApp is {sim.whatsappConnected ? 'connected' : 'not connected yet'}.
+            </p>
+          </div>
+        )}
+      </Card>
 
       {loading && <div className="py-12 flex justify-center"><Spinner /></div>}
 

@@ -321,9 +321,39 @@ async function handleInbound(req: NextRequest) {
   // Find the lead by phone
   // Indexed lookup on the phone variants (previously pulled 3000 leads into
   // memory on every inbound message — slow and it silently missed lead 3001+).
-  let { data: lead } = await sb.from('leads')
-    .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession, status, created_at')
-    .in('phone', variants).order('created_at', { ascending: false }).limit(1).maybeSingle()
+  const { row: foundLead, failed: leadFailed } = await lookup(
+    sb.from('leads')
+      .select('id, full_name, phone, course_interest, assigned_to, ai_paused, profession, status, created_at')
+      .in('phone', variants).order('created_at', { ascending: false }).limit(1).maybeSingle(),
+  )
+
+  /*
+   * ── A FAILED LOOKUP MUST NOT BECOME A SECOND LEAD ────────────────────────
+   *
+   * This error was discarded, so a blip produced `lead = null` — exactly what
+   * an unknown number produces — and execution carried on into the branch
+   * below that CREATES one.
+   *
+   * That is the one thing this flow must never do. The person already exists:
+   * they have a history, call notes, a status, and a marketer who has been
+   * working them. A second row splits all of it, and the conversation
+   * continues under a lead nobody is looking at while the colleague who owns
+   * the real one hears nothing. intakeLead's own de-duplication only reaches
+   * back sixty days, so a lead from last term would not be caught by it
+   * either.
+   *
+   * Staying silent for one message is recoverable — the inbound log records
+   * it and a marketer can pick it up. A duplicated person is not.
+   */
+  if (leadFailed) {
+    console.error('[webhooks/whatsapp] lead lookup failed for', phone, '—', leadFailed)
+    await logInbound(sb, 'whatsapp', phone, text, 'lead_lookup_failed',
+      'Could not check whether this number is already a lead, so nothing was created or sent. '
+      + 'The message is recorded here — reply manually if it needs an answer.', null)
+    return NextResponse.json({ ok: true, deferred: 'lead-lookup-failed' })
+  }
+
+  let lead = foundLead as typeof foundLead | null
 
   // ── HARD RULE: the assistant only ever speaks to people who are leads in
   // this system. A staff WhatsApp line also carries their family, friends and
