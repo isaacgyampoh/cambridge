@@ -20,6 +20,8 @@
 // written out literally.
 // ============================================================
 
+import { BRAND } from './brand'
+
 export const CONFIG = {
 
   // ── APP ─────────────────────────────────────────────────────
@@ -59,7 +61,19 @@ export const CONFIG = {
   bankBranch: '',
 
   // ── NON-SECRET OPERATIONAL FLAGS ────────────────────────────
-  arkeselSenderId: 'CambridgeCE',
+  /*
+   * The registered Arkesel sender id, taken from the brand rather than typed
+   * again.
+   *
+   * It was a second copy of the same eleven characters. They agreed, but
+   * nothing made them agree — and the real send path reads BRAND.smsSender
+   * while this one was read by the diagnostic and the config screen. So the
+   * two could drift, and the way that shows up is the worst available: the
+   * networks silently drop messages from an unregistered sender id, and the
+   * screen that exists to check SMS reports the value it uses itself, not the
+   * one the messages actually went out with.
+   */
+  arkeselSenderId: BRAND.smsSender,
   superAdminEmail: 'admin@cambridge.edu.gh',
 
 } as const

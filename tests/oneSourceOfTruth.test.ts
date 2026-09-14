@@ -3,6 +3,7 @@ import assert from 'node:assert/strict'
 import { readFileSync, readdirSync, statSync } from 'node:fs'
 import { join } from 'node:path'
 import { canonicalPhone, phoneVariants, LEAD_SOURCES } from '../lib/leads/importValidation.ts'
+import { normaliseRecipient } from '../lib/integrations/smsRecipient.ts'
 
 /**
  * ONE ANSWER PER QUESTION.
@@ -81,26 +82,29 @@ describe('phone numbers are normalised in one place', () => {
 
   test('what canonicalPhone accepts, the SMS layer can send to', () => {
     /*
-     * normaliseRecipient in lib/integrations/sms accepts exactly /^233\d{9}$/
-     * and returns null otherwise. Asserting the shape rather than importing
-     * it keeps this file free of the `@/` alias, which the test runner does
-     * not resolve — but the invariant is the real one: a number good enough
-     * to store as a lead must be good enough to text, or the lead is created
-     * and then unreachable.
+     * The invariant: a number good enough to store as a lead must be good
+     * enough to text, or the lead is created and then unreachable.
+     *
+     * This used to assert on the TEXT of lib/integrations/sms.ts, because
+     * that module imports server-only configuration through the `@/` alias
+     * and the test runner cannot resolve it. The rule now lives on its own in
+     * lib/integrations/smsRecipient.ts, which imports nothing — so the real
+     * function can be called here instead of its source being described.
      */
-    const DELIVERABLE = /^233\d{9}$/
-
     for (const n of ['0241234567', '233551234567', '+233201234567', '020 123 4567']) {
       const stored = canonicalPhone(n)
       assert.ok(stored, `${n} was refused at storage`)
-      assert.match(stored, DELIVERABLE,
+      assert.equal(normaliseRecipient(stored), stored,
         `${n} can be stored as a lead but not texted — the two rules disagree`)
     }
 
-    // And the sender's rule is still the one being described.
-    const sms = readFileSync('lib/integrations/sms.ts', 'utf8')
-    assert.match(sms, /\^233\\d\{9\}\$/,
-      'the SMS layer no longer accepts what this test assumes it does')
+    // And the disagreement in the other direction: anything the SMS layer
+    // refuses must also have been refused at storage.
+    for (const bad of ['0246', '12345', '2332012345678']) {
+      if (canonicalPhone(bad) === null) continue
+      assert.ok(normaliseRecipient(canonicalPhone(bad)!),
+        `${bad} is storable as a lead but not deliverable`)
+    }
   })
 
   test('a stored number finds itself again', () => {

@@ -25,18 +25,13 @@ import { recordingProviderFor } from '@/lib/messaging'
 const ARKESEL_URL = 'https://sms.arkesel.com/api/v2/sms/send'
 const TIMEOUT_MS = 15_000
 
-/** Normalise a Ghanaian number to the 233XXXXXXXXX form Arkesel expects. */
-export function normaliseRecipient(num: string): string | null {
-  const cleaned = String(num || '')
-    .replace(/\s+/g, '')
-    .replace(/^\+233/, '233')
-    .replace(/^\+/, '')
-    .replace(/^0/, '233')
-  const digits = cleaned.replace(/[^0-9]/g, '')
-  // A Ghanaian mobile number is 233 followed by nine digits.
-  if (!/^233\d{9}$/.test(digits)) return null
-  return digits
-}
+/*
+ * Moved to ./smsRecipient so the rule can be exercised on its own — this
+ * module reaches for server-only configuration and cannot be imported by a
+ * test. Re-exported so every existing caller is unchanged.
+ */
+import { normaliseRecipient } from './smsRecipient'
+export { normaliseRecipient }
 
 /** Kept as an alias so existing callers do not change. */
 export type DeliveryResult = SendOutcome
