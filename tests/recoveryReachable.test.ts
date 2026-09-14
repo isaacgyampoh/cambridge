@@ -258,3 +258,58 @@ describe('the provisioning flow forces a new PIN and lands in the portal', () =>
       'A provisioned super admin must never land on marketing.')
   })
 })
+
+describe('the provisioning link can be opened in a browser', () => {
+  const unlock = codeOf('app/setup/unlock/route.ts')
+
+  test('it is a GET, because a link is a GET', () => {
+    /*
+     * /api/setup/open does the same work but is POST-only, so the only way to
+     * reach it was a curl command — a poor answer when the owner is locked out
+     * of their own portal, and no answer at all on a phone.
+     */
+    assert.match(unlock, /export async function GET/)
+  })
+
+  test('it uses the same authorisation, not a weaker one', () => {
+    assert.match(unlock, /describeSetupAuth\(req\)/)
+    assert.match(unlock, /if \(!attempt\.ok\)/)
+  })
+
+  test('the refusal reveals nothing about the secret', () => {
+    /*
+     * The POST form returns setupSecretConfigured and suppliedVia, which is
+     * useful to an operator debugging their own deployment. A link is opened
+     * by whoever has the URL, so it says only that it did not work.
+     */
+    const denial = unlock.slice(unlock.indexOf('if (!attempt.ok)'), unlock.indexOf('const result'))
+    assert.match(denial, /error: 'Not authorised\.'/)
+    assert.ok(!/setupSecretConfigured|suppliedVia:\s*attempt\.where\s*\}/.test(
+      denial.slice(denial.indexOf('NextResponse.json')),
+    ), 'The response must not describe the secret.')
+  })
+
+  test('it opens a window and provisions nothing', () => {
+    // Nothing is reset until somebody presses the button on /setup, which is
+    // a separate one-time claim.
+    assert.match(unlock, /openProvisioningWindow\(true\)/)
+    assert.ok(!/provisionSuperAdmin/.test(unlock))
+  })
+
+  test('it redirects so the secret leaves the address bar', () => {
+    assert.match(unlock, /NextResponse\.redirect\(new URL\('\/setup', req\.url\), 303\)/)
+  })
+
+  test('it is rate limited and audited exactly as the POST is', () => {
+    assert.match(unlock, /rateLimit\(`setup-open:/)
+    assert.match(unlock, /setup\.window_denied/)
+    assert.match(unlock, /setup\.window_opened/)
+  })
+
+  test('and it is reachable without a session', () => {
+    // /setup is in the proxy's PUBLIC list, and isMatch covers its subpaths.
+    const proxy = codeOf('proxy.ts')
+    assert.match(proxy, /'\/setup'/)
+    assert.match(proxy, /pathname === p \|\| pathname\.startsWith\(p \+ '\/'\)/)
+  })
+})
