@@ -19,6 +19,21 @@ export default function MarketerLink() {
   const [loading, setLoading] = useState(true)
   const [generating, setGenerating] = useState(false)
 
+  /*
+   * How the marketing link itself is doing.
+   *
+   * `visits` is a shape, not a number, because "nobody has opened it" and
+   * "nothing is being counted yet" are different answers and only one of them
+   * is about the marketer. See lib/marketing/visits.ts.
+   */
+  type Marketing = {
+    code: string | null
+    visits?: { counting: true; visits: number; sessions: number } | { counting: false; reason: string }
+    leads?: number
+    registrations?: number
+  }
+  const [marketing, setMarketing] = useState<Marketing | null>(null)
+
   async function generateLink() {
     setGenerating(true)
     try {
@@ -79,6 +94,13 @@ export default function MarketerLink() {
       }
     }
     load()
+  }, [])
+
+  useEffect(() => {
+    fetch('/api/marketing/me')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setMarketing(d) })
+      .catch(() => {})
   }, [])
 
   const appUrl = profile?.marketer_code
@@ -173,6 +195,48 @@ export default function MarketerLink() {
               hint="Softer — they leave their details and become your lead, and the assistant follows up on WhatsApp. Post it on a status or a flyer."
               shareText={`Interested in professional training with ${BRAND.name}?`}
             />
+          )}
+
+          {/*
+            How the marketing link is doing.
+
+            Three numbers and nothing else. A marketer on a phone between
+            calls wants to know whether the link is working, not to read a
+            dashboard — and their leads already have a screen of their own.
+          */}
+          {marketing?.code && (
+            <div className="grid grid-cols-3 gap-2.5">
+              <Card className="p-3.5 text-center">
+                <p className="text-[20px] font-semibold text-[var(--ink)] tabular-nums">
+                  {marketing.visits?.counting ? marketing.visits.sessions : '—'}
+                </p>
+                <p className="text-[11px] text-[var(--ink-faint)] mt-0.5">Opened</p>
+              </Card>
+              <Card className="p-3.5 text-center">
+                <p className="text-[20px] font-semibold text-[var(--ink)] tabular-nums">
+                  {marketing.leads ?? 0}
+                </p>
+                <p className="text-[11px] text-[var(--ink-faint)] mt-0.5">Leads</p>
+              </Card>
+              <Card className="p-3.5 text-center">
+                <p className="text-[20px] font-semibold text-[var(--ink)] tabular-nums">
+                  {marketing.registrations ?? 0}
+                </p>
+                <p className="text-[11px] text-[var(--ink-faint)] mt-0.5">Registered</p>
+              </Card>
+            </div>
+          )}
+
+          {/*
+            Said plainly rather than shown as a zero. A marketer who reads "0
+            opened" concludes their link does not work and stops sharing it —
+            which is the worst possible response to a counter that simply is
+            not switched on yet.
+          */}
+          {marketing?.code && marketing.visits && !marketing.visits.counting && (
+            <p className="t-meta px-1">
+              Opens are not being counted yet. Leads and registrations below are accurate.
+            </p>
           )}
 
           <p className="t-meta px-1">

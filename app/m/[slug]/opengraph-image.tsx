@@ -3,7 +3,9 @@ import { BRAND } from '@/lib/brand'
 import { loadMarketingPage } from '@/lib/marketing/link'
 
 export const runtime = 'nodejs'
-export const revalidate = 300
+// Same reason as the page: no finite set of slugs, and nothing to gain from
+// building a card for a link that may never be shared.
+export const dynamic = 'force-dynamic'
 
 export const size = { width: 1200, height: 630 }
 export const contentType = 'image/png'

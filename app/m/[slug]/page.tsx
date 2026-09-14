@@ -2,6 +2,7 @@ import type { Metadata } from 'next'
 import { BRAND } from '@/lib/brand'
 import { loadMarketingPage, registerHref } from '@/lib/marketing/link'
 import MarketingLanding from './MarketingLanding'
+import VisitBeacon from './VisitBeacon'
 
 export const runtime = 'nodejs'
 
@@ -33,7 +34,23 @@ export const runtime = 'nodejs'
  * links to be sent to people, not pages to be found.
  */
 
-export const revalidate = 300
+/*
+ * Rendered per request, never at build time.
+ *
+ * The slug is a member of staff's code, so there is no finite set of these to
+ * prerender — and attempting it makes the build do a database round trip for
+ * a page nobody has asked for. That is not hypothetical: adding this route
+ * with `revalidate` alone put two more programme reads into build-time page
+ * collection, and on a machine that cannot reach the database each one held a
+ * worker for its full timeout until an unrelated page, /welcome, ran out of
+ * time and the whole build failed.
+ *
+ * A marketing link must also be CURRENT. Somebody opens it minutes after a
+ * colleague sends it, and the fee and start date on it are the centre's
+ * answer — a cached copy from a previous cohort is the one thing this page
+ * cannot afford to show.
+ */
+export const dynamic = 'force-dynamic'
 
 type Props = { params: Promise<{ slug: string }> }
 
@@ -108,12 +125,18 @@ export default async function MarketingLinkPage({ params }: Props) {
   }
 
   return (
-    <MarketingLanding
-      marketerName={page.marketer.name}
-      promotion={page.promotion}
-      programmes={page.programmes}
-      programmesUnavailable={page.programmesUnavailable}
-      registerHref={registerHref(page.marketer.code, page.promotion?.programme.name ?? null)}
-    />
+    <>
+      {/* Counts a real open. Not the page render: WhatsApp and Facebook fetch
+          this page to build a link preview, so counting renders would count
+          every time the link was PASTED. */}
+      <VisitBeacon code={page.marketer.code} courseId={page.promotion?.programme.id ?? null} />
+      <MarketingLanding
+        marketerName={page.marketer.name}
+        promotion={page.promotion}
+        programmes={page.programmes}
+        programmesUnavailable={page.programmesUnavailable}
+        registerHref={registerHref(page.marketer.code, page.promotion?.programme.name ?? null)}
+      />
+    </>
   )
 }

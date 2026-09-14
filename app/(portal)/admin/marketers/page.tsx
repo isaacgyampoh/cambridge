@@ -64,6 +64,17 @@ export default function MarketerPerformancePage() {
   const [sendingAlert, setSendingAlert] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  /** Marketing-link performance. Null until loaded; never faked as zeroes. */
+  type LinkRow = { name: string; code: string; visits: number | null; leads: number }
+  const [links, setLinks] = useState<{ rows: LinkRow[]; countingVisits: boolean } | null>(null)
+
+  useEffect(() => {
+    fetch('/api/marketing/overview')
+      .then(r => r.ok ? r.json() : null)
+      .then(d => { if (d && !d.error) setLinks(d) })
+      .catch(() => {})
+  }, [])
+
   /*
    * useCallback so the effect's dependency is real rather than silenced.
    *
@@ -286,6 +297,49 @@ export default function MarketerPerformancePage() {
         </div>
         }
       />
+
+      {/*
+        Marketing links.
+
+        Placed here rather than on a screen of its own: the question "whose
+        links are working" belongs beside "who is converting", and an
+        administrator should not have to know these are different systems.
+      */}
+      {links && links.rows.length > 0 && (
+        <Card className="p-4 sm:p-5 mb-5">
+          <div className="flex items-baseline justify-between gap-3">
+            <h2 className="text-[14px] font-semibold text-[var(--ink)]">Marketing links</h2>
+            {!links.countingVisits && (
+              <span className="text-[11px] text-[var(--ink-faint)]">Opens not counted yet</span>
+            )}
+          </div>
+
+          <div className="mt-3 -mx-1 overflow-x-auto">
+            <table className="w-full text-[13px]">
+              <thead>
+                <tr className="text-[11px] uppercase tracking-wide text-[var(--ink-faint)]">
+                  <th className="text-left font-medium py-1.5 px-1">Staff</th>
+                  <th className="text-right font-medium py-1.5 px-1">Opened</th>
+                  <th className="text-right font-medium py-1.5 px-1">Leads</th>
+                </tr>
+              </thead>
+              <tbody>
+                {links.rows.map(r => (
+                  <tr key={r.code} className="border-t border-[var(--line-soft)]">
+                    <td className="py-2 px-1 text-[var(--ink)]">{r.name}</td>
+                    <td className="py-2 px-1 text-right tabular-nums text-[var(--ink-soft)]">
+                      {r.visits === null ? '—' : r.visits}
+                    </td>
+                    <td className="py-2 px-1 text-right tabular-nums font-medium text-[var(--ink)]">
+                      {r.leads}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </Card>
+      )}
 
       {/* Summary KPIs */}
       <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">

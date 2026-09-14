@@ -270,3 +270,133 @@ describe('the flyer preview still works', () => {
     assert.match(share, /href=\{whatsappHref\}/)
   })
 })
+
+/**
+ * ─── VISITS ARE COUNTED WITHOUT KNOWING WHO ANYBODY IS ──────────────────────
+ */
+describe('an open is recorded, a person is not', () => {
+  const beacon = codeOf('app/m/[slug]/VisitBeacon.tsx')
+  const api = codeOf('app/api/marketing/visit/route.ts')
+  const sql = readFileSync('supabase/migrations/0019_marketing_visits.sql', 'utf8')
+
+  test('the session value dies with the browser session', () => {
+    /*
+     * It must survive a refresh — or reloading is a second visitor — and must
+     * NOT survive the browser closing, or it becomes a way of recognising
+     * somebody weeks later. sessionStorage is exactly that window.
+     */
+    assert.match(beacon, /sessionStorage/)
+    assert.ok(!/localStorage/.test(beacon), 'localStorage would outlive the visit.')
+    assert.ok(!/document\.cookie/.test(beacon))
+  })
+
+  test('nothing identifying is accepted by the endpoint', () => {
+    const schema = api.slice(api.indexOf('const Body ='), api.indexOf('function hostOf'))
+    for (const field of ['name', 'phone', 'email', 'ip']) {
+      assert.ok(!schema.includes(`${field}:`), `${field} must not be accepted by a visit beacon.`)
+    }
+  })
+
+  test('the referrer is reduced to a hostname before storage', () => {
+    // A full referring URL can itself carry personal information.
+    assert.match(api, /new URL\(referrer\)\.hostname/)
+    assert.match(sql, /referrer_host/)
+  })
+
+  test('no IP or user agent is stored', () => {
+    assert.ok(!/ip_address|user_agent/i.test(sql))
+  })
+
+  test('the link is stored by its public code, not a profile id', () => {
+    assert.match(sql, /marketer_code TEXT NOT NULL/)
+    assert.ok(!/marketer_id UUID/.test(sql),
+      'An anonymous write must not carry an internal identifier.')
+  })
+
+  test('a refresh is not a second visit', () => {
+    assert.match(sql, /CREATE UNIQUE INDEX[\s\S]{0,200}marketer_code, session_id/)
+  })
+
+  test('the beacon never interrupts the visitor', () => {
+    assert.match(beacon, /return null/)
+    assert.match(beacon, /\.catch\(\(\) => \{\}\)/)
+  })
+})
+
+describe('"nothing counted yet" is never shown as zero', () => {
+  /*
+   * The reason visitsForCode returns a shape rather than a number. A marketer
+   * who reads "0 opened" concludes their link does not work and stops sharing
+   * it — the worst possible response to a counter that is simply not switched
+   * on yet.
+   */
+  const visits = codeOf('lib/marketing/visits.ts')
+
+  test('a missing table is a distinct state, not an empty count', () => {
+    assert.match(visits, /counting: false/)
+    assert.match(visits, /does not exist\|could not find\|schema cache/)
+    assert.match(visits, /0019/, 'The reason must name the migration to run.')
+  })
+
+  test('the marketer screen says so in words', () => {
+    const page = codeOf('app/(portal)/marketer/link/page.tsx')
+    assert.match(page, /Opens are not being counted yet/)
+    assert.match(page, /marketing\.visits\?\.counting \? marketing\.visits\.sessions : '—'/,
+      'An uncounted state must render as a dash, never a zero.')
+  })
+
+  test('and the admin screen does too', () => {
+    const page = codeOf('app/(portal)/admin/marketers/page.tsx')
+    assert.match(page, /Opens not counted yet/)
+    assert.match(page, /r\.visits === null \? '—' : r\.visits/)
+  })
+
+  test('the overview reports null rather than zero when nothing is counted', () => {
+    const api = codeOf('app/api/marketing/overview/route.ts')
+    assert.match(api, /visits === null \? null :/)
+    assert.match(api, /countingVisits: visits !== null/)
+  })
+})
+
+describe('a marketer sees only their own figures', () => {
+  const api = codeOf('app/api/marketing/me/route.ts')
+
+  test('the code comes from their session, not the request', () => {
+    // There is no parameter to change, so there is no colleague to ask about.
+    assert.match(api, /\.eq\('id', ctx\.session\.userId!\)/)
+    assert.ok(!/searchParams/.test(api), 'A code from the query would let one marketer read another.')
+  })
+
+  test('it returns counts, never the leads themselves', () => {
+    assert.match(api, /head: true/, 'Counts only.')
+    assert.ok(!/\.select\('\*'\)/.test(api))
+  })
+
+  test('the admin view is gated on the existing marketers portal', () => {
+    const overview = codeOf('app/api/marketing/overview/route.ts')
+    assert.match(overview, /portals: \['marketers'\]/,
+      'Reuse the permission that already governs this screen, not a new rule.')
+  })
+})
+
+describe('the marketing routes do not run at build time', () => {
+  /*
+   * A regression this actually caused: with `revalidate` alone, adding these
+   * routes put two more programme reads into build-time page collection. On a
+   * machine that could not reach the database each held a worker for its full
+   * timeout, until an unrelated page — /welcome — ran out of time and the
+   * whole build failed.
+   *
+   * There is no finite set of staff codes to prerender, and a marketing link
+   * must be current anyway: a cached fee from a previous cohort is the one
+   * thing this page cannot afford to show.
+   */
+  for (const file of ['app/m/[slug]/page.tsx', 'app/m/[slug]/opengraph-image.tsx']) {
+    test(`${file.split('/').pop()} is request-time only`, () => {
+      const src = codeOf(file)
+      assert.match(src, /export const dynamic = 'force-dynamic'/)
+      assert.ok(!/export const revalidate/.test(src),
+        'revalidate here makes the build fetch programmes for a page nobody asked for.')
+    })
+  }
+})
