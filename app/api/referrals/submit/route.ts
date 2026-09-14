@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { intakeLead } from '@/lib/leadIntake'
 import { lookup, unavailable } from '@/lib/db/lookup'
+import { bumpCounter } from '@/lib/db/counter'
 
 export const runtime = 'nodejs'
 
@@ -52,7 +53,7 @@ export async function POST(req: NextRequest) {
   }
 
   // Create the lead (assigns to the marketer if given, else round-robin)
-  const { leadId, assignedTo, duplicate } = await intakeLead({
+  const { leadId, duplicate } = await intakeLead({
     full_name, phone, email, course_interest,
     source: 'referral',
     utm_source: 'referral',
@@ -65,10 +66,12 @@ export async function POST(req: NextRequest) {
 
   // Bump the referrer's count (only for code-based generic referrals)
   if (validCode && leadId && !duplicate) {
-    try {
-      const { data: rc } = await sb.from('referral_codes').select('id, referrals_count').eq('code', validCode).maybeSingle()
-      if (rc) await sb.from('referral_codes').update({ referrals_count: (rc.referrals_count || 0) + 1 }).eq('id', rc.id)
-    } catch {}
+    const { row: rc } = await lookup(
+      sb.from('referral_codes').select('id').eq('code', validCode).maybeSingle(),
+    )
+    // Counted atomically: two friends referred by the same code at the same
+    // moment used to overwrite one another's increment.
+    if (rc) await bumpCounter({ table: 'referral_codes', column: 'referrals_count' }, rc.id)
   }
 
   /*

@@ -1,5 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { intakeLead } from '@/lib/leadIntake'
+import { guardLeadWebhook } from '@/lib/webhooks/leadGuard'
+import { SECRETS } from '@/lib/config.server'
 
 export const runtime = 'nodejs'
 
@@ -10,6 +12,9 @@ export const runtime = 'nodejs'
  */
 export async function POST(req: NextRequest) {
   const body = await req.json()
+
+  const guard = await guardLeadWebhook({ req, source: 'linkedin', secret: SECRETS.linkedinLeadKey, bodyKey: body.key })
+  if (!guard.ok) return guard.response
 
   const fields: Record<string, string> = {}
   for (const a of body.answers || []) {

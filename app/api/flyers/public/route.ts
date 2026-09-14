@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { lookup, unavailable } from '@/lib/db/lookup'
+import { bumpCounter } from '@/lib/db/counter'
 
 export const runtime = 'nodejs'
 
@@ -17,26 +18,20 @@ export async function GET(req: NextRequest) {
   if (!flyer) return NextResponse.json({ error: 'not found' }, { status: 404 })
 
   /*
-   * Count a view.
+   * Count a view, atomically.
    *
-   * Same destructive shape as the lead counter: `(f?.clicks || 0) + 1` writes
-   * 1 when the read failed, so a flyer on three hundred clicks is written
-   * back as having one — and unlike a lead, a click leaves no other record to
-   * rebuild the number from. This is a public route, so a spell of failed
-   * reads flattens the marketer's figures for every flyer being shared.
+   * This was a read-then-write, and it was wrong twice over. Concurrently,
+   * two people opening the same flyer both read 40 and both wrote 41, so a
+   * view vanished — worst on the flyer being shared hardest, which is exactly
+   * backwards. And on a failed read, `(f?.clicks || 0) + 1` wrote 1, taking a
+   * flyer's whole running total down to a single click. A click leaves no
+   * other record, so that number could not be rebuilt.
    *
-   * An uncounted view is invisible. A reset total is a marketer being told
+   * bumpCounter does it in one statement and never writes a total it could
+   * not read. An uncounted view is invisible; a reset one tells a marketer
    * their campaign did nothing.
    */
-  const { row: f, failed: clicksFailed } = await lookup(
-    sb.from('flyers').select('clicks').eq('id', id).maybeSingle(),
-  )
-  if (clicksFailed) {
-    console.error('[flyers/public] view not counted — read failed:', clicksFailed)
-  } else if (f) {
-    await sb.from('flyers').update({ clicks: (f.clicks || 0) + 1 }).eq('id', id)
-      .then(() => {}, () => {})
-  }
+  await bumpCounter({ table: 'flyers', column: 'clicks' }, id)
 
   const m: any = (flyer as any).profiles
   return NextResponse.json({

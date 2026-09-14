@@ -84,6 +84,36 @@ const CRON_PATHS = [
   '/api/paystack/reconcile',
 ]
 
+/**
+ * Shown when the session could not be VERIFIED — not when it has expired.
+ *
+ * Inline because middleware cannot render a React route, and because a page
+ * served during a database fault must not itself need the database.
+ *
+ * It says what is true (we could not check, this is us, your session is
+ * fine), and offers the only useful action. No sign-in link: sending somebody
+ * to re-authenticate is exactly the wasted trip this replaced.
+ */
+const RETRY_PAGE = `<!doctype html><html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1"><title>One moment</title>
+<style>
+:root{color-scheme:light dark}
+body{margin:0;min-height:100vh;display:grid;place-items:center;padding:24px;
+font:15px/1.55 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+background:#f7f7f5;color:#1a1a18}
+@media(prefers-color-scheme:dark){body{background:#14140f;color:#f0efe8}}
+.card{max-width:26rem;text-align:center}
+h1{font-size:19px;margin:0 0 10px;font-weight:600}
+p{margin:0 0 18px;opacity:.75}
+button{font:inherit;font-weight:500;padding:11px 22px;border-radius:11px;border:0;
+background:#1a1a18;color:#fff;cursor:pointer;min-height:44px}
+@media(prefers-color-scheme:dark){button{background:#f0efe8;color:#14140f}}
+</style></head><body><div class="card">
+<h1>We couldn't check your sign-in</h1>
+<p>This is a problem on our side, not with your account. You are still signed in — please try again in a moment.</p>
+<button type="button" onclick="location.reload()">Try again</button>
+</div></body></html>`
+
 function isMatch(pathname: string, list: string[]): boolean {
   return list.some(p =>
     p.endsWith('/') ? pathname.startsWith(p) : pathname === p || pathname.startsWith(p + '/')
@@ -174,11 +204,55 @@ export async function proxy(request: NextRequest) {
     const tokenHash = createHash('sha256')
       .update(token + (process.env.PIN_PEPPER || '')).digest('hex')
 
-    const { data } = await sb.from('pin_sessions')
+    const { data, error } = await sb.from('pin_sessions')
       .select('user_id, expires_at, profiles(role, is_active, portals)')
       .eq('session_token', tokenHash)
       .gt('expires_at', new Date().toISOString())
       .maybeSingle()
+
+    /*
+     * ── A FAILED READ IS NOT AN EXPIRED SESSION ──────────────────────────────
+     *
+     * This error was discarded, so both outcomes fell into the branch below:
+     * the one that clears the session cookie and says the session expired.
+     *
+     * That branch is correct for a session that is genuinely gone. For a
+     * database blip it is the most destructive answer in the application,
+     * because this runs on EVERY authenticated request. One bad moment signed
+     * out every member of staff at once — and, because the cookie was wiped,
+     * not one of them could get back by reloading. They all had to re-enter
+     * their PIN, mid-task, having been told something untrue about why.
+     *
+     * Access still fails CLOSED: an unverifiable session is not a valid one,
+     * and nobody is let through. The difference is that the session itself
+     * survives, so the moment the database answers again a reload is enough.
+     *
+     * 503 rather than 401 for the API, because 401 is what the client treats
+     * as "sign in again".
+     */
+    if (error) {
+      console.error('[proxy] session lookup failed — refusing without clearing the session:', error.message)
+      if (pathname.startsWith('/api/')) {
+        return securityHeaders(NextResponse.json(
+          { error: 'We could not verify your session just now. Please try again in a moment.' },
+          { status: 503 },
+        ), isDev)
+      }
+      /*
+       * Deliberately NOT a redirect to /login. That page does not return a
+       * still-valid session to where it came from, so sending them there
+       * makes them sign in again for a fault that was never theirs — which is
+       * most of the harm this fix exists to undo.
+       *
+       * Refusing this one request instead leaves them on the address they
+       * asked for, with their session intact, so reloading is all it takes
+       * once the database answers.
+       */
+      return securityHeaders(new NextResponse(RETRY_PAGE, {
+        status: 503,
+        headers: { 'Content-Type': 'text/html; charset=utf-8', 'Retry-After': '5' },
+      }), isDev)
+    }
 
     if (!data) {
       const res = pathname.startsWith('/api/')

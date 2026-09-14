@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { intakeLead } from '@/lib/leadIntake'
 import { lookup, unavailable } from '@/lib/db/lookup'
+import { bumpCounter } from '@/lib/db/counter'
 
 export const runtime = 'nodejs'
 
@@ -19,7 +20,7 @@ export async function POST(req: NextRequest) {
   if (failed) return unavailable('[flyers/submit]', failed, 'this flyer')
   if (!flyer) return NextResponse.json({ error: 'Flyer not found.' }, { status: 404 })
 
-  const { leadId, assignedTo, duplicate } = await intakeLead({
+  const { leadId, duplicate } = await intakeLead({
     full_name, phone, email,
     course_interest: course_interest || flyer.course,
     source: 'referral',
@@ -32,24 +33,9 @@ export async function POST(req: NextRequest) {
 
   if (leadId && !duplicate) {
     try {
-      /*
-       * Read-then-write, so the read failing does not just lose a count — it
-       * DESTROYS one. `(f?.leads || 0) + 1` turns an unreadable row into 1,
-       * so a flyer that had brought in forty-seven leads is written back as
-       * having brought in one, and the marketer's record of their own work is
-       * gone with no way to recover the number.
-       *
-       * Skipping is the only safe way to be wrong here: one uncounted lead is
-       * recoverable from the leads table itself, and a reset total is not.
-       */
-      const { row: f, failed } = await lookup(
-        sb.from('flyers').select('leads').eq('id', flyer_id).maybeSingle(),
-      )
-      if (failed) {
-        console.error('[flyers/submit] flyer count not incremented — read failed:', failed)
-      } else if (f) {
-        await sb.from('flyers').update({ leads: (f.leads || 0) + 1 }).eq('id', flyer_id)
-      }
+      // Atomic, and never written from a total that could not be read —
+      // the old form reset a flyer's lead count to 1 on a failed read.
+      await bumpCounter({ table: 'flyers', column: 'leads' }, flyer_id)
     } catch {}
   }
 

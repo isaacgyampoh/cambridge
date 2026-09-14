@@ -31,6 +31,33 @@ export const ALWAYS_ALLOWED_PAGES = [
   // policy. There is no portal that could sensibly gate them: a notification
   // is addressed to you, so being signed in is the whole requirement.
   '/notifications',
+  /*
+   * Changing your own PIN, for the same reason.
+   *
+   * ── WHY THIS HAD TO MOVE ─────────────────────────────────────────────────
+   *
+   * It lives under /admin/settings, which is granted by the `settings`
+   * portal, and `settings` is held by super_admin ALONE — not even an
+   * administrator has it. Meanwhile PortalLayout renders the "Change PIN"
+   * link unconditionally, in the sidebar and in the user menu, for everybody.
+   *
+   * So ten of the eleven roles were shown the link, clicked it, and were
+   * redirected to their own dashboard by the proxy. No marketer, trainer,
+   * accountant, receptionist or administrator could change their own PIN —
+   * and the PIN is the credential this entire portal authenticates on. Anyone
+   * whose PIN was watched over their shoulder or shared in a hurry had no way
+   * to rotate it.
+   *
+   * The API was never the problem: /api/auth/change-pin verifies the session,
+   * rate-limits, checks the current PIN and writes only to session.userId. It
+   * was the page that was gated, behind a portal that has nothing to do with
+   * the act of changing your own credential.
+   *
+   * Prefix matching makes this safe: '/admin/settings/change-pin' grants that
+   * path and its subtree only. '/admin/settings' itself does NOT match it, so
+   * no role gains a single administrative screen from this line.
+   */
+  '/admin/settings/change-pin',
 ]
 
 /** `/admin/leads` grants `/admin/leads/import`, but never `/admin/leadsomething`. */

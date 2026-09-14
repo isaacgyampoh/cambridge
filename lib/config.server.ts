@@ -98,4 +98,8 @@ export const SECRETS = {
   get facebookVerifyToken() { return optional('FACEBOOK_VERIFY_TOKEN') },
   get facebookPageAccessToken() { return optional('FACEBOOK_PAGE_ACCESS_TOKEN') },
   get googleLeadKey() { return optional('GOOGLE_LEAD_KEY') },
+  // Optional shared secrets for the two lead webhooks that had no check at
+  // all. Until one is set, guardLeadWebhook falls back to throttling alone.
+  get websiteLeadKey() { return optional('WEBSITE_LEAD_KEY') },
+  get linkedinLeadKey() { return optional('LINKEDIN_LEAD_KEY') },
 }

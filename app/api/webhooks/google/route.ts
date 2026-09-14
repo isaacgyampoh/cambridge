@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { intakeLead } from '@/lib/leadIntake'
 import { SECRETS } from '@/lib/config.server'
+import { guardLeadWebhook } from '@/lib/webhooks/leadGuard'
 
 export const runtime = 'nodejs'
 
@@ -26,10 +27,16 @@ export async function GET() {
 export async function POST(req: NextRequest) {
   const body = await req.json()
 
-  // Optional shared-secret check (Google lets you set a "key" on the form)
-  if (SECRETS.googleLeadKey && body.google_key && body.google_key !== SECRETS.googleLeadKey) {
-    return NextResponse.json({ error: 'Invalid key' }, { status: 401 })
-  }
+  /*
+   * The shared secret, checked properly.
+   *
+   * This read `if (key && body.google_key && body.google_key !== key)`, which
+   * rejects only a WRONG key: omitting `google_key` made the middle condition
+   * false and skipped the test entirely. The way past the lock was to leave
+   * it alone.
+   */
+  const guard = await guardLeadWebhook({ req, source: 'google', secret: SECRETS.googleLeadKey, bodyKey: body.google_key })
+  if (!guard.ok) return guard.response
 
   const fields: Record<string, string> = {}
   for (const col of body.user_column_data || []) {

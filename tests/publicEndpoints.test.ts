@@ -86,8 +86,12 @@ describe('a counter is never rebuilt from a failed read', () => {
       const src = codeOf(file)
       assert.ok(!/update\(\{\s*\w+:\s*\(\w+\?\.\w+\s*\|\|\s*0\)\s*\+/.test(src),
         'A counter is being written from an optional chain; a failed read resets it.')
-      assert.match(src, /else if \(f\)/,
-        'The increment must only happen when the row was actually read.')
+      // It now goes through bumpCounter, which is atomic AND refuses to write
+      // a total it could not read. Both halves of the original bug.
+      assert.match(src, /bumpCounter\(\{ table: 'flyers'/,
+        'The counter must go through the atomic helper.')
+      assert.ok(!/\.update\(\{ (clicks|leads):/.test(src),
+        'No direct read-then-write increment may remain.')
     })
   }
 })
