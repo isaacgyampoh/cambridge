@@ -4,6 +4,7 @@ import { verifySession } from '@/lib/auth/pin'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
+import { publicOrigin } from '@/lib/url'
 
 /**
  * Exam prep tracker.
@@ -130,7 +131,8 @@ export async function POST(req: NextRequest) {
           // The coordinator's personal referral code
           const coordId = before?.coordinator_id || session.userId
           const { data: coord } = await sb.from('profiles').select('marketer_code, full_name').eq('id', coordId).maybeSingle()
-          const appUrl = process.env.APP_URL || 'https://portal.cambridge.edu.gh'
+          // One canonical origin, not a third copy of the fallback. See lib/url.ts.
+          const appUrl = publicOrigin()
           const first = (rec.student_name || 'there').split(' ')[0]
           let msg = `Hi ${first}! 🎉 Huge congratulations on passing your ${rec.program_name || rec.program_code} exam! We're so proud of you.`
           if (coord?.marketer_code) {

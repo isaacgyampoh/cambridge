@@ -21,15 +21,25 @@
 // ============================================================
 
 import { BRAND } from './brand'
+import { publicOrigin } from './url'
 
 export const CONFIG = {
 
   // ── APP ─────────────────────────────────────────────────────
   appName: 'Cambridge Center of Excellence',
-  appUrl:
-    process.env.NEXT_PUBLIC_APP_URL ||
-    process.env.APP_URL ||
-    'https://portal.cambridge.edu.gh',
+  /*
+   * The centre's public address, from lib/url.ts.
+   *
+   * This used to read NEXT_PUBLIC_APP_URL directly, and production had that
+   * set to a vercel.app deployment alias — so every brochure link, marketing
+   * link, registration link and Open Graph URL a customer saw carried a
+   * deployment address instead of the centre's. A build run locally baked
+   * http://localhost:3000 into the browser bundle for the same reason.
+   *
+   * publicOrigin() is a constant in production. It is no longer possible to
+   * configure this wrongly.
+   */
+  appUrl: publicOrigin(),
 
   // ── SUPABASE ────────────────────────────────────────────────
   // The project URL and the anon key are public by design: the anon key is

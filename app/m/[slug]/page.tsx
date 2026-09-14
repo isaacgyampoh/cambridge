@@ -3,6 +3,7 @@ import { BRAND } from '@/lib/brand'
 import { loadMarketingPage, registerHref } from '@/lib/marketing/link'
 import MarketingLanding from './MarketingLanding'
 import VisitBeacon from './VisitBeacon'
+import EnquiryForm from './EnquiryForm'
 
 export const runtime = 'nodejs'
 
@@ -132,10 +133,24 @@ export default async function MarketingLinkPage({ params }: Props) {
       <VisitBeacon code={page.marketer.code} courseId={page.promotion?.programme.id ?? null} />
       <MarketingLanding
         marketerName={page.marketer.name}
+        image={page.image}
         promotion={page.promotion}
         programmes={page.programmes}
         programmesUnavailable={page.programmesUnavailable}
         registerHref={registerHref(page.marketer.code, page.promotion?.programme.name ?? null)}
+        /*
+         * Passed in rather than imported by the landing component, so the
+         * page itself stays a server component and only the form ships
+         * JavaScript. Somebody on mobile data reads the campaign before
+         * anything has to hydrate.
+         */
+        EnquiryForm={
+          <EnquiryForm
+            code={page.marketer.code}
+            programme={page.promotion?.programme.name ?? null}
+            marketerName={page.marketer.name}
+          />
+        }
       />
     </>
   )

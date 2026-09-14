@@ -49,6 +49,9 @@ const PUBLIC = [
   // The anonymous counter behind /m. Writes a row and reads nothing; see
   // app/api/marketing/visit/route.ts for what it will and will not accept.
   '/api/marketing/visit',
+  // The "want more information?" form on a staff marketing link. Creates a
+  // lead through the existing funnel; see app/api/marketing/enquire/route.ts.
+  '/api/marketing/enquire',
   // Counts of already-public things, for the sign-in panel. Counts only —
   // see app/api/public/stats/route.ts for what it will and will not answer.
   '/api/public/stats',

@@ -3,6 +3,7 @@ import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendEmail } from '@/lib/integrations/email'
 import { lookup } from '@/lib/db/lookup'
+import { publicOrigin } from '@/lib/url'
 
 /**
  * Broadcast one info session: SMS / WhatsApp / email every targeted lead,
@@ -34,7 +35,8 @@ export async function broadcastInfoSession(sessionId: string) {
   const { data: allMarketers } = await sb.from('profiles').select('id, marketer_code').not('marketer_code', 'is', null)
   const codeById: Record<string, string> = {}
   for (const m of allMarketers || []) codeById[m.id] = m.marketer_code
-  const appUrl = process.env.APP_URL || 'https://portal.cambridge.edu.gh'
+  // One canonical origin, not a third copy of the fallback. See lib/url.ts.
+  const appUrl = publicOrigin()
   const trackedFor = (lead: any) => {
     const code = lead.assigned_to ? (codeById[lead.assigned_to] || 'x') : 'x'
     return `${appUrl}/j/${s.id}/${code}?p=${encodeURIComponent(lead.phone)}`

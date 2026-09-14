@@ -78,8 +78,20 @@ export async function loadMarketerByCode(code: string): Promise<PublicMarketer |
   }
 }
 
+/** The campaign artwork, from the existing flyers table. */
+export type CampaignImage = { url: string; title: string | null }
+
 export type MarketingPage = {
   marketer: PublicMarketer
+  /**
+   * The picture at the top of the page.
+   *
+   * Taken from the marketer's own flyers — the existing system staff already
+   * use — preferring one whose course matches what is being promoted. A page
+   * of text is not an advertisement, and the flyer is the thing the centre
+   * actually designed.
+   */
+  image: CampaignImage | null
   /** Null when nothing is scheduled — the page then shows the programmes. */
   promotion: Promotion | null
   /** Everything on offer, for when there is no single current cohort. */
@@ -105,6 +117,7 @@ export async function loadMarketingPage(code: string): Promise<MarketingPage | n
   const loaded = await loadProgrammes()
 
   if (!loaded.ok) {
+    const image = await loadCampaignImage(code, null)
     /*
      * The page still renders. Somebody has followed a link a member of staff
      * shared, and an error page would waste a real enquiry — so they get the
@@ -112,15 +125,65 @@ export async function loadMarketingPage(code: string): Promise<MarketingPage | n
      * claim about programmes or prices that could not be read.
      */
     console.error('[marketing] programmes unavailable for', code, '—', loaded.error)
-    return { marketer, promotion: null, programmes: [] as never, programmesUnavailable: true }
+    return { marketer, image, promotion: null, programmes: [] as never, programmesUnavailable: true }
   }
+
+  const promotion = pickPromotion(loaded.data)
+  const image = await loadCampaignImage(code, promotion?.programme.name ?? null)
 
   return {
     marketer,
-    promotion: pickPromotion(loaded.data),
+    image,
+    promotion,
     programmes: loaded.data as never,
     programmesUnavailable: false,
   }
+}
+
+/**
+ * The marketer's flyer for this campaign, or their most recent one.
+ *
+ * Their OWN flyers only. A flyer belongs to the person who made it, and
+ * showing a colleague's artwork on somebody else's link would credit the
+ * wrong work — so a marketer with no flyers gets a page with no picture
+ * rather than one borrowed from the team.
+ *
+ * Never fatal: a campaign page without artwork is still a campaign page, and
+ * an unreadable flyers table must not take the fee and the start date down
+ * with it.
+ */
+async function loadCampaignImage(
+  code: string,
+  programmeName: string | null,
+): Promise<CampaignImage | null> {
+  const sb = createServiceClient()
+
+  const { row: owner, failed: ownerFailed } = await lookup(
+    sb.from('profiles').select('id').eq('marketer_code', code).maybeSingle(),
+  )
+  if (ownerFailed || !owner) return null
+
+  const { row: flyers, failed } = await lookup(
+    sb.from('flyers')
+      .select('title, course, image_url')
+      .eq('marketer_id', owner.id)
+      .not('image_url', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(20),
+  )
+  if (failed || !flyers?.length) return null
+
+  const rows = flyers as Array<{ title: string | null; course: string | null; image_url: string }>
+
+  // The one made for this programme, if there is one. Otherwise the newest,
+  // which is what the marketer is currently pushing.
+  const match = programmeName
+    ? rows.find(f => f.course && programmeName.toLowerCase().includes(f.course.toLowerCase()))
+      ?? rows.find(f => f.course && f.course.toLowerCase().includes(programmeName.toLowerCase()))
+    : null
+
+  const chosen = match ?? rows[0]
+  return { url: chosen.image_url, title: chosen.title }
 }
 
 /**

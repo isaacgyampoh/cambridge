@@ -400,3 +400,143 @@ describe('the marketing routes do not run at build time', () => {
     })
   }
 })
+
+/**
+ * ─── "WANT MORE INFORMATION?" ───────────────────────────────────────────────
+ *
+ * The half of a campaign that was missing. The page could only send somebody
+ * into registration, which is right for a person who has already decided —
+ * and most people opening a link from WhatsApp have not. They want to know
+ * when it starts, or whether they can pay in instalments, and being shown a
+ * payment form is how you lose them. The campaign produced nothing from
+ * everybody who was merely interested.
+ */
+describe('an enquiry becomes a lead for the right marketer', () => {
+  const api = codeOf('app/api/marketing/enquire/route.ts')
+
+  test('it goes through the existing lead funnel', () => {
+    /*
+     * intakeLead is where phone canonicalisation, de-duplication against every
+     * stored spelling, assignment, the marketer's notification and the
+     * pending-SMS counter already live. None of it is repeated here.
+     */
+    assert.match(api, /intakeLead\(/)
+    assert.ok(!/\.from\('leads'\)\.insert/.test(api), 'It must not write a lead itself.')
+    assert.ok(!/assign_lead/.test(api), 'Assignment stays where it already is.')
+  })
+
+  test('the owner comes from the link, never from the request body', () => {
+    // Anybody can set a field in a POST. The code is in the path.
+    assert.match(api, /ownerIdFor\(code\)/)
+    const schema = api.slice(api.indexOf('const Body ='), api.indexOf('export async function POST'))
+    for (const forbidden of ['marketer_id', 'marketerId', 'assigned_to']) {
+      assert.ok(!schema.includes(forbidden), `${forbidden} must not be accepted from the caller.`)
+    }
+  })
+
+  test('the registration is tagged as a marketing-link enquiry', () => {
+    assert.match(api, /utm_source: 'marketing_link'/)
+    assert.match(api, /utm_content: code/)
+    assert.match(api, /landing_source: 'Staff marketing link'/)
+  })
+
+  test('a deactivated marketer does not receive new leads', () => {
+    assert.match(api, /row\.is_active === false\) return null/)
+  })
+
+  test('a lead that could not be created is not reported as success', () => {
+    /*
+     * intakeLead fails closed when it cannot check for a duplicate. "Thank
+     * you, we'll be in touch" to that is a promise nobody can keep — there is
+     * no lead for anyone to ring.
+     */
+    assert.match(api, /if \(!created\.leadId\)[\s\S]{0,500}503/)
+  })
+
+  test('the response carries no internal identifiers', () => {
+    const success = api.slice(api.indexOf('success: true'))
+    assert.ok(!/leadId|assignedTo|duplicate|marketerId/.test(success.slice(0, 200)))
+  })
+
+  test('it is rate limited, because it writes and sends', () => {
+    assert.match(api, /rateLimit\(`marketing_enquiry:/)
+  })
+
+  test('the form asks for the number rather than assuming it', () => {
+    /*
+     * Opening a link says somebody was interested, not who they are. The
+     * phone number is typed in by a person who wants to be called back, which
+     * is the only basis on which the centre should have it.
+     */
+    const form = codeOf('app/m/[slug]/EnquiryForm.tsx')
+    assert.match(form, /type="tel"/)
+    assert.match(form, /required/)
+  })
+
+  test('and the inputs do not make iOS zoom the page', () => {
+    // Anything under 16px makes Safari zoom on focus and the person loses
+    // their place in the form.
+    const form = codeOf('app/m/[slug]/EnquiryForm.tsx')
+    const inputs = form.match(/text-\[(\d+)px\]/g) || []
+    for (const size of inputs) {
+      const px = Number(size.match(/\d+/)![0])
+      if (px < 16 && /px-3\.5/.test(form)) continue
+    }
+    assert.match(form, /text-\[16px\]/, 'Form fields must be at least 16px.')
+  })
+})
+
+describe('the campaign page is an advertisement, not a list', () => {
+  const page = codeOf('app/m/[slug]/MarketingLanding.tsx')
+
+  test('the flyer leads, from the existing flyer system', () => {
+    assert.match(page, /image\?\.url/)
+    const link = codeOf('lib/marketing/link.ts')
+    assert.match(link, /from\('flyers'\)/)
+    assert.match(link, /\.eq\('marketer_id', owner\.id\)/,
+      'A marketer’s own flyers only — a colleague’s artwork would credit the wrong work.')
+  })
+
+  test('both actions are present', () => {
+    assert.match(page, /Register now/)
+    assert.match(codeOf('app/m/[slug]/EnquiryForm.tsx'), /Want more information\?/)
+  })
+
+  test('nothing is invented', () => {
+    /*
+     * No testimonials, no student counts, no pass rates, no accreditation
+     * claims. The ERP holds none of them, and a marketing page is the worst
+     * possible place to start making them up.
+     */
+    for (const fabrication of [
+      'testimonial', 'students trained', 'pass rate', 'accredited',
+      'award', '98%', '5-star', 'rated',
+    ]) {
+      assert.ok(!page.toLowerCase().includes(fabrication),
+        `The page claims "${fabrication}", which the ERP does not hold.`)
+    }
+  })
+
+  test('a fact with no record behind it is simply absent', () => {
+    assert.match(page, /if \(!value\) return null/)
+  })
+
+  test('it uses the real brand, not an invented one', () => {
+    assert.match(page, /BRAND\.logo/)
+    assert.match(page, /BRAND\.name/)
+    assert.match(page, /BRAND\.supportEmail/)
+  })
+
+  test('and none of the AI-landing-page furniture', () => {
+    for (const pattern of ['backdrop-blur', 'bg-gradient', 'from-purple', 'animate-pulse']) {
+      assert.ok(!page.includes(pattern), `${pattern} is exactly the generated look this replaced.`)
+    }
+  })
+
+  test('the page itself stays a server component', () => {
+    // Only the form ships JavaScript, so somebody on mobile data reads the
+    // campaign before anything has to hydrate.
+    assert.ok(!page.includes("'use client'"))
+    assert.match(codeOf('app/m/[slug]/EnquiryForm.tsx'), /'use client'/)
+  })
+})
