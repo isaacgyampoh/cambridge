@@ -1,5 +1,6 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
+import { canonicalisePublicUrl } from '@/lib/url'
 
 /**
  * One flyer, read on the server.
@@ -61,7 +62,9 @@ export async function loadPublicFlyer(id: string): Promise<PublicFlyer | null> {
     id: data.id,
     title: data.title ?? null,
     course: data.course ?? null,
-    imageUrl: data.image_url ?? null,
+    // Repaired if it names a deployment. Cloudinary and every other genuine
+    // host is left untouched — see canonicalisePublicUrl.
+    imageUrl: canonicalisePublicUrl(data.image_url),
     marketerName: owner?.full_name ?? null,
     marketerCode: owner?.marketer_code ?? null,
   }

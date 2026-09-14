@@ -2,6 +2,7 @@ import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import { longDate } from '@/lib/chatbot/format'
 import type { Cohort, Programme } from '@/lib/chatbot/programmeRules'
+import { canonicalisePublicUrl } from '@/lib/url'
 
 /**
  * Reading the programmes out of the database.
@@ -137,7 +138,14 @@ export async function loadProgrammes(): Promise<LoadResult<Programme[]>> {
       feeInPerson: num(r.course_fee),
       feeOnline: num(r.course_fee_online),
       registrationFee: num(r.registration_fee),
-      brochureUrl: r.brochure_url || null,
+      /*
+       * Repaired on the way out. These are stored absolute, and rows saved
+       * while NEXT_PUBLIC_APP_URL pointed at a deployment alias hold
+       * `https://cambridge-mu.vercel.app/brochures/…`. This is the canonical
+       * loader behind the public page, the marketing page and the chatbot, so
+       * fixing it here fixes it everywhere a brochure is offered.
+       */
+      brochureUrl: canonicalisePublicUrl(r.brochure_url),
       cohorts: byCourse.get(r.id) || [],
     })),
   }

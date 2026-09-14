@@ -1,6 +1,7 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import { lookup } from '@/lib/db/lookup'
+import { canonicalisePublicUrl } from '@/lib/url'
 import { loadProgrammes } from '@/lib/chatbot/programme'
 import { pickPromotion, type Promotion } from '@/lib/marketing/promotionRules'
 
@@ -183,7 +184,8 @@ async function loadCampaignImage(
     : null
 
   const chosen = match ?? rows[0]
-  return { url: chosen.image_url, title: chosen.title }
+  const url = canonicalisePublicUrl(chosen.image_url)
+  return url ? { url, title: chosen.title } : null
 }
 
 /**

@@ -67,3 +67,51 @@ export function publicUrl(path = '/'): string {
   if (!path || path === '/') return origin
   return `${origin}${path.startsWith('/') ? '' : '/'}${path}`
 }
+
+/*
+ * Hosts that are this application wearing a different name.
+ *
+ * A URL stored on one of these was correct when it was saved and is wrong
+ * now. Anything else — Cloudinary, a provider's CDN, a genuine third party —
+ * is left completely alone.
+ */
+const OUR_OTHER_HOSTS = /^(.*\.)?vercel\.app$|^localhost$|^127\.0\.0\.1$|^\[::1\]$/
+
+/**
+ * Repair a stored URL that names a deployment instead of the centre.
+ *
+ * ── WHY READ-TIME AND NOT A MIGRATION ──────────────────────────────────────
+ *
+ * The brochure links on the public front page were
+ * `https://cambridge-mu.vercel.app/brochures/pmp-brochure.pdf`. No code builds
+ * those — they are stored absolute in courses.brochure_url, saved back when
+ * NEXT_PUBLIC_APP_URL pointed at the deployment alias. Fixing the code could
+ * not reach them, because the code was never what produced them.
+ *
+ * A migration corrects the rows; 0020 does that. This corrects the ANSWER,
+ * which matters for three reasons: it works before anybody runs the SQL, it
+ * covers rows saved by paths the migration does not know about, and it keeps
+ * working if the mistake is ever made again.
+ *
+ * The path is preserved exactly. Only the origin is replaced, and only when
+ * it is one of ours.
+ */
+export function canonicalisePublicUrl(url: string | null | undefined): string | null {
+  if (!url) return null
+  const raw = String(url).trim()
+  if (!raw) return null
+
+  // A relative path is already correct — it resolves against whatever host
+  // served the page, which is the right behaviour.
+  if (raw.startsWith('/')) return raw
+
+  try {
+    const parsed = new URL(raw)
+    if (!OUR_OTHER_HOSTS.test(parsed.hostname)) return raw
+    return `${CANONICAL_ORIGIN}${parsed.pathname}${parsed.search}${parsed.hash}`
+  } catch {
+    // Not a URL at all. Hand it back untouched rather than discard something
+    // a person may still be able to use.
+    return raw
+  }
+}
