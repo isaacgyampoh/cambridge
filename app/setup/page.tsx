@@ -34,6 +34,8 @@ type State = {
   hasSignInPin: boolean
   hasRecoveryPin: boolean
   provisioningIncomplete: boolean
+  recoveryReachable: boolean
+  recoveryBlockedReason: string | null
   windowOpen: boolean
   windowAllowsReset: boolean
   windowExpiresIn: number
@@ -255,6 +257,16 @@ export default function SetupPage() {
                     ['Super admin account', state.superAdminExists],
                     ['Sign-in PIN set', state.hasSignInPin],
                     ['Recovery PIN set', state.hasRecoveryPin],
+                    /*
+                     * Not the same row as the one above it.
+                     *
+                     * A recovery PIN opens a flow that emails a one-time code
+                     * — so a recovery PIN with no reachable mailbox behind it
+                     * is not a way back in, it is the appearance of one. This
+                     * screen reported "fully provisioned" for exactly that
+                     * account, and the owner found out while locked out.
+                     */
+                    ['Recovery can complete', state.recoveryReachable],
                   ].map(([label, done]) => (
                     <div key={String(label)} className="flex items-center justify-between px-3.5 py-2.5">
                       <dt className="text-[var(--ink-soft)]">{String(label)}</dt>
@@ -264,6 +276,16 @@ export default function SetupPage() {
                     </div>
                   ))}
                 </dl>
+
+                {state.recoveryBlockedReason && (
+                  <p className="mt-3 rounded-xl border border-[var(--warn)] bg-[var(--warn-soft)]
+                    px-3.5 py-3 text-[13px] leading-relaxed text-[var(--ink)]">
+                    <strong className="font-semibold">Forgot PIN will not work.</strong>{' '}
+                    {state.recoveryBlockedReason}{' '}
+                    Until that is fixed, the only way back into this account is a setup window
+                    opened on the server by whoever manages this deployment.
+                  </p>
+                )}
 
                 <Link href="/login"
                   className="mt-5 w-full h-12 rounded-2xl border border-[var(--line)] bg-[var(--paper)]

@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, verifyPIN, hashToken } from '@/lib/auth/pin'
 import { generatePin } from '@/lib/auth/pinPolicy'
 import { CONFIG } from '@/lib/config'
+import { SECRETS } from '@/lib/config.server'
 
 /**
  * First-run provisioning of the super admin, from a browser.
@@ -42,6 +43,27 @@ export type ProvisioningState = {
   hasSignInPin: boolean
   /** …and holds a recovery PIN, so they can recover themselves. */
   hasRecoveryPin: boolean
+  /**
+   * …and recovery could actually COMPLETE.
+   *
+   * ── WHY THIS IS NOT THE SAME QUESTION ────────────────────────────────────
+   *
+   * A recovery PIN proves nothing on its own. It opens a flow that then
+   * emails a one-time code to the account's registered address, and only that
+   * code lets a new PIN be chosen. So a recovery PIN with no reachable
+   * mailbox behind it is not a way back in — it is the appearance of one.
+   *
+   * This was found the way these things are always found. The super admin
+   * held a recovery PIN, readiness reported `provisioningIncomplete: false`,
+   * and the account did not use its registered address. The owner discovered
+   * that at the moment they were locked out, which is the only moment the
+   * answer matters and the worst one to learn it.
+   *
+   * Boolean, never the address. This state is served to an anonymous browser.
+   */
+  recoveryReachable: boolean
+  /** Why not, in a sentence for whoever has to fix it. Null when it is fine. */
+  recoveryBlockedReason: string | null
   /** Setup has something left to do. */
   provisioningIncomplete: boolean
   /** A window is open right now, so the setup page can act. */
@@ -63,13 +85,35 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
   const sb = createServiceClient()
 
   const { data: admins } = await sb.from('profiles')
-    .select('id, pin_hash, recovery_pin_hash')
+    .select('id, pin_hash, recovery_pin_hash, email')
     .eq('role', 'super_admin')
     .eq('is_active', true)
 
   const superAdminExists = (admins?.length || 0) > 0
   const hasSignInPin = (admins || []).some(a => Boolean(a.pin_hash))
   const hasRecoveryPin = (admins || []).some(a => Boolean(a.recovery_pin_hash))
+
+  /*
+   * Can the owner actually get back in on their own?
+   *
+   * Three things have to hold, and holding two of them is worth nothing:
+   * a recovery PIN, an address on the account, and a configured sender to
+   * deliver the code. The reason is spelled out because "incomplete" with no
+   * explanation sends somebody looking in the wrong place.
+   */
+  const hasRecoveryEmail = (admins || []).some(a => Boolean(a.email && String(a.email).includes('@')))
+  const canSendEmail = Boolean(SECRETS.resendApiKey)
+
+  const recoveryBlockedReason =
+    !hasRecoveryPin
+      ? 'No recovery PIN is set, so there is no way back in without SETUP_SECRET.'
+      : !hasRecoveryEmail
+        ? 'The super admin has no email address, so the one-time code has nowhere to go.'
+        : !canSendEmail
+          ? 'RESEND_API_KEY is not configured, so the one-time code cannot be sent.'
+          : null
+
+  const recoveryReachable = recoveryBlockedReason === null
 
   const { data: openWindow } = await sb.from('setup_windows')
     .select('expires_at, allow_reset')
@@ -83,12 +127,19 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
     superAdminExists,
     hasSignInPin,
     hasRecoveryPin,
+    recoveryReachable,
+    recoveryBlockedReason,
     /*
      * "Incomplete" means the owner cannot both get in AND get back in. An
      * account with a PIN nobody knows and no recovery PIN is, from the
      * owner's side, not provisioned.
+     *
+     * It now asks whether recovery can COMPLETE rather than whether a
+     * recovery PIN exists. Reporting "fully provisioned" for an account whose
+     * only route back runs through a mailbox nobody reads is the system
+     * claiming a protection it does not have.
      */
-    provisioningIncomplete: !superAdminExists || !hasRecoveryPin,
+    provisioningIncomplete: !superAdminExists || !recoveryReachable,
     windowOpen: Boolean(openWindow),
     windowAllowsReset: Boolean(openWindow?.allow_reset),
     windowExpiresIn: openWindow
