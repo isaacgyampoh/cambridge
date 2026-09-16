@@ -126,7 +126,7 @@ export default function ImportDetail({ params }: { params: Promise<{ reference: 
 
   if (state === 'error' || !record) {
     return (
-      <div className="w-full max-w-3xl">
+      <div className="w-full max-w-3xl mx-auto">
         <ErrorState
           title="Could not load that import"
           message={error || 'Something went wrong on our side.'}

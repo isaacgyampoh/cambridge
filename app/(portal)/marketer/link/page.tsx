@@ -154,7 +154,7 @@ export default function MarketerLink() {
     : ''
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full max-w-3xl mx-auto">
       {/*
         ── ORDER ────────────────────────────────────────────────────────────
         The person's OWN links come first.

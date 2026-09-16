@@ -76,7 +76,7 @@ export default function MarketerHome() {
   const showFee = role === 'marketing_officer'
 
   return (
-    <div className="w-full max-w-5xl">
+    <div className="w-full max-w-5xl mx-auto">
       {/* What is waiting on this person, first. */}
       <Overview />
 

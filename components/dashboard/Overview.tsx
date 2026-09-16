@@ -179,7 +179,7 @@ export default function Overview() {
       ]
 
   return (
-    <div className="fade-in w-full max-w-5xl">
+    <div className="fade-in w-full max-w-5xl mx-auto">
       <header className="mb-4">
         <h1 className="t-display">{greeting}</h1>
       </header>

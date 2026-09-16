@@ -212,7 +212,7 @@ export default function ActivitiesPage() {
   const overdueCount = queue.filter(q => new Date(q.follow_up_at) < new Date()).length
 
   return (
-    <div className="fade-in w-full max-w-3xl">
+    <div className="fade-in w-full max-w-3xl mx-auto">
       <PageHeader
         eyebrow="My work"
         title="Follow-ups"

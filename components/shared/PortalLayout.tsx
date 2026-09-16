@@ -249,7 +249,8 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   /* ── sidebar contents ────────────────────────────────────────────────── */
 
   const navList = (wide: boolean) => (
-    <nav className="flex-1 overflow-y-auto py-3 px-2.5" aria-label="Sections">
+    <nav className="flex-1 min-h-0 overflow-y-auto overscroll-contain py-3 px-2.5"
+      aria-label="Sections">
       {sections.map((section, i) => (
         <div key={section.id} className={i > 0 ? 'mt-5' : ''}>
           {section.title && wide && (
@@ -340,7 +341,9 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
   )
 
   const sidebar = ({ wide, inDrawer = false }: { wide: boolean; inDrawer?: boolean }) => (
-    <div className="flex flex-col h-full bg-[var(--paper)]">
+    // min-h-0: without it a flex column refuses to shrink below its content,
+    // and the scrolling list inside never gets a height to scroll within.
+    <div className="flex flex-col h-full min-h-0 bg-[var(--paper)]">
       <div className={`flex items-center border-b border-[var(--line)] flex-shrink-0 h-[60px]
         ${wide ? 'px-4 gap-3' : 'justify-center'}`}>
         <span className="w-9 h-9 rounded-lg grid place-items-center flex-shrink-0 bg-[var(--paper)]
@@ -446,7 +449,28 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
           <button type="button" aria-label="Close menu" onClick={() => setDrawerPath(null)}
             className="absolute inset-0 bg-black/40" />
 
-          <div className="absolute inset-x-0 bottom-0 max-h-[86vh] flex flex-col
+          {/*
+            ── WHY THIS SHEET COULD NOT SCROLL ──────────────────────────────
+
+            It was `max-h-[86vh]` with `overflow-hidden`, and the sidebar
+            inside it is `h-full`. A percentage height resolves against a
+            DEFINITE parent height, and max-height does not give one — so
+            `h-full` behaved as auto, the list grew to its content, and
+            overflow-hidden cut it off. The scroll container never received a
+            constrained height, so there was nothing to scroll: the items past
+            the fold were not hidden, they were clipped away.
+
+            That is why Staff, Settings, Documents and the rest were
+            unreachable on a phone while the same list scrolled on a desktop,
+            where the sidebar sits in a definite full-height column.
+
+            `h-[86dvh]` is definite, so `h-full` resolves and `flex-1
+            min-h-0` inside it becomes a real scroll area. dvh rather than vh
+            because vh is the LARGE viewport on mobile browsers — it ignores
+            the address bar, so 86vh reaches under it and the last item sits
+            below the fold even once scrolling works.
+          */}
+          <div className="absolute inset-x-0 bottom-0 h-[86dvh] flex flex-col
             rounded-t-3xl overflow-hidden bg-[var(--paper)]
             shadow-[var(--shadow-overlay)] sheet-rise">
             {/* The grabber. Signals "this pulls down" before anyone tries. */}
