@@ -583,32 +583,46 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
         {/* Bottom navigation. Four destinations chosen from what this person
             actually holds, plus More for everything else. Hidden from lg up,
             where the sidebar is standing. */}
+        {/*
+          ── THE FLOATING BAR ──────────────────────────────────────────────
+
+          The destination a person is on is marked by a SHAPE — a filled pill
+          that carries its label beside the icon — rather than by being less
+          faded than its neighbours. Opacity is not a state anybody can name;
+          "the dark one" is.
+
+          Every tab keeps its label. Hiding the inactive ones would leave four
+          bare icons, and an icon is only obvious to somebody who already knows
+          what it does — which is not the person who needs the nav. The active
+          one reads along its pill; the rest stack under their icons.
+        */}
         <nav aria-label="Main"
           className="lg:hidden fixed bottom-0 inset-x-0 z-40 tab-bar">
-          <div className="grid mx-auto max-w-lg"
-            style={{ gridTemplateColumns: `repeat(${tabs.length + 1}, minmax(0, 1fr))` }}>
+          <div className="mx-auto flex max-w-lg items-center gap-1 p-1.5">
             {tabs.map(tab => {
               const Icon = ICONS[tab.icon]
               const active = isActive(pathname, tab.href)
               return (
                 <Link key={tab.key} href={tab.href} aria-current={active ? 'page' : undefined}
-                  className={`flex flex-col items-center justify-center gap-1 min-h-[60px] py-2
-                    transition-colors focus-visible:outline-none focus-visible:ring-2
-                    focus-visible:ring-inset focus-visible:ring-white/40
-                    ${active ? 'text-white' : 'text-white/45'}`}>
-                  <Icon size={21} className="flex-shrink-0" aria-hidden="true" />
-                  <span className="text-[11px] font-semibold leading-none truncate max-w-full px-0.5">
+                  className={`flex min-h-[52px] flex-1 rounded-full transition-colors
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
+                    ${active
+                      ? 'flex-row items-center justify-center gap-1.5 bg-[var(--ink)] px-3 text-[var(--paper)]'
+                      : 'flex-col items-center justify-center gap-1 px-1 text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
+                  <Icon size={active ? 18 : 20} className="flex-shrink-0" aria-hidden="true" />
+                  <span className={`leading-none truncate max-w-full
+                    ${active ? 'text-[13px] font-semibold' : 'text-[10px] font-medium'}`}>
                     {tab.label}
                   </span>
                 </Link>
               )
             })}
-            <button type="button" onClick={() => setDrawerPath(pathname)} aria-label="More sections"
-              className="flex flex-col items-center justify-center gap-1 min-h-[60px] py-2
-                text-white/45 transition-colors focus-visible:outline-none
-                focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-white/40">
-              <Menu size={21} className="flex-shrink-0" aria-hidden="true" />
-              <span className="text-[11px] font-semibold leading-none">More</span>
+            <button type="button" onClick={() => setDrawerPath(pathname)}
+              className="flex min-h-[52px] flex-1 flex-col items-center justify-center gap-1
+                rounded-full px-1 text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]
+                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+              <Menu size={20} className="flex-shrink-0" aria-hidden="true" />
+              <span className="text-[10px] font-medium leading-none">More</span>
             </button>
           </div>
         </nav>

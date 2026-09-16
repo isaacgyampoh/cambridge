@@ -462,3 +462,77 @@ describe('a row that needs work is visible without reading it', () => {
     assert.match(fees, /needsAttention=\{f => Number\(f\.balance\) > 0\}/)
   })
 })
+
+/**
+ * ─── THE TAB BAR ────────────────────────────────────────────────────────────
+ *
+ * It was an edge-to-edge band of --brand with white labels at 45% opacity —
+ * which is where a tab bar goes on a phone and also where it disappears. A
+ * dark strip welded to the bottom reads as chrome, and the destination a
+ * person was actually on was distinguished only by being less faded than its
+ * neighbours.
+ */
+describe('the tab bar marks where you are with a shape', () => {
+  const layout = readFileSync('components/shared/PortalLayout.tsx', 'utf8')
+  const css = readFileSync('app/globals.css', 'utf8')
+
+  test('it floats rather than welding to the edge', () => {
+    const bar = css.slice(css.indexOf('.tab-bar {'), css.indexOf('.has-tabbar'))
+    assert.match(bar, /padding-bottom: calc\(env\(safe-area-inset-bottom\) \+ 10px\)/)
+    assert.match(bar, /border-radius: var\(--radius-full\)/)
+  })
+
+  test('the gap either side is not a tap target', () => {
+    // A floating bar leaves live screen on both sides of it.
+    const bar = css.slice(css.indexOf('.tab-bar {'), css.indexOf('.has-tabbar'))
+    assert.match(bar, /pointer-events: none/)
+    assert.match(bar, /pointer-events: auto/)
+  })
+
+  test('content still clears it', () => {
+    // The bar got taller when it lifted off the edge; --tabbar-h carries that
+    // so no screen has to remember.
+    assert.match(css, /--tabbar-h: 76px/)
+    assert.match(css, /\.has-tabbar \{[\s\S]{0,140}var\(--tabbar-h\)/)
+  })
+
+  test('the active tab is filled, not merely less faded', () => {
+    assert.match(layout, /active\s*\n?\s*\? 'flex-row[^']*bg-\[var\(--ink\)\][^']*'/)
+    assert.ok(!/text-white\/45/.test(layout),
+      'opacity is not a state anybody can name')
+  })
+
+  test('every tab keeps its label', () => {
+    /*
+     * Hiding the inactive ones leaves four bare icons, and an icon is only
+     * obvious to somebody who already knows what it does — which is not the
+     * person who needs the nav.
+     */
+    const nav = layout.slice(layout.indexOf('aria-label="Main"'))
+    assert.ok(!/sr-only/.test(nav.slice(0, 2200)),
+      'a visually hidden label means an icon-only tab')
+    assert.match(nav, /\{tab\.label\}/)
+    assert.match(nav, /text-\[10px\] font-medium/)
+  })
+
+  test('More keeps its label too', () => {
+    const nav = layout.slice(layout.indexOf('aria-label="Main"'))
+    assert.match(nav, /<span className="text-\[10px\] font-medium leading-none">More<\/span>/)
+  })
+
+  test('every target clears the 44px minimum', () => {
+    const nav = layout.slice(layout.indexOf('aria-label="Main"'))
+    const targets = nav.match(/min-h-\[(\d+)px\]/g) || []
+    assert.ok(targets.length >= 2, 'the tabs and More must both set a minimum')
+    for (const t of targets) {
+      assert.ok(Number(t.match(/\d+/)![0]) >= 44, `${t} is below the 44px touch minimum`)
+    }
+  })
+
+  test('focus is visible against a light bar', () => {
+    // It used to ring white, which was correct on --brand and invisible now.
+    const nav = layout.slice(layout.indexOf('aria-label="Main"'))
+    assert.ok(!/ring-white/.test(nav))
+    assert.match(nav, /focus-visible:ring-\[var\(--accent\)\]/)
+  })
+})
