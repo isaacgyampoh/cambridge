@@ -266,11 +266,22 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
             const childActive = item.children?.some(c => isActive(pathname, c.href))
             const active = selfActive || childActive
 
-            const rowClass = `w-full flex items-center rounded-lg transition-colors mb-px
-              ${wide ? 'gap-2.5 px-3 py-2' : 'justify-center py-2.5'}
+            /*
+              ── THE SAME SIGNAL AS THE PHONE ────────────────────────────────
+              The active section was a pale green tint with green text, while
+              the tab bar on a phone marks the same thing with a filled dark
+              pill. One person uses both, often within a minute of each other,
+              and "where am I" should not be answered two different ways.
+
+              A fill also simply carries further than a tint: a --accent-soft
+              row a third of the way down a list of twenty is easy to scan
+              past, and the sidebar is long for an administrator.
+            */
+            const rowClass = `w-full flex items-center rounded-full transition-colors mb-0.5
+              ${wide ? 'gap-2.5 px-3.5 py-2.5' : 'justify-center py-2.5'}
               focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
               ${active
-                ? 'bg-[var(--accent-soft)] text-[var(--accent)] font-medium'
+                ? 'bg-[var(--ink)] text-[var(--paper)] font-semibold'
                 : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`
 
             if (item.children?.length) {
@@ -300,11 +311,11 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                           key={child.href}
                           href={child.href}
                           aria-current={isActive(pathname, child.href) ? 'page' : undefined}
-                          className={`block px-3 py-1.5 rounded-lg text-[13px] transition-colors
+                          className={`block px-3 py-1.5 rounded-full text-[13px] transition-colors
                             focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
                             ${isActive(pathname, child.href)
-                              ? 'text-[var(--accent)] font-medium'
-                              : 'text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}
+                              ? 'bg-[var(--ink)] text-[var(--paper)] font-medium'
+                              : 'text-[var(--ink-faint)] hover:bg-[var(--line-soft)] hover:text-[var(--ink)]'}`}
                         >
                           {child.label}
                         </Link>

@@ -599,3 +599,51 @@ describe('the type scale covers what the screens ask for', () => {
     assert.ok(!/text-\[10px\]/.test(nav))
   })
 })
+
+/**
+ * ─── "WHERE AM I" HAS ONE ANSWER ────────────────────────────────────────────
+ *
+ * The phone tab bar marks the active destination with a filled dark pill. The
+ * desktop sidebar marked the same thing with a pale green tint, and the
+ * student portal's own nav with a third variation of the tint.
+ *
+ * One person uses the sidebar and the tab bar within a minute of each other.
+ * A fill also carries further than a tint — an --accent-soft row a third of
+ * the way down a list of twenty is easy to scan past, and an administrator's
+ * sidebar is long.
+ */
+describe('every navigation marks the active item the same way', () => {
+  const layout = readFileSync('components/shared/PortalLayout.tsx', 'utf8')
+  const studentPortal = readFileSync('app/portal/PortalView.tsx', 'utf8')
+
+  test('the staff sidebar fills it', () => {
+    const rowClass = layout.slice(layout.indexOf('const rowClass'), layout.indexOf('const rowClass') + 700)
+    assert.match(rowClass, /bg-\[var\(--ink\)\] text-\[var\(--paper\)\]/)
+    assert.ok(!/bg-\[var\(--accent-soft\)\] text-\[var\(--accent\)\]/.test(rowClass),
+      'a tint is the weaker signal and no longer matches the phone')
+  })
+
+  test('so does the phone tab bar', () => {
+    const nav = layout.slice(layout.indexOf('aria-label="Main"'))
+    assert.match(nav, /bg-\[var\(--ink\)\]/)
+  })
+
+  test('and the student portal', () => {
+    assert.match(studentPortal, /tab === t\.k\s*\n?\s*\? 'bg-\[var\(--ink\)\] text-\[var\(--paper\)\]'/)
+  })
+
+  test('all three are pills, not rounded rectangles', () => {
+    // The shape is half the signal; a 8px-radius fill reads as a selected
+    // table row rather than as a chosen destination.
+    const rowClass = layout.slice(layout.indexOf('const rowClass'), layout.indexOf('const rowClass') + 700)
+    assert.match(rowClass, /rounded-full/)
+    assert.match(layout.slice(layout.indexOf('aria-label="Main"')), /rounded-full/)
+    assert.match(studentPortal, /rounded-full text-\[14px\] font-semibold/)
+  })
+
+  test('a chosen child link is filled too', () => {
+    // A filled parent above a tinted child reads as two different states.
+    const children = layout.slice(layout.indexOf('item.children.map'))
+    assert.match(children.slice(0, 900), /bg-\[var\(--ink\)\] text-\[var\(--paper\)\]/)
+  })
+})

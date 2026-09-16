@@ -641,10 +641,13 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
         {TABS.map(t => (
           <button key={t.k} onClick={() => setTab(t.k)}
             aria-current={tab === t.k ? 'page' : undefined}
-            className={`flex items-center gap-3 px-3 py-3 rounded-xl text-[14px] font-semibold mb-1
+            /* The same filled pill the staff sidebar and the phone tab bar
+               use. A student who is also a member of staff should not have to
+               learn two answers to "where am I". */
+            className={`flex items-center gap-3 px-3.5 py-3 rounded-full text-[14px] font-semibold mb-1
               transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]
               ${tab === t.k
-                ? 'bg-[var(--accent-soft)] text-[var(--accent)]'
+                ? 'bg-[var(--ink)] text-[var(--paper)]'
                 : 'text-[var(--ink-soft)] hover:bg-[var(--line-soft)]'}`}>
             {t.icon}{t.label}
           </button>
