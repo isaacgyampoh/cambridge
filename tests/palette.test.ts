@@ -512,12 +512,14 @@ describe('the tab bar marks where you are with a shape', () => {
     assert.ok(!/sr-only/.test(nav.slice(0, 2200)),
       'a visually hidden label means an icon-only tab')
     assert.match(nav, /\{tab\.label\}/)
-    assert.match(nav, /text-\[10px\] font-medium/)
+    // The size is asserted by the scale-floor test below, not pinned here —
+    // pinning it is how this test kept passing while the label shrank to 10px.
+    assert.match(nav, /font-medium/)
   })
 
   test('More keeps its label too', () => {
     const nav = layout.slice(layout.indexOf('aria-label="Main"'))
-    assert.match(nav, /<span className="text-\[10px\] font-medium leading-none">More<\/span>/)
+    assert.match(nav, /font-medium leading-none">More<\/span>/)
   })
 
   test('every target clears the 44px minimum', () => {
@@ -534,5 +536,66 @@ describe('the tab bar marks where you are with a shape', () => {
     const nav = layout.slice(layout.indexOf('aria-label="Main"'))
     assert.ok(!/ring-white/.test(nav))
     assert.match(nav, /focus-visible:ring-\[var\(--accent\)\]/)
+  })
+})
+
+/**
+ * ─── THE TYPE SCALE ─────────────────────────────────────────────────────────
+ *
+ * 963 screens set a size in pixels rather than through a token, which looks
+ * like a system nobody uses — until you count them. 91% land exactly on the
+ * scale: 13, 12, 14, 15, 11, 17, 22. The convention IS being followed; it is
+ * simply written out longhand, and rewriting 880 sites would be churn with
+ * real regression risk and nothing visible to show for it.
+ *
+ * The 9% that miss are where the finding is, and it is not what it looked
+ * like. 24px appears 40 times — nearly twice as often as --text-display's
+ * 22px — because the scale stopped one step below where the screens needed
+ * it. A scale that stops short is not ignored, it is worked around.
+ */
+describe('the type scale covers what the screens ask for', () => {
+  const css = readFileSync('app/globals.css', 'utf8')
+
+  test('there is a step for a figure', () => {
+    assert.match(css, /--text-figure:\s*24px/)
+    assert.match(css, /\.t-figure\s*\{[^}]*var\(--text-figure\)/)
+  })
+
+  test('a figure is tabular, so a changing number does not jitter', () => {
+    const rule = css.slice(css.indexOf('.t-figure'), css.indexOf('.t-display'))
+    assert.match(rule, /font-variant-numeric: tabular-nums/)
+  })
+
+  test('nothing is set below the scale’s floor', () => {
+    /*
+     * --text-micro is 11px and that is the floor. I broke this myself in the
+     * tab bar an hour after shipping it: two labels at 10px, to fit them
+     * under their icons. A navigation label is read on every screen by
+     * everybody, which makes it the worst possible place to save a pixel.
+     *
+     * A <kbd> shortcut chip is exempt: it is a keyboard glyph, not prose, and
+     * it sits beside the text it belongs to.
+     */
+    const offenders: string[] = []
+    for (const file of [...sourceFiles('app'), ...sourceFiles('components')]) {
+      const src = readFileSync(file, 'utf8')
+      src.split('\n').forEach((line, i) => {
+        if (/<kbd/.test(line)) return
+        for (const m of line.matchAll(/text-\[(\d+)px\]/g)) {
+          if (Number(m[1]) < 11) {
+            offenders.push(`${file.replace(/^.*?cambridge\//, '')}:${i + 1} — ${m[0]}`)
+          }
+        }
+      })
+    }
+    assert.deepEqual(offenders, [],
+      'below 11px is smaller than the scale admits and hard to read on a phone')
+  })
+
+  test('the tab labels sit on the floor, not under it', () => {
+    const layout = readFileSync('components/shared/PortalLayout.tsx', 'utf8')
+    const nav = layout.slice(layout.indexOf('aria-label="Main"'))
+    assert.match(nav, /text-\[11px\] font-medium/)
+    assert.ok(!/text-\[10px\]/.test(nav))
   })
 })

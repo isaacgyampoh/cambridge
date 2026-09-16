@@ -136,6 +136,15 @@
   /* ── Type scale ──────────────────────────────────────────────────────────
      Eight steps, each with a job. A page title is 22px on a phone: confidence
      in an operations tool comes from restraint, not size. */
+  /*
+   * A figure worth looking at: a balance, a payout, a count on a stat block.
+   *
+   * Added because it was already being used. Forty places reached for 24px —
+   * nearly twice as often as --text-display's 22px — because the scale
+   * stopped one step below where the screens needed it, and a scale that
+   * stops short is not followed, it is worked around.
+   */
+  --text-figure:  24px;
   --text-display: 22px;
   --text-title:   17px;
   --text-lead:    15px;
@@ -174,6 +183,7 @@
 /* ── Type utilities ────────────────────────────────────────────────────────
    Named for their role, so a screen asks for "a page title" rather than
    picking a pixel value and a weight independently of every other screen. */
+.t-figure  { font-size: var(--text-figure);  line-height: var(--leading-tight); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); font-variant-numeric: tabular-nums; }
 .t-display { font-size: var(--text-display); line-height: var(--leading-tight); font-weight: 600; letter-spacing: -0.02em; color: var(--ink); }
 .t-title   { font-size: var(--text-title);   line-height: var(--leading-snug);  font-weight: 600; letter-spacing: -0.01em; color: var(--ink); }
 .t-lead    { font-size: var(--text-lead);    line-height: var(--leading-body);  color: var(--ink-soft); }

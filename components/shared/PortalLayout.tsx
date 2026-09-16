@@ -611,7 +611,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                       : 'flex-col items-center justify-center gap-1 px-1 text-[var(--ink-faint)] hover:text-[var(--ink)]'}`}>
                   <Icon size={active ? 18 : 20} className="flex-shrink-0" aria-hidden="true" />
                   <span className={`leading-none truncate max-w-full
-                    ${active ? 'text-[13px] font-semibold' : 'text-[10px] font-medium'}`}>
+                    ${active ? 'text-[13px] font-semibold' : 'text-[11px] font-medium'}`}>
                     {tab.label}
                   </span>
                 </Link>
@@ -622,7 +622,7 @@ export default function PortalLayout({ children }: { children: React.ReactNode }
                 rounded-full px-1 text-[var(--ink-faint)] transition-colors hover:text-[var(--ink)]
                 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
               <Menu size={20} className="flex-shrink-0" aria-hidden="true" />
-              <span className="text-[10px] font-medium leading-none">More</span>
+              <span className="text-[11px] font-medium leading-none">More</span>
             </button>
           </div>
         </nav>
