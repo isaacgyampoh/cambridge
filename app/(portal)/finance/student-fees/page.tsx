@@ -149,6 +149,9 @@ export default function StudentFeesPage() {
             state={loading ? 'loading' : 'ready'}
             rows={filtered}
             rowKey={f => f.id}
+            // A balance still owed. The amber column already said so; the row
+            // says it before anybody reads a column.
+            needsAttention={f => Number(f.balance) > 0}
             columns={feeColumns}
             emptyTitle="No registered students yet"
             emptyMessage="Students appear here automatically once they register."

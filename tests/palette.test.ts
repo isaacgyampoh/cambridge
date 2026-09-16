@@ -383,3 +383,82 @@ describe('the figures that matter are given weight', () => {
       `${fills} bright fills on one screen — the moment everything is coloured, nothing is.`)
   })
 })
+
+/**
+ * ─── THE TOKENS ACTUALLY GOVERN THE SCREENS ─────────────────────────────────
+ *
+ * There was a design system in globals.css that the screens did not use.
+ * --radius-surface appeared in three places; six hundred and twenty-six
+ * hardcoded `rounded-xl` / `rounded-2xl` classes went round it — so lifting
+ * the token from 16px to 20px changed the two screens edited by hand and
+ * nothing else.
+ *
+ * The convention was real. It just was not wired, so the token could not move
+ * the thing it described.
+ */
+describe('the radius utilities resolve to the tokens', () => {
+  const css = readFileSync('app/globals.css', 'utf8')
+
+  test('Tailwind’s scale is mapped onto the design tokens', () => {
+    assert.match(css, /@theme inline \{[\s\S]*?--radius-xl:\s*var\(--radius-control\)/)
+    assert.match(css, /@theme inline \{[\s\S]*?--radius-2xl:\s*var\(--radius-surface\)/)
+  })
+
+  test('so a change to a token reaches every surface', () => {
+    /*
+     * The property this exists for. If somebody replaces the var() with a
+     * literal, the mapping still compiles and the token silently stops
+     * governing anything again.
+     */
+    const theme = css.slice(css.indexOf('@theme inline'), css.indexOf('}', css.indexOf('@theme inline')))
+    assert.ok(!/--radius-2xl:\s*\d/.test(theme),
+      'a literal here disconnects the token from the utility')
+  })
+
+  test('rounded-lg is deliberately left alone', () => {
+    // Small things — icon tiles, chips inside a row — where the control
+    // radius is too round.
+    const theme = css.slice(css.indexOf('@theme inline'), css.indexOf('}', css.indexOf('@theme inline')))
+    assert.ok(!/--radius-lg/.test(theme))
+  })
+})
+
+describe('a row that needs work is visible without reading it', () => {
+  const table = readFileSync('components/ui/DataTable.tsx', 'utf8')
+
+  test('the shared table can mark one', () => {
+    /*
+     * A table where one row has failed and forty have not looks, at a glance,
+     * exactly like a table where none has. The difference was a word in a
+     * column somebody had to read across to reach.
+     */
+    assert.match(table, /needsAttention\?: \(row: T\) => boolean/)
+  })
+
+  test('both the phone card and the table row carry it', () => {
+    // 18 screens use this component, and most of them are used on a phone.
+    assert.match(table, /flagged[\s\S]{0,200}attention-soft/)
+    assert.match(table, /needsAttention\?\.\(row\) \? 'bg-\[var\(--attention-soft\)\]' : ''/)
+  })
+
+  test('a tinted row is not then hovered back to the plain canvas', () => {
+    // That would wash the signal out exactly when somebody reaches for it.
+    assert.match(table, /flagged \? '' : 'hover:bg-\[var\(--canvas\)\]'/)
+  })
+
+  test('it is a tint, not the danger colour', () => {
+    /*
+     * A queue that needs a look is not a failure. A table that cries error at
+     * routine work teaches people to ignore the colour.
+     */
+    assert.ok(!/attention[\s\S]{0,80}--danger/.test(table))
+  })
+
+  test('and it is used where somebody actually has to act', () => {
+    const assign = readFileSync('app/(portal)/pm/assign/page.tsx', 'utf8')
+    assert.match(assign, /needsAttention=\{l => !l\.assigned_to\}/,
+      'an unassigned lead is one nobody is working')
+    const fees = readFileSync('app/(portal)/finance/student-fees/page.tsx', 'utf8')
+    assert.match(fees, /needsAttention=\{f => Number\(f\.balance\) > 0\}/)
+  })
+})

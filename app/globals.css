@@ -1,5 +1,34 @@
 @import "tailwindcss";
 
+/*
+ * ── THE UTILITIES RESOLVE TO THE DESIGN TOKENS ─────────────────────────────
+ *
+ * There is a design system in this file, and until now the screens did not
+ * use it. --radius-surface appeared in three places; six hundred and
+ * twenty-six hardcoded `rounded-xl` / `rounded-2xl` classes went round it.
+ * So lifting --radius-surface from 16px to 20px changed two screens — the two
+ * edited by hand — and every card in the rest of the product stayed where it
+ * was.
+ *
+ * The convention was real: whoever built this used `rounded-2xl` wherever a
+ * card wanted the 16px surface radius. It simply was not wired to anything,
+ * so the token could not move the thing it described.
+ *
+ * Mapping Tailwind's scale onto the tokens makes the convention true. A
+ * change to --radius-surface now reaches every surface in the application,
+ * which is what a token is for.
+ *
+ *   rounded-xl   -> --radius-control   buttons, inputs, badges
+ *   rounded-2xl  -> --radius-surface   cards, sheets, dialogs
+ *
+ * rounded-lg is deliberately left alone. It is used on small things — icon
+ * tiles, chips inside a row — where the control radius would be too round.
+ */
+@theme inline {
+  --radius-xl:  var(--radius-control);
+  --radius-2xl: var(--radius-surface);
+}
+
 /* ═════════════════════════════════════════════════════════════════════════
    CAMBRIDGE — DESIGN TOKENS
    

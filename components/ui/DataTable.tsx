@@ -52,13 +52,31 @@ export type DataTableProps<T> = {
   emptyAction?: React.ReactNode
   /** Announced to screen readers, and used in the loading label. */
   caption: string
+  /**
+   * Which rows need somebody to act.
+   *
+   * ── WHY A ROW AND NOT A BADGE ────────────────────────────────────────────
+   *
+   * A table where one row has failed and forty have not looks, at a glance,
+   * exactly like a table where none has. The difference is a word in a column
+   * somebody has to read across to reach — so the rows that need work are
+   * found by reading every row, which is the same as not finding them.
+   *
+   * Tinting the row moves that from reading to noticing.
+   *
+   * It is a tint, not a fill: the text stays --ink on a very pale ground, so
+   * it is as legible as any other row. And it is deliberately NOT the danger
+   * colour — a queue that needs a look is not a failure, and a table that
+   * cries error at routine work teaches people to ignore the colour.
+   */
+  needsAttention?: (row: T) => boolean
 }
 
 export function DataTable<T>({
   columns, rows, rowKey, state = 'ready', onRetry, onRowClick,
   emptyTitle = 'Nothing here yet',
   emptyMessage = 'When there is something to show, it will appear here.',
-  emptyAction, caption,
+  emptyAction, caption, needsAttention,
 }: DataTableProps<T>) {
   if (state === 'loading') return <SkeletonList rows={6} />
 
@@ -115,17 +133,24 @@ export function DataTable<T>({
             </>
           )
 
+          const flagged = needsAttention?.(row) ?? false
+          // The tint replaces the surface, so it must not also be hovered to
+          // the ordinary canvas — that would wash the signal out on touch.
+          const surface = flagged
+            ? 'bg-[var(--attention-soft)] border-[var(--attention)]/25'
+            : 'bg-[var(--paper)] border-[var(--line)]'
+
           return (
             <li key={rowKey(row)}>
               {onRowClick ? (
                 <button onClick={() => onRowClick(row)}
-                  className="w-full text-left rounded-2xl border border-[var(--line)] bg-[var(--paper)]
-                    p-4 min-h-[44px] transition-colors hover:bg-[var(--canvas)]
-                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+                  className={`w-full text-left rounded-2xl border p-4 min-h-[44px] transition-colors
+                    ${surface} ${flagged ? '' : 'hover:bg-[var(--canvas)]'}
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]`}>
                   {body}
                 </button>
               ) : (
-                <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4">
+                <div className={`rounded-2xl border p-4 ${surface}`}>
                   {body}
                 </div>
               )}
@@ -155,7 +180,10 @@ export function DataTable<T>({
               <tr key={rowKey(row)}
                 onClick={onRowClick ? () => onRowClick(row) : undefined}
                 className={`border-b border-[var(--line-soft)] last:border-0
-                  ${onRowClick ? 'cursor-pointer hover:bg-[var(--canvas)] transition-colors' : ''}`}>
+                  ${needsAttention?.(row) ? 'bg-[var(--attention-soft)]' : ''}
+                  ${onRowClick
+                    ? `cursor-pointer transition-colors ${needsAttention?.(row) ? '' : 'hover:bg-[var(--canvas)]'}`
+                    : ''}`}>
                 {columns.map(col => (
                   <td key={col.key}
                     className={`px-4 py-3 text-[var(--ink)] align-middle

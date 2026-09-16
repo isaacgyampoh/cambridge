@@ -19,6 +19,12 @@ type Lead = {
   course_interest?: string | null
   status: string
   created_at: string
+  /*
+   * The raw column, alongside the embedded `assignee`. The select asks for
+   * `*, assignee:assigned_to(...)`, so both come back — and the filters above
+   * have always read this one. It was simply missing from the type.
+   */
+  assigned_to?: string | null
   assignee?: { full_name?: string } | null
 }
 
@@ -271,6 +277,12 @@ export default function PMAssign() {
               onRetry={refetch}
               rows={filtered}
               rowKey={l => l.id}
+              /*
+                An unassigned lead is one nobody is working. It was findable
+                only by reading the Assigned column down the page, which on a
+                list of two hundred means it was not findable.
+              */
+              needsAttention={l => !l.assigned_to}
               columns={leadColumns}
               emptyTitle="No leads in this view"
               emptyMessage="Change the filter above, or wait for new leads to arrive."
