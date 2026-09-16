@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
+import { kickDueJobs } from '@/lib/cron/opportunistic'
 
 export const runtime = 'nodejs'
 
@@ -70,6 +71,16 @@ type PriorityLead = {
 }
 
 export const GET = withGuard({}, async (_req, { session, portals }) => {
+  /*
+   * Every staff member loads this when they open the portal, which makes it
+   * the cheapest place to notice the job queue is due a drain.
+   *
+   * This plan allows a daily cron only, and a marketer should not hear about
+   * Tuesday's lead on Wednesday. See lib/cron/opportunistic.ts — it is rate
+   * limited, runs after the response, and cannot delay or fail this request.
+   */
+  kickDueJobs()
+
   const sb = createServiceClient()
   const role = session.role
 

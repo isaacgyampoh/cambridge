@@ -41,15 +41,52 @@ describe('something actually drains the queue', () => {
       'the fan-out paces each task itself; scheduling it schedules all of them')
   })
 
-  test('often enough for a five-minute job to run every five minutes', () => {
+  test('the daily schedule is a floor, not the whole answer', () => {
     /*
-     * sms_queue declares everyMins: 5. A daily schedule would leave a lead's
-     * notification sitting until the next morning, which for "a new lead is
-     * waiting" is the same as not sending it.
+     * sms_queue declares everyMins: 5, and a five-minute cron expression is
+     * refused on this plan — Hobby allows daily schedules only. A daily drain
+     * alone would mean a marketer hears about Tuesday's lead on Wednesday.
+     *
+     * So the schedule is the overnight floor, and ordinary portal traffic
+     * covers the working day. Both, not either.
      */
-    const smsCron = vercel.crons.find((c: { path: string }) => c.path === '/api/cron/run')
-    assert.match(smsCron.schedule, /^\*\/[1-5] \* \* \* \*$/,
-      `schedule is "${smsCron.schedule}" — too infrequent for a 5-minute task`)
+    const cron = vercel.crons.find((c: { path: string }) => c.path === '/api/cron/run')
+    assert.match(cron.schedule, /^\d+ \d+ \* \* \*$/,
+      `schedule is "${cron.schedule}" — this plan accepts a daily cron only`)
+    assert.doesNotThrow(() => readFileSync('lib/cron/opportunistic.ts', 'utf8'),
+      'a daily cron on its own leaves the working day uncovered')
+  })
+
+  test('traffic covers the working day', () => {
+    const summary = codeOf('app/api/dashboard/summary/route.ts')
+    assert.match(summary, /kickDueJobs\(\)/,
+      'the request every staff member makes on opening the portal')
+  })
+
+  test('and it cannot delay or break the request it hangs off', () => {
+    const kick = codeOf('lib/cron/opportunistic.ts')
+    assert.match(kick, /after\(async \(\) => \{/, 'must run after the response is sent')
+    assert.match(kick, /catch \{/, 'a failed drain must never surface to whoever loaded a dashboard')
+    assert.ok(!/await kickDueJobs/.test(codeOf('app/api/dashboard/summary/route.ts')),
+      'awaiting it would put the fan-out on the critical path')
+  })
+
+  test('it is rate limited, and defers to the fan-out for real pacing', () => {
+    const kick = codeOf('lib/cron/opportunistic.ts')
+    assert.match(kick, /CHECK_EVERY_MS/)
+    assert.match(kick, /from\('cron_runs'\)/,
+      'it asks whether anything is due before waking the fan-out')
+  })
+
+  test('consolidation survives being called constantly', () => {
+    /*
+     * The reason frequent calls are safe at all: notify-pending only picks up
+     * marketers whose most recent lead has settled for three minutes, so five
+     * leads still produce one message rather than five.
+     */
+    const notify = codeOf('app/api/leads/notify-pending/route.ts')
+    assert.match(notify, /Date\.now\(\) - 3 \* 60000/)
+    assert.match(notify, /\.lte\('last_lead_at', settleCutoff\)/)
   })
 
   test('the fan-out still paces jobs, so this does not run daily work 288 times', () => {
