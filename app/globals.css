@@ -63,6 +63,26 @@
   --accent-soft: var(--brand-soft);
   --accent-line: var(--brand-line);
 
+  /* ── Fills that carry DARK text ──────────────────────────────────────────
+     The accent is dark because it carries WHITE text, and that caps how
+     bright it can be: white on it needs 4.5:1, so the green can never be
+     vivid. Inverting the relationship removes the cap entirely — dark ink on
+     a bright fill clears AA by a mile, so the colour can be as alive as it
+     likes.
+
+     That is the whole trick. These are SURFACES, never buttons with white
+     labels: --ink on --accent-bright is 11.9:1, white on it is 1.4:1 and
+     illegible. The pairing is not optional.
+
+     --accent-bright  a figure worth looking at: a payout, a total, a count
+     --attention      something waiting on a person. Not an error — an error
+                      is --danger and means something went wrong. This means
+                      somebody has to act.
+     --attention-soft the same, as a tinted row in a table */
+  --accent-bright: #C6E870;  /* 11.86:1 with --ink */
+  --attention:     #F98545;  /* 6.62:1 with --ink */
+  --attention-soft:#FDEDE4;  /* tinted rows, chips */
+
   /* Brass. Honours and awards only — never state, never decoration. */
   --gold:       #9A7B33;
   --gold-soft:  #F6F1E4;
@@ -104,8 +124,11 @@
   --space-5: 20px; --space-6: 24px; --space-8: 32px; --space-10: 40px;
 
   /* ── Radius ──────────────────────────────────────────────────────────── */
-  --radius-control: 10px;  /* buttons, inputs, badges */
-  --radius-surface: 16px;  /* cards, sheets, dialogs */
+  --radius-control: 12px;  /* buttons, inputs, badges */
+  /* Cards were 16px. A little more room makes a filled block read as a block
+     rather than as a rectangle with rounded corners, which is what the flat
+     colour surfaces above depend on. */
+  --radius-surface: 20px;  /* cards, sheets, dialogs */
   --radius-full:    999px;
 
   /* ── Elevation ───────────────────────────────────────────────────────────

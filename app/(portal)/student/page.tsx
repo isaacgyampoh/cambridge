@@ -30,29 +30,55 @@ export default function StudentDashboard() {
   })
 
   const totalOwed = invoices.reduce((a, i) => a + Number(i.outstanding || 0), 0)
+  const owes = totalOwed > 0
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
-      {/* Welcome banner */}
-      <div className="bg-[var(--accent)] rounded-xl p-6 mb-6 text-white">
-        <div className="text-[12px] text-white/60 mb-1">Student portal</div>
-        <div className="font-display text-[24px] font-semibold">{myName.split(' ')[0] || 'Student'}</div>
-        <div className="text-xs text-white/60 mt-1">Cambridge Center of Excellence</div>
-      </div>
+      {/*
+        ── THE ONE THING, THEN THE FIGURES ──────────────────────────────────
 
-      {/* Stats */}
-      <div className="grid grid-cols-3 gap-3 mb-5">
+        This was a thin green banner carrying the student's first name, above
+        three identical white cards each with an icon, each the same size and
+        weight. Nothing on the screen said which number mattered, so a student
+        owing money and a student owing nothing saw the same page.
+
+        Now the balance leads, and it is the only thing that changes colour:
+        bright green when there is nothing to pay, amber when there is. The
+        other two figures are quiet, because they are context rather than
+        news.
+      */}
+      <section className="mb-4 rounded-[var(--radius-surface)] p-6 sm:p-7"
+        style={{ background: owes ? 'var(--attention)' : 'var(--accent-bright)' }}>
+        {/*
+          Dark ink on a bright fill, always. White on either of these is around
+          1.4:1 and unreadable — the brightness is affordable precisely BECAUSE
+          the text is dark.
+        */}
+        <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--ink)]/70">
+          {owes ? 'To pay' : 'Your account'}
+        </p>
+        <p className="font-display mt-2 text-[34px] sm:text-[40px] font-semibold leading-none text-[var(--ink)]">
+          {owes ? formatGHS(totalOwed) : 'Nothing due'}
+        </p>
+        <p className="mt-2.5 text-[14px] text-[var(--ink)]/75">
+          {myName.split(' ')[0] || 'Student'} · {enrollments.length === 1 ? '1 class' : `${enrollments.length} classes`}
+        </p>
+      </section>
+
+      <div className="grid grid-cols-2 gap-3 mb-5">
         {[
-          { label: 'Enrolled', value: enrollments.length, icon: BookOpen, color: 'text-[var(--accent)] bg-[var(--accent-soft)]'},
-          { label: 'Invoices', value: invoices.length, icon: DollarSign, color: 'text-[var(--gold)] bg-[var(--gold-soft)]'},
-          { label: 'Balance', value: formatGHS(totalOwed), icon: DollarSign, color: totalOwed > 0 ? 'text-[var(--danger)] bg-[var(--danger-soft)]': 'text-[var(--ok)] bg-[var(--ok-soft)]'},
+          { label: 'Classes', value: enrollments.length, icon: BookOpen },
+          { label: 'Invoices', value: invoices.length, icon: DollarSign },
         ].map(s => (
-          <div key={s.label} className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
-            <div className="w-9 h-9 rounded-lg bg-[var(--accent-soft)] flex items-center justify-center mb-3">
-              <s.icon size={17} className="text-[var(--accent)]" />
+          <div key={s.label}
+            className="rounded-[var(--radius-surface)] border border-[var(--line)] bg-[var(--paper)] p-5">
+            <div className="flex items-center gap-2 text-[var(--ink-faint)]">
+              <s.icon size={15} aria-hidden="true" />
+              <span className="text-[12px] font-medium">{s.label}</span>
             </div>
-            <div className="font-display text-[24px] font-semibold text-[var(--ink)] leading-none">{s.value}</div>
-            <div className="text-xs text-[var(--ink-faint)] mt-1.5">{s.label}</div>
+            <div className="font-display mt-2.5 text-[28px] font-semibold leading-none text-[var(--ink)]">
+              {s.value}
+            </div>
           </div>
         ))}
       </div>

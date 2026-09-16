@@ -161,6 +161,9 @@ export default function Overview() {
     return 'Nothing is waiting on you right now.'
   })()
 
+  /* Whether anybody is actually waiting — the block's colour turns on this. */
+  const needsMe = Boolean(data && (data.priority.length > 0 || overdueCount > 0))
+
   const quickActions = mine
     ? [
         { label: 'Add a lead', href: '/marketer/leads/new', icon: Plus },
@@ -177,16 +180,51 @@ export default function Overview() {
 
   return (
     <div className="fade-in w-full max-w-5xl">
-      <header className="mb-6 sm:mb-7">
+      <header className="mb-4">
         <h1 className="t-display">{greeting}</h1>
-        {/*
-          The subtitle carries the single most urgent true fact, not a
-          pleasantry. "Here is what is waiting on you" said nothing that the
-          section headings below did not already say; "one has been waiting
-          10 days" is the reason to keep reading.
-        */}
-        <p className="t-lead mt-1">{state === 'ready' ? summary : 'Loading your day…'}</p>
       </header>
+
+      {/*
+        ── THE DAY'S ONE FACT, AS A BLOCK ──────────────────────────────────
+
+        The subtitle carries the single most urgent true fact, not a
+        pleasantry — "one has been waiting 10 days" is the reason to keep
+        reading. It was set as a line of grey text under the greeting, which
+        is where a subtitle goes and where nothing is read.
+
+        It is the same sentence. It is simply given the weight it already
+        deserved, and the colour says which of two things it is before the
+        words are read:
+
+          amber  somebody is waiting on this person
+          green  nothing is
+
+        One block, one colour, once per screen. The moment every section has
+        a fill, none of them means anything — which is why the lists below
+        stay white.
+      */}
+      {state === 'ready' && (
+        <section
+          className="mb-6 sm:mb-7 rounded-[var(--radius-surface)] px-5 py-5 sm:px-6 sm:py-6"
+          style={{ background: needsMe ? 'var(--attention)' : 'var(--accent-bright)' }}>
+          <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--ink)]/70">
+            {needsMe ? 'Needs you' : 'You are clear'}
+          </p>
+          {/*
+            Dark ink on a bright fill. White on either of these is about
+            1.4:1 and unreadable — the brightness is affordable BECAUSE the
+            text is dark.
+          */}
+          <p className="font-display mt-2 text-[20px] sm:text-[23px] font-semibold
+            leading-snug text-[var(--ink)]">
+            {summary}
+          </p>
+        </section>
+      )}
+
+      {state !== 'ready' && (
+        <p className="t-lead mb-6 -mt-2">Loading your day…</p>
+      )}
 
       {state === 'error' && (
         <ErrorState

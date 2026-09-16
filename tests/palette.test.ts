@@ -279,3 +279,107 @@ describe('the greens are legible and in the right order', () => {
       'a pre-lift green is hardcoded somewhere and will not have moved')
   })
 })
+
+
+/**
+ * ─── BRIGHT FILLS CARRY DARK TEXT ───────────────────────────────────────────
+ *
+ * --accent is dark because it carries WHITE text, and that caps how bright it
+ * can ever be: white on it needs 4.5:1. Inverting the relationship removes the
+ * cap — dark ink on a bright fill clears AA by a mile, so the colour can be as
+ * alive as it likes.
+ *
+ * That is the whole reason these exist, and it is conditional on the pairing.
+ * White on --accent-bright is about 1.4:1 and illegible. A future edit that
+ * puts a white label on one of these produces a button nobody can read, so the
+ * tests below assert the pairing rather than the hex.
+ */
+describe('the bright fills are surfaces, not buttons', () => {
+  const css = readFileSync('app/globals.css', 'utf8')
+  const tokenValue = (name: string): string => {
+    const m = css.match(new RegExp(`--${name}:\\s*(#[0-9A-Fa-f]{6})`))
+    assert.ok(m, `--${name} is not defined as a hex value`)
+    return m![1]
+  }
+  const INK = '#10231C'
+
+  test('dark ink on them passes AA comfortably', () => {
+    for (const token of ['accent-bright', 'attention']) {
+      const r = contrast(tokenValue(token), INK)
+      assert.ok(r >= 4.5,
+        `--ink on --${token} is ${r.toFixed(2)}:1 — below the 4.5:1 AA floor.`)
+    }
+  })
+
+  test('and white on them does NOT — which is the point', () => {
+    /*
+     * Asserted deliberately. If one of these ever became light enough to
+     * carry white text it would no longer be a bright fill, and the reason
+     * the pairing is mandatory would have quietly disappeared.
+     */
+    for (const token of ['accent-bright', 'attention']) {
+      const r = contrast(tokenValue(token), '#FFFFFF')
+      assert.ok(r < 4.5,
+        `white on --${token} is ${r.toFixed(2)}:1 — bright enough that the `
+        + 'dark-text rule would no longer be obvious to the next person.')
+    }
+  })
+
+  test('they are genuinely brighter than the accent', () => {
+    // Otherwise they add a third green and solve nothing.
+    assert.ok(lightness(tokenValue('accent-bright')) > lightness(tokenValue('accent')) + 25)
+  })
+
+  test('no screen puts white text on one', () => {
+    const offenders: string[] = []
+    for (const file of [...sourceFiles('app'), ...sourceFiles('components')]) {
+      const src = readFileSync(file, 'utf8')
+      // A fill and a white text colour within the same element's classes.
+      for (const m of src.matchAll(/class(?:Name)?="([^"]*)"/g)) {
+        const cls = m[1]
+        if (!/accent-bright|--attention\)/.test(cls)) continue
+        if (/text-white|text-\[#fff/i.test(cls)) {
+          offenders.push(`${file.replace(/^.*?cambridge\//, '')} — ${cls.slice(0, 60)}`)
+        }
+      }
+    }
+    assert.deepEqual(offenders, [],
+      'white text on a bright fill is around 1.4:1 and cannot be read')
+  })
+
+  test('the attention colour is not used for errors', () => {
+    /*
+     * --danger means something went wrong. --attention means somebody has to
+     * act. Collapsing them makes a queue that needs a look indistinguishable
+     * from a failure, and people stop believing either.
+     */
+    assert.notEqual(tokenValue('attention'), tokenValue('danger'))
+  })
+})
+
+describe('the figures that matter are given weight', () => {
+  test('the student portal leads with the balance, coloured by whether it is owed', () => {
+    /*
+     * It was a thin green banner with a first name over three identical white
+     * icon cards. Nothing said which number mattered, so a student owing money
+     * and one owing nothing saw the same page.
+     */
+    const page = readFileSync('app/(portal)/student/page.tsx', 'utf8')
+    assert.match(page, /owes \? 'var\(--attention\)' : 'var\(--accent-bright\)'/)
+    assert.match(page, /owes \? formatGHS\(totalOwed\) : 'Nothing due'/)
+  })
+
+  test('and the staff dashboard states its one fact as a block', () => {
+    const src = readFileSync('components/dashboard/Overview.tsx', 'utf8')
+    assert.match(src, /needsMe \? 'var\(--attention\)' : 'var\(--accent-bright\)'/)
+    // The same sentence as before — promoted, not rewritten.
+    assert.match(src, /\{summary\}/)
+  })
+
+  test('the lists below stay white, so the colour still means something', () => {
+    const src = readFileSync('components/dashboard/Overview.tsx', 'utf8')
+    const fills = (src.match(/var\(--accent-bright\)|var\(--attention\)/g) || []).length
+    assert.ok(fills <= 2,
+      `${fills} bright fills on one screen — the moment everything is coloured, nothing is.`)
+  })
+})
