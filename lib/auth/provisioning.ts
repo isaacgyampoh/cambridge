@@ -6,6 +6,7 @@ import { generatePin } from '@/lib/auth/pinPolicy'
 import { CONFIG } from '@/lib/config'
 import { SECRETS } from '@/lib/config.server'
 import { usesEmailVerification } from '@/lib/auth/pinPolicy'
+import { emailConfigured } from '@/lib/integrations/email'
 
 /**
  * First-run provisioning of the super admin, from a browser.
@@ -117,7 +118,9 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
   const superAdminUsesEmail = usesEmailVerification('super_admin')
 
   const hasRecoveryEmail = (admins || []).some(a => Boolean(a.email && String(a.email).includes('@')))
-  const canSendEmail = Boolean(SECRETS.resendApiKey)
+  // Any transport, not one of them. SMTP is preferred here and Resend is the
+  // fallback; asking about Resend alone reported a blocker that did not exist.
+  const canSendEmail = emailConfigured()
 
   const recoveryBlockedReason = !hasRecoveryPin
     ? 'No recovery PIN is set, so the only way back in is a setup window.'
@@ -127,7 +130,7 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
       : !hasRecoveryEmail
         ? 'This account has no email address, so the one-time code has nowhere to go.'
         : !canSendEmail
-          ? 'RESEND_API_KEY is not configured, so the one-time code cannot be sent.'
+          ? 'No email transport is configured (SMTP or Resend), so the one-time code cannot be sent.'
           : null
 
   const recoveryReachable = recoveryBlockedReason === null

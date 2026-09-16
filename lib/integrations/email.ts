@@ -5,6 +5,25 @@ import nodemailer from 'nodemailer'
 
 const RESEND_URL = 'https://api.resend.com/emails'
 
+/**
+ * Can this deployment send an email at all?
+ *
+ * ── WHY THIS IS NOT "IS RESEND CONFIGURED" ─────────────────────────────────
+ *
+ * SMTP is the PREFERRED transport here — the campus mailbox — and Resend is
+ * only the fallback. A readiness check that asked about Resend alone reported
+ * that staff could not receive a recovery code on a deployment where SMTP was
+ * configured and working, which is exactly backwards: it named a blocker that
+ * did not exist and sent somebody looking for a key they did not need.
+ *
+ * One predicate, so nothing has to remember which transport is preferred.
+ */
+export function emailConfigured(): boolean {
+  return Boolean(
+    (SECRETS.smtpHost && SECRETS.smtpUser && SECRETS.smtpPass) || SECRETS.resendApiKey,
+  )
+}
+
 // Reuse one SMTP transporter across calls
 let transporter: nodemailer.Transporter | null = null
 function getTransporter() {

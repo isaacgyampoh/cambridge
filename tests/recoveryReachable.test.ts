@@ -36,7 +36,7 @@ describe('readiness asks whether recovery can COMPLETE', () => {
      * Holding two of the three is worth nothing.
      */
     assert.match(provisioning, /hasRecoveryEmail/)
-    assert.match(provisioning, /canSendEmail = Boolean\(SECRETS\.resendApiKey\)/)
+    assert.match(provisioning, /canSendEmail = emailConfigured\(\)/)
     assert.match(provisioning, /recoveryReachable = recoveryBlockedReason === null/)
   })
 
@@ -49,7 +49,7 @@ describe('readiness asks whether recovery can COMPLETE', () => {
     // "Incomplete" with no explanation sends somebody looking in the wrong place.
     assert.match(provisioning, /No recovery PIN is set/)
     assert.match(provisioning, /no email address, so the one-time code has nowhere to go/)
-    assert.match(provisioning, /RESEND_API_KEY is not configured/)
+    assert.match(provisioning, /No email transport is configured \(SMTP or Resend\)/)
   })
 
   test('a PIN-only role is not judged by an email rule', () => {
@@ -311,5 +311,42 @@ describe('the provisioning link can be opened in a browser', () => {
     const proxy = codeOf('proxy.ts')
     assert.match(proxy, /'\/setup'/)
     assert.match(proxy, /pathname === p \|\| pathname\.startsWith\(p \+ '\/'\)/)
+  })
+})
+
+
+describe('readiness asks whether email works, not which vendor', () => {
+  const email = codeOf('lib/integrations/email.ts')
+
+  test('SMTP counts, because it is the preferred transport', () => {
+    /*
+     * sendEmail tries SMTP FIRST — the campus mailbox — and falls back to
+     * Resend. A check that asked about Resend alone reported that staff could
+     * not receive a recovery code on a deployment where SMTP was configured
+     * and working: a blocker that did not exist, sending somebody after a key
+     * they did not need.
+     */
+    assert.match(email, /export function emailConfigured/)
+    assert.match(email, /SECRETS\.smtpHost && SECRETS\.smtpUser && SECRETS\.smtpPass/)
+    assert.match(email, /\|\| SECRETS\.resendApiKey/)
+  })
+
+  test('and SMTP really is tried first', () => {
+    /*
+     * Scoped to the SEND function. emailConfigured() names both transports
+     * near the top of the file, so a whole-file index comparison measures the
+     * predicate rather than the order of attempts.
+     */
+    const send = email.slice(email.indexOf('const tx = getTransporter()'))
+    const smtpAt = send.indexOf('tx.sendMail')
+    const resendAt = send.indexOf('SECRETS.resendApiKey')
+    assert.ok(smtpAt > 0 && resendAt > 0 && smtpAt < resendAt,
+      'if the order ever flips, the predicate is still right but the comment is not')
+  })
+
+  test('nothing else asks about one vendor by name', () => {
+    const provisioning = codeOf('lib/auth/provisioning.ts')
+    assert.ok(!/SECRETS\.resendApiKey/.test(provisioning),
+      'readiness must ask whether email works, not which vendor is present')
   })
 })
