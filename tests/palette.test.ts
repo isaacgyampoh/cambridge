@@ -455,11 +455,44 @@ describe('a row that needs work is visible without reading it', () => {
   })
 
   test('and it is used where somebody actually has to act', () => {
-    const assign = readFileSync('app/(portal)/pm/assign/page.tsx', 'utf8')
-    assert.match(assign, /needsAttention=\{l => !l\.assigned_to\}/,
-      'an unassigned lead is one nobody is working')
-    const fees = readFileSync('app/(portal)/finance/student-fees/page.tsx', 'utf8')
-    assert.match(fees, /needsAttention=\{f => Number\(f\.balance\) > 0\}/)
+    const cases: Array<[string, RegExp]> = [
+      // A lead nobody is working.
+      ['app/(portal)/pm/assign/page.tsx', /needsAttention=\{l => !l\.assigned_to\}/],
+      // Money still owed by a student.
+      ['app/(portal)/finance/student-fees/page.tsx', /needsAttention=\{f => Number\(f\.balance\) > 0\}/],
+      // Commission still owed TO a marketer — the whole point of that screen.
+      ['app/(portal)/finance/registrations/page.tsx', /needsAttention=\{r => !r\.commissionPaid\}/],
+      // A graduate who has not been given their certificate.
+      ['app/(portal)/admin/certificates/page.tsx', /needsAttention=\{c => !c\.issued\}/],
+      // A student flagged as needing support.
+      ['app/(portal)/coordinator/page.tsx', /needsAttention=\{r => r\.prep_status === 'needs_support'\}/],
+      // School fees outstanding on a class list.
+      ['app/(portal)/admin/classes/[id]/students/page.tsx', /needsAttention=\{e => !e\.fees_paid\}/],
+    ]
+    for (const [file, pattern] of cases) {
+      assert.match(readFileSync(file, 'utf8'), pattern, `${file} lost its row marking`)
+    }
+  })
+
+  test('and NOT on the screens where it would be noise', () => {
+    /*
+     * A tint means "somebody must act on this row". On a performance table it
+     * would mean "this person is underperforming", which is a judgement
+     * rendered in colour on every row that is merely below average — and a
+     * colour that appears everywhere stops being read anywhere.
+     *
+     * Reports, logs and analytics have no row to act on at all.
+     */
+    for (const file of [
+      'app/(portal)/pm/page.tsx',
+      'app/(portal)/pm/reports/page.tsx',
+      'app/(portal)/admin/remuneration/page.tsx',
+      'app/(portal)/admin/conversions/page.tsx',
+      'app/(portal)/admin/referrals/page.tsx',
+    ]) {
+      assert.ok(!readFileSync(file, 'utf8').includes('needsAttention'),
+        `${file} is a report or a ranking, not a queue`)
+    }
   })
 })
 

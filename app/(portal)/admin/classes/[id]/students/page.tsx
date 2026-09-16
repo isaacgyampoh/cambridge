@@ -347,6 +347,9 @@ export default function ClassStudents({ params }: { params: Promise<{ id: string
         state={loading ? 'loading' : 'ready'}
         rows={enrolled}
         rowKey={e => e.id}
+        // School fees still owed. The row already carries a "Mark paid"
+        // button; this says which rows need one before anybody reads across.
+        needsAttention={e => !e.fees_paid}
         columns={enrolledColumns}
         emptyTitle="No students enrolled yet"
         emptyMessage="Enroll registered students into this class to send them Zoom links, materials and certificates."

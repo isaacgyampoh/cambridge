@@ -176,6 +176,12 @@ export default function CoordinatorPage() {
           state={loading ? 'loading' : 'ready'}
           rows={filtered}
           rowKey={r => r.id}
+          /*
+            A student flagged as needing support. The status column already
+            carries an amber chip, but a chip is found by reading down the
+            column — which on a list of sixty is the same as not finding it.
+          */
+          needsAttention={r => r.prep_status === 'needs_support'}
           columns={prepColumns}
           onRowClick={r => setEdit(r)}
           emptyTitle="No students in preparation"

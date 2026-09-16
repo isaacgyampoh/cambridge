@@ -171,6 +171,9 @@ export default function FinanceRegistrations() {
           caption="Registrations and commission"
           rows={rows}
           rowKey={r => r.id}
+          // Commission this marketer is still owed. The whole screen exists
+          // to answer "who have I not paid", so it should not need reading.
+          needsAttention={r => !r.commissionPaid}
           columns={registrationColumns}
           emptyTitle="No registrations"
           emptyMessage="Nothing matches your filter."

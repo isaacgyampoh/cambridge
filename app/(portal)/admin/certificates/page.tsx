@@ -136,6 +136,8 @@ export default function CertificatesPage() {
           state={loading ? 'loading' : 'ready'}
           rows={filtered}
           rowKey={c => c.id}
+          // A draft is a certificate a graduate has not been given yet.
+          needsAttention={c => !c.issued}
           columns={certificateColumns}
           emptyTitle="No certificates yet"
           emptyMessage="Certificates appear here once students complete their course."
