@@ -36,6 +36,25 @@ const TASKS: { name: string; path: string; everyMins: number }[] = [
   { name: 'prune_logs',         path: '/api/maintenance/prune',       everyMins: 1440 },
 ]
 
+/*
+ * ── NOTHING WAS CALLING THIS ─────────────────────────────────────────────────
+ *
+ * Leads arrived and no SMS ever did. The pipeline was sound end to end —
+ * intakeLead queues, queueSMS writes an sms_logs row with status 'queued',
+ * /api/sms/queue claims a batch and sends through the Arkesel transport, and
+ * ARKESEL_API_KEY and CRON_SECRET are both configured in production.
+ *
+ * The queue simply never drained, because vercel.json had no `crons` block.
+ * The rows accumulated as 'queued' for ever and nothing reported a failure,
+ * since nothing had failed: no attempt was ever made.
+ *
+ * One schedule is enough. This endpoint is a fan-out that paces each task by
+ * its own everyMins against the cron_runs table, so being called every five
+ * minutes runs sms_queue every five minutes and the daily jobs once a day.
+ *
+ * Vercel sends `Authorization: Bearer $CRON_SECRET` on a scheduled
+ * invocation, which is exactly what isValidCronRequest reads.
+ */
 export async function GET(req: NextRequest) {
   const url = new URL(req.url)
   if (!isValidCronRequest(req)) {
