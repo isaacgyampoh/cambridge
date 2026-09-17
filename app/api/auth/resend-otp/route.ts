@@ -1,3 +1,4 @@
+import { OTP_MINUTES } from '@/lib/auth/otpPolicy'
 import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashToken, generateOTP } from '@/lib/auth/pin'
@@ -10,7 +11,7 @@ import { lookup, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 
-const OTP_MINUTES = 10
+
 
 const Body = z.object({
   userId: z.string().uuid(),

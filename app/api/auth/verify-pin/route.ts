@@ -1,3 +1,4 @@
+import { OTP_MINUTES } from '@/lib/auth/otpPolicy'
 import { NextRequest, NextResponse } from 'next/server'
 import { PIN_PATTERN, PIN_LENGTH, NO_MAILBOX_ROLES } from '@/lib/auth/pinPolicy'
 import { maskEmail } from '@/lib/ui/contact'
@@ -31,7 +32,7 @@ export const runtime = 'nodejs'
 const OTP_EXEMPT_ROLES: readonly string[] = NO_MAILBOX_ROLES
 
 const LOCK_MINUTES = 15
-const OTP_MINUTES = 10
+
 
 /*
  * Brute-force protection when the PIN is the identifier.
@@ -83,7 +84,7 @@ const Body = z.object({
  *   - Attempts are throttled per IP before any work is done, and the account
  *     locks for 15 minutes after 5 wrong PINs.
  *   - The code is six digits from a CSPRNG, stored hashed, single-use, and
- *     expires in 10 minutes.
+ *     expires in six hours.
  *
  * ── Why the PIN is checked against every account ───────────────────────────
  *

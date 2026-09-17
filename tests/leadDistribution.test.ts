@@ -389,14 +389,35 @@ describe('notification is separate from assignment', () => {
       'nothing in the notification path may clear the assignment')
   })
 
-  test('the outcome is recorded, success or failure', () => {
-    assert.match(engine, /recordNotificationOutcome\(leadId, marketerId, !notifyError, notifyError\?\.message\)/)
-    assert.match(sql, /CREATE OR REPLACE FUNCTION record_assignment_notification/)
+  test('the outcome of every channel is returned, not swallowed', () => {
+    const notify = codeOf('lib/leads/assignedNotify.ts')
+    assert.match(notify, /out\.inApp = 'failed'/)
+    assert.match(notify, /out\.sms = 'failed'/)
+    assert.match(notify, /out\.email = 'failed'/)
+    assert.match(engine, /const notified = await notifyLeadAssigned\(leadId, marketerId\)/)
+  })
+
+  test('a channel that fails is written onto the lead', () => {
+    const notify = codeOf('lib/leads/assignedNotify.ts')
+    assert.match(notify, /subject: 'Assignment notification failed'/)
+  })
+
+  test('each channel is independent of the others', () => {
+    const notify = codeOf('lib/leads/assignedNotify.ts')
+    // No early return between the three blocks: one failing must not skip
+    // the next.
+    const body = notify.slice(notify.indexOf('1. In app'), notify.indexOf('const failed ='))
+    assert.ok(!/\n    return out/.test(body),
+      'a failing channel must not stop the ones after it')
   })
 
   test('a failure is never written as delivered', () => {
-    assert.match(engine, /const \{ error: notifyError \} = await sb\.from\('notifications'\)\.insert/)
-    assert.ok(!/notified: true/.test(engine), 'success must be derived from the write, not asserted')
+    const notify = codeOf('lib/leads/assignedNotify.ts')
+    // Every status is derived from the actual result of the attempt.
+    assert.match(notify, /const \{ error \} = await sb\.from\('notifications'\)\.insert/)
+    assert.match(notify, /out\.email = ok \? 'sent' : 'failed'/)
+    assert.ok(!/'delivered'/.test(notify),
+      'the provider accepting a message is not a delivery confirmation')
   })
 
   test('and the screen shows which leads were assigned but unannounced', () => {

@@ -1,4 +1,5 @@
 'use client'
+import Link from 'next/link'
 
 import { useState, useEffect, useCallback } from 'react'
 import { Card, SectionHeader, Skeleton, ErrorState } from '@/components/ui'
@@ -26,6 +27,10 @@ import Overview from '@/components/dashboard/Overview'
  */
 
 type MarketerStats = {
+  /** Leads nobody has touched yet — the first question a marketer asks. */
+  newLeads?: number
+  /** Live leads that have gone quiet: the follow-up list. */
+  cold?: number
   totalLeads?: number
   registered?: number
   conversionRate?: number
@@ -98,26 +103,58 @@ export default function MarketerHome() {
           </div>
         ) : (
           <div className="grid grid-cols-2 lg:grid-cols-4 gap-3">
+            {/*
+              * WHAT DO I DO NEXT, FIRST.
+              *
+              * The two figures that answer it — leads nobody has touched, and
+              * live leads that have gone quiet — were already being computed
+              * by /api/marketer/dashboard and were never shown. The screen
+              * opened on totals and commission, which say how the year is
+              * going and nothing about this morning.
+              *
+              * They are links, because a count somebody cannot act on is
+              * decoration.
+              */}
             {[
-              { label: 'Leads', value: String(stats?.totalLeads ?? 0) },
+              { label: 'New leads', value: String(stats?.newLeads ?? 0),
+                sub: 'Not contacted yet', href: '/marketer/leads?show=new', lead: true },
+              { label: 'Needs follow-up', value: String(stats?.cold ?? 0),
+                sub: 'Gone quiet', href: '/marketer/leads?show=followup',
+                warn: (stats?.cold ?? 0) > 0 },
               { label: 'Registered', value: String(stats?.registered ?? 0),
-                sub: `${stats?.conversionRate ?? 0}% conversion` },
+                sub: `${stats?.conversionRate ?? 0}% conversion`, href: '/marketer/leads?show=registered' },
               showFee
                 ? { label: 'Fees earned', value: formatGHS(stats?.regFees ?? 0), sub: 'Commission this year' }
-                : { label: 'Registrations', value: String(stats?.registered ?? 0), sub: 'This year' },
-              { label: 'Points', value: String(stats?.points ?? 0), sub: 'Toward your rank' },
-            ].map(stat => (
-              <Card key={stat.label} className="p-4">
-                <div className="font-display text-[20px] sm:text-[24px] leading-none font-semibold
-                  text-[var(--ink)] tabular-nums truncate">
-                  {stat.value}
-                </div>
-                <div className="text-[12px] text-[var(--ink-soft)] mt-1.5 leading-snug">{stat.label}</div>
-                {stat.sub && (
-                  <div className="text-[11px] text-[var(--ink-faint)] mt-0.5 leading-snug">{stat.sub}</div>
-                )}
-              </Card>
-            ))}
+                : { label: 'All leads', value: String(stats?.totalLeads ?? 0), sub: 'Assigned to you', href: '/marketer/leads' },
+            ].map(stat => {
+              const inner = (
+                <>
+                  <div className="font-display text-[20px] sm:text-[24px] leading-none font-semibold
+                    text-[var(--ink)] tabular-nums truncate">
+                    {stat.value}
+                  </div>
+                  <div className="text-[12px] text-[var(--ink-soft)] mt-1.5 leading-snug">{stat.label}</div>
+                  {stat.sub && (
+                    <div className="text-[11px] text-[var(--ink-faint)] mt-0.5 leading-snug">{stat.sub}</div>
+                  )}
+                </>
+              )
+              const tone = stat.lead
+                ? 'bg-[var(--accent-bright)] border-transparent'
+                : stat.warn
+                  ? 'bg-[var(--attention-soft)] border-[var(--attention)]'
+                  : ''
+              return stat.href ? (
+                <Link key={stat.label} href={stat.href}
+                  className={`block p-4 rounded-[var(--radius-surface)] border border-[var(--line)] bg-[var(--paper)] min-h-[84px]
+                    transition-colors hover:border-[var(--ink-faint)]
+                    focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--ink)] ${tone}`}>
+                  {inner}
+                </Link>
+              ) : (
+                <Card key={stat.label} className="p-4">{inner}</Card>
+              )
+            })}
           </div>
         )}
       </section>

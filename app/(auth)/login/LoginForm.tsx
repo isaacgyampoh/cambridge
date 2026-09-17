@@ -18,6 +18,24 @@ import { useRouter } from 'next/navigation'
  * point, so a person stays in frame as the crop changes from a wide banner on
  * a phone to a tall column on a desktop.
  */
+/**
+ * The time left on a code, in words that fit the window.
+ *
+ * This was always `m:ss`, which was right while a code lived ten minutes and
+ * reads as "359:12" now that one lives six hours — a number nobody parses as
+ * a duration.
+ */
+function formatCodeLeft(seconds: number): string {
+  if (seconds >= 3600) {
+    const hours = Math.floor(seconds / 3600)
+    const mins = Math.round((seconds % 3600) / 60)
+    if (mins === 0) return `${hours} hour${hours === 1 ? '' : 's'}`
+    return `${hours} hour${hours === 1 ? '' : 's'} ${mins} min`
+  }
+  if (seconds >= 60) return `${Math.floor(seconds / 60)} min`
+  return `${seconds}s`
+}
+
 export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
   const router = useRouter()
   /*
@@ -544,7 +562,7 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
 
               <p className="text-xs text-[var(--ink-faint)] mt-3" aria-live="polite">
                 {codeLeft > 0
-                  ? `This code expires in ${Math.floor(codeLeft / 60)}:${String(codeLeft % 60).padStart(2, '0')}.`
+                  ? `This code expires in ${formatCodeLeft(codeLeft)}.`
                   : 'This code has expired — send a new one.'}
                 {' '}Check your spam folder if it has not arrived.
               </p>

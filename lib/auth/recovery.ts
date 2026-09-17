@@ -61,7 +61,8 @@ const RESET_TOKEN_MINUTES = 15
  * Declared in lib/auth/pinPolicy.ts — see NO_MAILBOX_ROLES there.
  */
 export const SELF_RECOVERING_ROLES = NO_MAILBOX_ROLES
-export const OTP_MINUTES = 10
+export { OTP_MINUTES } from '@/lib/auth/otpPolicy'
+import { OTP_MINUTES } from '@/lib/auth/otpPolicy'
 
 export type RecoveryStart =
   | {

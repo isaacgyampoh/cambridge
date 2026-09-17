@@ -1,5 +1,6 @@
 'use client'
 
+import { useSearchParams } from 'next/navigation'
 import { useState, useEffect, useMemo, useCallback } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
@@ -92,7 +93,17 @@ export default function MarketerLeads() {
   const router = useRouter()
   const [myId, setMyId] = useState<string | null>(null)
   const [query, setQuery] = useState('')
-  const [tab, setTab] = useState('all')
+  /*
+   * The dashboard links here with ?show=new | followup | registered, so a
+   * count somebody taps lands on the leads it counted rather than on the
+   * whole list with the work still to do.
+   */
+  const params = useSearchParams()
+  const [tab, setTab] = useState(() => {
+    const show = params.get('show')
+    return show === 'new' ? 'new' : show === 'registered' ? 'registered' : 'all'
+  })
+  const followUpOnly = params.get('show') === 'followup'
 
   // The status change that is waiting on a comment.
   const [pending, setPending] = useState<{ lead: Lead; status: string } | null>(null)
@@ -150,6 +161,8 @@ export default function MarketerLeads() {
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return leads.filter(lead => {
+      // Arrived from the dashboard's "Needs follow-up" tile.
+      if (followUpOnly && !isOverdue(lead)) return false
       if (tab === 'overdue' && !isOverdue(lead)) return false
       if (tab === 'waiting' && !(lead as Lead & { needs_human?: boolean }).needs_human) return false
       if (tab !== 'all' && tab !== 'overdue' && tab !== 'waiting' && lead.status !== tab) return false
@@ -163,7 +176,7 @@ export default function MarketerLeads() {
         (lead.course_interest || '').toLowerCase().includes(needle)
       )
     })
-  }, [leads, tab, query])
+  }, [leads, tab, query, followUpOnly])
 
   const tabs = useMemo(() => [
     // Waiting first: these are people the assistant has already promised a

@@ -4,7 +4,8 @@ import { chatbotOpening, buildLeadContext } from '@/lib/chatbot'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { eligibleMarketers, isEligible } from '@/lib/leads/eligibility'
 import { lookup } from '@/lib/db/lookup'
-import { distributeLead, recordNotificationOutcome } from '@/lib/leads/distributionStore'
+import { distributeLead } from '@/lib/leads/distributionStore'
+import { notifyLeadAssigned } from '@/lib/leads/assignedNotify'
 
 /**
  * Assign a lead to a marketer.
@@ -142,31 +143,21 @@ export async function onLeadAssigned(leadId: string, marketerId: string): Promis
     ])
 
     /*
-     * In-app notification.
+     * TELL THEM — in the app, by text, and by email.
      *
-     * The outcome is RECORDED against the assignment rather than discarded.
-     * The assignment is already committed and must stay committed whatever
-     * happens here — but "the lead was assigned to you and you were told"
-     * and "the lead was assigned to you and the message failed" are the two
-     * cases a manager has to tell apart when somebody says they never got it,
-     * and both used to be written as the same silence.
+     * All three are attempted, each independently, and the outcome of each is
+     * returned rather than swallowed. None of them can undo the assignment,
+     * which is already committed above, and a channel that fails is written
+     * onto the lead so "I never heard about this one" has an answer.
+     *
+     * The text used to be a counter that a daily cron turned into one
+     * consolidated message, which meant a marketer learned about Tuesday's
+     * lead on Wednesday. It now goes immediately, deduplicated per lead.
      */
-    const { error: notifyError } = await sb.from('notifications').insert({
-      user_id: marketerId,
-      type: 'lead',
-      title: 'New lead assigned to you',
-      body: `${lead?.full_name || 'A new lead'} (${lead?.source || 'system'}) was assigned to you. Reach out soon.`,
-      link: `/marketer/leads/${leadId}`,
-    })
-
-    if (notifyError) {
-      console.error('[onLeadAssigned] notification failed for lead', leadId, notifyError.message)
+    const notified = await notifyLeadAssigned(leadId, marketerId)
+    if (notified.sms === 'failed' || notified.email === 'failed' || notified.inApp === 'failed') {
+      console.error('[onLeadAssigned] a channel failed for lead', leadId, notified.detail)
     }
-    await recordNotificationOutcome(leadId, marketerId, !notifyError, notifyError?.message)
-
-    // Pending-SMS counter, incremented atomically. A cron sends ONE
-    // consolidated text per marketer, so twenty leads is one message.
-    await sb.rpc('bump_lead_pending', { p_marketer: marketerId }).then(() => {}, () => {})
 
     // Never start a sales conversation with someone already converted or
     // written off — the opening asks what they do for work, which is wrong
