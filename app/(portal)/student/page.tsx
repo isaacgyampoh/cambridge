@@ -14,14 +14,14 @@ export default function StudentDashboard() {
     })
   }, [])
 
-  const { data: enrollments } = useData({
+  const { data: enrollments, state: classesState } = useData({
     table: 'batch_students',
     select: '*, batch:batch_id(*, courses(name))',
     filters: myId ? [{ col: 'student_id', op: 'eq', val: myId }] : [],
     enabled: !!myId,
   })
 
-  const { data: invoices } = useData({
+  const { data: invoices, state: invoicesState } = useData({
     table: 'invoices',
     select: '*',
     filters: myId ? [{ col: 'student_id', op: 'eq', val: myId }] : [],
@@ -31,6 +31,17 @@ export default function StudentDashboard() {
 
   const totalOwed = invoices.reduce((a, i) => a + Number(i.outstanding || 0), 0)
   const owes = totalOwed > 0
+
+  /*
+   * THE ONE FIGURE THAT MUST NEVER BE GUESSED.
+   *
+   * invoices starts as an empty array and stays empty when the read fails, so
+   * a student whose invoices could not be loaded was shown a bright green
+   * banner reading "Nothing due". That is the most consequential sentence on
+   * the page and it was being said on no evidence — somebody could arrive at
+   * a class owing fees having been told by this portal that they did not.
+   */
+  const balanceUnknown = invoicesState === 'error' || invoicesState === 'loading'
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
@@ -48,20 +59,25 @@ export default function StudentDashboard() {
         news.
       */}
       <section className="mb-4 rounded-[var(--radius-surface)] p-6 sm:p-7"
-        style={{ background: owes ? 'var(--attention)' : 'var(--accent-bright)' }}>
+        style={{ background: balanceUnknown ? 'var(--line-soft)'
+          : owes ? 'var(--attention)' : 'var(--accent-bright)' }}>
         {/*
           Dark ink on a bright fill, always. White on either of these is around
           1.4:1 and unreadable — the brightness is affordable precisely BECAUSE
           the text is dark.
         */}
         <p className="text-[12px] font-semibold uppercase tracking-[0.1em] text-[var(--ink)]/70">
-          {owes ? 'To pay' : 'Your account'}
+          {balanceUnknown ? 'Your account' : owes ? 'To pay' : 'Your account'}
         </p>
         <p className="font-display mt-2 text-[34px] sm:text-[40px] font-semibold leading-none text-[var(--ink)]">
-          {owes ? formatGHS(totalOwed) : 'Nothing due'}
+          {balanceUnknown
+            ? (invoicesState === 'loading' ? 'Checking…' : 'Not available')
+            : owes ? formatGHS(totalOwed) : 'Nothing due'}
         </p>
         <p className="mt-2.5 text-[14px] text-[var(--ink)]/75">
-          {myName.split(' ')[0] || 'Student'} · {enrollments.length === 1 ? '1 class' : `${enrollments.length} classes`}
+          {balanceUnknown && invoicesState === 'error'
+            ? 'We could not check your balance just now — please try again shortly.'
+            : `${myName.split(' ')[0] || 'Student'} · ${enrollments.length === 1 ? '1 class' : `${enrollments.length} classes`}`}
         </p>
       </section>
 
@@ -86,14 +102,29 @@ export default function StudentDashboard() {
       {/* Classes */}
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 mb-4 shadow-[var(--shadow-raised)]">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">My Classes</h3>
-        {enrollments.length === 0 ? (
+        {/*
+          * "Not enrolled in any classes yet" is alarming and wrong when the
+          * truth is that the list could not be loaded — and it is exactly what
+          * a student saw, because only `data` was read and a failure left it
+          * as an empty array.
+          */}
+        {classesState === 'error' ? (
+          <p className="text-sm text-[var(--attention)] text-center py-6">
+            We could not load your classes just now. Please pull down to refresh.
+          </p>
+        ) : classesState === 'loading' ? (
+          <p className="text-sm text-[var(--ink-faint)] text-center py-6">Loading your classes…</p>
+        ) : enrollments.length === 0 ? (
           <p className="text-sm text-[var(--ink-faint)] text-center py-6">Not enrolled in any classes yet</p>
         ) : enrollments.map((e: any) => {
           const batch = e.batch
           return (
             <div key={e.id} className="flex items-center gap-3 py-3 border-b border-[var(--line-soft)] last:border-0">
+              {/* This was an empty 36px square — a placeholder whose icon had
+                  gone, leaving a coloured box that meant nothing next to every
+                  class. */}
               <div className="w-9 h-9 rounded-xl bg-[var(--accent-soft)] flex items-center justify-center flex-shrink-0">
-                
+                <BookOpen size={16} className="text-[var(--accent)]" aria-hidden="true" />
               </div>
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-semibold text-[var(--ink)]">{batch?.courses?.name}</div>
@@ -111,7 +142,11 @@ export default function StudentDashboard() {
       {/* Invoices */}
       <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
         <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">My Invoices</h3>
-        {invoices.length === 0 ? (
+        {invoicesState === 'error' ? (
+          <p className="text-sm text-[var(--attention)] text-center py-6">
+            We could not load your invoices just now.
+          </p>
+        ) : invoices.length === 0 ? (
           <p className="text-sm text-[var(--ink-faint)] text-center py-6">No invoices yet</p>
         ) : invoices.map(inv => (
           <div key={inv.id} className="flex items-center justify-between py-3 border-b border-[var(--line-soft)] last:border-0">

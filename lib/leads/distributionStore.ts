@@ -1,7 +1,7 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { Candidate } from '@/lib/leads/eligibility'
-import { pickWeighted, type Member } from '@/lib/leads/distribution'
+import { runCycle } from '@/lib/leads/distribution'
 
 /**
  * WHERE THE LEAD DISTRIBUTION CONFIGURATION AND ITS SCHEDULER STATE LIVE.
@@ -375,49 +375,17 @@ export async function distributeLead(
     const { doc, version } = state
 
     // Only people who are eligible AND switched on take part.
-    const pool: Member[] = candidates
-      .filter(c => doc.members[c.id]?.active !== false)
-      .map(c => ({
-        id: c.id,
-        allocationPercent: Number(doc.members[c.id]?.percent) || 0,
-        currentWeight: Number(doc.members[c.id]?.current) || 0,
-      }))
-
-    const configured = pool.some(m => m.allocationPercent > 0)
-
     /*
-     * Nobody configured yet: share equally in rotation rather than stopping.
-     * Introducing this feature must not halt lead assignment, and the screen
-     * says plainly that the shares are unconfigured.
+     * The decision, and the state to save, computed by the pure module — so
+     * the whole cycle is under test against the real implementation rather
+     * than asserted by reading the source.
      */
-    const effective: Member[] = configured
-      ? pool
-      : pool.map(m => ({ ...m, allocationPercent: 1 }))
-
-    const pick = pickWeighted(effective)
-    if (!pick) {
+    const cycle = runCycle(doc.members, candidates, new Date().toISOString())
+    if (!cycle) {
       return { ...none, failure: 'Nobody eligible is switched on for lead distribution.' }
     }
-
-    const method = configured ? 'weighted' : 'equal_rotation'
-    const now = new Date().toISOString()
-
-    const members = { ...doc.members }
-    for (const s of pick.nextState) {
-      const prev = members[s.id]
-      members[s.id] = {
-        percent: prev ? Number(prev.percent) || 0 : 0,
-        active: prev ? prev.active !== false : true,
-        current: s.currentWeight,
-        received: (prev ? Number(prev.received) || 0 : 0) + (s.id === pick.chosen ? 1 : 0),
-        lastAt: s.id === pick.chosen ? now : (prev?.lastAt ?? null),
-      }
-    }
-    // Anybody not in the pool keeps their state untouched.
-    for (const [id, m] of Object.entries(doc.members)) {
-      if (!members[id]) members[id] = m
-      if (!eligibleIds.has(id)) members[id] = m
-    }
+    const { chosen, weight, method, members } = cycle
+    const now = members[chosen]?.lastAt || new Date().toISOString()
 
     let won = false
     try {
@@ -436,7 +404,7 @@ export async function distributeLead(
      */
     const { data: claimed, error: claimError } = await sb.rpc('assign_lead_to', {
       p_lead_id: leadId,
-      p_marketer: pick.chosen,
+      p_marketer: chosen,
       p_actor: null,
       p_reason: method,
       p_source: opts.source || null,
@@ -456,7 +424,7 @@ export async function distributeLead(
       const { data: owner } = await sb.from('leads')
         .select('assigned_to').eq('id', leadId).maybeSingle()
       return { chosen: (owner?.assigned_to as string) || null, weight: null,
-        poolSize: pick.poolSize, method: 'already_assigned', failure: null }
+        poolSize: cycle.poolSize, method: 'already_assigned', failure: null }
     }
 
     /*
@@ -464,13 +432,11 @@ export async function distributeLead(
      * assignment: the lead has an owner either way.
      */
     await appendEvent({
-      leadId, staffId: pick.chosen,
-      weight: configured ? pick.weight : null,
-      method, at: now, source: opts.source ?? null,
+      leadId, staffId: chosen,
+      weight, method, at: now, source: opts.source ?? null,
     })
 
-    return { chosen: pick.chosen, weight: configured ? pick.weight : null,
-      poolSize: pick.poolSize, method, failure: null }
+    return { chosen, weight, poolSize: cycle.poolSize, method, failure: null }
   }
 
   return { ...none, failure: 'The allocation state was being changed too quickly to settle. The lead is unassigned and can be assigned from the Lead inbox.' }

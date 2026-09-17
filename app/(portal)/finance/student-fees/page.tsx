@@ -25,9 +25,29 @@ export default function StudentFeesPage() {
   const [recordFor, setRecordFor] = useState<any>(null)
   const [recordAmt, setRecordAmt] = useState('')
 
+  const [pendingError, setPendingError] = useState<string | null>(null)
+
+  /**
+   * Payments waiting to be verified.
+   *
+   * A failure used to resolve to `{ payments: [] }`, so an unreachable server
+   * looked exactly like nobody having paid — the queue emptied itself on
+   * screen and an accountant had no reason to look again. These are payments
+   * students have actually made.
+   */
   async function loadPending() {
-    const d = await fetch('/api/fees/verify').then(r => r.json()).catch(() => ({ payments: [] }))
-    setPending((d.payments || []).filter((p: any) => p.status === 'pending'))
+    try {
+      const res = await fetch('/api/fees/verify')
+      const d = await res.json()
+      if (!res.ok) throw new Error(d?.error || 'Could not load payments awaiting verification.')
+      setPending((d.payments || []).filter((p: any) => p.status === 'pending'))
+      setPendingError(null)
+    } catch (e) {
+      setPending([])
+      setPendingError(e instanceof Error && e.message
+        ? e.message
+        : 'We could not load payments awaiting verification. Please try again.')
+    }
   }
   useEffect(() => { loadPending() }, [])
 
@@ -158,7 +178,13 @@ export default function StudentFeesPage() {
           />
         </Card>
       ) : (
-        pending.length === 0 ? (
+        pendingError ? (
+          /* Not "nothing to verify" — these are payments students have made. */
+          <Card>
+            <p className="text-sm text-[var(--danger)]">{pendingError}</p>
+            <Button className="mt-4" onClick={() => loadPending()}>Try again</Button>
+          </Card>
+        ) : pending.length === 0 ? (
           <EmptyState  title="Nothing to verify" description="Bank and cash payments awaiting your confirmation will appear here." />
         ) : (
           <div className="space-y-3">

@@ -218,3 +218,100 @@ export function varianceFor(
   const actualShare = totalAssigned > 0 ? round2((received / totalAssigned) * 100) : 0
   return { expected, actualShare, variance: round2(actualShare - allocationPercent) }
 }
+
+/* ── The full allocation cycle, as pure data ──────────────────────────────── */
+
+/** What the store persists for each member. */
+export type MemberState = {
+  percent: number
+  active: boolean
+  current: number
+  received: number
+  lastAt: string | null
+}
+
+export type CycleResult = {
+  chosen: string
+  weight: number | null
+  poolSize: number
+  /** 'weighted' when shares are configured; 'equal_rotation' when none are. */
+  method: 'weighted' | 'equal_rotation'
+  /** The complete member map to persist. */
+  members: Record<string, MemberState>
+}
+
+/**
+ * Decide who receives the next shared lead, and produce the state to save.
+ *
+ * ── WHY THIS IS HERE AND NOT IN THE STORE ──────────────────────────────────
+ *
+ * This is the step that makes a configured percentage actually control who
+ * gets a lead. It used to sit inside lib/leads/distributionStore, which
+ * imports `server-only` and the database client and therefore cannot be
+ * loaded by the test runner at all — so the only thing any test could do was
+ * assert that the source text looked right.
+ *
+ * That is exactly how the allocator came to be completely broken in
+ * production while its tests passed: they checked the shape of the code and
+ * never ran a lead through it. Moving the decision here means the whole
+ * cycle — read state, choose, write state, read it back — runs in a test
+ * against the real implementation.
+ *
+ * `eligible` is the pool the caller has already established may hold a lead.
+ * Anybody in `current` who is not in it keeps their state exactly as it is:
+ * somebody who is away must not have their accumulated position altered.
+ */
+export function runCycle(
+  current: Record<string, MemberState>,
+  eligible: Array<{ id: string }>,
+  now: string,
+): CycleResult | null {
+  const eligibleIds = new Set(eligible.map(e => e.id))
+
+  // Switched off is a per-member decision; absent means "not configured yet",
+  // which participates at zero rather than being excluded outright.
+  const pool: Member[] = eligible
+    .filter(e => current[e.id]?.active !== false)
+    .map(e => ({
+      id: e.id,
+      allocationPercent: Number(current[e.id]?.percent) || 0,
+      currentWeight: Number(current[e.id]?.current) || 0,
+    }))
+
+  const configured = pool.some(m => m.allocationPercent > 0)
+
+  /*
+   * Nobody has set a share yet: rotate equally rather than stopping. A new
+   * installation must still distribute leads, and the screen says plainly
+   * that the shares are unconfigured.
+   */
+  const effective = configured ? pool : pool.map(m => ({ ...m, allocationPercent: 1 }))
+
+  const pick = pickWeighted(effective)
+  if (!pick) return null
+
+  const members: Record<string, MemberState> = { ...current }
+  for (const s of pick.nextState) {
+    const prev = current[s.id]
+    members[s.id] = {
+      percent: prev ? Number(prev.percent) || 0 : 0,
+      active: prev ? prev.active !== false : true,
+      current: s.currentWeight,
+      received: (prev ? Number(prev.received) || 0 : 0) + (s.id === pick.chosen ? 1 : 0),
+      lastAt: s.id === pick.chosen ? now : (prev?.lastAt ?? null),
+    }
+  }
+
+  // Untouched: anybody not in this pool keeps exactly what they had.
+  for (const [id, m] of Object.entries(current)) {
+    if (!eligibleIds.has(id)) members[id] = m
+  }
+
+  return {
+    chosen: pick.chosen,
+    weight: configured ? pick.weight : null,
+    poolSize: pick.poolSize,
+    method: configured ? 'weighted' : 'equal_rotation',
+    members,
+  }
+}

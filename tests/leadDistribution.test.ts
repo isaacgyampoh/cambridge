@@ -620,7 +620,15 @@ describe('there is no migration standing between a manager and a working allocat
   })
 
   test('an unconfigured pool still distributes, and says it is unconfigured', () => {
-    assert.match(store, /const method = configured \? 'weighted' : 'equal_rotation'/)
+    /*
+     * The decision moved into the pure module so the whole cycle could be
+     * driven by a test rather than asserted by reading source — see
+     * tests/distributionEndToEnd.test.ts, which delivers real leads through
+     * it. This now checks the behaviour is reachable, not the wording.
+     */
+    assert.match(codeOf('lib/leads/distribution.ts'),
+      /method: configured \? 'weighted' : 'equal_rotation'/)
+    assert.match(store, /runCycle\(doc\.members, candidates/)
     assert.match(screen, /No shares configured/)
   })
 
