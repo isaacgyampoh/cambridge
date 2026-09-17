@@ -46,7 +46,7 @@ describe('the allocation can be saved on the database as it is', () => {
   })
 
   test('a concurrent save is retried, not silently lost', () => {
-    assert.match(store, /\.eq\('value', expectedRaw\)/)
+    assert.match(store, /\.eq\('value', String\(version\)\)/)
     assert.match(store, /for \(let attempt = 0; attempt < CAS_ATTEMPTS; attempt\+\+\)/)
   })
 

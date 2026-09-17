@@ -248,8 +248,9 @@ describe('the state survives everything it has to', () => {
      * PostgREST reports whether a row matched. A write that matched none lost
      * the race and is retried against fresh state.
      */
-    assert.match(store, /\.eq\('value', expectedRaw\)/)
-    assert.match(store, /return \(data\?\.length \?\? 0\) > 0/)
+    assert.match(store, /\.eq\('key', VERSION_KEY\)/)
+    assert.match(store, /\.eq\('value', String\(version\)\)/)
+    assert.match(store, /if \(\(data\?\.length \?\? 0\) === 0\) return false/)
   })
 
   test('a lost race is retried rather than overwritten', () => {

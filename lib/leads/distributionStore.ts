@@ -41,6 +41,34 @@ import { pickWeighted, type Member } from '@/lib/leads/distribution'
 
 const KEY = 'lead_distribution'
 
+/*
+ * THE ALLOCATION HISTORY LIVES IN ITS OWN ROW, AND THIS IS NOT COSMETIC.
+ *
+ * It used to sit inside the document below, and the document is what the
+ * compare-and-swap matches on. PostgREST puts filters in the QUERY STRING, so
+ * `.eq('value', <the whole document>)` becomes a URL containing the whole
+ * document — about 80KB once a few hundred allocations had accumulated,
+ * against a limit that is typically 8KB.
+ *
+ * Every allocation write therefore failed, the retry loop exhausted itself,
+ * and no lead was assigned. It worked when the document was empty and broke
+ * as it filled, which is the worst shape a bug can have: it passes every test
+ * written against a fresh database and stops the business days later.
+ *
+ * Members only, the document stays around 1.4KB and the filter URL around
+ * 2KB. The history is written separately and unconditionally: it is an audit
+ * convenience, so losing a race on it costs a log line, not an assignment.
+ */
+const EVENTS_KEY = 'lead_distribution_events'
+
+/*
+ * The compare-and-swap token. A short number in its own row, so the filter
+ * that guards a write is a few bytes whatever the state grows to.
+ */
+const VERSION_KEY = 'lead_distribution_version'
+
+
+
 /** How many allocation decisions are kept for the History view. */
 const EVENT_LIMIT = 300
 
@@ -68,13 +96,12 @@ export type AllocationEvent = {
 export type DistributionDoc = {
   version: number
   members: Record<string, MemberState>
-  events: AllocationEvent[]
   updatedAt: string | null
   updatedBy: string | null
 }
 
 const EMPTY: DistributionDoc = {
-  version: 0, members: {}, events: [], updatedAt: null, updatedBy: null,
+  version: 0, members: {}, updatedAt: null, updatedBy: null,
 }
 
 function parseDoc(raw: string | null | undefined): DistributionDoc {
@@ -84,7 +111,6 @@ function parseDoc(raw: string | null | undefined): DistributionDoc {
     return {
       version: Number(parsed.version) || 0,
       members: parsed.members && typeof parsed.members === 'object' ? parsed.members : {},
-      events: Array.isArray(parsed.events) ? parsed.events : [],
       updatedAt: parsed.updatedAt ?? null,
       updatedBy: parsed.updatedBy ?? null,
     }
@@ -98,52 +124,91 @@ function parseDoc(raw: string | null | undefined): DistributionDoc {
   }
 }
 
-type ReadResult = { doc: DistributionDoc; raw: string | null }
+type ReadResult = { doc: DistributionDoc; version: number }
 
-async function readDoc(): Promise<ReadResult> {
+/**
+ * Read the state, and the version token that guards it.
+ *
+ * Returns null when a writer is part-way through — the token has moved but
+ * the document it describes has not landed yet — so the caller retries rather
+ * than computing from a state that is about to change.
+ */
+async function readState(): Promise<ReadResult | null> {
   const sb = createServiceClient()
+
   const { data, error } = await sb.from('settings')
-    .select('value').eq('key', KEY).maybeSingle()
+    .select('key, value').in('key', [KEY, VERSION_KEY])
 
   // A failed read is not an empty configuration.
   if (error) throw new Error(error.message)
 
-  const raw = (data?.value as string | null) ?? null
-  return { doc: parseDoc(raw), raw }
+  const rows = new Map((data || []).map(r => [r.key as string, r.value as string | null]))
+  const doc = parseDoc(rows.get(KEY) ?? null)
+  const version = Number(rows.get(VERSION_KEY) ?? 0) || 0
+
+  /*
+   * The token is bumped before the document is written, so a mismatch means
+   * another request is between those two steps. Its write is about to land;
+   * deciding from what is here now would discard it.
+   */
+  if (doc.version !== version) return null
+
+  return { doc, version }
 }
 
 /**
- * Write the document back, but only if nobody else changed it first.
+ * Claim the next version, then write the document.
  *
- * Returns false when the compare-and-swap matched no row, which means another
- * request won the race and the caller should re-read and try again.
+ * ── WHY THE COMPARE IS ON A NUMBER AND NOT ON THE DOCUMENT ─────────────────
+ *
+ * It used to be `.eq('value', <the whole document>)`. PostgREST puts filters
+ * in the QUERY STRING, so that built a URL containing the entire document —
+ * about 80KB once allocation history had accumulated, against a limit that is
+ * typically 8KB. Every write was refused, the retry loop exhausted itself,
+ * and NO LEAD WAS ASSIGNED.
+ *
+ * Moving the history to its own row helped but did not fix it: the members
+ * alone pass 8KB at around fifty people, so the fault would simply have
+ * returned as the team grew.
+ *
+ * The compare is now on a version token — a short number in its own row — so
+ * the filter is a handful of bytes whatever the state contains. Winning that
+ * compare is what grants the right to write the document.
  */
-async function writeDoc(next: DistributionDoc, expectedRaw: string | null): Promise<boolean> {
+async function writeState(next: DistributionDoc, version: number): Promise<boolean> {
   const sb = createServiceClient()
-  const payload = JSON.stringify({ ...next, version: next.version + 1 })
+  const nextVersion = version + 1
 
-  if (expectedRaw === null) {
+  if (version === 0) {
     /*
-     * No row yet. onConflict makes a second request creating it at the same
-     * moment update rather than fail on the unique key — and because the
-     * update is unconditional in that case, the loser simply re-reads on the
-     * next allocation. The first write establishes the row; correctness from
-     * then on is the compare-and-swap below.
+     * No token yet. Create it; a second request creating it at the same
+     * moment updates instead of failing on the unique key, and simply loses
+     * the next compare.
      */
     const { error } = await sb.from('settings')
-      .upsert({ key: KEY, value: payload }, { onConflict: 'key' })
+      .upsert({ key: VERSION_KEY, value: String(nextVersion) }, { onConflict: 'key' })
     if (error) throw new Error(error.message)
-    return true
+  } else {
+    const { data, error } = await sb.from('settings')
+      .update({ value: String(nextVersion) })
+      .eq('key', VERSION_KEY)
+      .eq('value', String(version))     // ← the compare, always a few bytes
+      .select('key')
+    if (error) throw new Error(error.message)
+    if ((data?.length ?? 0) === 0) return false   // somebody else got there first
   }
 
-  const { data, error } = await sb.from('settings')
-    .update({ value: payload })
-    .eq('key', KEY)
-    .eq('value', expectedRaw)     // ← the compare
-    .select('key')
+  /*
+   * The token is ours, so this write is uncontended by construction. The
+   * version inside the document matches the token, which is what lets a
+   * reader tell a settled state from one mid-write.
+   */
+  const { error: docError } = await sb.from('settings')
+    .upsert({ key: KEY, value: JSON.stringify({ ...next, version: nextVersion }) },
+      { onConflict: 'key' })
+  if (docError) throw new Error(docError.message)
 
-  if (error) throw new Error(error.message)
-  return (data?.length ?? 0) > 0  // ← the swap happened only if a row matched
+  return true
 }
 
 /* ── Reading the configuration for the screen ─────────────────────────────── */
@@ -174,7 +239,10 @@ export type ConfigReadResult =
 export async function readDistributionConfig(candidates: Candidate[]): Promise<ConfigReadResult> {
   let doc: DistributionDoc
   try {
-    ({ doc } = await readDoc())
+    // A state mid-write reads as settled a moment later; for a screen, the
+    // previous values are the right thing to show meanwhile.
+    const state = await readState()
+    doc = state ? state.doc : (await readState())?.doc ?? { version: 0, members: {}, updatedAt: null, updatedBy: null }
   } catch (e) {
     return { ok: false, reason: e instanceof Error ? e.message : String(e) }
   }
@@ -194,7 +262,7 @@ export async function readDistributionConfig(candidates: Candidate[]): Promise<C
     }
   })
 
-  return { ok: true, members, events: doc.events }
+  return { ok: true, members, events: await readAllocationEvents() }
 }
 
 export type SaveRow = { profileId: string; allocationPercent: number; isActive: boolean }
@@ -211,12 +279,14 @@ export async function saveDistributionConfig(
   rows: SaveRow[], actorId: string,
 ): Promise<{ ok: true } | { ok: false; reason: string }> {
   for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
-    let doc: DistributionDoc, raw: string | null
+    let state: ReadResult | null
     try {
-      ({ doc, raw } = await readDoc())
+      state = await readState()
     } catch (e) {
       return { ok: false, reason: e instanceof Error ? e.message : String(e) }
     }
+    if (!state) continue          // a write is landing; look again
+    const { doc, version } = state
 
     const members = { ...doc.members }
     for (const r of rows) {
@@ -231,11 +301,11 @@ export async function saveDistributionConfig(
     }
 
     try {
-      const won = await writeDoc({
+      const won = await writeState({
         ...doc, members,
         updatedAt: new Date().toISOString(),
         updatedBy: actorId,
-      }, raw)
+      }, version)
       if (won) return { ok: true }
     } catch (e) {
       return { ok: false, reason: e instanceof Error ? e.message : String(e) }
@@ -295,12 +365,14 @@ export async function distributeLead(
   const eligibleIds = new Set(candidates.map(c => c.id))
 
   for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
-    let doc: DistributionDoc, raw: string | null
+    let state: ReadResult | null
     try {
-      ({ doc, raw } = await readDoc())
+      state = await readState()
     } catch (e) {
       return { ...none, failure: e instanceof Error ? e.message : String(e) }
     }
+    if (!state) continue          // a write is landing; look again
+    const { doc, version } = state
 
     // Only people who are eligible AND switched on take part.
     const pool: Member[] = candidates
@@ -347,18 +419,9 @@ export async function distributeLead(
       if (!eligibleIds.has(id)) members[id] = m
     }
 
-    const event: AllocationEvent = {
-      leadId, staffId: pick.chosen,
-      weight: configured ? pick.weight : null,
-      method, at: now, source: opts.source ?? null,
-    }
-
     let won = false
     try {
-      won = await writeDoc({
-        ...doc, members,
-        events: [event, ...doc.events].slice(0, EVENT_LIMIT),
-      }, raw)
+      won = await writeState({ ...doc, members }, version)
     } catch (e) {
       return { ...none, failure: e instanceof Error ? e.message : String(e) }
     }
@@ -396,6 +459,16 @@ export async function distributeLead(
         poolSize: pick.poolSize, method: 'already_assigned', failure: null }
     }
 
+    /*
+     * Recorded after the claim, in its own row, and never allowed to fail the
+     * assignment: the lead has an owner either way.
+     */
+    await appendEvent({
+      leadId, staffId: pick.chosen,
+      weight: configured ? pick.weight : null,
+      method, at: now, source: opts.source ?? null,
+    })
+
     return { chosen: pick.chosen, weight: configured ? pick.weight : null,
       poolSize: pick.poolSize, method, failure: null }
   }
@@ -405,6 +478,35 @@ export async function distributeLead(
 
 /** The recent allocation decisions, for the History view. */
 export async function readAllocationEvents(): Promise<AllocationEvent[]> {
-  const { doc } = await readDoc()
-  return doc.events
+  try {
+    const sb = createServiceClient()
+    const { data, error } = await sb.from('settings')
+      .select('value').eq('key', EVENTS_KEY).maybeSingle()
+    if (error || !data?.value) return []
+    const parsed = JSON.parse(data.value as string)
+    return Array.isArray(parsed) ? parsed as AllocationEvent[] : []
+  } catch {
+    // The history is a convenience. Losing it must not disturb anything.
+    return []
+  }
+}
+
+/**
+ * Add one decision to the history.
+ *
+ * Deliberately unconditional — no compare-and-swap. Two allocations landing
+ * together can lose one history entry, and that is the right trade: the
+ * alternative put this in the document the allocator matches on, which made
+ * the filter URL too large to send and stopped leads being assigned at all.
+ */
+async function appendEvent(event: AllocationEvent): Promise<void> {
+  try {
+    const sb = createServiceClient()
+    const existing = await readAllocationEvents()
+    const next = [event, ...existing].slice(0, EVENT_LIMIT)
+    await sb.from('settings')
+      .upsert({ key: EVENTS_KEY, value: JSON.stringify(next) }, { onConflict: 'key' })
+  } catch (e) {
+    console.error('[distribution] could not record the allocation event:', e)
+  }
 }
