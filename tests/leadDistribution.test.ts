@@ -241,8 +241,26 @@ describe('the state survives everything it has to', () => {
     assert.ok(!/localStorage|sessionStorage/.test(screen))
   })
 
-  test('the decision and the write happen in one database call', () => {
-    assert.match(store, /rpc\('distribute_lead_weighted'/)
+  test('the state is written only if nobody changed it first', () => {
+    /*
+     * There is no row lock through PostgREST, so the other standard answer is
+     * used: the update matches on the exact value that was read, and
+     * PostgREST reports whether a row matched. A write that matched none lost
+     * the race and is retried against fresh state.
+     */
+    assert.match(store, /\.eq\('value', expectedRaw\)/)
+    assert.match(store, /return \(data\?\.length \?\? 0\) > 0/)
+  })
+
+  test('a lost race is retried rather than overwritten', () => {
+    assert.match(store, /if \(!won\) continue/)
+    assert.match(store, /const CAS_ATTEMPTS = 6/)
+  })
+
+  test('and the claim itself still locks the lead row', () => {
+    // Whatever the scheduler decides, a lead can only be claimed once.
+    assert.match(store, /rpc\('assign_lead_to'/)
+    assert.match(store, /p_force: false/)
   })
 })
 
@@ -292,7 +310,7 @@ describe('a lead is assigned once, or is detectably unassigned', () => {
   })
 
   test('a failure leaves the lead unassigned and says so', () => {
-    assert.match(store, /failure: `distribute_lead_weighted failed: \$\{error\.message\}`/)
+    assert.match(store, /failure: `Could not record the assignment: \$\{claimError\.message\}`/)
     assert.match(engine, /if \(outcome\.failure\) \{[\s\S]{0,200}console\.error/)
   })
 
@@ -315,9 +333,10 @@ describe('a lead is assigned once, or is detectably unassigned', () => {
   })
 
   test('a failed statistics read is surfaced, not shown as zero', () => {
-    assert.match(api, /return unavailable\('\[leads\/distribution\]', full\.error\.message, 'the assignment history'\)/)
+    assert.match(api, /if \(eventError\) \{[\s\S]{0,150}return unavailable\(/)
     assert.match(api, /if \(unassignedError\) \{[\s\S]{0,150}return unavailable\(/)
     assert.match(api, /if \(holderError\) \{[\s\S]{0,150}return unavailable\(/)
+    assert.match(api, /if \(notifyError\) \{[\s\S]{0,150}return unavailable\(/)
   })
 })
 
@@ -525,7 +544,7 @@ describe('the dashboard figures mean what they say', () => {
   })
 
   test('the period actually filters', () => {
-    assert.match(api, /if \(since\) q = q\.gte\('created_at', since\)/)
+    assert.match(api, /if \(since\) eventQuery = eventQuery\.gte\('created_at', since\)/)
     assert.match(api, /today: 0, '7d': 7, '30d': 30, '90d': 90, all: null/)
   })
 
@@ -541,51 +560,50 @@ describe('the dashboard figures mean what they say', () => {
 
 /* ══ ROLLOUT SAFETY ═══════════════════════════════════════════════════════ */
 
-describe('deploying the code before the migration cannot stop lead assignment', () => {
-  test('a missing function is detected by its code, not by catching everything', () => {
-    assert.match(store, /const MISSING_FUNCTION = new Set\(\['42883', 'PGRST202'\]\)/)
-    assert.match(store, /if \(!missing\) \{[\s\S]{0,240}failure:/)
-  })
-
-  test('and falls back to the previous engine rather than dropping the lead', () => {
-    assert.match(store, /rpc\('assign_lead_atomic'/)
-    assert.match(store, /degraded: true/)
-  })
-
-  test('the degraded state is logged and shown, not hidden', () => {
-    assert.match(engine, /migration 0021 has not been applied/)
-    assert.match(screen, /Distribution engine not installed yet/)
-  })
-
-  test('a missing members table does not read as "everyone on zero"', () => {
-    assert.match(store, /const MISSING_TABLE = new Set\(\['42P01', 'PGRST205'\]\)/)
-    assert.match(store, /return \{ ok: false, reason: error\.message \}/)
-  })
-
-  test('naming 0021 columns does not 503 the screen before 0021 is applied', () => {
+describe('there is no migration standing between a manager and a working allocation', () => {
+  test('the configuration lives in a table the application already uses', () => {
     /*
-     * PostgREST fails the WHOLE select when a named column is absent, so
-     * selecting method/weight_at_assignment/notified from lead_assignments
-     * would have taken out the entire dashboard before the migration — the
-     * banner whose only job is to say the migration has not been applied
-     * included.
+     * THE BUG THE OPERATOR ACTUALLY SAW.
+     *
+     * The configuration used to target lead_distribution_members, created by
+     * migration 0021. That migration had not been run, so every save failed
+     * with "We could not save the lead distribution settings" and the feature
+     * could not be configured at all. A feature that cannot be configured is
+     * not a feature, and "run this SQL first" is not a fix.
+     *
+     * `settings` is the key/value table this application already reads and
+     * already writes through /api/data — it is how the auto-assign switch is
+     * stored — so the allocation works on the database exactly as it is.
      */
-    for (const [name, src] of [
-      ['overview', api],
-      ['history', codeOf('app/api/leads/distribution/history/route.ts')],
-    ] as const) {
-      assert.match(src, /42703/, `${name} does not detect a missing column`)
-      assert.ok(/does not exist/.test(src), `${name} has no narrower fallback select`)
-    }
+    assert.match(store, /const KEY = 'lead_distribution'/)
+    assert.match(store, /from\('settings'\)/)
+    assert.ok(!/lead_distribution_members/.test(store),
+      'the store must not depend on a table that may not exist')
   })
 
-  test('but any other read failure is still a real failure', () => {
-    assert.match(api, /return unavailable\('\[leads\/distribution\]', full\.error\.message, 'the assignment history'\)/)
+  test('nothing in the request path calls a function that may be absent', () => {
+    assert.ok(!/distribute_lead_weighted/.test(store + engine),
+      'depending on an unapplied migration is what broke the save')
+  })
+
+  test('an unreadable document is reported, not treated as no configuration', () => {
+    // Returning a blank document would silently discard everybody's shares
+    // and start distributing equally.
+    assert.match(store, /throw new Error\('The lead distribution settings are stored in a form this version cannot read\.'\)/)
+  })
+
+  test('a failed read is not an empty configuration either', () => {
+    assert.match(store, /if \(error\) throw new Error\(error\.message\)/)
+    assert.match(store, /return \{ ok: false, reason:/)
   })
 
   test('an unconfigured pool still distributes, and says it is unconfigured', () => {
-    assert.match(sql, /v_method := 'equal_fallback'/)
+    assert.match(store, /const method = configured \? 'weighted' : 'equal_rotation'/)
     assert.match(screen, /No shares configured/)
+  })
+
+  test('the save reports a concurrent change rather than failing opaquely', () => {
+    assert.match(store, /Somebody else was changing the allocation at the same time/)
   })
 })
 

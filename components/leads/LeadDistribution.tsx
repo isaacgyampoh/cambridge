@@ -45,7 +45,6 @@ type Overview = {
   strandedHolders: number
   notifyFailures: number
   configuredTotal: number
-  engineReady: boolean
   unconfigured: boolean
 }
 
@@ -211,18 +210,7 @@ export default function LeadDistribution({ canEdit = true }: { canEdit?: boolean
       />
 
       {/* ── Anything the operator must know before reading the numbers ────── */}
-      {overview && !overview.engineReady && (
-        <Card className="mb-4 !bg-[var(--attention-soft)] border-[var(--attention)]">
-          <p className="text-sm font-semibold text-[var(--ink)]">Distribution engine not installed yet</p>
-          <p className="text-sm text-[var(--ink-soft)] mt-1">
-            Migration <span className="font-mono">0021_lead_distribution.sql</span> has not been run on this
-            database. Leads are still being assigned by the previous method, and any shares set here will not
-            take effect until it is applied.
-          </p>
-        </Card>
-      )}
-
-      {overview && overview.engineReady && overview.unconfigured && (
+      {overview && overview.unconfigured && (
         <Card className="mb-4 !bg-[var(--attention-soft)] border-[var(--attention)]">
           <p className="text-sm font-semibold text-[var(--ink)]">No shares configured</p>
           <p className="text-sm text-[var(--ink-soft)] mt-1">

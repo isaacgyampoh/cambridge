@@ -121,12 +121,6 @@ export async function autoAssignLead(
   }
   if (!outcome.chosen) return null
 
-  if (outcome.degraded) {
-    console.warn('[autoAssign] distributed lead', leadId,
-      'through the pre-0021 path — migration 0021 has not been applied, so the',
-      'configured percentages are NOT in force yet.')
-  }
-
   await onLeadAssigned(leadId, outcome.chosen)
   return outcome.chosen
 }

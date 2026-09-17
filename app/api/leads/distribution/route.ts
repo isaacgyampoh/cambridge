@@ -86,49 +86,46 @@ export async function GET(req: NextRequest) {
    * catastrophic distribution failure rather than a database blip.
    */
   /*
-   * The columns migration 0021 adds are named here, and PostgREST fails the
-   * WHOLE select when one of them is absent. Before the migration is applied
-   * that would 503 this entire screen — including the banner whose job is to
-   * say the migration has not been applied.
-   *
-   * So the richer select is tried first and a narrower one is used if those
-   * columns are not there yet. Any other failure is still a real failure.
+   * Assignment events in the period, from the columns that have always
+   * existed. A failed read is reported, never rendered as "nobody received
+   * anything" — which would read as a catastrophic distribution failure
+   * rather than a database blip.
    */
-  async function readEvents(columns: string) {
-    let q = sb.from('lead_assignments')
-      .select(columns)
-      .not('to_marketer', 'is', null)
-      .order('created_at', { ascending: false })
-      .limit(5000)
-    if (since) q = q.gte('created_at', since)
-    return q
-  }
+  let eventQuery = sb.from('lead_assignments')
+    .select('to_marketer, created_at, reason')
+    .not('to_marketer', 'is', null)
+    .order('created_at', { ascending: false })
+    .limit(5000)
+  if (since) eventQuery = eventQuery.gte('created_at', since)
 
-  type EventRow = { to_marketer: string; notified?: boolean | null }
-  let events: EventRow[] | null = null
-
-  const full = await readEvents('to_marketer, created_at, method, weight_at_assignment, notified')
-  if (!full.error) {
-    events = full.data as unknown as EventRow[]
-  } else if (/column .* does not exist|42703/.test(full.error.message) || full.error.code === '42703') {
-    const base = await readEvents('to_marketer, created_at')
-    if (base.error) {
-      return unavailable('[leads/distribution]', base.error.message, 'the assignment history')
-    }
-    events = base.data as unknown as EventRow[]
-  } else {
-    return unavailable('[leads/distribution]', full.error.message, 'the assignment history')
+  const { data: eventsData, error: eventError } = await eventQuery
+  if (eventError) {
+    return unavailable('[leads/distribution]', eventError.message, 'the assignment history')
   }
+  const events = eventsData || []
 
   const received: Record<string, number> = {}
-  let notifyFailures = 0
-  for (const e of events || []) {
+  for (const e of events) {
     const id = e.to_marketer as string
     received[id] = (received[id] ?? 0) + 1
-    if (e.notified === false) notifyFailures++
   }
 
-  const totalAssigned = (events || []).length
+  const totalAssigned = events.length
+
+  /*
+   * Notifications that genuinely failed, counted from the notes the assigner
+   * writes when one does. Not a placeholder: an empty result here means none
+   * failed, and a failed read is reported rather than shown as zero.
+   */
+  let notifyQuery = sb.from('lead_activities')
+    .select('id', { count: 'exact', head: true })
+    .eq('subject', 'Assignment notification failed')
+  if (since) notifyQuery = notifyQuery.gte('created_at', since)
+  const { count: notifyFailuresCount, error: notifyError } = await notifyQuery
+  if (notifyError) {
+    return unavailable('[leads/distribution]', notifyError.message, 'the notification failures')
+  }
+  const notifyFailures = notifyFailuresCount ?? 0
 
   const members = config.members.map((m: MemberRow) => ({
     ...m,
@@ -179,7 +176,12 @@ export async function GET(req: NextRequest) {
      * True until migration 0021 is applied. The screen says so plainly rather
      * than showing percentages that are not in force.
      */
-    engineReady: !config.tableMissing,
+    /*
+     * The engine is always installed now: the configuration lives in the
+     * settings table this application already uses, so there is no migration
+     * standing between a manager and a working allocation.
+     */
+    engineReady: true,
     unconfigured: configuredTotal === 0,
   })
 }

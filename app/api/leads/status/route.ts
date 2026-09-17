@@ -67,6 +67,13 @@ export async function POST(req: NextRequest) {
   const wasRegistered = lead.status === 'registered'
   const becomingRegistered = status === 'registered' && !wasRegistered
 
+  /*
+   * Set when the lead is registered but no commission could be credited. The
+   * registration still stands; the caller is told plainly rather than being
+   * left to assume points were awarded.
+   */
+  let creditSkipped: string | null = null
+
   // ── Registration path: credit points + commission ──
   if (becomingRegistered) {
     // Has this lead already been credited (any program)? Avoid double credit.
@@ -74,18 +81,88 @@ export async function POST(req: NextRequest) {
       .select('id').eq('lead_id', leadId).limit(1).maybeSingle()
 
     if (!already) {
-      const { data: programs } = await sb.from('program_points').select('*').eq('is_active', true)
-      let prog = programCode ? (programs || []).find((p: any) => p.code === programCode) : null
-      if (!prog) prog = matchProgram(lead.course_interest, programs || [])
+      /*
+       * ── WHY THIS NO LONGER BLOCKS THE STATUS CHANGE ────────────────────
+       *
+       * program_points is the REMUNERATION table — it maps a programme to the
+       * points and commission a marketer earns. It is not the course
+       * catalogue. This branch used to refuse the whole request whenever it
+       * could not find a match in it, returning `needsProgram` BEFORE the
+       * status was applied further down.
+       *
+       * The read's error was also discarded, so an unreadable or simply empty
+       * program_points produced an empty list and a prompt asking the
+       * operator to choose from it. That is the loop accountants hit: they
+       * pressed Registered, were asked for a course, had nothing to pick, and
+       * the lead never moved.
+       *
+       * Crediting somebody's commission and recording that a student
+       * registered are two different facts. The second must not be hostage to
+       * the first.
+       */
+      const { data: programs, error: progErr } = await sb.from('program_points')
+        .select('*').eq('is_active', true)
 
-      // Couldn't determine the programme — ask the caller
-      if (!prog) {
+      if (progErr) {
+        console.error('[leads/status] program_points unreadable:', progErr.message)
+      }
+
+      const list = programs || []
+      let prog = programCode ? list.find((p: any) => p.code === programCode) : null
+      if (!prog) prog = matchProgram(lead.course_interest, list)
+
+      /*
+       * The lead may already name a real course from the canonical catalogue
+       * even when no remuneration mapping exists for it. That is a lead whose
+       * course is known, so there is nothing to ask.
+       */
+      let courseKnown = false
+      if (!prog && lead.course_interest) {
+        /*
+         * Deliberately NOT a PostgREST .or() filter. A comma inside the value
+         * of an .or() starts a new condition, so free text from a lead record
+         * can rewrite the query — the injection this codebase already has a
+         * test for. Two plain filters cannot be broken that way.
+         */
+        const needle = String(lead.course_interest).trim()
+        const [byName, byCode] = await Promise.all([
+          sb.from('courses').select('id').ilike('name', `%${needle}%`).limit(1).maybeSingle(),
+          sb.from('courses').select('id').eq('code', needle).limit(1).maybeSingle(),
+        ])
+        const courseErr = byName.error || byCode.error
+        const course = byName.data || byCode.data
+        if (courseErr) {
+          // Never read as "there are no courses".
+          console.error('[leads/status] course lookup failed:', courseErr.message)
+        } else if (course) {
+          courseKnown = true
+        }
+      }
+
+      /*
+       * Ask only when asking can actually be answered: a programme really is
+       * undetermined, the list was read successfully, and it has something in
+       * it. Otherwise the registration is recorded and the credit is skipped
+       * — reported, not hidden.
+       */
+      if (!prog && !courseKnown && !progErr && list.length > 0) {
         return NextResponse.json({
           needsProgram: true,
           message: 'Select the programme this student registered for to credit points.',
-          programs: (programs || []).map((p: any) => ({ code: p.code, name: p.name, points: p.points, is_corporate: p.is_corporate })),
+          programs: list.map((p: any) => ({ code: p.code, name: p.name, points: p.points, is_corporate: p.is_corporate })),
         })
       }
+
+      if (!prog) {
+        creditSkipped = progErr
+          ? 'The remuneration programmes could not be read, so no points were credited.'
+          : courseKnown
+            ? 'No remuneration programme matches this course, so no points were credited.'
+            : 'No remuneration programmes are configured, so no points were credited.'
+        console.warn('[leads/status] registering', leadId, 'without credit:', creditSkipped)
+      }
+
+      if (prog) {
 
       let points = Number(prog.points || 0)
       if (prog.is_corporate) {
@@ -116,6 +193,7 @@ export async function POST(req: NextRequest) {
           body: `${lead.full_name} registered for ${prog.name}. ${points} points + GHS 200 registration added to your annual total.`,
           link: '/marketer/earnings',
         })
+      }
       }
     }
   }
@@ -159,5 +237,9 @@ export async function POST(req: NextRequest) {
     if (error) console.error('[leads/status] history not written:', error.message)
   }
 
-  return NextResponse.json({ success: true, status, credited: becomingRegistered })
+  return NextResponse.json({
+    success: true, status,
+    credited: becomingRegistered && !creditSkipped,
+    creditSkipped,
+  })
 }

@@ -1,6 +1,7 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import { eligibleMarketers } from '@/lib/leads/eligibility'
+import { distributeLead } from '@/lib/leads/distributionStore'
 import { recordAudit } from '@/lib/audit'
 import { phoneVariants, resolveSource, validateRow } from '@/lib/leads/importValidation'
 
@@ -49,6 +50,8 @@ export type RowOutcome = 'assigned' | 'unassigned' | 'duplicate' | 'invalid' | '
 
 export type ImportResult = {
   reference: string
+  /** False when the run could not be catalogued; the leads still landed. */
+  tracked: boolean
   totalReceived: number
   valid: number
   invalid: number
@@ -75,18 +78,47 @@ export async function importLeads(opts: {
   let reference = opts.reference || null
   let importId: string
 
+  /*
+   * THE IMPORT'S JOB IS TO CREATE LEADS. CATALOGUING THE RUN IS SECONDARY.
+   *
+   * This used to throw before a single lead was looked at if lead_imports was
+   * unavailable — the table and the next_import_reference function both come
+   * from migration 0011, and migrations here are applied by hand. The whole
+   * upload then failed with "The import could not be started", which tells
+   * the person holding a spreadsheet of real enquiries nothing they can act
+   * on and loses every row.
+   *
+   * So the catalogue is attempted, and when it cannot be written the import
+   * carries on without it. The leads — the thing of value — still land. The
+   * result says tracking was unavailable so nobody is misled into looking for
+   * a run record that was never created.
+   */
+  let trackingAvailable = true
+
   if (reference) {
-    const { data } = await sb.from('lead_imports').select('id').eq('reference', reference).maybeSingle()
-    if (!data) throw new Error(`Unknown import reference ${reference}`)
-    importId = data.id
+    const { data, error } = await sb.from('lead_imports')
+      .select('id').eq('reference', reference).maybeSingle()
+    if (error) {
+      trackingAvailable = false
+      importId = ''
+    } else if (!data) {
+      throw new Error(`Unknown import reference ${reference}`)
+    } else {
+      importId = data.id
+    }
   } else {
     const { data: ref } = await sb.rpc('next_import_reference')
     reference = (ref as string) || `IMPORT-${Date.now()}`
     const { data: created, error } = await sb.from('lead_imports').insert({
       reference, imported_by: importedBy, filename: opts.filename || null,
     }).select('id').single()
-    if (error || !created) throw new Error(`Could not start the import: ${error?.message}`)
-    importId = created.id
+    if (error || !created) {
+      console.error('[import] the run could not be catalogued; importing anyway:', error?.message)
+      trackingAvailable = false
+      importId = ''
+    } else {
+      importId = created.id
+    }
   }
 
   // The candidate pool is resolved ONCE for the batch rather than per row.
@@ -168,19 +200,21 @@ export async function importLeads(opts: {
       }
 
       if (!assignedTo && candidates.length) {
-        const { data: chosen, error: assignErr } = await sb.rpc('assign_lead_atomic', {
-          p_lead_id: lead.id,
-          p_candidates: candidates.map(c => c.id),
-          p_weights: candidates.map(c => c.weight),
-          p_actor: importedBy, p_reason: 'import', p_source: reference, p_force: false,
-        })
-        if (assignErr) {
+        /*
+         * An imported lead with no owner named in the file enters the SAME
+         * shared pool as one arriving from a form or a webhook. It used to go
+         * through assign_lead_atomic — the old least-loaded rule — so a bulk
+         * import ignored the configured percentages entirely and could undo a
+         * carefully set split in a single upload.
+         */
+        const outcome = await distributeLead(lead.id, candidates, { source: 'import' })
+        if (outcome.failure) {
           // The lead exists and is safe; only its owner is missing.
           counts.unassigned++
-          record('unassigned', `Assignment failed: ${assignErr.message.slice(0, 200)}`, lead.id)
+          record('unassigned', `Assignment failed: ${outcome.failure.slice(0, 200)}`, lead.id)
           continue
         }
-        assignedTo = (chosen as string) || null
+        assignedTo = outcome.chosen
       }
 
       if (!assignedTo) {
@@ -210,14 +244,23 @@ export async function importLeads(opts: {
   }
 
   if (outcomes.length) {
-    const { error } = await sb.from('lead_import_rows').insert(outcomes)
-    if (error) console.error(`[import ${reference}] could not record row outcomes:`, error.message)
+    if (trackingAvailable) {
+      const { error } = await sb.from('lead_import_rows').insert(outcomes)
+      if (error) console.error(`[import ${reference}] could not record row outcomes:`, error.message)
+    }
   }
 
-  // Counters are incremented, not overwritten, so batched calls accumulate.
-  const { data: current } = await sb.from('lead_imports')
-    .select('total_received, valid, invalid, duplicates, assigned, unassigned, failed')
-    .eq('id', importId).maybeSingle()
+  /*
+   * Counters are incremented, not overwritten, so batched calls accumulate.
+   * With no catalogue row there is nothing to accumulate onto, and querying
+   * `.eq('id', '')` against a uuid column is itself an error — so this batch's
+   * own counts stand as the result.
+   */
+  const { data: current } = trackingAvailable
+    ? await sb.from('lead_imports')
+        .select('total_received, valid, invalid, duplicates, assigned, unassigned, failed')
+        .eq('id', importId).maybeSingle()
+    : { data: null }
 
   const prev = current || {
     total_received: 0, valid: 0, invalid: 0, duplicates: 0, assigned: 0, unassigned: 0, failed: 0,
@@ -233,21 +276,29 @@ export async function importLeads(opts: {
   }
   const status = (totals.failed > 0 || totals.unassigned > 0) ? 'partial' : 'complete'
 
-  await sb.from('lead_imports').update({
-    ...totals, status, finished_at: new Date().toISOString(),
-  }).eq('id', importId)
+  if (trackingAvailable) {
+    await sb.from('lead_imports').update({
+      ...totals, status, finished_at: new Date().toISOString(),
+    }).eq('id', importId)
+  }
 
   await recordAudit({
     actorId: importedBy,
     action: 'leads.imported',
     resource: 'lead_imports',
-    resourceId: importId,
+    resourceId: importId || undefined,
     success: counts.failed === 0,
     metadata: { reference, batch: rows.length, ...counts },
   })
 
   return {
     reference: reference!,
+    /*
+     * Reported so the screen can say the rows landed but the run was not
+     * catalogued, rather than leaving somebody hunting for an import record
+     * that was never written.
+     */
+    tracked: trackingAvailable,
     totalReceived: totals.total_received,
     valid: totals.valid,
     invalid: totals.invalid,

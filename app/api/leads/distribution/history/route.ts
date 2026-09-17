@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { unavailable } from '@/lib/db/lookup'
+import { readAllocationEvents } from '@/lib/leads/distributionStore'
 
 export const runtime = 'nodejs'
 
@@ -43,43 +44,34 @@ export async function GET(req: NextRequest) {
   const sb = createServiceClient()
 
   /*
-   * Migration 0021's columns are named here, and PostgREST fails the whole
-   * select when one is missing — which before the migration would show an
-   * empty history and read as "no lead was ever distributed". The narrower
-   * select is used instead until the columns exist.
+   * The authoritative record of every assignment, with the columns that have
+   * always existed. `reason` carries how it was decided — weighted,
+   * equal_rotation, referral_link, manual, reassign, claim — because that is
+   * what the distributor writes into it.
+   *
+   * The configured share that decided each weighted pick is kept alongside,
+   * in the allocation document, and merged in below for the entries that
+   * still have one.
    */
-  const FULL = 'id, lead_id, to_marketer, from_marketer, reason, source, method, weight_at_assignment, pool_size, campaign, notified, notify_error, created_at'
-  const BASE = 'id, lead_id, to_marketer, from_marketer, reason, source, created_at'
+  let query = sb.from('lead_assignments')
+    .select('id, lead_id, to_marketer, from_marketer, reason, source, created_at')
+    .order('created_at', { ascending: false })
+    .limit(limit)
+  if (staffId) query = query.eq('to_marketer', staffId)
 
-  function historyQuery(columns: string) {
-    let q = sb.from('lead_assignments')
-      .select(columns)
-      .order('created_at', { ascending: false })
-      .limit(limit)
-    if (staffId) q = q.eq('to_marketer', staffId)
-    return q
+  const { data: rowsData, error } = await query
+  if (error) return unavailable('[distribution/history]', error.message, 'the allocation history')
+  const rows = (rowsData || []) as Array<Record<string, unknown>>
+
+  // Weights for the recent decisions, keyed by lead.
+  const weightByLead = new Map<string, number | null>()
+  try {
+    const cfg = await readAllocationEvents()
+    for (const e of cfg) weightByLead.set(e.leadId, e.weight)
+  } catch {
+    // The history is still worth showing without the weight column.
   }
 
-  type Row = Record<string, unknown>
-  let rows: Row[] | null = null
-
-  const full = await historyQuery(FULL)
-  if (!full.error) {
-    rows = full.data as unknown as Row[]
-  } else if (full.error.code === '42703' || /column .* does not exist/.test(full.error.message)) {
-    const base = await historyQuery(BASE)
-    if (base.error) return unavailable('[distribution/history]', base.error.message, 'the allocation history')
-    rows = base.data as unknown as Row[]
-  } else {
-    return unavailable('[distribution/history]', full.error.message, 'the allocation history')
-  }
-
-  /*
-   * Names are resolved in two follow-up reads rather than a PostgREST embed.
-   * lead_assignments has two separate foreign keys into profiles, and an
-   * ambiguous embed on that table fails the whole select — which would show
-   * an empty history and look exactly like "no leads were ever distributed".
-   */
   const leadIds = [...new Set((rows || []).map(r => r.lead_id).filter(Boolean))] as string[]
   const staffIds = [...new Set([
     ...(rows || []).map(r => r.to_marketer),
@@ -110,13 +102,11 @@ export async function GET(req: NextRequest) {
       toId: r.to_marketer,
       from: nameById.get(r.from_marketer as string) || null,
       reason: r.reason,
-      method: r.method,
-      weight: r.weight_at_assignment === null ? null : Number(r.weight_at_assignment),
-      poolSize: r.pool_size,
+      method: (r.reason as string) || null,
+      weight: weightByLead.get(r.lead_id as string) ?? null,
+
       source: r.source || leadById.get(r.lead_id as string)?.source || null,
-      campaign: r.campaign,
-      notified: r.notified,
-      notifyError: r.notify_error,
+
       at: r.created_at,
     })),
   })

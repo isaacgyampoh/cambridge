@@ -7,9 +7,29 @@
  * rows nobody can ring.
  */
 
-/** leads.source is a Postgres enum. Anything else fails the insert outright. */
+/**
+ * leads.source is a Postgres enum. Anything else fails the insert outright.
+ *
+ * ── WHY 'walk_in' IS NOT HERE ──────────────────────────────────────────────
+ *
+ * It was, and the enum has never had it. The labels the database accepts are
+ * facebook, google, linkedin, website, referral and manual — so a row whose
+ * source resolved to walk_in was rejected by Postgres with
+ *
+ *     invalid input value for enum lead_source: "walk_in"
+ *
+ * and, because that is an insert error rather than a validation error, it
+ * surfaced as an unexplained failed row in the middle of an import. The
+ * comment directly above this list already said what would happen; the list
+ * itself did not match it.
+ *
+ * A walk-in is now recorded as 'manual', which is what it is: somebody
+ * entered by a member of staff rather than arriving through a channel. The
+ * resolver below maps it, so a spreadsheet that says "walk_in" still imports
+ * instead of failing.
+ */
 export const LEAD_SOURCES = [
-  'facebook', 'google', 'linkedin', 'website', 'referral', 'manual', 'walk_in',
+  'facebook', 'google', 'linkedin', 'website', 'referral', 'manual',
 ] as const
 
 export type LeadSource = typeof LEAD_SOURCES[number]
@@ -56,10 +76,11 @@ export function phoneVariants(raw?: string | null): string[] {
 
 /** A UTM or spreadsheet value is only used when it is genuinely an enum label. */
 export function resolveSource(raw?: string | null): LeadSource {
-  const candidate = String(raw ?? '').trim().toLowerCase()
-  return (LEAD_SOURCES as readonly string[]).includes(candidate)
-    ? candidate as LeadSource
-    : 'manual'
+  const candidate = String(raw ?? '').trim().toLowerCase().replace(/[\s-]+/g, '_')
+  if ((LEAD_SOURCES as readonly string[]).includes(candidate)) return candidate as LeadSource
+  // A walk-in, however it was spelled, is a lead a person entered by hand.
+  if (candidate === 'walk_in' || candidate === 'walkin') return 'manual'
+  return 'manual'
 }
 
 export type RowValidation =
