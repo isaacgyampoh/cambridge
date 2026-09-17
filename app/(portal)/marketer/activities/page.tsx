@@ -285,7 +285,7 @@ export default function ActivitiesPage() {
                     </a>
                   )}
                   {wa && (
-                    <a href={wa} target="_blank" rel="noopener noreferrer"
+                    <a href={wa} rel="noopener noreferrer"
                       aria-label={`Message ${displayName(lead?.full_name)} on WhatsApp`}
                       className="w-10 h-10 grid place-items-center rounded-full
                         bg-[var(--brand-soft)] text-[var(--brand)]

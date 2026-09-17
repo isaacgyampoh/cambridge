@@ -1,4 +1,5 @@
 'use client'
+import { whatsappShareHref } from '@/lib/ui/contact'
 import { useState, useEffect, Suspense } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Image from 'next/image'
@@ -27,7 +28,7 @@ function GetLink() {
     if (d.code) setLink(`${window.location.origin}/refer?code=${d.code}`)
   }
   function copy() { navigator.clipboard.writeText(link); setCopied(true); setTimeout(() => setCopied(false), 2000) }
-  const wa = `https://wa.me/?text=${encodeURIComponent(`Join me at Cambridge Center of Excellence! Register your interest here: ${link}`)}`
+  const wa = whatsappShareHref(`Join me at Cambridge Center of Excellence! Register your interest here: ${link}`)
 
   return (
     <Shell title="Refer a friend, earn rewards" subtitle="Share your link. When a friend you refer enrolls, you get rewarded.">
@@ -48,7 +49,7 @@ function GetLink() {
             <div className="text-[14px] text-[var(--ink)] break-all font-medium">{link}</div>
           </div>
           <button onClick={copy} className="w-full h-12 rounded-xl bg-[var(--accent)] text-white font-semibold text-[15px] hover:brightness-110 transition">{copied ? 'Copied!' : 'Copy link'}</button>
-          <a href={wa} target="_blank" className="block w-full h-12 rounded-xl bg-[#25D366] text-white font-semibold text-[15px] flex items-center justify-center hover:opacity-90 transition">Share on WhatsApp</a>
+          <a rel="noopener noreferrer" href={wa} className="block w-full h-12 rounded-xl bg-[#25D366] text-white font-semibold text-[15px] flex items-center justify-center hover:opacity-90 transition">Share on WhatsApp</a>
           <p className="text-[13px] text-[var(--ink-faint)] text-center">Send this to friends. When they register and enroll, you earn a reward.</p>
         </div>
       )}

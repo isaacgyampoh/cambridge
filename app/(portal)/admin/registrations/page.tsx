@@ -277,7 +277,7 @@ export default function AdminRegistrations() {
                 )}
                 {whatsappHref(selected.phone) && (
                   <a href={whatsappHref(selected.phone) as string}
-                    target="_blank" rel="noopener noreferrer"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-2 h-11 px-4 rounded-xl
                       border border-[var(--line)] text-[var(--ink)] text-[14px] font-semibold
                       hover:bg-[var(--canvas)] transition">

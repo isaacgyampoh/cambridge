@@ -202,22 +202,26 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
     }
   }
 
-  async function sendQuickWA(template: string) {
-    const msg = template.replace('{{name}}', lead?.full_name?.split(' ')[0] || 'there')
-    // whatsappHref, not a local replace(): it strips the spaces a number
-    // stored as "+233 24 123 4567" carries, which the two .replace() calls
-    // here did not — that URL opened to nothing.
-    const href = whatsappHref(lead?.phone, msg)
-    if (!href) return
-    window.open(href, '_blank', 'noopener,noreferrer')
-    // Log the activity
-    try {
-      await mutate('POST', 'lead_activities', {
-        lead_id: id, activity_type: 'whatsapp',
-        subject: 'WhatsApp sent', description: msg, created_by: profile?.id,
-      })
-      load()
-    } catch {}
+  /** The text a quick template produces, with the lead's first name in it. */
+  function quickText(template: string): string {
+    return template.replace('{{name}}', lead?.full_name?.split(' ')[0] || 'there')
+  }
+
+  /*
+   * Logging only. The navigation belongs to the anchor's href.
+   *
+   * This used to ask for a new browsing context before the hand-off, which
+   * mobile pop-up blocking routinely refuses, and which inside an installed
+   * PWA means opening a Custom Tab that then has to reach WhatsApp on a
+   * second hop. A plain anchor lets Android match wa.me against WhatsApp's
+   * App Links filter on the first navigation instead.
+   */
+  function logQuickWA(template: string) {
+    const msg = quickText(template)
+    mutate('POST', 'lead_activities', {
+      lead_id: id, activity_type: 'whatsapp',
+      subject: 'WhatsApp sent', description: msg, created_by: profile?.id,
+    }).then(() => load(), () => { /* the message still went */ })
   }
 
   if (loading) return <LoadingState />
@@ -326,7 +330,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
             {/* Detail rows */}
             <div className="border-t border-[var(--line-soft)] px-6 py-4 grid grid-cols-1 sm:grid-cols-2 gap-x-6 gap-y-3.5">
               {[
-                { label: 'Phone', value: formatPhone(lead.phone), href: lead.phone ? `tel:${lead.phone}` : undefined },
+                { label: 'Phone', value: formatPhone(lead.phone), href: telHref(lead.phone) || undefined },
                 { label: 'Email', value: lead.email || '—', href: lead.email ? `mailto:${lead.email}` : undefined },
                 { label: 'Added', value: formatDateTime(lead.created_at) },
                 { label: 'Last update', value: formatDateTime(lead.updated_at) },
@@ -348,10 +352,11 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
               <p className="text-[13px] text-[var(--ink-faint)] mb-4">Tap to open WhatsApp with the message ready to send.</p>
               <div className="space-y-2">
                 {WA_TEMPLATES.map((t, i) => (
-                  <button key={i} onClick={() => sendQuickWA(t)}
+                  <a key={i} href={whatsappHref(lead.phone, quickText(t)) || undefined}
+                    rel="noopener noreferrer" onClick={() => logQuickWA(t)}
                     className="w-full text-left px-4 py-3 bg-[var(--canvas)] rounded-xl text-[13px] text-[var(--ink-soft)] hover:bg-[var(--ok-soft)] hover:text-[var(--ok)] border border-transparent hover:border-[var(--ok)]/20 transition line-clamp-2">
                     {t.replace('{{name}}', lead.full_name.split(' ')[0])}
-                  </button>
+                  </a>
                 ))}
               </div>
             </div>
@@ -567,7 +572,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   active:brightness-110 transition disabled:opacity-60" />
             )}
             {whatsappHref(lead.phone) && (
-              <a href={whatsappHref(lead.phone) as string} target="_blank" rel="noopener noreferrer"
+              <a href={whatsappHref(lead.phone) as string} rel="noopener noreferrer"
                 aria-label="Message on WhatsApp"
                 className="flex-1 inline-flex items-center justify-center gap-2 h-12 rounded-xl
                   border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)]

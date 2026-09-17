@@ -362,7 +362,7 @@ export default function MarketerLeads() {
                       opens WhatsApp. Both were previously two taps away. */}
                   {tel && <RowAction label="Call" href={tel} tone="accent"
                     icon={<Phone size={15} />} />}
-                  {wa && <RowAction label="WhatsApp" href={wa} external tone="success"
+                  {wa && <RowAction label="WhatsApp" href={wa} tone="success"
                     icon={<MessageCircle size={15} />} />}
                   <ActionMenu
                     title={lead.full_name}

@@ -186,7 +186,7 @@ export default function AdmissionProcess() {
                       */}
                       {whatsappHref(lead?.phone, `Hello ${lead?.full_name || ''}, regarding your admission at ${BRAND.name}.`) && (
                         <a href={whatsappHref(lead?.phone, `Hello ${lead?.full_name || ''}, regarding your admission at ${BRAND.name}.`) as string}
-                          target="_blank" rel="noopener noreferrer"
+                          rel="noopener noreferrer"
                           className="px-3 py-1.5 rounded-xl text-xs font-semibold transition
                             border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--canvas)]
                             flex items-center gap-1.5">

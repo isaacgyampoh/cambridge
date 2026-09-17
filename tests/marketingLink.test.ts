@@ -258,13 +258,19 @@ describe('the flyer preview still works', () => {
 
   test('staff can send a flyer to WhatsApp without building a URL', () => {
     const page = codeOf('app/(portal)/marketer/flyers/page.tsx')
-    assert.match(page, /wa\.me\/\?text=/)
+    /*
+     * Built through the canonical share helper rather than assembled here.
+     * This used to assert the literal wa.me/?text= string, which pinned the
+     * duplicate implementation in place — the page had its own whatsappHref
+     * shadowing the imported one.
+     */
+    assert.match(page, /whatsappShareHref\(/)
     assert.match(page, /linkFor\(f\.id\)/, 'The WhatsApp message must carry the flyer link.')
   })
 
   test('and so can they for their marketing links', () => {
     const share = codeOf('components/shared/ShareLink.tsx')
-    assert.match(share, /wa\.me\/\?text=/)
+    assert.match(share, /whatsappShareHref\(/)
     // An anchor, not a button behind a feature check — navigator.share does
     // not exist on most desktop browsers, which is where this was missing.
     assert.match(share, /href=\{whatsappHref\}/)

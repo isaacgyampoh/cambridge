@@ -1,4 +1,5 @@
 'use client'
+import { whatsappShareHref } from '@/lib/ui/contact'
 
 import { useState } from 'react'
 import { Copy, Check, Share2, ExternalLink, MessageCircle } from 'lucide-react'
@@ -84,8 +85,7 @@ export function ShareLink({
    * card for /m — so repeating the details in the message would only compete
    * with the picture underneath it.
    */
-  const whatsappHref =
-    `https://wa.me/?text=${encodeURIComponent(shareText ? `${shareText} ${url}` : url)}`
+  const whatsappHref = whatsappShareHref(shareText ? `${shareText} ${url}` : url)
 
   return (
     <div className="rounded-2xl border border-[var(--line)] bg-[var(--paper)] p-4 sm:p-5">
@@ -115,7 +115,7 @@ export function ShareLink({
             : <><Copy size={16} aria-hidden="true" /> Copy link</>}
         </button>
 
-        <a href={whatsappHref} target="_blank" rel="noopener noreferrer"
+        <a href={whatsappHref} rel="noopener noreferrer"
           aria-label={`Share ${label} on WhatsApp`}
           className="inline-flex items-center justify-center gap-2 flex-1 h-11 rounded-xl
             border border-[var(--line)] bg-[var(--paper)] text-[var(--ink)]

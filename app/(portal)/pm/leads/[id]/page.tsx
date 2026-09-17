@@ -180,7 +180,7 @@ export default function LeadDetail({ params }: { params: Promise<{ id: string }>
                   className="flex items-center gap-1.5 px-3 py-2 bg-[var(--ok)] text-white rounded-xl text-xs font-semibold hover:opacity-90 transition disabled:opacity-60" />
                 {whatsappHref(lead.phone) && (
                   <a href={whatsappHref(lead.phone) as string}
-                    target="_blank" rel="noopener noreferrer"
+                    rel="noopener noreferrer"
                     className="inline-flex items-center gap-1.5 px-3 py-2 rounded-xl text-xs font-semibold
                       border border-[var(--line)] text-[var(--ink)] hover:bg-[var(--canvas)] transition">
                     <MessageSquare size={14} aria-hidden="true" /> WhatsApp

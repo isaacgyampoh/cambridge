@@ -451,7 +451,7 @@ export default function AdminLeads() {
                             active:bg-[var(--brand-line)] transition-colors">
                           <Phone size={16} aria-hidden="true" />
                         </a>
-                        <a href={wa} target="_blank" rel="noopener noreferrer"
+                        <a href={wa} rel="noopener noreferrer"
                           aria-label={`Message ${displayName(l.full_name)} on WhatsApp`}
                           onClick={e => e.stopPropagation()}
                           className="w-10 h-10 grid place-items-center rounded-full

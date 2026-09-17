@@ -1,4 +1,5 @@
 'use client'
+import { whatsappShareHref } from '@/lib/ui/contact'
 import { uploadFile } from '@/lib/upload'
 import { useState, useEffect } from 'react'
 import { PageHeader, Card, Spinner, EmptyState, inputClass } from '@/components/ui'
@@ -95,10 +96,20 @@ export default function MyFlyers() {
    * serves Open Graph metadata naming the flyer image, so WhatsApp renders the
    * flyer itself as the preview.
    */
-  function whatsappHref(f: { id: string; title?: string | null; course?: string | null }) {
+  /*
+   * The SHARE form — no recipient — because picking who receives the flyer is
+   * the whole point here. Built through the canonical helper rather than
+   * assembled locally, so the encoding rules live in one place.
+   *
+   * Named shareHref, not whatsappHref, because it used to shadow the imported
+   * whatsappHref: two functions with one name in one file, one addressing a
+   * person and one addressing nobody. That is how a "message this lead"
+   * button ends up on the share form, which on Android is answered by the
+   * system chooser and can land the user in an SMS composer.
+   */
+  function shareHref(f: { id: string; title?: string | null; course?: string | null }) {
     const title = f.title || f.course || `Training at ${BRAND.shortName}`
-    const text = `${title} — ${BRAND.name}\n${linkFor(f.id)}`
-    return `https://wa.me/?text=${encodeURIComponent(text)}`
+    return whatsappShareHref(`${title} — ${BRAND.name}\n${linkFor(f.id)}`)
   }
 
   async function shareFlyer(f: { id: string; title?: string | null; course?: string | null }) {
@@ -173,7 +184,7 @@ export default function MyFlyers() {
                           hover:bg-[var(--accent-hover)] transition-colors">
                         Copy link
                       </button>
-                      <a href={whatsappHref(f)} target="_blank" rel="noopener noreferrer"
+                      <a href={shareHref(f)} rel="noopener noreferrer"
                         aria-label={`Share ${f.title || 'flyer'} on WhatsApp`}
                         className="inline-flex items-center justify-center gap-1.5 flex-1 h-10
                           rounded-xl border border-[var(--line)] text-[13px] font-semibold

@@ -23,6 +23,14 @@ export function canonicalContact(raw: string | null | undefined): string | null 
     .replace(/\s+/g, '')
     .replace(/^\+233/, '233')
     .replace(/^\+/, '')
+    /*
+     * The international dialling prefix, before the single-zero rule below.
+     * Without this, "00233241234567" had its FIRST zero rewritten to 233 and
+     * became 2330233241234567 — a duplicated country code that failed the
+     * check below and produced no link at all, so the button simply was not
+     * there for anybody whose number was stored that way.
+     */
+    .replace(/^00/, '')
     .replace(/^0/, '233')
   const digits = cleaned.replace(/[^0-9]/g, '')
   if (!/^233\d{9}$/.test(digits)) return null
@@ -43,10 +51,29 @@ export function telHref(raw: string | null | undefined): string | null {
 }
 
 /**
- * A WhatsApp link, optionally pre-filling the first message.
+ * A WhatsApp link to ONE person, optionally pre-filling the first message.
  *
- * wa.me rather than whatsapp:// because the former works on a desktop browser
- * too, so the same button is useful to someone at a desk.
+ * ── WHY https://wa.me AND NOT whatsapp:// ──────────────────────────────────
+ *
+ * wa.me is an ordinary HTTPS URL, so Android matches it against WhatsApp's
+ * own App Links intent filter and hands the navigation straight to the
+ * installed app. A `whatsapp://` custom scheme has no such registration in a
+ * browser context: when the app is missing there is nothing to catch it and
+ * the tap does nothing at all, and desktop has no handler for it ever.
+ *
+ * ── AND WHY THE NUMBER IS ALWAYS IN THE PATH ───────────────────────────────
+ *
+ * `https://wa.me/233...` addresses a conversation. `https://wa.me/?text=...`
+ * — with no number — is a SHARE intent: it asks the device "who should this
+ * go to", and on Android that question is answered by the system chooser,
+ * which lists every app that accepts text. Messages is one of them, so a
+ * person aiming at WhatsApp can land in an SMS/MMS composer without the
+ * application ever having emitted an sms: URI.
+ *
+ * That is why the two are separate functions with separate names. A button
+ * that means "message this lead" must never be built from the share form.
+ * See whatsappShareHref below for the case where choosing a recipient IS the
+ * point.
  */
 export function whatsappHref(
   raw: string | null | undefined,
@@ -54,8 +81,26 @@ export function whatsappHref(
 ): string | null {
   const canonical = canonicalContact(raw)
   if (!canonical) return null
-  const query = message ? `?text=${encodeURIComponent(message)}` : ''
-  return `https://wa.me/${canonical}${query}`
+  /*
+   * URLSearchParams rather than hand-assembly: it percent-encodes the whole
+   * value, so a '+' in the text stays a '+' instead of arriving as a space,
+   * and '&', '#', '?' and newlines cannot terminate or split the query.
+   */
+  if (!message) return `https://wa.me/${canonical}`
+  return `https://wa.me/${canonical}?${new URLSearchParams({ text: message })}`
+}
+
+/**
+ * A WhatsApp link with NO recipient — "send this to someone you choose".
+ *
+ * The numberless form is correct here and only here: sharing a flyer or a
+ * marketing link is exactly the case where the person picks the recipient.
+ * It is named differently from whatsappHref so that choosing it is a
+ * decision rather than an accident, because on Android it can surface the
+ * system chooser rather than WhatsApp directly.
+ */
+export function whatsappShareHref(text: string): string {
+  return `https://wa.me/?${new URLSearchParams({ text })}`
 }
 
 /** An email link, or null when the address is not one. */
