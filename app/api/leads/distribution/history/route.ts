@@ -42,15 +42,37 @@ export async function GET(req: NextRequest) {
 
   const sb = createServiceClient()
 
-  let query = sb.from('lead_assignments')
-    .select('id, lead_id, to_marketer, from_marketer, reason, source, method, weight_at_assignment, pool_size, campaign, notified, notify_error, created_at')
-    .order('created_at', { ascending: false })
-    .limit(limit)
+  /*
+   * Migration 0021's columns are named here, and PostgREST fails the whole
+   * select when one is missing — which before the migration would show an
+   * empty history and read as "no lead was ever distributed". The narrower
+   * select is used instead until the columns exist.
+   */
+  const FULL = 'id, lead_id, to_marketer, from_marketer, reason, source, method, weight_at_assignment, pool_size, campaign, notified, notify_error, created_at'
+  const BASE = 'id, lead_id, to_marketer, from_marketer, reason, source, created_at'
 
-  if (staffId) query = query.eq('to_marketer', staffId)
+  function historyQuery(columns: string) {
+    let q = sb.from('lead_assignments')
+      .select(columns)
+      .order('created_at', { ascending: false })
+      .limit(limit)
+    if (staffId) q = q.eq('to_marketer', staffId)
+    return q
+  }
 
-  const { data: rows, error } = await query
-  if (error) return unavailable('[distribution/history]', error.message, 'the allocation history')
+  type Row = Record<string, unknown>
+  let rows: Row[] | null = null
+
+  const full = await historyQuery(FULL)
+  if (!full.error) {
+    rows = full.data as unknown as Row[]
+  } else if (full.error.code === '42703' || /column .* does not exist/.test(full.error.message)) {
+    const base = await historyQuery(BASE)
+    if (base.error) return unavailable('[distribution/history]', base.error.message, 'the allocation history')
+    rows = base.data as unknown as Row[]
+  } else {
+    return unavailable('[distribution/history]', full.error.message, 'the allocation history')
+  }
 
   /*
    * Names are resolved in two follow-up reads rather than a PostgREST embed.

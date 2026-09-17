@@ -307,8 +307,9 @@ describe('a lead is assigned once, or is detectably unassigned', () => {
   })
 
   test('a failed statistics read is surfaced, not shown as zero', () => {
-    assert.match(api, /if \(eventError\) \{[\s\S]{0,150}return unavailable\(/)
+    assert.match(api, /return unavailable\('\[leads\/distribution\]', full\.error\.message, 'the assignment history'\)/)
     assert.match(api, /if \(unassignedError\) \{[\s\S]{0,150}return unavailable\(/)
+    assert.match(api, /if \(holderError\) \{[\s\S]{0,150}return unavailable\(/)
   })
 })
 
@@ -516,7 +517,7 @@ describe('the dashboard figures mean what they say', () => {
   })
 
   test('the period actually filters', () => {
-    assert.match(api, /if \(since\) eventQuery = eventQuery\.gte\('created_at', since\)/)
+    assert.match(api, /if \(since\) q = q\.gte\('created_at', since\)/)
     assert.match(api, /today: 0, '7d': 7, '30d': 30, '90d': 90, all: null/)
   })
 
@@ -551,6 +552,27 @@ describe('deploying the code before the migration cannot stop lead assignment', 
   test('a missing members table does not read as "everyone on zero"', () => {
     assert.match(store, /const MISSING_TABLE = new Set\(\['42P01', 'PGRST205'\]\)/)
     assert.match(store, /return \{ ok: false, reason: error\.message \}/)
+  })
+
+  test('naming 0021 columns does not 503 the screen before 0021 is applied', () => {
+    /*
+     * PostgREST fails the WHOLE select when a named column is absent, so
+     * selecting method/weight_at_assignment/notified from lead_assignments
+     * would have taken out the entire dashboard before the migration — the
+     * banner whose only job is to say the migration has not been applied
+     * included.
+     */
+    for (const [name, src] of [
+      ['overview', api],
+      ['history', codeOf('app/api/leads/distribution/history/route.ts')],
+    ] as const) {
+      assert.match(src, /42703/, `${name} does not detect a missing column`)
+      assert.ok(/does not exist/.test(src), `${name} has no narrower fallback select`)
+    }
+  })
+
+  test('but any other read failure is still a real failure', () => {
+    assert.match(api, /return unavailable\('\[leads\/distribution\]', full\.error\.message, 'the assignment history'\)/)
   })
 
   test('an unconfigured pool still distributes, and says it is unconfigured', () => {

@@ -85,16 +85,39 @@ export async function GET(req: NextRequest) {
    * rendered as "nobody received anything" — which would read as a
    * catastrophic distribution failure rather than a database blip.
    */
-  let eventQuery = sb.from('lead_assignments')
-    .select('to_marketer, created_at, method, weight_at_assignment, notified')
-    .not('to_marketer', 'is', null)
-    .order('created_at', { ascending: false })
-    .limit(5000)
-  if (since) eventQuery = eventQuery.gte('created_at', since)
+  /*
+   * The columns migration 0021 adds are named here, and PostgREST fails the
+   * WHOLE select when one of them is absent. Before the migration is applied
+   * that would 503 this entire screen — including the banner whose job is to
+   * say the migration has not been applied.
+   *
+   * So the richer select is tried first and a narrower one is used if those
+   * columns are not there yet. Any other failure is still a real failure.
+   */
+  async function readEvents(columns: string) {
+    let q = sb.from('lead_assignments')
+      .select(columns)
+      .not('to_marketer', 'is', null)
+      .order('created_at', { ascending: false })
+      .limit(5000)
+    if (since) q = q.gte('created_at', since)
+    return q
+  }
 
-  const { data: events, error: eventError } = await eventQuery
-  if (eventError) {
-    return unavailable('[leads/distribution]', eventError.message, 'the assignment history')
+  type EventRow = { to_marketer: string; notified?: boolean | null }
+  let events: EventRow[] | null = null
+
+  const full = await readEvents('to_marketer, created_at, method, weight_at_assignment, notified')
+  if (!full.error) {
+    events = full.data as unknown as EventRow[]
+  } else if (/column .* does not exist|42703/.test(full.error.message) || full.error.code === '42703') {
+    const base = await readEvents('to_marketer, created_at')
+    if (base.error) {
+      return unavailable('[leads/distribution]', base.error.message, 'the assignment history')
+    }
+    events = base.data as unknown as EventRow[]
+  } else {
+    return unavailable('[leads/distribution]', full.error.message, 'the assignment history')
   }
 
   const received: Record<string, number> = {}
