@@ -263,7 +263,7 @@ export async function POST(req: NextRequest) {
   await recordAudit({
     actorId: session.userId,
     action: 'leads.distribution_changed',
-    resource: 'lead_distribution_members',
+    resource: 'settings',
     success: true,
     request: req,
     metadata: { changes },

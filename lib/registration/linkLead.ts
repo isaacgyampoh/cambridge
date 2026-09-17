@@ -38,7 +38,10 @@ export type LinkResult = {
 
 /**
  * leads.source is the `lead_source` enum, not free text:
- *   facebook · google · linkedin · website · referral · manual · walk_in
+ *   facebook · google · linkedin · website · referral · manual
+ *
+ * (walk_in is NOT one of them — the enum has never had it. resolveSource maps
+ * a walk-in to manual, which is what it is: entered by hand.)
  *
  * Writing anything else fails the insert outright, so a UTM value is only used
  * when it is genuinely one of those. A registration reached through a
