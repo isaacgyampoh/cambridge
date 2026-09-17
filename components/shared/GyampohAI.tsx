@@ -97,7 +97,7 @@ export default function GyampohAI() {
       {open && (
         <div className="fixed z-50 bg-[var(--paper)] flex flex-col overflow-hidden
           inset-0 rounded-none
-          sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100vh-2.5rem)] sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-[var(--shadow-overlay)]">
+          sm:inset-auto sm:bottom-5 sm:right-5 sm:w-[400px] sm:h-[600px] sm:max-h-[calc(100dvh-2.5rem)] sm:rounded-2xl sm:border sm:border-[var(--line)] sm:shadow-[var(--shadow-overlay)]">
           {/* Header */}
           <div className="flex items-center justify-between px-4 py-3 border-b border-[var(--line)] bg-[var(--canvas)]">
             <div>

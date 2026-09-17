@@ -167,7 +167,20 @@ export default function Messages() {
         <PageHeader eyebrow="Team" title="Messages" description="Private in-house chat with your colleagues. Nothing leaves the system." />
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4 h-[calc(100vh-160px)] sm:h-[calc(100vh-220px)]">
+      {/*
+        * dvh, not vh.
+        *
+        * On a phone 100vh is the viewport with the address bar HIDDEN, so a
+        * fixed height built from it is taller than what is actually on screen:
+        * the message composer and its send button were pushed below the fold
+        * and could not be reached, and the panel fought the tab bar underneath.
+        *
+        * dvh tracks the viewport as the address bar comes and goes, and the
+        * tab bar's own height is subtracted on mobile because the layout
+        * reserves that space for it.
+        */}
+      <div className="grid grid-cols-1 lg:grid-cols-[320px_1fr] gap-4
+        h-[calc(100dvh-var(--tabbar-h)-120px)] sm:h-[calc(100dvh-220px)]">
         {/* Staff list — full screen on mobile when no chat open; hidden on mobile when a chat is open */}
         <Card className={`p-0 overflow-hidden flex flex-col ${active ? 'hidden lg:flex' : 'flex'}`}>
           <div className="p-3 border-b border-[var(--line)]">

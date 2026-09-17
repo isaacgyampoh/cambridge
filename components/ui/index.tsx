@@ -307,12 +307,23 @@ export function Field({
   )
 }
 
+/*
+ * 16px ON A PHONE, NOT 15.
+ *
+ * iOS Safari zooms the page whenever a focused field computes below 16px, and
+ * this was 15. So every form in the portal — every search box, the login PIN,
+ * every lead field — jumped and zoomed the moment somebody tapped it, and
+ * they had to pinch back out to see the rest of the screen. One character in
+ * one class, felt on every screen.
+ *
+ * It drops to 14px from `sm` upward, so desktop density is unchanged.
+ */
 export const inputClass =
-  'w-full h-12 sm:h-11 px-4 sm:px-3.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[15px] sm:text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
+  'w-full h-12 sm:h-11 px-4 sm:px-3.5 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[16px] sm:text-[14px] text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow'
 
 // For multi-line inputs — same look as inputClass but auto-height with comfortable padding.
 export const textareaClass =
-  'w-full px-4 sm:px-3.5 py-3 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[15px] sm:text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
+  'w-full px-4 sm:px-3.5 py-3 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[16px] sm:text-[14px] leading-relaxed text-[var(--ink)] placeholder:text-[var(--ink-faint)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition-shadow resize-y'
 
 /* ─────────────────────────────────────────────
    Spinner

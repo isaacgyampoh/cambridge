@@ -403,6 +403,41 @@ table { border-collapse: collapse; width: 100%; }
 
    The bar itself is paper, so the icons can be --ink and legible, rather than
    white text fighting a dark ground at 45%. */
+/*
+ * THE SIDES OF A NOTCHED PHONE, IN LANDSCAPE.
+ *
+ * viewport-fit=cover is what makes env(safe-area-inset-*) report real values
+ * — without it the bottom inset was zero and the tab bar sat under the home
+ * indicator. It also lets content reach into the notch horizontally when the
+ * phone is turned, so the sides need the same guard the bottom already had.
+ *
+ * On the body, so every screen inherits it and no page has to remember.
+ */
+body {
+  padding-left: env(safe-area-inset-left);
+  padding-right: env(safe-area-inset-right);
+}
+
+/*
+ * NO FIELD ON A PHONE MAY COMPUTE BELOW 16px.
+ *
+ * iOS Safari zooms the page on focus when it does, which jumps the layout and
+ * leaves the person pinching back out. inputClass and textareaClass carry the
+ * right size themselves, but 208 fields across 64 screens are written inline
+ * and do not use them — and a rule is the only thing that covers a field
+ * somebody adds tomorrow.
+ *
+ * Only below `sm`, so desktop density is untouched. Checkboxes and radios are
+ * excluded: they have no text and sizing them does nothing but break layouts.
+ */
+@media (max-width: 639px) {
+  input:not([type='checkbox']):not([type='radio']),
+  textarea,
+  select {
+    font-size: 16px;
+  }
+}
+
 .tab-bar {
   padding-bottom: calc(env(safe-area-inset-bottom) + 10px);
   padding-left: 12px;

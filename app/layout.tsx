@@ -47,7 +47,28 @@ export const metadata: Metadata = {
 export const viewport: Viewport = {
   width: 'device-width',
   initialScale: 1,
-  maximumScale: 1,
+
+  /*
+   * maximumScale: 1 WAS HERE, AND IT WAS DOING HARM.
+   *
+   * It blocks pinch-zoom outright, so anybody who needs to enlarge text to
+   * read it simply cannot — a straightforward accessibility failure, and a
+   * common complaint about this portal on a phone.
+   *
+   * It is almost always added as a workaround for iOS zooming the page when a
+   * field below 16px takes focus. That is now fixed at the cause: the shared
+   * field classes are 16px on mobile and globals.css holds a floor for the
+   * fields written inline. So the workaround is both harmful and unnecessary.
+   */
+
+  /*
+   * Without this, env(safe-area-inset-*) resolves to ZERO — and globals.css
+   * depends on those insets in eight places, including the padding that keeps
+   * the tab bar clear of the iPhone home indicator. Every one of them was
+   * silently evaluating to nothing, which is why the bottom bar sat under the
+   * home bar on a notched phone.
+   */
+  viewportFit: 'cover',
   /*
    * A literal, because this is a meta tag and not a stylesheet.
    *
