@@ -26,7 +26,17 @@ import Overview from '@/components/dashboard/Overview'
  * rather than "this did not load".
  */
 
+type Quota = {
+  target: number | null
+  used: number
+  conversions: number
+  remaining: number | null
+  periodLabel: string | null
+}
+
 type MarketerStats = {
+  quota?: Quota | null
+  quotaError?: string | null
   /** Leads nobody has touched yet — the first question a marketer asks. */
   newLeads?: number
   /** Live leads that have gone quiet: the follow-up list. */
@@ -157,6 +167,55 @@ export default function MarketerHome() {
             })}
           </div>
         )}
+
+        {/*
+          * THE TARGET, AND HOW FAR THROUGH IT THEY ARE.
+          *
+          * marketer_targets has been in the schema since schema-v3 with
+          * nothing in the application ever reading it, so "what is my quota?"
+          * had no answer anywhere in the portal. It is shown only when
+          * somebody has actually set one — an invented target would be worse
+          * than none.
+          */}
+        {stats?.quotaError ? (
+          <p className="mt-4 text-[13px] text-[var(--ink-faint)]">{stats.quotaError}</p>
+        ) : stats?.quota && stats.quota.target !== null ? (
+          <Card className="mt-4 p-4">
+            <div className="flex flex-wrap items-baseline justify-between gap-2">
+              <div className="text-[13px] font-semibold text-[var(--ink)]">
+                Your target {stats.quota.periodLabel ? `— ${stats.quota.periodLabel}` : ''}
+              </div>
+              <div className="text-[13px] text-[var(--ink-soft)] tabular-nums">
+                <span className="font-semibold text-[var(--ink)]">{stats.quota.used}</span>
+                {' of '}{stats.quota.target}
+                {stats.quota.remaining !== null && (
+                  <span className="text-[var(--ink-faint)]">
+                    {' · '}{stats.quota.remaining} to go
+                  </span>
+                )}
+              </div>
+            </div>
+            <div className="mt-3 h-2 rounded-full bg-[var(--line-soft)] overflow-hidden">
+              <div
+                className="h-full rounded-full bg-[var(--accent-bright)]"
+                style={{
+                  width: `${Math.min(100, Math.round((stats.quota.used / Math.max(1, stats.quota.target)) * 100))}%`,
+                }}
+              />
+            </div>
+            {stats.quota.remaining === 0 && (
+              <p className="mt-2 text-[12px] text-[var(--ink-soft)]">
+                Target reached for this period. Leads keep coming — this is a target, not a cap.
+              </p>
+            )}
+          </Card>
+        ) : stats?.quota ? (
+          <p className="mt-4 text-[13px] text-[var(--ink-faint)]">
+            No target has been set for you this period. You have received{' '}
+            <span className="font-semibold text-[var(--ink)]">{stats.quota.used}</span>{' '}
+            lead{stats.quota.used === 1 ? '' : 's'}.
+          </p>
+        ) : null}
       </section>
     </div>
   )

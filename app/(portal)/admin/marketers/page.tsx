@@ -60,6 +60,56 @@ export default function MarketerPerformancePage() {
   const [loading, setLoading] = useState(true)
   const [range, setRange] = useState('30')
   const [selected, setSelected] = useState<MarketerStats | null>(null)
+  /*
+   * marketer_targets has existed since schema-v3 with nothing in the
+   * application ever reading or writing it, so nobody could set a target and
+   * nobody could see one. This is the write half.
+   */
+  const [quota, setQuota] = useState<{ target: number | null; used: number; remaining: number | null } | null>(null)
+  const [targetDraft, setTargetDraft] = useState('')
+  const [savingTarget, setSavingTarget] = useState(false)
+
+  /* Load whatever target already exists whenever somebody is opened. */
+  useEffect(() => {
+    if (!selected) return
+    let alive = true
+    setQuota(null); setTargetDraft('')
+    fetch(`/api/marketer/quota?marketerId=${selected.id}`)
+      .then(r => r.json().then(d => { if (!r.ok) throw new Error(d.error); return d }))
+      .then(d => { if (alive) setQuota(d.quota) })
+      .catch(() => { if (alive) toast.error('That target could not be loaded.') })
+    return () => { alive = false }
+  }, [selected])
+
+  /**
+   * Set the target for the current calendar month.
+   *
+   * The server decides the period and refuses somebody who cannot receive
+   * leads at all; this only sends the number.
+   */
+  async function saveTarget(m: MarketerStats) {
+    const value = Number(targetDraft)
+    if (!Number.isFinite(value) || value < 0) { toast.error('Enter a number of leads.'); return }
+    setSavingTarget(true)
+    try {
+      const res = await fetch('/api/marketer/quota', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ marketerId: m.id, targetLeads: Math.round(value) }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok || !d?.success) {
+        toast.error(d?.error || 'That target could not be saved.')
+        return
+      }
+      setQuota(d.quota)
+      setTargetDraft('')
+      toast.success(`Target set for ${m.full_name.split(' ')[0]}.`)
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
+    } finally {
+      setSavingTarget(false)
+    }
+  }
   const [alertMsg, setAlertMsg] = useState('')
   const [sendingAlert, setSendingAlert] = useState(false)
   const [error, setError] = useState<string | null>(null)
@@ -375,8 +425,44 @@ export default function MarketerPerformancePage() {
 
       {/* Alert modal */}
       {(
-        <Modal open={!!selected} onClose={() => { setSelected(null); setAlertMsg('') }} maxWidth="max-w-sm">
+        <Modal open={!!selected} onClose={() => { setSelected(null); setAlertMsg(''); setQuota(null); setTargetDraft('') }} maxWidth="max-w-sm">
           {selected && <div className="p-6">
+            {/* ── This period's target ─────────────────────────────────── */}
+            <div className="mb-5 pb-5 border-b border-[var(--line-soft)]">
+              <h2 className="font-semibold text-[var(--ink)] mb-1">
+                {selected.full_name.split(' ')[0]}&rsquo;s target this month
+              </h2>
+              {quota === null ? (
+                <p className="text-sm text-[var(--ink-faint)]">Loading&hellip;</p>
+              ) : (
+                <>
+                  <p className="text-sm text-[var(--ink-faint)] mb-3">
+                    Received <span className="font-semibold text-[var(--ink)]">{quota.used}</span>
+                    {quota.target !== null
+                      ? <> of {quota.target} &middot; {quota.remaining} to go</>
+                      : <> this period. No target set yet.</>}
+                  </p>
+                  <div className="flex flex-wrap gap-2">
+                    <input
+                      type="number" min={0} max={100000} inputMode="numeric"
+                      value={targetDraft}
+                      onChange={e => setTargetDraft(e.target.value)}
+                      placeholder={quota.target !== null ? String(quota.target) : 'Leads this month'}
+                      className="flex-1 min-w-[140px] h-11 px-3 text-[16px] sm:text-sm border border-[var(--line)] rounded-xl focus:outline-none focus:border-[var(--accent)]" />
+                    <button
+                      onClick={() => saveTarget(selected)}
+                      disabled={savingTarget || targetDraft.trim() === ''}
+                      className="min-h-[44px] px-4 rounded-xl bg-[var(--ink)] text-[var(--paper)] text-sm font-semibold disabled:opacity-50">
+                      {savingTarget ? 'Saving…' : 'Set target'}
+                    </button>
+                  </div>
+                  <p className="text-[11px] text-[var(--ink-faint)] mt-2">
+                    A target, not a cap — leads keep being assigned past it.
+                  </p>
+                </>
+              )}
+            </div>
+
             <h2 className="font-semibold text-[var(--ink)] mb-1">Send Alert to {selected.full_name.split(' ')[0]}</h2>
             <p className="text-sm text-[var(--ink-faint)] mb-4">This will send an in-app notification and SMS.</p>
             <div className="bg-[var(--warn-soft)] rounded-xl p-3 mb-4 text-xs text-[var(--warn)]">

@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { readQuota } from '@/lib/leads/quota'
 
 export const runtime = 'nodejs'
 
@@ -14,11 +15,37 @@ export async function GET(req: NextRequest) {
   const me = session.userId
   const year = new Date().getFullYear()
 
-  const [{ data: leads }, { data: enroll }] = await Promise.all([
+  const [leadsRes, enrollRes, quotaRes] = await Promise.all([
     sb.from('leads').select('status, created_at, updated_at').eq('assigned_to', me).limit(5000),
     sb.from('marketer_enrollments').select('points, registration_fee, created_at').eq('marketer_id', me).eq('year', year).limit(5000),
+    readQuota(me),
   ])
 
+  /*
+   * A FAILED READ IS NOT AN EMPTY PIPELINE.
+   *
+   * Both errors used to be discarded, so a database blip rendered as a
+   * marketer with no leads, no registrations and no commission — a screen
+   * that says somebody has done nothing all year is worse than a screen that
+   * says it could not load.
+   */
+  if (leadsRes.error) {
+    console.error('[marketer/dashboard] leads unreadable:', leadsRes.error.message)
+    return NextResponse.json(
+      { error: 'We could not load your figures just now. Please try again in a moment.' },
+      { status: 503 },
+    )
+  }
+  if (enrollRes.error) {
+    console.error('[marketer/dashboard] enrolments unreadable:', enrollRes.error.message)
+    return NextResponse.json(
+      { error: 'We could not load your figures just now. Please try again in a moment.' },
+      { status: 503 },
+    )
+  }
+
+  const leads = leadsRes.data
+  const enroll = enrollRes.data
   const all = leads || []
   const totalLeads = all.length
   const registered = all.filter((l: any) => l.status === 'registered').length
@@ -45,5 +72,12 @@ export async function GET(req: NextRequest) {
   return NextResponse.json({
     totalLeads, registered, contacted, newLeads, cold,
     points, regFees, conversionRate, byDay,
+    /*
+     * Null when the quota itself could not be read. The screen says so rather
+     * than showing a target of zero, which would read as a target somebody
+     * had wiped.
+     */
+    quota: quotaRes.ok ? quotaRes.quota : null,
+    quotaError: quotaRes.ok ? null : 'Your target could not be loaded.',
   })
 }
