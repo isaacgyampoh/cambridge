@@ -16,9 +16,19 @@ const TASKS: { name: string; path: string; everyMins: number }[] = [
   // Runs first and most often: everything else queues messages, and this is
   // what actually gets a failed one delivered.
   { name: 'sms_queue',          path: '/api/sms/queue',               everyMins: 5 },
-  { name: 'lead_notify',        path: '/api/leads/notify-pending',    everyMins: 5 },
   // Greets imported leads. Ten at a time, since each is two WhatsApp round
   // trips and an AI call — the work that used to sit inside the import request.
+  /*
+   * Kept although nothing increments its counter any more: a marketer is now
+   * told the moment a lead is assigned, and an imported batch announces
+   * itself at the end of the import.
+   *
+   * It stays because lead_assign_pending can still hold rows from leads
+   * assigned BEFORE that change, and removing the only thing that drains them
+   * would mean those marketers are never told at all. With an empty table it
+   * reads nothing and does nothing.
+   */
+  { name: 'lead_notify',        path: '/api/leads/notify-pending',    everyMins: 5 },
   { name: 'lead_onboarding',    path: '/api/leads/onboarding',        everyMins: 5 },
   { name: 'lead_followup',      path: '/api/leads/followup',          everyMins: 10 },
   { name: 'sequences',          path: '/api/sequences/run',           everyMins: 15 },

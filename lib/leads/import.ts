@@ -2,6 +2,7 @@ import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import { eligibleMarketers } from '@/lib/leads/eligibility'
 import { distributeLead } from '@/lib/leads/distributionStore'
+import { notifyImportBatch } from '@/lib/leads/importNotify'
 import { recordAudit } from '@/lib/audit'
 import { phoneVariants, resolveSource, validateRow } from '@/lib/leads/importValidation'
 
@@ -126,6 +127,13 @@ export async function importLeads(opts: {
   // database traffic for information that does not change mid-batch.
   const candidates = await eligibleMarketers()
   const counts = { valid: 0, invalid: 0, duplicates: 0, assigned: 0, unassigned: 0, failed: 0 }
+
+  /*
+   * Who received how many in THIS batch, so the people involved can be told
+   * once at the end rather than once per row. Imported leads used to be
+   * assigned and announced to nobody at all.
+   */
+  const assignedTally = new Map<string, number>()
   const outcomes: Array<{
     import_id: string; row_number: number; lead_id: string | null
     outcome: RowOutcome; reason: string | null; payload: ImportRow
@@ -226,6 +234,7 @@ export async function importLeads(opts: {
       }
 
       counts.assigned++
+      assignedTally.set(assignedTo, (assignedTally.get(assignedTo) || 0) + 1)
       record('assigned', null, lead.id)
 
       // ── queue the greeting ──
@@ -282,13 +291,23 @@ export async function importLeads(opts: {
     }).eq('id', importId)
   }
 
+  /*
+   * Announced only now, when every row is committed. One message per person
+   * covering the whole batch — a marketer given forty leads from one upload
+   * gets one text, not forty.
+   *
+   * Nothing here can affect the import: the leads exist either way, and a
+   * failed channel is logged and reported rather than thrown.
+   */
+  const notified = await notifyImportBatch(assignedTally, reference!)
+
   await recordAudit({
     actorId: importedBy,
     action: 'leads.imported',
     resource: 'lead_imports',
     resourceId: importId || undefined,
     success: counts.failed === 0,
-    metadata: { reference, batch: rows.length, ...counts },
+    metadata: { reference, batch: rows.length, ...counts, notified },
   })
 
   return {

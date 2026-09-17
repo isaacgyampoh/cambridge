@@ -403,30 +403,6 @@ export async function distributeLead(
   return { ...none, failure: 'The allocation state was being changed too quickly to settle. The lead is unassigned and can be assigned from the Lead inbox.' }
 }
 
-/**
- * Record whether the assignment notification actually reached anybody.
- *
- * Kept as a no-op-safe write against the events already stored: the
- * assignment is committed and a note about a message must never disturb it.
- */
-export async function recordNotificationOutcome(
-  leadId: string, marketerId: string, ok: boolean, errorText?: string | null,
-): Promise<void> {
-  if (ok) return
-  try {
-    const sb = createServiceClient()
-    await sb.from('lead_activities').insert({
-      lead_id: leadId,
-      activity_type: 'note',
-      subject: 'Assignment notification failed',
-      description: `The lead was assigned, but the in-app notification could not be created${errorText ? `: ${errorText}` : '.'}`,
-      created_by: marketerId,
-    })
-  } catch {
-    // Best effort by construction.
-  }
-}
-
 /** The recent allocation decisions, for the History view. */
 export async function readAllocationEvents(): Promise<AllocationEvent[]> {
   const { doc } = await readDoc()

@@ -9,16 +9,19 @@ import { publicUrl } from '@/lib/url'
  *
  * ── WHY THIS EXISTS ────────────────────────────────────────────────────────
  *
- * Leads arrived and marketers were never told. The chain is:
+ * Leads arrived and marketers were never told, because the only path that
+ * told them ran off a schedule that did not exist: vercel.json had no crons
+ * block at all. Nothing failed, which is why nothing was reported — no
+ * attempt was ever made.
  *
- *   autoAssignLead -> bump_lead_pending (a counter)
- *                  -> /api/leads/notify-pending reads it and sends ONE
- *                     consolidated SMS per marketer
+ * That particular chain is gone. A lead assigned on its own now notifies the
+ * marketer immediately through lib/leads/assignedNotify, and an imported
+ * batch announces itself once per person at the end of the import. Neither
+ * waits for a cron.
  *
- * and that endpoint is reachable only through the /api/cron/run fan-out.
- * vercel.json had no schedule at all, so the counter went up and nothing ever
- * read it. Nothing failed, which is why nothing was reported: no attempt was
- * ever made.
+ * What still does wait are the queued jobs — the SMS queue itself, lead
+ * onboarding, follow-ups, sequences, reminders — and those are the reason
+ * this remains.
  *
  * The obvious fix — a five-minute cron — is refused on this plan, which
  * allows daily schedules only. A daily one is the floor, and for "you have a
@@ -44,9 +47,9 @@ import { publicUrl } from '@/lib/url'
  * whether to bother at all, and then hands off to after(), so nothing is on
  * the critical path of the response.
  *
- * Consolidation is not at risk either: notify-pending only picks up marketers
- * whose most recent lead is three minutes old, so being called constantly
- * still sends one message about five leads rather than five messages.
+ * Nothing is sent twice either: every queued message carries a dedupe key, so
+ * waking the fan-out more often drains the queue sooner rather than sending
+ * anything again.
  */
 
 /** Don't even look more often than this. */
