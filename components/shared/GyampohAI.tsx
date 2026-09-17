@@ -87,7 +87,7 @@ export default function GyampohAI() {
       {!open && (
         <button
           onClick={() => setOpen(true)}
-          className="fixed bottom-5 right-5 z-40 h-12 px-5 rounded-full bg-[var(--accent)] text-white text-sm font-semibold shadow-[var(--shadow-overlay)] hover:brightness-110 transition-all"
+          className="fixed above-tabbar right-5 z-30 h-12 px-5 rounded-full bg-[var(--accent)] text-white text-sm font-semibold shadow-[var(--shadow-overlay)] hover:brightness-110 transition-all"
           style={{ boxShadow: '0 4px 20px rgba(26,122,133,0.35)' }}>
           Gyampoh AI
         </button>

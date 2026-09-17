@@ -113,6 +113,105 @@ describe('the tab bar does not sit on top of the page', () => {
   })
 })
 
+describe('it behaves like an app, not a page', () => {
+  test('a tap is not held back waiting for a double-tap', () => {
+    assert.match(css, /touch-action: manipulation/)
+  })
+
+  test('but pinch-zoom on content is still allowed', () => {
+    // touch-action is scoped to controls; putting it on body would take back
+    // the zoom that was just restored.
+    const block = css.slice(css.indexOf('touch-action: manipulation') - 400, css.indexOf('touch-action: manipulation'))
+    assert.ok(!/^body\s*\{/m.test(block), 'touch-action must not be applied to the whole body')
+  })
+
+  test('the shell does not rubber-band past its ends', () => {
+    assert.match(css, /overscroll-behavior-y: contain/)
+  })
+
+  test('turning the phone does not resize the text', () => {
+    assert.match(css, /-webkit-text-size-adjust: 100%/)
+  })
+
+  test('a long press on navigation does not raise the copy menu', () => {
+    assert.match(css, /nav, \.tab-bar, \.appbar, \[role='tablist'\], th \{[\s\S]{0,120}user-select: none/)
+  })
+
+  test('but a lead name or phone number stays selectable', () => {
+    // Copying those is real work people do here.
+    const block = css.slice(css.indexOf("user-select: none") - 600, css.indexOf("user-select: none") + 200)
+    assert.ok(!/^\s*body\s*\{[^}]*user-select:\s*none/m.test(block))
+    assert.ok(!/\*\s*\{[^}]*user-select:\s*none/.test(css))
+  })
+})
+
+describe('nothing floats on top of the navigation', () => {
+  test('the install banner clears the tab bar', () => {
+    const src = readFileSync('components/shared/InstallPrompt.tsx', 'utf8')
+    assert.match(src, /fixed above-tabbar/)
+    assert.ok(!/fixed bottom-4/.test(src), 'it sat on the navigation and covered it')
+  })
+
+  test('so does the assistant button', () => {
+    const src = readFileSync('components/shared/GyampohAI.tsx', 'utf8')
+    assert.match(src, /fixed above-tabbar/)
+    assert.ok(!/fixed bottom-5/.test(src))
+  })
+
+  test('and the offset is defined once, disappearing where there is no tab bar', () => {
+    assert.match(css, /\.above-tabbar \{[\s\S]{0,120}calc\(var\(--tabbar-h\)/)
+    assert.match(css, /@media \(min-width: 1024px\) \{[\s\S]{0,120}\.above-tabbar/)
+  })
+
+  test('the assistant sits below the tab bar in the stack, not above it', () => {
+    assert.match(readFileSync('components/shared/GyampohAI.tsx', 'utf8'), /z-30/)
+  })
+})
+
+describe('the installed app', () => {
+  const manifest = JSON.parse(readFileSync('public/manifest.json', 'utf8'))
+
+  test('it has a stable identity and its own scope', () => {
+    assert.equal(manifest.id, '/')
+    assert.equal(manifest.scope, '/')
+    assert.equal(manifest.display, 'standalone')
+  })
+
+  test('tapping the icon returns to the window already open', () => {
+    assert.deepEqual(manifest.launch_handler, { client_mode: 'focus-existing' })
+  })
+
+  test('a long press on the icon offers the work people actually do', () => {
+    const urls = (manifest.shortcuts || []).map((s: { url: string }) => s.url)
+    assert.ok(urls.length >= 3, 'no home-screen shortcuts')
+    assert.ok(urls.includes('/marketer/leads'))
+    assert.ok(urls.includes('/marketer/leads/new'))
+  })
+
+  test('every shortcut points somewhere real', () => {
+    for (const s of manifest.shortcuts || []) {
+      const path = s.url.split('?')[0]
+      const candidates = [`app${path}/page.tsx`, `app/(portal)${path}/page.tsx`]
+      assert.ok(candidates.some(c => { try { readFileSync(c); return true } catch { return false } }),
+        `shortcut ${s.url} has no page`)
+    }
+  })
+
+  test('it has maskable icons, so Android does not letterbox it', () => {
+    const purposes = manifest.icons.map((i: { purpose: string }) => i.purpose)
+    assert.ok(purposes.includes('maskable'))
+    assert.ok(purposes.includes('any'))
+  })
+
+  test('the theme colour agrees with the document and the stylesheet', () => {
+    // Two copies of one colour is how the browser chrome ends up a different
+    // green from the application it frames.
+    assert.equal(manifest.theme_color, '#15664D')
+    assert.match(layout, /themeColor: '#15664D'/)
+    assert.match(css, /--brand:\s*#15664D/)
+  })
+})
+
 describe('a fixed height matches the real viewport', () => {
   test('no screen builds a fixed height from 100vh', () => {
     /*

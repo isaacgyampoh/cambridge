@@ -1,7 +1,7 @@
 {
   "name": "Cambridge Center of Excellence",
   "short_name": "Cambridge",
-  "description": "Cambridge Center of Excellence \u2014 student, marketer and admin portal",
+  "description": "Cambridge Center of Excellence — student, marketer and admin portal",
   "start_url": "/",
   "display": "standalone",
   "orientation": "portrait",
@@ -31,6 +31,73 @@
       "sizes": "512x512",
       "type": "image/png",
       "purpose": "maskable"
+    }
+  ],
+  "id": "/",
+  "scope": "/",
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
+  "categories": [
+    "business",
+    "education",
+    "productivity"
+  ],
+  "lang": "en-GH",
+  "dir": "ltr",
+  "launch_handler": {
+    "client_mode": "focus-existing"
+  },
+  "prefer_related_applications": false,
+  "shortcuts": [
+    {
+      "name": "My leads",
+      "short_name": "Leads",
+      "url": "/marketer/leads",
+      "description": "The leads assigned to you",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Needs follow-up",
+      "short_name": "Follow-up",
+      "url": "/marketer/leads?show=followup",
+      "description": "Leads that have gone quiet",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Add a lead",
+      "short_name": "Add lead",
+      "url": "/marketer/leads/new",
+      "description": "Enter a lead by hand",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
+    },
+    {
+      "name": "Messages",
+      "short_name": "Messages",
+      "url": "/messages",
+      "description": "In-house chat with colleagues",
+      "icons": [
+        {
+          "src": "/icons/icon-192.png",
+          "sizes": "192x192"
+        }
+      ]
     }
   ]
 }

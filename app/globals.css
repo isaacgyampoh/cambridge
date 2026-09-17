@@ -209,6 +209,63 @@
   -webkit-tap-highlight-color: transparent;
 }
 
+/* ── MAKING IT BEHAVE LIKE AN APP AND NOT A PAGE ──────────────────────────
+ *
+ * Each of these is a small thing that people do not name but do notice. Left
+ * out, the portal feels like a website somebody saved to their home screen.
+ */
+
+html {
+  /*
+   * iOS re-flows text when the phone is turned, so a column that was
+   * comfortable in portrait comes back larger and differently wrapped in
+   * landscape. 100% pins it to what the stylesheet actually asked for.
+   */
+  -webkit-text-size-adjust: 100%;
+  text-size-adjust: 100%;
+}
+
+body {
+  /*
+   * Stops the whole shell rubber-banding past its own ends. In an installed
+   * app that bounce is the clearest tell that a browser is underneath, and on
+   * Android it is what triggers pull-to-refresh mid-scroll and throws away
+   * whatever the person was reading.
+   */
+  overscroll-behavior-y: contain;
+}
+
+/*
+ * Removes the ~300ms the browser waits to see whether a tap is the first half
+ * of a double-tap-to-zoom. Only on things meant to be tapped, so pinch-zoom
+ * on content is untouched — that was just restored and must not be taken away
+ * again by the back door.
+ */
+button, a, [role='button'], input, select, textarea, label, summary {
+  touch-action: manipulation;
+}
+
+/*
+ * A long press on a tab or a heading should do nothing. Without this it
+ * selects the word and raises the copy/share menu, which no application does
+ * and which fires constantly on a phone held one-handed.
+ *
+ * Deliberately NOT on content: lead names, phone numbers and notes must stay
+ * selectable, because copying them is real work people do here.
+ */
+nav, .tab-bar, .appbar, [role='tablist'], th {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+/*
+ * Keeps the reading position when something loads in above the fold — a
+ * notification arriving should not push the row somebody is tapping.
+ */
+main {
+  overflow-anchor: auto;
+}
+
 html, body {
   width: 100%;
   margin: 0;
@@ -456,6 +513,24 @@ body {
 /* Content sits clear of the tab bar without each screen remembering to. */
 .has-tabbar {
   padding-bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px);
+}
+
+/* ── Anything else that floats above the bottom of the screen ─────────────
+   The same rule as .action-bar, for the pieces that float rather than span:
+   the assistant button and the install banner. Both were pinned at bottom-4
+   and bottom-5 with a z-index at or above the tab bar's, so on a phone they
+   sat ON the navigation and covered it — the very mistake the note below
+   describes.
+
+   Above `lg` the tab bar is not rendered, so the offset goes away. */
+.above-tabbar {
+  bottom: calc(var(--tabbar-h) + env(safe-area-inset-bottom) + 8px);
+}
+
+@media (min-width: 1024px) {
+  .above-tabbar {
+    bottom: 1.25rem;
+  }
 }
 
 /* ── Sticky action bar ────────────────────────────────────────────────────
