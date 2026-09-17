@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
-import { saveFailed } from '@/lib/db/lookup'
+import { saveFailed, unavailable } from '@/lib/db/lookup'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager', 'trainer']
@@ -58,8 +58,19 @@ export async function DELETE(req: NextRequest) {
   if (!batchId) return NextResponse.json({ error: 'Which class?' }, { status: 400 })
 
   const sb = createServiceClient()
-  const { count } = await sb.from('class_enrollments')
+  const { count, error: countError } = await sb.from('class_enrollments')
     .select('id', { count: 'exact', head: true }).eq('batch_id', batchId)
+
+  /*
+   * Not `if (count)` alone. When this read fails count is null, null is not
+   * greater than zero, and the delete proceeds having established nothing —
+   * the check would report an empty class on no evidence. Postgres would
+   * still refuse while enrollments point at the batch, but the operator
+   * would get a constraint violation instead of the sentence below.
+   */
+  if (countError) {
+    return unavailable('[classes/manage]', countError.message, 'who is in this class')
+  }
 
   if (count && count > 0) {
     return NextResponse.json({

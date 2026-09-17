@@ -7,12 +7,15 @@ import { toast } from 'sonner'
 import { X } from 'lucide-react'
 import Modal from '@/components/shared/Modal'
 import { PageHeader, Card, Button, Badge, EmptyState, Spinner, Field, inputClass, textareaClass} from '@/components/ui'
+import { useConfirm } from '@/hooks/useConfirm'
+import { postJson, messageFor } from '@/lib/api/post'
 
 export default function CoursesPage() {
   const { data: courses, loading, refetch: load } = useData<Course>({ table: 'courses', orderBy: 'name', limit: 200 })
   const [modal, setModal] = useState<'new' | 'edit' | null>(null)
   const [editing, setEditing] = useState<Partial<Course> | null>(null)
   const [saving, setSaving] = useState(false)
+  const { confirm, dialog } = useConfirm()
 
   function openNew() {
     setEditing({ name: '', code: '', description: '', duration: '', course_fee: 0, course_fee_online: 0, registration_fee: 200, is_active: true })
@@ -39,6 +42,29 @@ export default function CoursesPage() {
     catch (e: any) { toast.error(e.message || 'Could not update') }
   }
 
+  /*
+   * Deleting is refused by the server while any class, application,
+   * admission, invoice or certificate still points at the course, and the
+   * refusal names what is in the way. So this asks plainly and lets that
+   * message through untouched rather than flattening it to "Could not
+   * delete", which would leave the operator with no next step.
+   */
+  async function remove(c: Course) {
+    if (!await confirm({
+      title: `Delete ${c.name}?`,
+      message: 'The course is removed from the list for good. This is refused if any class, '
+        + 'application, admission, invoice or certificate still refers to it.',
+      confirmLabel: 'Delete course',
+    })) return
+    try {
+      await postJson('/api/admin/delete-course', { id: c.id })
+      toast.success(`${c.name} deleted`)
+      load()
+    } catch (e) {
+      toast.error(messageFor(e, 'Could not delete the course'))
+    }
+  }
+
   const fields = [
     { key: 'name', label: 'Course name', placeholder: 'Project Management Professional', type: 'text', required: true },
     { key: 'code', label: 'Code', placeholder: 'PMP-001', type: 'text' },
@@ -50,6 +76,7 @@ export default function CoursesPage() {
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
+      {dialog}
       <PageHeader
         eyebrow="Academics"
         title="Courses"
@@ -121,6 +148,7 @@ export default function CoursesPage() {
               <div className="flex gap-2 mt-4">
                 <Button variant="secondary" size="sm" onClick={() => openEdit(c)}  className="flex-1">Edit</Button>
                 <Button variant="ghost" size="sm" onClick={() => toggle(c.id, c.is_active)}>{c.is_active ? 'Disable' : 'Enable'}</Button>
+                <Button variant="ghost" size="sm" onClick={() => remove(c)} className="text-[var(--danger)]">Delete</Button>
               </div>
             </Card>
           ))}
