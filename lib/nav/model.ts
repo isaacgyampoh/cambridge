@@ -100,6 +100,7 @@ const CATALOGUE: CatalogueEntry[] = [
     { label: 'Lead inbox', href: '/pm/assign' },
     { label: 'Reports', href: '/pm/reports' },
     { label: 'Coordinator activity', href: '/pm/prep-activity' },
+    { label: 'Lead distribution', href: '/pm/lead-distribution' },
   ]},
   { id: 'marketers', label: 'Marketers', icon: 'trophy', href: '/admin/marketers', section: 'growth' },
   { id: 'remuneration', label: 'Remuneration', icon: 'trophy', href: '/admin/remuneration', section: 'growth' },
@@ -149,6 +150,7 @@ const CATALOGUE: CatalogueEntry[] = [
   { id: 'broadcast', label: 'Broadcast', icon: 'broadcast', href: '/admin/broadcast', section: 'messaging', children: [
     { label: 'Broadcast & links', href: '/admin/broadcast' },
     { label: 'SMS delivery', href: '/admin/sms-delivery' },
+    { label: 'Lead distribution', href: '/admin/settings/lead-distribution' },
   ]},
   { id: 'wa_lines', label: 'WhatsApp lines', icon: 'broadcast', href: '/admin/whatsapp', section: 'chatbot' },
   /*

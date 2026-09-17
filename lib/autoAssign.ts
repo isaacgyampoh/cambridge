@@ -4,6 +4,7 @@ import { chatbotOpening, buildLeadContext } from '@/lib/chatbot'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { eligibleMarketers, isEligible } from '@/lib/leads/eligibility'
 import { lookup } from '@/lib/db/lookup'
+import { distributeLead, recordNotificationOutcome } from '@/lib/leads/distributionStore'
 
 /**
  * Assign a lead to a marketer.
@@ -89,32 +90,45 @@ export async function autoAssignLead(
     if (setting && setting.value === 'false') return null
   } catch { /* no settings table yet — default ON */ }
 
-  const candidates = await eligibleMarketers({ source })
+  let candidates
+  try {
+    candidates = await eligibleMarketers({ source })
+  } catch (e) {
+    /*
+     * The staff list could not be read. The lead stays unassigned and
+     * detectable, and this says so in those words — it is NOT the same event
+     * as nobody being eligible, and the two used to be indistinguishable.
+     */
+    console.error('[autoAssign] could not build the candidate pool for lead', leadId, e)
+    return null
+  }
+
   if (!candidates.length) {
     console.warn('[autoAssign] no eligible marketer for lead', leadId,
       '— nobody active has the my_leads portal')
     return null
   }
 
-  // The database picks and claims in one locked step.
-  const { data: chosen, error } = await sb.rpc('assign_lead_atomic', {
-    p_lead_id: leadId,
-    p_candidates: candidates.map(c => c.id),
-    p_weights: candidates.map(c => c.weight),
-    p_actor: null,
-    p_reason: 'auto',
-    p_source: source || null,
-    p_force: false,
-  })
+  /*
+   * The database picks and claims in one locked step, weighted by the shares
+   * configured on Settings -> Lead distribution.
+   */
+  const outcome = await distributeLead(leadId, candidates, { source })
 
-  if (error) {
-    console.error('[autoAssign] assign_lead_atomic failed:', error.message)
+  if (outcome.failure) {
+    console.error('[autoAssign] lead', leadId, 'was not assigned:', outcome.failure)
     return null
   }
-  if (!chosen) return null
+  if (!outcome.chosen) return null
 
-  await onLeadAssigned(leadId, chosen as string)
-  return chosen as string
+  if (outcome.degraded) {
+    console.warn('[autoAssign] distributed lead', leadId,
+      'through the pre-0021 path — migration 0021 has not been applied, so the',
+      'configured percentages are NOT in force yet.')
+  }
+
+  await onLeadAssigned(leadId, outcome.chosen)
+  return outcome.chosen
 }
 
 /**
@@ -133,14 +147,28 @@ export async function onLeadAssigned(leadId: string, marketerId: string): Promis
       sb.from('profiles').select('full_name').eq('id', marketerId).maybeSingle(),
     ])
 
-    // In-app notification.
-    await sb.from('notifications').insert({
+    /*
+     * In-app notification.
+     *
+     * The outcome is RECORDED against the assignment rather than discarded.
+     * The assignment is already committed and must stay committed whatever
+     * happens here — but "the lead was assigned to you and you were told"
+     * and "the lead was assigned to you and the message failed" are the two
+     * cases a manager has to tell apart when somebody says they never got it,
+     * and both used to be written as the same silence.
+     */
+    const { error: notifyError } = await sb.from('notifications').insert({
       user_id: marketerId,
       type: 'lead',
       title: 'New lead assigned to you',
       body: `${lead?.full_name || 'A new lead'} (${lead?.source || 'system'}) was assigned to you. Reach out soon.`,
       link: `/marketer/leads/${leadId}`,
-    }).then(() => {}, () => {})
+    })
+
+    if (notifyError) {
+      console.error('[onLeadAssigned] notification failed for lead', leadId, notifyError.message)
+    }
+    await recordNotificationOutcome(leadId, marketerId, !notifyError, notifyError?.message)
 
     // Pending-SMS counter, incremented atomically. A cron sends ONE
     // consolidated text per marketer, so twenty leads is one message.

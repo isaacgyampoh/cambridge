@@ -358,10 +358,22 @@ describe('a lead is never taken off the marketer who owns it', () => {
      */
     assert.match(src, /const \{ row: lead, failed \} = await lookup\(/)
     const guard = src.indexOf('if (failed)')
-    const lottery = src.indexOf('assign_lead_atomic')
+    /*
+     * The weighted distributor replaced assign_lead_atomic as the path that
+     * gives a lead to somebody new. Same guarantee, renamed subject.
+     */
+    const lottery = src.indexOf('distributeLead(')
     assert.ok(guard > 0 && guard < lottery,
       'The guard must come before the lottery, or it guards nothing.')
-    assert.match(src.slice(guard, lottery), /return null/,
+    /*
+     * Asserted on the GUARD'S OWN BLOCK, not on the span between it and the
+     * distributor. That span contains several unrelated `return null`s — the
+     * auto-assign toggle, the empty-pool branch — so a slice-wide match was
+     * satisfied whether or not this guard returned anything at all, and the
+     * test passed with the guard deleted.
+     */
+    const block = src.slice(guard, src.indexOf('\n  }', guard))
+    assert.match(block, /return null/,
       'It must stop, not continue.')
   })
 })

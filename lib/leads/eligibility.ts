@@ -62,9 +62,28 @@ export type EligibilityOptions = {
 export async function eligibleMarketers(opts: EligibilityOptions = {}): Promise<Candidate[]> {
   const sb = createServiceClient()
 
-  const { data: staff } = await sb.from('profiles')
+  const { data: staff, error } = await sb.from('profiles')
     .select('id, full_name, role, portals, is_active, in_lead_pool, performance_tier, gets_google_leads, gets_website_leads')
     .eq('is_active', true)
+
+  /*
+   * A FAILED READ IS NOT AN EMPTY POOL.
+   *
+   * This error used to be discarded. When the read failed `staff` was null,
+   * the pool came out empty, and the distributor logged "no eligible marketer
+   * — nobody active has the my_leads portal" and left the lead unassigned.
+   *
+   * That message names a configuration problem, so it sent whoever read it to
+   * check portals and roles, which were fine. The real event — the database
+   * was briefly unreachable — left no trace at all, and the lead sat
+   * unassigned looking like a deliberate outcome.
+   *
+   * Throwing makes the difference impossible to miss: the caller leaves the
+   * lead unassigned either way, but now it says which of the two happened.
+   */
+  if (error) {
+    throw new Error(`Could not read the staff list to choose a recipient: ${error.message}`)
+  }
 
   type Row = {
     id: string; full_name: string; role: string; portals: string[] | null
