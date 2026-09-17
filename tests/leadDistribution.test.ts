@@ -253,12 +253,20 @@ describe('concurrency is handled where it is actually contended', () => {
      * SAME lead — never the contended case. Two different leads arriving
      * together both read the same member state and chose the same person.
      */
-    assert.match(sql, /FROM lead_distribution_members m[\s\S]{0,400}FOR UPDATE OF m/)
+    assert.match(sql, /PERFORM pg_advisory_xact_lock\(hashtext\('lead_distribution_allocation'\)\)/)
   })
 
-  test('rows are locked in a fixed order, so callers cannot deadlock', () => {
+  test('the lock cannot deadlock, and is released even on error', () => {
+    /*
+     * One lock, always taken first, scoped to the transaction — so there is
+     * no ordering to get wrong and a failed allocation cannot wedge the
+     * queue. Row locks would also serialise, but correctness would then
+     * depend on which rows each candidate set happened to touch.
+     */
     const block = sql.slice(sql.indexOf('THE LOCK THAT MATTERS'))
-    assert.match(block.slice(0, 900), /ORDER BY m\.profile_id[\s\S]{0,60}FOR UPDATE/)
+    assert.match(block.slice(0, 1400), /pg_advisory_xact_lock/)
+    assert.ok(!/pg_advisory_lock\(/.test(sql),
+      'a session-scoped advisory lock would outlive the transaction')
   })
 
   test('an already-owned lead is returned, never reassigned', () => {

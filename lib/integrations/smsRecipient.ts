@@ -1,3 +1,8 @@
+/*
+ * Relative, with the extension: this module is unit tested directly and the
+ * node test runner does not resolve the '@/' alias.
+ */
+import { canonicalGhanaMobile } from '../phone.ts'
 /**
  * The one rule for what Arkesel is allowed to be given as a recipient.
  *
@@ -21,13 +26,5 @@
 
 /** Normalise a Ghanaian number to the 233XXXXXXXXX form Arkesel expects. */
 export function normaliseRecipient(num: string): string | null {
-  const cleaned = String(num || '')
-    .replace(/\s+/g, '')
-    .replace(/^\+233/, '233')
-    .replace(/^\+/, '')
-    .replace(/^0/, '233')
-  const digits = cleaned.replace(/[^0-9]/g, '')
-  // A Ghanaian mobile number is 233 followed by nine digits.
-  if (!/^233\d{9}$/.test(digits)) return null
-  return digits
+  return canonicalGhanaMobile(num)
 }

@@ -1,4 +1,293 @@
 -- ============================================================================
+-- CAMBRIDGE CENTRE OF EXCELLENCE — ALL PENDING MIGRATIONS, IN ORDER
+--
+-- HOW TO RUN THIS
+--
+--   1. Open the Supabase dashboard for this project
+--   2. SQL Editor  ->  New query
+--   3. Paste this entire file
+--   4. Run
+--
+-- It is SAFE TO RUN MORE THAN ONCE. Every table is CREATE TABLE IF NOT
+-- EXISTS, every function is CREATE OR REPLACE, every index is CREATE INDEX IF
+-- NOT EXISTS, every new column is ADD COLUMN IF NOT EXISTS, and the one data
+-- migration rewrites URLs to a form that is unchanged by rewriting it again.
+-- Nothing here drops anything or deletes a row.
+--
+-- WHAT EACH PART DOES
+--
+--   0018  Atomic counters, so two simultaneous events cannot lose one of them.
+--   0019  Marketing visit tracking for the /m/ links.
+--   0020  Rewrites stored public URLs onto the canonical domain.
+--   0021  Lead distribution: the configured shares, the persistent weighted
+--         scheduler state, and the columns that record why each lead went
+--         where it went.
+--
+-- UNTIL 0021 IS APPLIED, lead distribution runs on the previous engine and
+-- the Lead distribution screen says so at the top. Nothing breaks either way.
+-- ============================================================================
+
+
+-- ===========================================================================
+-- 0018_atomic_counters
+-- ===========================================================================
+
+-- ============================================================================
+-- 0018 — COUNT THINGS ONCE, EVEN WHEN THEY HAPPEN AT THE SAME TIME
+--
+-- Run AFTER 0017. Additive: one function. No table, column or row is changed.
+--
+-- WHY
+--
+-- Three counters in the application are kept by reading a number, adding one
+-- to it in JavaScript, and writing the result back:
+--
+--     flyers.clicks           every view of a public flyer
+--     flyers.leads            every enquiry a flyer produces
+--     referral_codes.referrals_count
+--
+-- Two people opening the same flyer in the same second both read 40, both
+-- write 41, and one of the views is gone. There is no error, nothing in a
+-- log, and no way to notice afterwards — the number is simply lower than the
+-- truth, and it drifts further the better a flyer is doing. The one campaign
+-- being shared hardest is the one whose figures are worst, which is precisely
+-- backwards from what the marketer needs.
+--
+-- A read-modify-write cannot be made safe from the application side. Postgres
+-- can do the whole thing in one statement, under the row lock it already
+-- takes for the UPDATE, so no two callers can interleave.
+--
+-- WHY A FUNCTION RATHER THAN A RAW UPDATE
+--
+-- PostgREST cannot express `SET clicks = clicks + 1` — it sends values, not
+-- expressions. An RPC is the supported way to run one, and this codebase
+-- already keeps its atomic operations that way: assign_lead_atomic,
+-- record_payment_once, claim_event, next_admission_number, auth_throttle_hit.
+-- This is the same pattern, not a new one.
+--
+-- SAFETY
+--
+-- The table name is checked against a fixed allowlist rather than
+-- interpolated freely, so the function cannot be used to increment an
+-- arbitrary column anywhere in the schema. COALESCE covers rows whose counter
+-- was never initialised — those are NULL, and NULL + 1 is NULL, which would
+-- quietly erase a count instead of raising it.
+--
+-- The application works whether or not this has been run: bump_counter is
+-- called first and the old read-then-write is used only if the function is
+-- missing, exactly as rateLimit does with auth_throttle_hit. Applying this
+-- migration turns the fallback off; it does not switch anything on.
+-- ============================================================================
+
+BEGIN;
+
+CREATE OR REPLACE FUNCTION bump_counter(
+  p_table  TEXT,
+  p_column TEXT,
+  p_id     UUID,
+  p_by     INTEGER DEFAULT 1
+)
+RETURNS BIGINT
+LANGUAGE plpgsql
+SECURITY DEFINER
+SET search_path = public
+AS $$
+DECLARE
+  v_new BIGINT;
+BEGIN
+  -- An allowlist, not interpolation. Anything else is refused outright.
+  IF NOT (
+    (p_table = 'flyers'          AND p_column IN ('clicks', 'leads')) OR
+    (p_table = 'referral_codes'  AND p_column = 'referrals_count')
+  ) THEN
+    RAISE EXCEPTION 'bump_counter: %.% is not a countable column', p_table, p_column;
+  END IF;
+
+  -- One statement. The row lock the UPDATE takes is what makes concurrent
+  -- callers queue rather than overwrite one another.
+  EXECUTE format(
+    'UPDATE %I SET %I = COALESCE(%I, 0) + $1 WHERE id = $2 RETURNING %I',
+    p_table, p_column, p_column, p_column
+  )
+  INTO v_new
+  USING p_by, p_id;
+
+  -- NULL means no such row. The caller treats that as "nothing counted",
+  -- which is true, rather than as a failure to retry.
+  RETURN v_new;
+END;
+$$;
+
+REVOKE ALL ON FUNCTION bump_counter(TEXT, TEXT, UUID, INTEGER) FROM PUBLIC;
+GRANT EXECUTE ON FUNCTION bump_counter(TEXT, TEXT, UUID, INTEGER) TO service_role;
+
+COMMIT;
+
+
+-- ===========================================================================
+-- 0019_marketing_visits
+-- ===========================================================================
+
+-- ============================================================================
+-- 0019 — WHO OPENED A STAFF MARKETING LINK, WITHOUT KNOWING WHO THEY ARE
+--
+-- Run AFTER 0018. Additive: one table, three indexes. Nothing else changes.
+--
+-- WHY
+--
+-- /m/{code} is the permanent link a member of staff puts on a flyer, a QR
+-- code or an Instagram bio. Leads and registrations that come from it are
+-- already attributed — the existing application flow does that. What nothing
+-- records is the step before: somebody opened it and did not register.
+--
+-- Without that, a marketer cannot tell a link nobody clicks from a link many
+-- people click and leave. Those need opposite responses — share it somewhere
+-- else, or fix what the page says — and the two are indistinguishable when
+-- the only number is registrations.
+--
+-- WHAT IS DELIBERATELY NOT STORED
+--
+-- No IP address, no user agent, no cookie that survives the visit, and
+-- nothing that could later be joined to a person. A click is not consent and
+-- an open link is not an identity: somebody who reads a flyer and closes it
+-- has told the centre nothing about themselves, and this table must not
+-- pretend otherwise.
+--
+-- session_id is a random value the browser makes up for one visit. It exists
+-- so that opening the same link twice in a minute is not counted as two
+-- people — not so anybody can be followed. It is meaningless outside this
+-- table and is never joined to leads.
+--
+-- Personal details arrive only through the registration form, on the existing
+-- path, where the person has typed them in on purpose.
+--
+-- RETENTION
+--
+-- Ninety days. Long enough to compare this month with last; short enough that
+-- a table of anonymous browsing does not accumulate for ever. 0007_retention
+-- established the pattern and prune_old_logs is where this is swept.
+-- ============================================================================
+
+BEGIN;
+
+CREATE TABLE IF NOT EXISTS marketing_visits (
+  id          UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+
+  -- The link that was opened. Deliberately the CODE and not a profile id:
+  -- the code is already public (it is in the URL), and storing the id would
+  -- put an internal identifier in a table written by an anonymous request.
+  marketer_code TEXT NOT NULL,
+
+  -- Random, per visit, from the browser. Not a person.
+  session_id  TEXT NOT NULL,
+
+  -- What they were shown, so a marketer can see which promotion drew people.
+  -- Null when nothing was scheduled and the page listed programmes instead.
+  course_id   UUID REFERENCES courses(id) ON DELETE SET NULL,
+
+  -- Where they came from, host only, for "Instagram or WhatsApp?". Never the
+  -- full URL: a referring address can itself carry personal information.
+  referrer_host TEXT,
+
+  created_at  TIMESTAMPTZ NOT NULL DEFAULT NOW()
+);
+
+-- One row per session per link per day. The beacon fires on every page view,
+-- so without this a person refreshing twice is two visits.
+CREATE UNIQUE INDEX IF NOT EXISTS idx_marketing_visits_once
+  ON marketing_visits (marketer_code, session_id, (created_at::date));
+
+-- "How is MY link doing" — the marketer's own panel.
+CREATE INDEX IF NOT EXISTS idx_marketing_visits_code
+  ON marketing_visits (marketer_code, created_at DESC);
+
+-- The admin comparison across staff.
+CREATE INDEX IF NOT EXISTS idx_marketing_visits_created
+  ON marketing_visits (created_at DESC);
+
+-- Written by the service role only, through /api/marketing/visit. No browser
+-- reaches this table directly, and nothing reads it without a session.
+ALTER TABLE marketing_visits ENABLE ROW LEVEL SECURITY;
+
+COMMIT;
+
+
+-- ===========================================================================
+-- 0020_canonical_public_urls
+-- ===========================================================================
+
+-- ============================================================================
+-- 0020 — STORED LINKS NAME THE CENTRE, NOT A DEPLOYMENT
+--
+-- Run AFTER 0019. Data only: no table, column, index or policy changes.
+--
+-- WHY
+--
+-- The brochure links on the public front page read
+--
+--     https://cambridge-mu.vercel.app/brochures/pmp-brochure.pdf
+--
+-- No code builds those. They are stored absolute, written while
+-- NEXT_PUBLIC_APP_URL pointed at a deployment alias — so fixing the code could
+-- not reach them, because the code was never what produced them.
+--
+-- A marketer shares a brochure with a customer and it carries an address that
+-- says nothing about Cambridge, works only while that alias happens to exist,
+-- and looks exactly like the kind of link people are told not to open.
+--
+-- WHAT IS CHANGED, AND WHAT IS NOT
+--
+-- Only the ORIGIN, and only when it is this application under another name: a
+-- *.vercel.app deployment, or a localhost address written by a developer's
+-- build. The path, query and fragment are preserved exactly.
+--
+-- Cloudinary, Supabase storage and every other genuine third-party host are
+-- left completely alone. They are not this application and their addresses are
+-- correct.
+--
+-- SAFETY
+--
+-- The application does not depend on this migration. canonicalisePublicUrl in
+-- lib/url.ts already repairs these on the way out, so every link is correct
+-- whether or not this has been run. This makes the stored data match what is
+-- being served, so the next person to read the table is not misled.
+--
+-- Idempotent: running it twice changes nothing the second time, because the
+-- rows no longer match the WHERE clause.
+-- ============================================================================
+
+BEGIN;
+
+-- Course brochures — the ones on the public front page.
+UPDATE courses
+SET brochure_url = 'https://portal.cambridge.edu.gh'
+  || regexp_replace(brochure_url, '^https?://[^/]+', '')
+WHERE brochure_url ~ '^https?://([^/]*\.)?vercel\.app/'
+   OR brochure_url ~ '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?/';
+
+-- Flyer artwork. Most is on Cloudinary and is untouched by the WHERE clause;
+-- anything uploaded to the application's own public folder is not.
+UPDATE flyers
+SET image_url = 'https://portal.cambridge.edu.gh'
+  || regexp_replace(image_url, '^https?://[^/]+', '')
+WHERE image_url ~ '^https?://([^/]*\.)?vercel\.app/'
+   OR image_url ~ '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?/';
+
+-- Documents: admission letters, certificates, brochures sent on WhatsApp.
+UPDATE documents
+SET file_url = 'https://portal.cambridge.edu.gh'
+  || regexp_replace(file_url, '^https?://[^/]+', '')
+WHERE file_url ~ '^https?://([^/]*\.)?vercel\.app/'
+   OR file_url ~ '^https?://(localhost|127\.0\.0\.1)(:[0-9]+)?/';
+
+COMMIT;
+
+
+-- ===========================================================================
+-- 0021_lead_distribution
+-- ===========================================================================
+
+-- ============================================================================
 -- LEAD DISTRIBUTION AS A CONFIGURED FEATURE
 --
 -- ── WHAT WAS ACTUALLY WRONG ────────────────────────────────────────────────

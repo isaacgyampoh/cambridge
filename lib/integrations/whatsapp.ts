@@ -1,3 +1,4 @@
+import { canonicalGhanaMobile } from '@/lib/phone'
 import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { recordingProviderFor } from '@/lib/messaging'
@@ -6,12 +7,20 @@ import { recordingProviderFor } from '@/lib/messaging'
 const WASENDER_URL = SECRETS.wasenderUrl || 'https://wasenderapi.com/api/send-message'
 
 function normalizePhone(phone: string): string {
-  // WaSender expects digits only in international form: 233XXXXXXXXX
-  // (their own example sends no leading +, and some accounts reject it).
-  return String(phone)
-    .replace(/[^0-9+]/g, '')
-    .replace(/^\+/, '')
-    .replace(/^0/, '233')
+  /*
+   * WaSender expects digits only in international form: 233XXXXXXXXX (their
+   * own example sends no leading +, and some accounts reject it).
+   *
+   * The shared rule decides. This one had no validation at all, so
+   * "00233241234567" was handed over as the sixteen-digit 2330233241234567 —
+   * a number that cannot be delivered to and that nothing reported.
+   *
+   * The signature still returns a string, because the caller treats this as a
+   * formatting step. When the number is not a Ghanaian mobile the digits are
+   * passed through unchanged rather than mangled: the provider then refuses a
+   * number that was already wrong, instead of one this function broke.
+   */
+  return canonicalGhanaMobile(phone) ?? String(phone).replace(/[^0-9]/g, '')
 }
 
 /**

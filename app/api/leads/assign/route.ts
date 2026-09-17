@@ -15,7 +15,9 @@ const Body = z.object({
   leadId: z.string().uuid('That lead reference is not valid.'),
   marketerId: z.string().uuid('Choose a marketer to assign to.'),
   /** A claim only succeeds on an unassigned lead; a reassign takes it over. */
-  mode: z.enum(['assign', 'claim']).optional().default('assign'),
+  mode: z.enum(['assign', 'claim', 'reassign']).optional().default('assign'),
+  /** Why a lead was taken off one person and given to another. */
+  note: z.string().trim().max(400).optional(),
 })
 
 /**
@@ -30,7 +32,7 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
   if (!parsed.success) {
     return NextResponse.json({ error: parsed.error.issues[0]?.message || 'Invalid request.' }, { status: 400 })
   }
-  const { leadId, marketerId, mode } = parsed.data
+  const { leadId, marketerId, mode, note } = parsed.data
 
   // Assigning to somebody with no leads portal is how leads used to disappear.
   if (!await isEligible(marketerId)) {
@@ -42,11 +44,25 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
 
   const sb = createServiceClient()
 
+  /*
+   * Who holds it now, read BEFORE the write.
+   *
+   * This decides whether the history row says 'manual' or 'reassign', and it
+   * is what the activity note names. assign_lead_to records from_marketer
+   * itself and is the authority on what actually changed — this is only the
+   * label, so a stale read here cannot misattribute the lead, only the word
+   * describing the move.
+   */
+  const { data: priorRow } = await sb.from('leads')
+    .select('assigned_to').eq('id', leadId).maybeSingle()
+  const prior = (priorRow?.assigned_to as string | null) || null
+  const isReassignment = !!prior && prior !== marketerId
+
   const { data: changed, error } = await sb.rpc('assign_lead_to', {
     p_lead_id: leadId,
     p_marketer: marketerId,
     p_actor: session.userId,
-    p_reason: mode === 'claim' ? 'claim' : 'manual',
+    p_reason: mode === 'claim' ? 'claim' : isReassignment ? 'reassign' : 'manual',
     p_source: null,
     p_force: mode !== 'claim',
   })
@@ -94,13 +110,43 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
 
   await recordAudit({
     actorId: session.userId,
-    action: mode === 'claim' ? 'lead.claimed' : 'lead.assigned',
+    action: mode === 'claim' ? 'lead.claimed'
+      : isReassignment ? 'lead.reassigned' : 'lead.assigned',
     resource: 'leads',
     resourceId: leadId,
     success: true,
-    metadata: { to: marketerId },
+    // `from` is what makes a reassignment answerable later: this lead was
+    // taken off somebody, and the record says off whom, by whom and why.
+    metadata: { to: marketerId, from: prior, reason: note || null },
     request: req,
   })
+
+  /*
+   * A reassignment also lands on the lead's own timeline, because the people
+   * who need it — the marketer who lost the lead and the one who gained it —
+   * read the lead, not the audit log.
+   *
+   * Best effort: the assignment is committed and a missing note must not
+   * undo it or fail the response.
+   */
+  if (isReassignment) {
+    const [{ data: fromWho }, { data: actor }] = await Promise.all([
+      sb.from('profiles').select('full_name').eq('id', prior).maybeSingle(),
+      sb.from('profiles').select('full_name').eq('id', session.userId).maybeSingle(),
+    ])
+    await sb.from('lead_activities').insert({
+      lead_id: leadId,
+      activity_type: 'note',
+      subject: 'Lead reassigned',
+      description:
+        `Moved from ${fromWho?.full_name || 'a colleague'} to ${marketer?.full_name || 'another colleague'}`
+        + ` by ${actor?.full_name || 'a manager'}.`
+        + (note ? ` Reason: ${note}` : ''),
+      created_by: session.userId,
+    }).then(({ error }) => {
+      if (error) console.error('[leads/assign] could not record the reassignment note:', error.message)
+    })
+  }
 
   // Notifications are queued, not awaited on the response path: the assignment
   // is already committed and a slow SMS provider must not delay the UI or risk

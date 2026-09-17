@@ -1,3 +1,10 @@
+/*
+ * A relative import, deliberately. This module is unit tested directly by the
+ * node test runner, which does not resolve the '@/' path alias — an aliased
+ * import here would make the whole file unloadable in a test, and the number
+ * handling is exactly what most needs testing.
+ */
+import { canonicalGhanaMobile } from '../phone.ts'
 /**
  * Device-native contact actions.
  *
@@ -19,23 +26,9 @@
  * null rather than guessing when it is not a number we recognise.
  */
 export function canonicalContact(raw: string | null | undefined): string | null {
-  const cleaned = String(raw || '')
-    .replace(/\s+/g, '')
-    .replace(/^\+233/, '233')
-    .replace(/^\+/, '')
-    /*
-     * The international dialling prefix, before the single-zero rule below.
-     * Without this, "00233241234567" had its FIRST zero rewritten to 233 and
-     * became 2330233241234567 — a duplicated country code that failed the
-     * check below and produced no link at all, so the button simply was not
-     * there for anybody whose number was stored that way.
-     */
-    .replace(/^00/, '')
-    .replace(/^0/, '233')
-  const digits = cleaned.replace(/[^0-9]/g, '')
-  if (!/^233\d{9}$/.test(digits)) return null
-  return digits
+  return canonicalGhanaMobile(raw)
 }
+
 
 /** How the number is shown to a Ghanaian reader: 0201234567, not 233201234567. */
 export function displayPhone(raw: string | null | undefined): string {

@@ -6,7 +6,8 @@ import { toast } from 'sonner'
 import { SOURCE_COLORS, STATUS_COLORS } from '@/lib/utils'
 import { Users, TrendingUp, UserCheck, Clock, RefreshCw, Search } from 'lucide-react'
 import Link from 'next/link'
-import { Card, Badge, SectionLabel } from '@/components/ui'
+import { Card, Badge, SectionLabel, Button, Field, inputClass, textareaClass } from '@/components/ui'
+import Modal from '@/components/shared/Modal'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import type { LeadActivity } from '@/types'
 
@@ -31,6 +32,14 @@ type Lead = {
 export default function PMAssign() {
   const [filter, setFilter] = useState<'unassigned'|'all'|'today'>('unassigned')
   const [assigning, setAssigning] = useState<string|null>(null)
+  /*
+   * Reassignment is a separate, deliberate act from assigning an unowned
+   * lead: it takes a lead — and the commission on it — off somebody. So it
+   * asks who and why, rather than happening on a stray change of a dropdown.
+   */
+  const [moving, setMoving] = useState<Lead | null>(null)
+  const [moveTo, setMoveTo] = useState('')
+  const [moveWhy, setMoveWhy] = useState('')
   const [search, setSearch] = useState('')
 
   const { data: leads, loading, state, refetch } = useData({
@@ -114,6 +123,47 @@ export default function PMAssign() {
     }
   }
 
+  /**
+   * Move a lead that already has an owner.
+   *
+   * The same endpoint and the same locked write as assigning — it is not a
+   * second assignment path. What differs is that the server sees a prior
+   * owner, records the move as a reassignment rather than an assignment, and
+   * writes the reason onto the lead's timeline where the two people involved
+   * will actually see it.
+   */
+  async function reassign() {
+    if (!moving || !moveTo) return
+    const lead = moving
+    setAssigning(lead.id)
+    try {
+      const res = await fetch('/api/leads/assign', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          leadId: lead.id, marketerId: moveTo,
+          mode: 'reassign',
+          note: moveWhy.trim() || undefined,
+        }),
+      })
+      const d = await res.json().catch(() => null)
+
+      if (!res.ok || !d?.success) {
+        toast.error(d?.error || 'That lead could not be reassigned. Please try again.')
+        refetch()
+        return
+      }
+
+      toast.success('Lead reassigned. The new owner has been notified.')
+      setMoving(null); setMoveTo(''); setMoveWhy('')
+      refetch()
+    } catch {
+      toast.error('We could not reach the server. Check your connection and try again.')
+    } finally {
+      setAssigning(null)
+    }
+  }
+
   const today = new Date().toISOString().slice(0, 10)
   const stats = {
     total: leads.length,
@@ -179,11 +229,24 @@ export default function PMAssign() {
     {
       key: 'assign', header: 'Assign to',
       render: l => l.assignee ? (
+        /*
+         * An owned lead used to render the holder's name as plain text, so a
+         * project manager could assign an unclaimed lead and then had no way
+         * to move one that was already out — even though the API has always
+         * permitted it. The owner is still shown; it is now also a control.
+         */
         <span className="flex items-center gap-1.5">
           <span className="w-5 h-5 rounded-full bg-[var(--accent)] grid place-items-center text-white text-[11px] font-bold shrink-0">
             {l.assignee.full_name?.charAt(0)}
           </span>
-          <span className="text-[var(--ink-soft)]">{l.assignee.full_name?.split(' ')[0]}</span>
+          <span className="text-[var(--ink-soft)] truncate">{l.assignee.full_name?.split(' ')[0]}</span>
+          <button type="button"
+            onClick={() => { setMoving(l); setMoveTo(''); setMoveWhy('') }}
+            className="ml-auto shrink-0 min-h-[44px] px-3 -my-2 text-[13px] font-semibold text-[var(--accent)]
+              hover:underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] rounded-lg"
+            aria-label={`Reassign ${l.full_name}, currently with ${l.assignee.full_name}`}>
+            Reassign
+          </button>
         </span>
       ) : (
         <select
@@ -318,6 +381,58 @@ export default function PMAssign() {
           </Card>
         </div>
       )}
+
+      {/* ── Moving a lead off the person who has it ───────────────────────── */}
+      <Modal open={!!moving} onClose={() => setMoving(null)}>
+        <div className="p-5 sm:p-6">
+          <h2 className="font-display text-lg font-semibold text-[var(--ink)]">
+            Reassign {moving?.full_name}
+          </h2>
+          <p className="text-sm text-[var(--ink-soft)] mt-1 leading-relaxed">
+            This lead is with{' '}
+            <span className="font-medium text-[var(--ink)]">{moving?.assignee?.full_name}</span>.
+            Moving it takes the lead — and any commission on it — off them, so the reason is
+            recorded on the lead and both of them can see it.
+          </p>
+
+          <div className="mt-4 space-y-4">
+            <Field label="Give it to">
+              <select
+                value={moveTo}
+                onChange={e => setMoveTo(e.target.value)}
+                className={inputClass}
+                aria-label="Choose who receives this lead">
+                <option value="" disabled>Choose a colleague…</option>
+                {marketers
+                  .filter(m => m.id !== moving?.assigned_to)
+                  .map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
+              </select>
+            </Field>
+
+            <Field label="Reason (optional)">
+              <textarea
+                value={moveWhy}
+                onChange={e => setMoveWhy(e.target.value)}
+                rows={3}
+                maxLength={400}
+                placeholder="On leave, workload, lead asked for someone else…"
+                className={textareaClass} />
+            </Field>
+          </div>
+
+          <div className="flex flex-wrap gap-2 mt-5">
+            <Button variant="secondary" onClick={() => setMoving(null)} className="flex-1 min-w-[120px]">
+              Cancel
+            </Button>
+            <Button
+              onClick={reassign}
+              disabled={!moveTo || assigning === moving?.id}
+              className="flex-1 min-w-[140px]">
+              {assigning === moving?.id ? 'Moving…' : 'Reassign lead'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }
