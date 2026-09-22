@@ -119,3 +119,24 @@ describe('the safety net runs on its own', () => {
     assert.match(sweep, /minAgeMinutes: 5/)
   })
 })
+
+describe('"everybody switched off" is impossible to miss', () => {
+  const store = readFileSync('lib/leads/distributionStore.ts', 'utf8')
+  const screen = readFileSync('components/leads/LeadDistribution.tsx', 'utf8')
+
+  test('the failure says how many, and where to fix it', () => {
+    assert.match(store, /are switched Off on Settings → Lead distribution/)
+    assert.match(store, /doc\.members\[c\.id\]\?\.active === false/)
+  })
+
+  test('the switch says On or Off in words', () => {
+    // A bare dark pill with no visible knob read the same either way.
+    assert.match(screen, /\{on \? 'On' : 'Off'\}/)
+    assert.match(screen, /absolute left-0\.5 top-0\.5/)
+  })
+
+  test('the settings page warns when everybody is Off', () => {
+    assert.match(screen, /overview\.members\.every\(m => !m\.isActive\)/)
+    assert.match(screen, /Everybody is switched Off — no lead can be assigned/)
+  })
+})

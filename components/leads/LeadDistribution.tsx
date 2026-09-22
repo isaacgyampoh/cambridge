@@ -210,6 +210,21 @@ export default function LeadDistribution({ canEdit = true }: { canEdit?: boolean
       />
 
       {/* ── Anything the operator must know before reading the numbers ────── */}
+      {/*
+        * The state that assigned nothing: everybody who can receive leads is
+        * switched Off. Said at the top, in the saved settings' own terms, so it
+        * is seen here rather than discovered through a lead that went nowhere.
+        */}
+      {overview && overview.members.length > 0 && overview.members.every(m => !m.isActive) && (
+        <Card className="mb-4 !bg-[var(--attention-soft)] border-[var(--attention)]">
+          <p className="text-sm font-semibold text-[var(--ink)]">Everybody is switched Off — no lead can be assigned</p>
+          <p className="text-sm text-[var(--ink-soft)] mt-1">
+            All {overview.members.length} people below are set to Off, so new and waiting leads have nobody to go to.
+            Switch On the people who should receive leads, give them percentages that add up to 100%, and save.
+          </p>
+        </Card>
+      )}
+
       {overview && overview.unconfigured && (
         <Card className="mb-4 !bg-[var(--attention-soft)] border-[var(--attention)]">
           <p className="text-sm font-semibold text-[var(--ink)]">No shares configured</p>
@@ -495,14 +510,29 @@ function PercentInput({ value, onChange, disabled }: {
 function Toggle({ on, onChange, disabled }: {
   on: boolean; onChange: (v: boolean) => void; disabled?: boolean
 }) {
+  /*
+   * A switch that says On or Off in words.
+   *
+   * It was a bare pill: dark when on, and its knob was positioned without a
+   * left edge, so on screen every switch read as the same solid dark shape.
+   * Nobody could tell on from off — and a person clicking each one "to switch
+   * it on" switched everybody off, which is exactly the state that left every
+   * lead unassigned with "Nobody eligible is switched on".
+   */
   return (
     <button
       type="button" role="switch" aria-checked={on} disabled={disabled}
+      aria-label={on ? 'Receiving leads — switch off' : 'Not receiving leads — switch on'}
       onClick={() => onChange(!on)}
-      className={`relative w-12 h-7 rounded-full transition-colors shrink-0 disabled:opacity-60 ${
-        on ? 'bg-[var(--ink)]' : 'bg-[var(--line)]'}`}>
-      <span className={`absolute top-1 w-5 h-5 rounded-full bg-[var(--paper)] transition-transform ${
-        on ? 'translate-x-6' : 'translate-x-1'}`} />
+      className={`inline-flex items-center gap-2 min-h-[44px] -my-2 pr-1 shrink-0 disabled:opacity-60`}>
+      <span className={`relative w-11 h-6 rounded-full transition-colors ${
+        on ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
+        <span className={`absolute left-0.5 top-0.5 w-5 h-5 rounded-full bg-white shadow transition-transform ${
+          on ? 'translate-x-5' : 'translate-x-0'}`} />
+      </span>
+      <span className={`text-[13px] font-semibold w-7 text-left ${on ? 'text-[var(--accent)]' : 'text-[var(--ink-faint)]'}`}>
+        {on ? 'On' : 'Off'}
+      </span>
     </button>
   )
 }

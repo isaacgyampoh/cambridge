@@ -402,7 +402,16 @@ export async function distributeLead(
      */
     const cycle = runCycle(doc.members, candidates, new Date().toISOString())
     if (!cycle) {
-      return { ...none, failure: 'Nobody eligible is switched on for lead distribution.' }
+      /*
+       * Say exactly what the settings say, so the fix is obvious from the
+       * message alone: how many people could receive leads, and that every
+       * one of them is switched Off on Settings -> Lead distribution.
+       */
+      const off = candidates.filter(c => doc.members[c.id]?.active === false).length
+      return {
+        ...none,
+        failure: `All ${candidates.length} people who can receive leads are switched Off on Settings → Lead distribution (${off} Off). Switch on the people who should get leads, give them percentages that add up to 100%, and save.`,
+      }
     }
     const { chosen, weight, method, members } = cycle
     const now = members[chosen]?.lastAt || new Date().toISOString()
