@@ -600,3 +600,30 @@ COMMIT;
 --       FROM leads l JOIN profiles p ON p.id = l.assigned_to
 --      WHERE p.is_active = FALSE;
 -- ============================================================================
+
+
+-- ===========================================================================
+-- 0022_processed_events_source
+-- ===========================================================================
+
+-- ============================================================================
+-- THE PAYSTACK WEBHOOK IS FAILING: processed_events HAS NO `source` COLUMN
+--
+-- Seen in production logs on 2026-09-22:
+--
+--   [paystack] claim_event failed: column "source" of relation
+--   "processed_events" does not exist        -> POST /api/webhooks/paystack 503
+--
+-- Migration 0004 defines processed_events WITH a source column, but uses
+-- CREATE TABLE IF NOT EXISTS — and the table already existed in an older
+-- shape, so the statement was skipped and the column never added. claim_event
+-- inserts it, fails, and every webhook is answered 503.
+--
+-- Paystack retries 503s, and payments are also confirmed by the callback and
+-- the hourly reconcile, so money is not lost — but the webhook, the fastest
+-- and most reliable of the three, is doing nothing.
+--
+-- Safe to run more than once.
+-- ============================================================================
+
+ALTER TABLE processed_events ADD COLUMN IF NOT EXISTS source TEXT;
