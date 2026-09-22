@@ -85,6 +85,7 @@ const CRON_PATHS = [
   '/api/sequences/run',
   '/api/reports/generate',
   '/api/leads/notify-pending',
+  '/api/leads/sweep',
   '/api/leads/onboarding',
   '/api/leads/followup',
   '/api/tiers/recalc',

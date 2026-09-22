@@ -105,6 +105,16 @@ describe('the safety net runs on its own', () => {
     assert.ok(tasks.indexOf("'lead_sweep'") < tasks.indexOf("'sms_queue'"))
   })
 
+  test('the middleware lets the scheduler reach it', () => {
+    /*
+     * Without this the fan-out's request is refused by proxy.ts before the
+     * route ever sees its secret — the safety net would have been scheduled
+     * and never run. The route verifies the secret itself, like every other
+     * entry on the list.
+     */
+    assert.match(readFileSync('proxy.ts', 'utf8'), /'\/api\/leads\/sweep',/)
+  })
+
   test('it leaves brand-new leads to the live path', () => {
     assert.match(sweep, /minAgeMinutes: 5/)
   })
