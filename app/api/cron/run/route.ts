@@ -15,6 +15,8 @@ export const maxDuration = 300
 const TASKS: { name: string; path: string; everyMins: number }[] = [
   // Runs first and most often: everything else queues messages, and this is
   // what actually gets a failed one delivered.
+  // Anything left unassigned for five minutes is distributed by percentage.
+  { name: 'lead_sweep',         path: '/api/leads/sweep',             everyMins: 10 },
   { name: 'sms_queue',          path: '/api/sms/queue',               everyMins: 5 },
   // Greets imported leads. Ten at a time, since each is two WhatsApp round
   // trips and an AI call — the work that used to sit inside the import request.

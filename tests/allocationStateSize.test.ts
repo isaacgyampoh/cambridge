@@ -67,8 +67,14 @@ describe('the compare does not grow with the state', () => {
   test('a reader can tell a settled state from one mid-write', () => {
     // The token moves before the document lands; a mismatch means a write is
     // in flight and deciding now would discard it.
-    assert.match(store, /if \(doc\.version !== version\) return null/)
-    assert.match(store, /if \(!state\) continue/)
+    /*
+     * This used to assert `if (doc.version !== version) return null` — the
+     * exact line that, with no token row on the production database, made
+     * every read mismatch and assigned nothing. The test was pinning the bug.
+     * A mismatch now waits briefly, then bootstraps or heals.
+     */
+    assert.match(store, /const decision = reconcileState\(doc\.version, tokenRaw, attempt\)/)
+    assert.match(store, /if \(decision\.action === 'wait'\)/)
   })
 })
 

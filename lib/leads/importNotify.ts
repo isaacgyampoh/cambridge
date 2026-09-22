@@ -42,7 +42,10 @@ export async function notifyImportBatch(
   /** How many leads each person received in this batch. */
   byMarketer: Map<string, number>,
   reference: string,
+  /** Where the batch came from, in words the recipient reads. */
+  origin: 'import' | 'backlog' = 'import',
 ): Promise<BatchNotifyOutcome> {
+  const fromWhere = origin === 'backlog' ? 'that were waiting to be assigned' : 'from an imported list'
   const out: BatchNotifyOutcome = { people: 0, inApp: 0, sms: 0, email: 0, failures: [] }
   if (byMarketer.size === 0) return out
 
@@ -74,7 +77,7 @@ export async function notifyImportBatch(
       user_id: person.id,
       type: 'lead',
       title: `${many} assigned to you`,
-      body: `${many} from an imported list have been assigned to you. Start with the oldest.`,
+      body: `${many} ${fromWhere} have been assigned to you. Start with the oldest.`,
       link: '/marketer/leads',
     })
     if (inAppError) out.failures.push(`in-app for ${person.id}: ${inAppError.message}`)
@@ -109,8 +112,8 @@ export async function notifyImportBatch(
         const ok = await sendEmail(
           address,
           `${many} assigned to you`,
-          batchHtml(firstName, many, listLink),
-          `Hi ${firstName},\n\n${many} from an imported list have been assigned to you.\n\nOpen them: ${listLink}\n\n— ${BRAND.name}`,
+          batchHtml(firstName, many, listLink, fromWhere),
+          `Hi ${firstName},\n\n${many} ${fromWhere} have been assigned to you.\n\nOpen them: ${listLink}\n\n— ${BRAND.name}`,
         )
         if (ok) out.email++
         else out.failures.push(`email for ${person.id}: provider did not accept`)
@@ -126,7 +129,7 @@ export async function notifyImportBatch(
   return out
 }
 
-function batchHtml(firstName: string, many: string, link: string): string {
+function batchHtml(firstName: string, many: string, link: string, fromWhere = 'from an imported list'): string {
   const esc = (s: string) => String(s)
     .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
     .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
@@ -134,7 +137,7 @@ function batchHtml(firstName: string, many: string, link: string): string {
   return `<div style="font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,sans-serif;max-width:520px;margin:0 auto;padding:32px 24px">
     <div style="font-size:13px;letter-spacing:0.1em;text-transform:uppercase;color:#8C9A94;font-weight:600;margin-bottom:24px">${esc(BRAND.name)}</div>
     <h1 style="font-size:20px;font-weight:600;margin:0 0 8px;color:#10231C">${esc(many)} assigned to you</h1>
-    <p style="font-size:14px;color:#5A6B64;line-height:1.6;margin:0 0 24px">Hi ${esc(firstName)}, these came in from an imported list. Start with the oldest — they have been waiting longest.</p>
+    <p style="font-size:14px;color:#5A6B64;line-height:1.6;margin:0 0 24px">Hi ${esc(firstName)}, these are ${esc(fromWhere)}. Start with the oldest — they have been waiting longest.</p>
     <a href="${esc(link)}" style="display:inline-block;background:#10231C;color:#FFFFFF;text-decoration:none;font-size:14px;font-weight:600;padding:14px 28px;border-radius:12px">Open my leads</a>
     <p style="font-size:12px;color:#8C9A94;line-height:1.6;margin:24px 0 0">You are receiving this because these leads were assigned to you in the ${esc(BRAND.shortName)} portal.</p>
   </div>`

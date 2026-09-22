@@ -146,14 +146,28 @@ export default function AdminLeads() {
     if (diag.poolSize === 0) { toast.error(diag.reason || 'No one is in the lead pool. Add an active marketer first.'); return }
     if (!await confirm({
       title: 'Distribute unassigned leads?',
-      message: `${diag.unassigned} lead${diag.unassigned === 1 ? '' : 's'} will be shared across ${diag.poolSize} marketer${diag.poolSize === 1 ? '' : 's'}, and each will be notified.`,
+      message: `${diag.unassigned} lead${diag.unassigned === 1 ? '' : 's'} will be assigned by the Lead distribution percentages across ${diag.poolSize} ${diag.poolSize === 1 ? 'person' : 'people'}. Leads from a personal link go to that person. Each person gets one message covering all of theirs.`,
       confirmLabel: 'Distribute',
       tone: 'accent',
     })) return
     toast.loading('Assigning…', { id: 'assign' })
-    const d = await fetch('/api/leads/assign-unassigned', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'failed' }))
-    if (d.success) { toast.success(`Assigned ${d.assigned} lead(s).`, { id: 'assign' }); refetch() }
-    else toast.error(d.error || 'Could not assign', { id: 'assign' })
+    const d = await fetch('/api/leads/assign-unassigned', { method: 'POST' }).then(r => r.json()).catch(() => ({ error: 'We could not reach the server.' }))
+    /*
+     * This used to say "Assigned 0 lead(s)" in green when every assignment
+     * had failed — a success message for nothing happening. It now says what
+     * happened, including what did not and why.
+     */
+    if (!d.success) { toast.error(d.error || 'Could not assign.', { id: 'assign' }); return }
+    const who = (d.byPerson || []).map((p: { name: string; count: number }) => `${p.name.split(' ')[0]} ${p.count}`).join(', ')
+    if (d.assigned > 0) {
+      toast.success(`Assigned ${d.assigned} lead${d.assigned === 1 ? '' : 's'}${who ? ` — ${who}` : ''}.`, { id: 'assign' })
+    } else {
+      toast.dismiss('assign')
+    }
+    if (d.failed > 0) toast.error(`${d.failed} could not be assigned: ${(d.reasons || [])[0] || 'no reason recorded'}`)
+    if (d.remaining > 0) toast.info(`${d.remaining} still waiting — press Distribute again to continue.`)
+    if (d.assigned === 0 && !d.failed) toast.info('No unassigned leads to distribute.')
+    refetch()
   }
 
 

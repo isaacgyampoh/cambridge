@@ -315,3 +315,49 @@ export function runCycle(
     members,
   }
 }
+
+/* ── Reconciling the version token with the document ──────────────────────── */
+
+export type ReconcileDecision =
+  | { action: 'proceed'; version: number }
+  /** The token row does not exist: adopt the document's version as the token. */
+  | { action: 'bootstrap'; version: number }
+  /** A write may be in flight: read again shortly. */
+  | { action: 'wait' }
+  /** Still mismatched after waiting: a writer died between its two steps. */
+  | { action: 'heal'; from: string; version: number }
+
+/**
+ * What to do with the document's version and the token as read.
+ *
+ * ── THE BUG THIS EXISTS FOR ────────────────────────────────────────────────
+ *
+ * The reader used to treat ANY mismatch as "a write is landing, look again",
+ * and a missing token row as version 0. The production document had been
+ * written by the previous scheme, which kept its version inside the document
+ * and was already well past zero — and the token row did not exist yet. So
+ * every read mismatched, every attempt looked again, all six gave up, and NO
+ * LEAD WAS ASSIGNED. Saving the shares failed the same way.
+ *
+ * The test suite started every store empty, which is the one state in which
+ * this cannot happen. The same is true of a writer that bumps the token and
+ * then fails to write the document: the token is left permanently ahead and
+ * nothing can ever read a settled state again.
+ *
+ * A mismatch is now only ever temporary. A missing token adopts the
+ * document's version; a mismatch that outlasts a short wait is a writer that
+ * did not finish, and the token is moved back into line with the document.
+ */
+export function reconcileState(
+  docVersion: number,
+  tokenRaw: string | null,
+  attempt: number,
+  maxWaits = 3,
+): ReconcileDecision {
+  if (tokenRaw === null) return { action: 'bootstrap', version: docVersion }
+  const token = Number(tokenRaw)
+  if (!Number.isFinite(token)) return { action: 'heal', from: tokenRaw, version: docVersion }
+  if (token === docVersion) return { action: 'proceed', version: token }
+  if (attempt < maxWaits) return { action: 'wait' }
+  return { action: 'heal', from: tokenRaw, version: docVersion }
+}

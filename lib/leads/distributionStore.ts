@@ -1,7 +1,7 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import type { Candidate } from '@/lib/leads/eligibility'
-import { runCycle } from '@/lib/leads/distribution'
+import { runCycle, reconcileState } from '@/lib/leads/distribution'
 
 /**
  * WHERE THE LEAD DISTRIBUTION CONFIGURATION AND ITS SCHEDULER STATE LIVE.
@@ -136,24 +136,51 @@ type ReadResult = { doc: DistributionDoc; version: number }
 async function readState(): Promise<ReadResult | null> {
   const sb = createServiceClient()
 
-  const { data, error } = await sb.from('settings')
-    .select('key, value').in('key', [KEY, VERSION_KEY])
+  for (let attempt = 0; ; attempt++) {
+    const { data, error } = await sb.from('settings')
+      .select('key, value').in('key', [KEY, VERSION_KEY])
 
-  // A failed read is not an empty configuration.
-  if (error) throw new Error(error.message)
+    // A failed read is not an empty configuration.
+    if (error) throw new Error(error.message)
 
-  const rows = new Map((data || []).map(r => [r.key as string, r.value as string | null]))
-  const doc = parseDoc(rows.get(KEY) ?? null)
-  const version = Number(rows.get(VERSION_KEY) ?? 0) || 0
+    const rows = new Map((data || []).map(r => [r.key as string, r.value as string | null]))
+    const doc = parseDoc(rows.get(KEY) ?? null)
+    const tokenRaw = rows.has(VERSION_KEY) ? String(rows.get(VERSION_KEY) ?? '') : null
 
-  /*
-   * The token is bumped before the document is written, so a mismatch means
-   * another request is between those two steps. Its write is about to land;
-   * deciding from what is here now would discard it.
-   */
-  if (doc.version !== version) return null
+    const decision = reconcileState(doc.version, tokenRaw, attempt)
 
-  return { doc, version }
+    if (decision.action === 'proceed') return { doc, version: decision.version }
+
+    if (decision.action === 'wait') {
+      await new Promise(r => setTimeout(r, 120))
+      continue
+    }
+
+    if (decision.action === 'bootstrap') {
+      /*
+       * No token yet — a database written by the previous scheme, or a new
+       * one. Adopt the document's own version. onConflict makes a second
+       * request doing the same thing harmless: both write the same value.
+       */
+      const { error: bootError } = await sb.from('settings')
+        .upsert({ key: VERSION_KEY, value: String(decision.version) }, { onConflict: 'key' })
+      if (bootError) throw new Error(bootError.message)
+      return { doc, version: decision.version }
+    }
+
+    /*
+     * heal: a mismatch that outlasted the wait is a writer that moved the
+     * token and never wrote the document. Put the token back in line with
+     * the document — conditionally, so if somebody else healed or wrote in
+     * the meantime, this simply reads again.
+     */
+    await sb.from('settings')
+      .update({ value: String(decision.version) })
+      .eq('key', VERSION_KEY)
+      .eq('value', decision.from)
+    console.warn('[distribution] healed a version token that had drifted from its document')
+    if (attempt > 6) throw new Error('The allocation state could not be reconciled.')
+  }
 }
 
 /**
@@ -179,24 +206,17 @@ async function writeState(next: DistributionDoc, version: number): Promise<boole
   const sb = createServiceClient()
   const nextVersion = version + 1
 
-  if (version === 0) {
-    /*
-     * No token yet. Create it; a second request creating it at the same
-     * moment updates instead of failing on the unique key, and simply loses
-     * the next compare.
-     */
-    const { error } = await sb.from('settings')
-      .upsert({ key: VERSION_KEY, value: String(nextVersion) }, { onConflict: 'key' })
-    if (error) throw new Error(error.message)
-  } else {
-    const { data, error } = await sb.from('settings')
-      .update({ value: String(nextVersion) })
-      .eq('key', VERSION_KEY)
-      .eq('value', String(version))     // ← the compare, always a few bytes
-      .select('key')
-    if (error) throw new Error(error.message)
-    if ((data?.length ?? 0) === 0) return false   // somebody else got there first
-  }
+  /*
+   * readState guarantees the token row exists — it bootstraps one when it is
+   * missing — so this is always a compare, never an unconditional write.
+   */
+  const { data, error } = await sb.from('settings')
+    .update({ value: String(nextVersion) })
+    .eq('key', VERSION_KEY)
+    .eq('value', String(version))     // ← the compare, always a few bytes
+    .select('key')
+  if (error) throw new Error(error.message)
+  if ((data?.length ?? 0) === 0) return false   // somebody else got there first
 
   /*
    * The token is ours, so this write is uncontended by construction. The
