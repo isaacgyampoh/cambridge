@@ -111,56 +111,7 @@ export async function sendWelcomeEmail(to: string, name: string, course: string)
  return sendEmail(to, `Welcome to ${BRAND.name}!`, html)
 }
 
-export async function sendUploadedAdmissionLetter(to: string, name: string, course: string, admissionNo: string, letterUrl: string) {
-  // A short covering email that presents the admission letter the school
-  // uploaded (not a generated template). The letter itself is the attachment/link.
-  const html = `
-  <div style="font-family:-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;max-width:560px;margin:0 auto;padding:32px 28px;color:#10231C">
-    <div style="background:#0B3B2E;padding:22px 28px;border-radius:12px 12px 0 0;text-align:center;margin:-32px -28px 24px">
-      <h1 style="color:#fff;margin:0;font-size:18px;letter-spacing:0.3px">CAMBRIDGE CENTER OF EXCELLENCE</h1>
-    </div>
-    <p style="font-size:15px;line-height:1.7">Dear ${name},</p>
-    <p style="font-size:15px;line-height:1.7">Congratulations! We are pleased to admit you to <b>${course}</b>.${admissionNo ? ` Your admission number is <b>${admissionNo}</b>.` : ''}</p>
-    <p style="font-size:15px;line-height:1.7">Your official admission letter is attached below. Please download and keep it safe.</p>
-    <p style="margin:22px 0"><a href="${letterUrl}" style="background:#0B3B2E;color:#fff;text-decoration:none;padding:12px 24px;border-radius:10px;font-weight:600;font-size:14px">Download your admission letter</a></p>
-    <p style="font-size:14px;line-height:1.7;color:#5A6B64">We warmly welcome you to the ${BRAND.name} community.</p>
-    <p style="font-size:14px;line-height:1.5;margin-top:20px">Sincerely,<br><b>Admissions Office</b><br>${BRAND.name}</p>
-  </div>`
-  return sendEmail(to, `Admission Letter — ${course} | ${BRAND.name}`, html)
-}
 
-export async function sendAdmissionLetter(to: string, name: string, course: string, admissionNo: string, startDate?: string, pdfUrl?: string) {
- const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
- const html =`
- <div style="font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:0 auto;background:#ffffff">
-   <div style="background:#0B3B2E;padding:32px 40px;text-align:center">
-     <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;font-family:Arial,sans-serif">CAMBRIDGE CENTER OF EXCELLENCE</h1>
-     <p style="color:#bfe3e6;margin:6px 0 0;font-size:13px;font-family:Arial,sans-serif;letter-spacing:2px">LETTER OF ADMISSION</p>
-   </div>
-   <div style="padding:40px">
-     <p style="color:#5A6B64;margin:0 0 24px;font-size:13px;font-family:Arial,sans-serif">${today}</p>
-     <p style="color:#10231C;font-size:15px;line-height:1.7">Dear <strong>${name}</strong>,</p>
-     <p style="color:#10231C;font-size:15px;line-height:1.7">Following the successful completion of your registration, we are delighted to formally offer you admission into the following programme at ${BRAND.name}:</p>
-     <div style="background:#F6F8F7;border-left:4px solid #127A5A;padding:20px 24px;margin:24px 0">
-       <table style="width:100%;font-family:Arial,sans-serif;font-size:14px;color:#10231C">
-         <tr><td style="padding:5px 0;color:#5A6B64;width:150px">Admission Number</td><td style="padding:5px 0;font-weight:bold">${admissionNo}</td></tr>
-         <tr><td style="padding:5px 0;color:#5A6B64">Programme</td><td style="padding:5px 0;font-weight:bold">${course}</td></tr>
-         <tr><td style="padding:5px 0;color:#5A6B64">Candidate</td><td style="padding:5px 0;font-weight:bold">${name}</td></tr>
-         ${startDate ? `<tr><td style="padding:5px 0;color:#5A6B64">Start Date</td><td style="padding:5px 0;font-weight:bold">${startDate}</td></tr>` : ''}
-       </table>
-     </div>
-     <p style="color:#10231C;font-size:15px;line-height:1.7">Your registration fee has been received. Our team will be in touch shortly with your class schedule, learning materials, and joining details. Please keep your admission number safe — you will need it for all correspondence.</p>
-     <p style="color:#10231C;font-size:15px;line-height:1.7">We warmly welcome you to the ${BRAND.name} community and look forward to supporting your professional journey.</p>
-     <p style="color:#10231C;font-size:15px;line-height:1.7;margin-top:32px">Yours sincerely,</p>
-     <p style="color:#10231C;font-size:15px;line-height:1.5;margin-top:4px"><strong>Admissions Office</strong><br><span style="color:#5A6B64;font-size:14px">${BRAND.name}</span></p>
-     ${pdfUrl ? `<p style="margin:28px 0 4px"><a href="${pdfUrl}" style="background:#0B3B2E;color:#fff;text-decoration:none;padding:11px 22px;border-radius:10px;font-weight:600;font-size:14px;font-family:Arial,sans-serif">Download your admission letter (PDF)</a></p>` : ''}
-   </div>
-   <div style="background:#fafbfc;padding:20px 40px;border-top:1px solid #eaedf1;text-align:center">
-     <p style="color:#97a1b0;font-size:12px;font-family:Arial,sans-serif;margin:0">This is an official admission letter from ${BRAND.name}.<br>For enquiries, reply to this email or contact the Admissions Office.</p>
-   </div>
- </div>`
- return sendEmail(to,`Admission Letter — ${course} | Cambridge CE`, html)
-}
 
 export async function sendPaymentReceipt(to: string, name: string, amount: string, receipt: string, course: string) {
  const html =`
@@ -228,4 +179,73 @@ export async function sendOTPEmail(to: string, name: string, code: string) {
   </div>`
   const text = `Your Cambridge CE login code is ${code}. It expires in ${otpValidityPhrase()}. If you didn't request it, change your PIN and tell your administrator.`
   return sendEmail(to, `${code} is your login code — Cambridge CE`, html, text)
+}
+
+/**
+ * Email an admission letter. Called ONLY from lib/admissions/letter.ts, on an
+ * explicit send by an authorised person.
+ *
+ * ── WHY THERE IS ONE OF THESE NOW, NOT TWO ─────────────────────────────────
+ *
+ * There were two: sendUploadedAdmissionLetter mailed whatever PDF was stored
+ * in the document library — the old letter, with old fees and no date — and
+ * sendAdmissionLetter wrote its own HTML copy of the letter with no fee, a
+ * date from the server clock, and "Your registration fee has been received"
+ * whether or not it had been. Both ran automatically.
+ *
+ * The first is gone. This one takes exactly the figures the PDF prints —
+ * the same date, the same mode, the same fee — so the email and the
+ * attachment cannot disagree, and nothing in it is computed here.
+ */
+export async function emailAdmissionLetter(args: {
+  to: string
+  name: string
+  course: string
+  admissionNo: string
+  letterDate: string
+  mode: string
+  fee: string
+  registrationFee?: string | null
+  startDate?: string | null
+  pdfUrl: string
+}): Promise<boolean> {
+  const esc = (v: string) => String(v)
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
+  const row = (label: string, value: string) =>
+    `<tr><td style="padding:5px 0;color:#5A6B64;width:150px">${esc(label)}</td><td style="padding:5px 0;font-weight:bold">${esc(value)}</td></tr>`
+
+  const html = `
+ <div style="font-family:Georgia,'Times New Roman',serif;max-width:640px;margin:0 auto;background:#ffffff">
+   <div style="background:#0B3B2E;padding:32px 40px;text-align:center">
+     <h1 style="color:#ffffff;margin:0;font-size:22px;letter-spacing:0.5px;font-family:Arial,sans-serif">CAMBRIDGE CENTER OF EXCELLENCE</h1>
+     <p style="color:#bfe3e6;margin:6px 0 0;font-size:13px;font-family:Arial,sans-serif;letter-spacing:2px">LETTER OF ADMISSION</p>
+   </div>
+   <div style="padding:40px">
+     <p style="color:#5A6B64;margin:0 0 24px;font-size:13px;font-family:Arial,sans-serif">${esc(args.letterDate)}</p>
+     <p style="color:#10231C;font-size:15px;line-height:1.7">Dear <strong>${esc(args.name)}</strong>,</p>
+     <p style="color:#10231C;font-size:15px;line-height:1.7">We are delighted to formally offer you admission into the following programme at ${esc(BRAND.name)}:</p>
+     <div style="background:#F6F8F7;border-left:4px solid #127A5A;padding:20px 24px;margin:24px 0">
+       <table style="width:100%;font-family:Arial,sans-serif;font-size:14px;color:#10231C">
+         ${row('Admission Number', args.admissionNo)}
+         ${row('Programme', args.course)}
+         ${row('Study Mode', args.mode)}
+         ${row('Candidate', args.name)}
+         ${row('Programme Fee', args.fee)}
+         ${args.registrationFee ? row('Registration Fee', args.registrationFee) : ''}
+         ${args.startDate ? row('Start Date', args.startDate) : ''}
+       </table>
+     </div>
+     <p style="color:#10231C;font-size:15px;line-height:1.7">Our team will be in touch shortly with your class schedule, learning materials and joining details. Please keep your admission number safe — you will need it for all correspondence. The fees above are those current on the date of this letter.</p>
+     <p style="color:#10231C;font-size:15px;line-height:1.7">We warmly welcome you to the ${esc(BRAND.name)} community and look forward to supporting your professional journey.</p>
+     <p style="color:#10231C;font-size:15px;line-height:1.7;margin-top:32px">Yours sincerely,</p>
+     <p style="color:#10231C;font-size:15px;line-height:1.5;margin-top:4px"><strong>Admissions Office</strong><br><span style="color:#5A6B64;font-size:14px">${esc(BRAND.name)}</span></p>
+     <p style="margin:28px 0 4px"><a href="${esc(args.pdfUrl)}" style="background:#0B3B2E;color:#fff;text-decoration:none;padding:11px 22px;border-radius:10px;font-weight:600;font-size:14px;font-family:Arial,sans-serif">Download your admission letter (PDF)</a></p>
+   </div>
+   <div style="background:#fafbfc;padding:20px 40px;border-top:1px solid #eaedf1;text-align:center">
+     <p style="color:#97a1b0;font-size:12px;font-family:Arial,sans-serif;margin:0">This is an official admission letter from ${esc(BRAND.name)}.<br>For enquiries, reply to this email or contact the Admissions Office.</p>
+   </div>
+ </div>`
+
+  return sendEmail(args.to, `Admission Letter — ${args.course} | Cambridge CE`, html)
 }

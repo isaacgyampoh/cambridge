@@ -3,6 +3,7 @@ import { useData, mutate } from '@/hooks/useData'
 import { displayPhone, telHref, whatsappHref } from '@/lib/ui/contact'
 import { displayName } from '@/lib/ui/name'
 import { useState } from 'react'
+import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
 import { formatDateTime } from '@/lib/utils'
 import { Phone, Mail, MessageSquare } from 'lucide-react'
@@ -79,17 +80,99 @@ export default function AdminAdmissions() {
     orderBy: 'created_at', orderAsc: false, limit: 300,
   })
 
+  /*
+   * ── ADMISSION LETTERS ARE SENT BY A PERSON, NEVER BY THE SYSTEM ─────────
+   *
+   * Admitting used to email the letter in the same request, and paying used
+   * to send one before anybody here saw it — an old stored letter with old
+   * fees and no date. Now the letter is opened, read and sent from here, and
+   * nowhere else.
+   */
+  type LetterPreview = {
+    studentName: string | null; email: string | null; programme: string | null
+    modeLabel: string | null; fee: string | null; registrationFee: string | null
+    letterDate: string; startDate: string | null; admissionNumber: string | null
+    alreadySent: boolean; sentAt: string | null; blocked: string | null
+  }
+  const [letterFor, setLetterFor] = useState<string | null>(null)
+  const [letter, setLetter] = useState<LetterPreview | null>(null)
+  const [letterError, setLetterError] = useState<string | null>(null)
+  const [letterBusy, setLetterBusy] = useState<'loading' | 'review' | 'send' | null>(null)
+  const [reviewUrl, setReviewUrl] = useState<string | null>(null)
+  const [confirmResend, setConfirmResend] = useState(false)
+
+  async function openLetter(admissionId: string) {
+    setLetterFor(admissionId); setLetter(null); setLetterError(null)
+    setReviewUrl(null); setConfirmResend(false); setLetterBusy('loading')
+    try {
+      const res = await fetch(`/api/admissions/letter?admissionId=${admissionId}`)
+      const d = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(d?.error || 'The admission letter could not be prepared.')
+      setLetter(d.preview)
+    } catch (e) {
+      setLetterError(e instanceof Error ? e.message : 'The admission letter could not be prepared.')
+    } finally { setLetterBusy(null) }
+  }
+
+  function closeLetter() {
+    setLetterFor(null); setLetter(null); setLetterError(null); setReviewUrl(null); setConfirmResend(false)
+  }
+
+  async function reviewLetter() {
+    if (!letterFor) return
+    setLetterBusy('review')
+    try {
+      const res = await fetch('/api/admissions/letter', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ admissionId: letterFor, action: 'review' }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok) throw new Error(d?.error || 'The letter could not be generated for review.')
+      setReviewUrl(d.pdfUrl)
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'The letter could not be generated for review.')
+    } finally { setLetterBusy(null) }
+  }
+
+  async function sendLetter() {
+    if (!letterFor || !letter) return
+    setLetterBusy('send')
+    try {
+      const res = await fetch('/api/admissions/letter', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          admissionId: letterFor, action: 'send', confirm: true,
+          resend: letter.alreadySent && confirmResend,
+        }),
+      })
+      const d = await res.json().catch(() => null)
+      if (!res.ok) {
+        if (d?.needsResendConfirmation) setLetter(l => l ? { ...l, alreadySent: true } : l)
+        throw new Error(d?.error || 'The admission letter was not sent.')
+      }
+      toast.success(`Admission letter sent to ${letter.email}`)
+      if (d.recorded === false) {
+        toast.warning('The letter went, but could not be marked as sent. Tell an administrator.')
+      }
+      closeLetter()
+      refetch()
+    } catch (e) {
+      toast.error(e instanceof Error ? e.message : 'The admission letter was not sent.')
+    } finally { setLetterBusy(null) }
+  }
+
   async function updateStatus(id: string, status: string) {
     setActing(id)
     try {
       if (status === 'admitted') {
-        // Admit + auto-send admission letter
+        // Admitting records the decision only. The letter is sent separately,
+        // by a person, after reading it.
         const res = await fetch('/api/admissions/admit', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ admissionId: id }),
         }).then(r => r.json())
         if (res.error) throw new Error(res.error)
-        toast.success(res.emailed ? 'Admitted — admission letter sent' : 'Admitted (no email on file)')
+        toast.success('Admitted. No letter has been sent — use "Send admission letter" when it is ready.')
       } else {
         await mutate('PATCH', 'admissions', { status }, [{ col: 'id', val: id }])
         toast.success('Status updated')
@@ -182,6 +265,13 @@ export default function AdminAdmissions() {
               { label: 'Grant a partial scholarship', onClick: () => setScholarship(a.id, 'partial') },
             )
           }
+          if (a.status === 'admitted') {
+            menu.unshift({
+              label: 'Send admission letter',
+              onClick: () => openLetter(a.id),
+              hint: 'Review the current fee and date, then send',
+            })
+          }
           if (!['rejected', 'admitted'].includes(a.status)) {
             menu.push({
               label: 'Reject this admission',
@@ -222,6 +312,11 @@ export default function AdminAdmissions() {
                       {busy ? 'Working…' : step.label}
                     </Button>
                   )}
+                  {a.status === 'admitted' && (
+                    <Button size="sm" variant="secondary" onClick={() => openLetter(a.id)}>
+                      Send letter
+                    </Button>
+                  )}
                   {tel && (
                     <a href={tel} aria-label={`Call ${displayName(lead?.full_name)}`}
                       className="w-10 h-10 grid place-items-center rounded-full flex-shrink-0
@@ -260,6 +355,95 @@ export default function AdminAdmissions() {
           )
       }}
       />
+
+      {/* ── Review and send an admission letter ─────────────────────────── */}
+      <Modal open={!!letterFor} onClose={closeLetter}>
+        <div className="p-5 sm:p-6">
+          <h2 className="font-display text-lg font-semibold text-[var(--ink)]">Send admission letter?</h2>
+
+          {letterBusy === 'loading' && !letter && (
+            <p className="text-sm text-[var(--ink-soft)] mt-3">Preparing the letter from the current record…</p>
+          )}
+
+          {letterError && (
+            <p className="text-sm text-[var(--danger)] mt-3">{letterError}</p>
+          )}
+
+          {letter && (
+            <>
+              <p className="text-sm text-[var(--ink-soft)] mt-1">
+                Built now from the current course fee and today&rsquo;s date. Check it before it goes.
+              </p>
+
+              <dl className="mt-4 grid grid-cols-[auto_1fr] gap-x-4 gap-y-2 text-sm">
+                <dt className="text-[var(--ink-faint)]">Student</dt>
+                <dd className="font-medium text-[var(--ink)]">{letter.studentName || '—'}</dd>
+                <dt className="text-[var(--ink-faint)]">Programme</dt>
+                <dd className="font-medium text-[var(--ink)]">{letter.programme || '—'}</dd>
+                <dt className="text-[var(--ink-faint)]">Study mode</dt>
+                <dd className="font-medium text-[var(--ink)]">{letter.modeLabel || '—'}</dd>
+                <dt className="text-[var(--ink-faint)]">Fee</dt>
+                <dd className="font-semibold text-[var(--ink)]">{letter.fee || '—'}</dd>
+                {letter.registrationFee && (<>
+                  <dt className="text-[var(--ink-faint)]">Registration</dt>
+                  <dd className="font-medium text-[var(--ink)]">{letter.registrationFee}</dd>
+                </>)}
+                <dt className="text-[var(--ink-faint)]">Letter date</dt>
+                <dd className="font-medium text-[var(--ink)]">{letter.letterDate}</dd>
+                {letter.startDate && (<>
+                  <dt className="text-[var(--ink-faint)]">Start date</dt>
+                  <dd className="font-medium text-[var(--ink)]">{letter.startDate}</dd>
+                </>)}
+                <dt className="text-[var(--ink-faint)]">Admission no.</dt>
+                <dd className="font-medium text-[var(--ink)]">{letter.admissionNumber || '—'}</dd>
+                <dt className="text-[var(--ink-faint)]">Recipient</dt>
+                <dd className="font-medium text-[var(--ink)] break-all">{letter.email || '—'}</dd>
+              </dl>
+
+              {letter.blocked && (
+                <p className="mt-4 rounded-[var(--radius-control)] bg-[var(--attention-soft)] p-3 text-sm text-[var(--ink)]">
+                  {letter.blocked}
+                </p>
+              )}
+
+              {!letter.blocked && letter.alreadySent && (
+                <label className="mt-4 flex items-start gap-3 rounded-[var(--radius-control)] bg-[var(--attention-soft)] p-3 text-sm text-[var(--ink)] cursor-pointer">
+                  <input type="checkbox" className="mt-0.5 w-5 h-5 shrink-0"
+                    checked={confirmResend} onChange={e => setConfirmResend(e.target.checked)} />
+                  <span>
+                    A letter was already sent to this student
+                    {letter.sentAt ? ` on ${new Date(letter.sentAt).toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })}` : ''}.
+                    Tick to send it again.
+                  </span>
+                </label>
+              )}
+
+              {reviewUrl && (
+                <p className="mt-4 text-sm">
+                  <a href={reviewUrl} target="_blank" rel="noopener noreferrer"
+                    className="font-semibold text-[var(--accent)] underline">
+                    Open the letter (PDF) — not sent
+                  </a>
+                </p>
+              )}
+            </>
+          )}
+
+          <div className="flex flex-wrap gap-2 mt-5">
+            <Button variant="secondary" onClick={closeLetter} className="flex-1 min-w-[100px]">Cancel</Button>
+            <Button variant="secondary" onClick={reviewLetter}
+              disabled={!letter || !!letter.blocked || letterBusy !== null}
+              className="flex-1 min-w-[120px]">
+              {letterBusy === 'review' ? 'Generating…' : 'Review letter'}
+            </Button>
+            <Button onClick={sendLetter}
+              disabled={!letter || !!letter.blocked || letterBusy !== null || (letter.alreadySent && !confirmResend)}
+              className="flex-1 min-w-[160px]">
+              {letterBusy === 'send' ? 'Sending…' : letter?.alreadySent ? 'Send again' : 'Send admission letter'}
+            </Button>
+          </div>
+        </div>
+      </Modal>
     </div>
   )
 }

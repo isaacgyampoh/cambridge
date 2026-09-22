@@ -1,12 +1,6 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
-import { renderPersonalisedDoc } from '@/lib/documentFill'
-import { generateAdmissionPDF } from '@/lib/generateAdmissionPDF'
-import { sendWelcomeEmail, sendAdmissionLetter, sendUploadedAdmissionLetter } from '@/lib/integrations/email'
-import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
-import { queueSMS } from '@/lib/notifications/sms'
-import { resolveDocument } from '@/lib/documents/resolve'
-import { parseClassMode, classModeLabel, type ClassMode } from '@/lib/classMode'
+import { parseClassMode, type ClassMode } from '@/lib/classMode'
 import { recordAudit } from '@/lib/audit'
 import { lookup } from '@/lib/db/lookup'
 import { releaseJob } from '@/lib/messageJobs'
@@ -288,12 +282,26 @@ export async function completeApplication(
     admissionNo = existingAdm.admission_number || ''
   }
 
-  // ── 5. Admission letter and email ──
-  if ((app.phone || app.email) && !letterAlreadySent && classMode) {
-    await deliverAdmissionLetter({
-      applicationId, leadId, app, course, classMode, admissionNo,
-    })
-  }
+  /*
+   * ── 5. NO ADMISSION LETTER IS SENT FROM HERE. ─────────────────────────
+   *
+   * This step used to hand off to the letter delivery routine, and it ran on
+   * every paid registration — from the Paystack callback, from the webhook,
+   * and from the hourly paystack_reconcile cron. It picked an admission
+   * letter out of the document library and, unless that file happened to be
+   * a field-mapped template, emailed and WhatsApp'd the stored PDF exactly as
+   * uploaded.
+   *
+   * The stored PDF was an old letter: old fees, no date. Every student who
+   * paid was sent it automatically, before anybody in Admissions had looked.
+   *
+   * An admission letter is an official document and is now only ever sent by
+   * an authorised person pressing Send on the admission record, which builds
+   * it from the current course fee and today's date — see
+   * lib/admissions/letter.ts. Paying creates the admission; it does not send
+   * the letter.
+   */
+  void letterAlreadySent
 
   // ── 6. Fee ledger ──
   await createFeeLedger(applicationId, leadId, app, course, classMode)
@@ -304,209 +312,8 @@ export async function completeApplication(
   return { ok: true, admissionNumber: admissionNo || null }
 }
 
-// ── Admission letter ────────────────────────────────────────────────────────
-
 type AppRow = Record<string, unknown> & {
   full_name?: string; email?: string | null; phone?: string | null; course_id?: string | null
-}
-
-async function deliverAdmissionLetter(args: {
-  applicationId: string
-  leadId: string
-  app: AppRow
-  course?: { id: string; name: string } | undefined
-  classMode: ClassMode
-  admissionNo: string
-}): Promise<void> {
-  const { applicationId, leadId, app, course, classMode, admissionNo } = args
-  const sb = createServiceClient()
-  const letterCourse = course?.name || 'your programme'
-  const first = String(app.full_name || '').split(' ')[0] || 'there'
-
-  if (app.email) {
-    try { await sendWelcomeEmail(app.email, String(app.full_name || ''), letterCourse) } catch { /* not fatal */ }
-  }
-
-  // The start date of the next batch FOR THIS CLASS MODE. Picking the earliest
-  // batch of any mode could print an in-person start date on a virtual letter.
-  let startDate: string | undefined
-  try {
-    const { data: batch } = await sb.from('batches')
-      .select('start_date, class_type')
-      .eq('course_id', app.course_id)
-      .eq('class_type', classMode === 'online' ? 'online' : 'physical')
-      .order('start_date', { ascending: true }).limit(1).maybeSingle()
-    if (batch?.start_date) {
-      startDate = new Date(batch.start_date).toLocaleDateString('en-GB', {
-        weekday: 'long', day: 'numeric', month: 'long', year: 'numeric',
-      })
-    }
-  } catch { /* start date is optional on the letter */ }
-
-  // ONE resolver, mode-aware, shared with brochures.
-  let letterUrl: string | null = null
-  let usedUploaded = false
-
-  const doc = await resolveDocument({
-    type: 'admission_letter', courseId: app.course_id as string | null, classMode,
-  })
-
-  if (doc) {
-    letterUrl = doc.fileUrl
-    usedUploaded = true
-    if (doc.isTemplate) {
-      const personalised = await renderPersonalisedDoc({
-        templateUrl: doc.fileUrl,
-        positions: doc.fieldPositions || null,
-        folder: 'admission-letters',
-        filename: String(app.full_name || 'student'),
-        values: {
-          full_name: String(app.full_name || ''),
-          admission_number: admissionNo,
-          course: letterCourse,
-          batch: '',
-          date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-          email: String(app.email || ''),
-          phone: String(app.phone || ''),
-          amount: '', receipt_number: '',
-        },
-      })
-      if (personalised) letterUrl = personalised
-    }
-  }
-
-  if (!letterUrl) {
-    letterUrl = await generateAdmissionPDF({
-      name: String(app.full_name || 'Student'),
-      course: letterCourse,
-      admissionNo,
-      startDate,
-      delivery: classMode,        // canonical
-    })
-  }
-
-  /*
-   * Record WHICH letter was produced, on the admission row itself.
-   *
-   * The reported bug is an online registrant receiving the physical letter.
-   * Until now the only trace was a boolean, so a report of it could be neither
-   * confirmed nor disproved. Storing the mode, the template and the file makes
-   * the mismatch query in migration 0009 possible:
-   *
-   *   WHERE ad.class_mode <> a.delivery   -- must return no rows
-   *
-   * Written whether or not delivery later succeeds: what letter we generated
-   * and whether it arrived are separate facts.
-   */
-  const letterSource = doc
-    ? (doc.isTemplate ? 'uploaded_template' : 'uploaded')
-    : 'generated'
-
-  await sb.from('admissions').update({
-    class_mode: classMode,
-    letter_template_id: doc?.id ?? null,
-    letter_template_name: doc?.name ?? null,
-    letter_url: letterUrl,
-    letter_source: letterSource,
-    letter_generated_at: new Date().toISOString(),
-  }).eq('lead_id', leadId).then(() => {}, (e: unknown) => {
-    // Provenance is evidence, not the operation — never fail a letter over it.
-    console.error('[complete] could not record letter provenance:', e)
-  })
-
-  if (letterSource === 'generated') {
-    console.warn('[complete] no admission-letter template matched for course',
-      app.course_id, 'mode', classMode, '— used the built-in PDF')
-  }
-
-  await recordAudit({
-    action: 'admission.letter_generated', resource: 'admissions', resourceId: leadId,
-    success: Boolean(letterUrl),
-    metadata: {
-      classMode, admissionNo,
-      matchedBy: doc?.matchedBy ?? 'generated',
-      templateId: doc?.id ?? null,
-      letterSource,
-    },
-  })
-
-  const letterLine = letterUrl ? `\n\nYour admission letter:\n${letterUrl}` : ''
-  const msg = `Dear ${first}, congratulations! 🎉 You have been admitted to ${letterCourse} `
-    + `(${classModeLabel(classMode)}) at Cambridge Center of Excellence.`
-    + `${admissionNo ? ` Your admission number is ${admissionNo}.` : ''}${letterLine}\n\nWelcome aboard.`
-
-  if (app.phone) {
-    let waOk = false
-    try { waOk = Boolean(await sendWhatsAppText(app.phone, msg)) } catch { /* fall through */ }
-    if (!waOk) {
-      await queueSMS({
-        to: app.phone, message: msg, kind: 'admission_letter',
-        entityId: applicationId, dedupeKey: `admission_letter:${applicationId}`,
-      })
-    }
-  }
-
-  // ── The admission email (D5) ──
-  // Only marked sent once the provider has actually accepted it.
-  let emailAccepted = false
-  if (app.email) {
-    try {
-      emailAccepted = usedUploaded && letterUrl
-        ? Boolean(await sendUploadedAdmissionLetter(app.email, String(app.full_name || 'Student'), letterCourse, admissionNo, letterUrl))
-        : Boolean(await sendAdmissionLetter(app.email, String(app.full_name || 'Student'), letterCourse, admissionNo, startDate, letterUrl || undefined))
-    } catch (e) {
-      console.error('[complete] admission email failed for', applicationId, e)
-    }
-
-    await recordAudit({
-      action: emailAccepted ? 'admission.email_sent' : 'admission.email_failed',
-      resource: 'admissions', resourceId: leadId, success: emailAccepted,
-      metadata: { classMode, admissionNo },
-    })
-  }
-
-  /*
-   * admission_letter_sent gates every re-run, so it must reflect what actually
-   * happened. Setting it after a failed send is what produces a student who is
-   * marked as having received a letter they never got, and no retry will ever
-   * fire because the gate is closed. It is set only when something genuinely
-   * reached the applicant.
-   */
-  const delivered = Boolean(letterUrl) && (emailAccepted || Boolean(app.phone))
-  if (delivered) {
-    await sb.from('admissions').update({
-      admission_letter_sent: true,
-      admitted_at: new Date().toISOString(),
-      status: 'admitted',
-    }).eq('lead_id', leadId).then(() => {}, () => {})
-  } else {
-    console.error('[complete] admission letter NOT delivered for', applicationId, '— left open for retry')
-  }
-
-  // Notify finance and academics.
-  try {
-    const { data: staff } = await sb.from('profiles')
-      .select('id, full_name, phone').eq('is_active', true)
-      .in('role', ['accountant', 'admissions_officer', 'exam_coordinator', 'administrator'])
-      .limit(20)
-
-    const note = `CCE: ${app.full_name} has registered for ${letterCourse} (${classModeLabel(classMode)})`
-      + `${admissionNo ? ` (${admissionNo})` : ''} and their admission letter has been sent.`
-
-    for (const st of staff || []) {
-      await sb.from('notifications').insert({
-        user_id: st.id, type: 'admission',
-        title: 'New registered student', body: note, link: '/admission/process',
-      }).then(() => {}, () => {})
-
-      if (st.phone) {
-        await queueSMS({
-          to: st.phone, message: note, kind: 'staff_admission_alert',
-          entityId: applicationId, dedupeKey: `staff_admission:${applicationId}:${st.id}`,
-        })
-      }
-    }
-  } catch (e) { console.error('[complete] staff notification failed:', e) }
 }
 
 // ── Fee ledger ──────────────────────────────────────────────────────────────

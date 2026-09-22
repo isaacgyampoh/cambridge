@@ -19,8 +19,19 @@ interface LetterData {
   name: string
   course: string
   admissionNo: string
+  /**
+   * The date printed on the letter — REQUIRED, and supplied by the caller
+   * from the moment of sending in Accra time. The letter used to compute its
+   * own date from the server clock, and the stored PDF it replaced had none.
+   */
+  letterDate: string
+  /** "In-Person" or "Virtual". Printed, because the fee depends on it. */
+  mode: string
+  /** The current programme fee for that mode, already formatted. REQUIRED. */
+  fee: string
+  /** The registration fee, when the course has one. */
+  registrationFee?: string
   startDate?: string
-  delivery?: string
 }
 
 /**
@@ -47,14 +58,13 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
     })
 
     let y = height - 150
-    const today = new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' })
-    page.drawText(today, { x: 40, y, size: 10, font: helv, color: SOFT })
+    page.drawText(data.letterDate, { x: 40, y, size: 10, font: helv, color: SOFT })
 
     y -= 40
     page.drawText(`Dear ${data.name},`, { x: 40, y, size: 12, font: bold, color: INK })
 
     y -= 26
-    const intro = 'Following the successful completion of your registration, we are delighted to formally'
+    const intro = 'We are delighted to formally'
     const intro2 = 'offer you admission into the following programme at Cambridge Center of Excellence:'
     page.drawText(intro, { x: 40, y, size: 11, font: serif, color: INK })
     y -= 16
@@ -62,7 +72,8 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
 
     // ── Details panel ──
     y -= 30
-    const panelH = data.startDate ? 108 : 88
+    const rows = 5 + (data.registrationFee ? 1 : 0) + (data.startDate ? 1 : 0)
+    const panelH = 20 + rows * 22
     page.drawRectangle({ x: 40, y: y - panelH, width: width - 80, height: panelH, color: PANEL })
     page.drawRectangle({ x: 40, y: y - panelH, width: 4, height: panelH, color: BRAND })
 
@@ -74,15 +85,23 @@ export async function generateAdmissionPDF(data: LetterData): Promise<string | n
     }
     row('Admission Number', data.admissionNo || '—')
     row('Programme', data.course)
+    row('Study Mode', data.mode)
     row('Candidate', data.name)
+    row('Programme Fee', data.fee)
+    if (data.registrationFee) row('Registration Fee', data.registrationFee)
     if (data.startDate) row('Start Date', data.startDate)
 
     // ── Body ──
     y = y - panelH - 30
+    /*
+     * "Your registration fee has been received" was the first sentence here,
+     * and it is not true of everybody Admissions admits — so it is no longer
+     * asserted on an official document.
+     */
     const body = [
-      'Your registration fee has been received. Our team will be in touch shortly with your',
-      'class schedule, learning materials, and joining details. Please keep your admission',
-      'number safe — you will need it for all correspondence.',
+      'Our team will be in touch shortly with your class schedule, learning materials and',
+      'joining details. Please keep your admission number safe — you will need it for all',
+      'correspondence. The fees above are those current on the date of this letter.',
       '',
       'We warmly welcome you to the Cambridge Center of Excellence community and look',
       'forward to supporting your professional journey.',

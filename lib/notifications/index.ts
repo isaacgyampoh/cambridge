@@ -1,7 +1,7 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText, WA } from '@/lib/integrations/whatsapp'
-import { sendAdmissionLetter, sendPaymentReceipt, sendClassReminder } from '@/lib/integrations/email'
+import { sendPaymentReceipt, sendClassReminder } from '@/lib/integrations/email'
 
 const sb = () => createServiceClient()
 
@@ -79,11 +79,12 @@ export async function onReadyToJoin(lead: any, admissionId: string) {
 }
 
 // ── ADMITTED ────────────────────────────────────────────────
-
-export async function onAdmitted(lead: any, course: string, admissionNo: string, startDate?: string) {
-  if (lead.email) await sendAdmissionLetter(lead.email, lead.full_name, course, admissionNo, startDate)
-  if (lead.phone) await sendWhatsAppText(lead.phone, WA.admissionAccepted(lead.full_name, course, startDate || 'TBD'))
-}
+//
+// There is deliberately no onAdmitted here. It existed, had no callers, and
+// emailed the admission letter the moment it was called — a live automatic
+// sender waiting for somebody to wire it to an event. Admission letters are
+// sent only by an authorised person from the admission record: see
+// lib/admissions/letter.ts.
 
 // ── PAYMENT CONFIRMED ───────────────────────────────────────
 
