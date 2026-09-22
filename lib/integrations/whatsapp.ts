@@ -1,4 +1,5 @@
 import { canonicalGhanaMobile } from '@/lib/phone'
+import { normaliseWasenderKey, classifyWasender, type FailureKind } from '@/lib/whatsapp/wasenderRules'
 import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { recordingProviderFor } from '@/lib/messaging'
@@ -37,12 +38,13 @@ async function resolveApiKey(senderId?: string | null): Promise<{ key: string; p
         .select('wasender_api_key, wasender_status')
         .eq('id', senderId)
         .maybeSingle()
-      if (data?.wasender_api_key) {
-        return { key: data.wasender_api_key, profileId: senderId }
-      }
+      // Cleaned of a pasted newline, quotes or "Bearer " prefix — any of
+      // which WasenderAPI answers with "invalid API key".
+      const key = normaliseWasenderKey(data?.wasender_api_key as string | null)
+      if (key) return { key, profileId: senderId }
     } catch {}
   }
-  return { key: SECRETS.wasenderApiKey, profileId: null }
+  return { key: normaliseWasenderKey(SECRETS.wasenderApiKey), profileId: null }
 }
 
 async function wasenderSend(
@@ -114,6 +116,7 @@ async function wasenderSend(
 
   let status = 'pending'
   let providerResponse: any = null
+  let failureKind: FailureKind | null = null
 
   try {
     const res = await fetch(WASENDER_URL, {
@@ -130,6 +133,7 @@ async function wasenderSend(
     try { providerResponse = JSON.parse(raw) } catch { providerResponse = { raw: raw.slice(0, 400) } }
     // WaSender returns { success: true, data: {...} } on success
     status = res.ok && providerResponse?.success !== false ? 'sent' : 'failed'
+    failureKind = status === 'sent' ? null : classifyWasender(res.status, providerResponse)
     if (status !== 'sent') console.error('[WaSender]', phone, res.status, providerResponse)
     return status === 'sent'
   } catch (e: any) {
@@ -140,12 +144,24 @@ async function wasenderSend(
   } finally {
     try {
       const sb = createServiceClient()
-      // Keep the line's status honest: a successful send proves it's connected,
-      // an auth/session failure proves it isn't. No manual testing required.
+      /*
+       * Keep the line's status honest — but only with what this send proves.
+       * A delivered message proves the session is connected. A refused key or
+       * a dead session proves it is not. A bad recipient, a rate limit or a
+       * provider hiccup proves nothing about the line, and used to mark it
+       * 'disconnected' anyway: one wrongly typed lead number could take a
+       * working line off the screen.
+       */
       if (profileId) {
-        await sb.from('profiles')
-          .update({ wasender_status: status === 'sent' ? 'connected' : 'disconnected' })
-          .eq('id', profileId).then(() => {}, () => {})
+        const kind = status === 'sent' ? null : failureKind
+        const next = status === 'sent' ? 'connected'
+          : kind === 'auth' ? 'invalid_key'
+          : kind === 'session_not_connected' ? 'disconnected'
+          : null
+        if (next) {
+          await sb.from('profiles').update({ wasender_status: next })
+            .eq('id', profileId).then(() => {}, () => {})
+        }
       }
       await sb.from('whatsapp_logs').insert({
         recipient: phone,

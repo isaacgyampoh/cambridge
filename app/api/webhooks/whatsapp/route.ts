@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { redactWebhook, normaliseWasenderKey, isSessionStatus } from '@/lib/whatsapp/wasenderRules'
 import { parseInbound } from '@/lib/parseInbound'
 import { ownerOfLine, isKnownLine } from '@/lib/whatsapp/lineOwnerRules'
 import { lookup } from '@/lib/db/lookup'
@@ -34,7 +35,10 @@ async function logInbound(sb: any, source: string, fromPhone: string | null, tex
   try {
     const { error } = await sb.from('webhook_inbox').insert({
       source, from_phone: fromPhone, body_text: text ? String(text).slice(0, 500) : null,
-      outcome, detail: detail.slice(0, 300), raw,
+      outcome, detail: detail.slice(0, 300),
+      // The session's API key arrives in every event as sessionId; it is
+      // removed before storage — see redactWebhook.
+      raw: redactWebhook(raw),
     })
     if (!error) return
   } catch {}
@@ -192,6 +196,34 @@ async function handleInbound(req: NextRequest) {
         'test_ok', 'WaSender reached the system — the webhook is connected', body)
     } catch {}
     return NextResponse.json({ ok: true, received: 'webhook.test', message: 'Webhook is connected.' })
+  }
+
+  /*
+   * session.status — WasenderAPI telling us a session's connection changed.
+   * The event names its session by that session's API key (sessionId), so it
+   * is matched to the line holding that key. A session no line holds is the
+   * central one. Keys are compared after the same clean-up used on save, so
+   * a key stored before that clean-up existed still matches.
+   */
+  if (eventName === 'session.status') {
+    const sb = createServiceClient()
+    const status = String(body?.data?.status ?? '')
+    const sessionKey = normaliseWasenderKey(body?.sessionId ?? body?.session_id ?? '')
+    if (isSessionStatus(status) && sessionKey) {
+      const { data: lines } = await sb.from('profiles')
+        .select('id, wasender_api_key').not('wasender_api_key', 'is', null).limit(200)
+      const line = (lines || []).find(l => normaliseWasenderKey(l.wasender_api_key as string) === sessionKey)
+      if (line) {
+        await sb.from('profiles').update({ wasender_status: status }).eq('id', line.id)
+      } else if (sessionKey === normaliseWasenderKey(SECRETS.wasenderApiKey)) {
+        await sb.from('settings').upsert(
+          { key: 'wasender_central_status', value: JSON.stringify({ status, at: new Date().toISOString() }) },
+          { onConflict: 'key' })
+      }
+      await logInbound(sb, 'whatsapp', null, null, 'session_status',
+        `Session ${line ? 'for a staff line' : 'central'} is now ${status}`, body)
+    }
+    return NextResponse.json({ ok: true, received: 'session.status' })
   }
 
   const fromRaw = parsed.phone || ''
