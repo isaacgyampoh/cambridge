@@ -31,9 +31,17 @@ export const revalidate = 3600
 type Stats = { alumni: number; courses: number; graduates: number }
 
 export async function GET() {
-  const sb = createServiceClient()
-
   try {
+    /*
+     * Constructed INSIDE the try, because it throws when the service key is
+     * absent — and it threw before the catch below could do its job. That is
+     * the right behaviour for a route that needs the key, but this one has
+     * already decided that zeroes are an acceptable answer, and a build with
+     * no credentials (continuous integration) should not fail on a figure
+     * nobody signing in can act on.
+     */
+    const sb = createServiceClient()
+
     const [alumni, courses, graduates] = await Promise.all([
       sb.from('alumni').select('id', { count: 'exact', head: true })
         .eq('is_published', true),

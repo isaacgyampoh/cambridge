@@ -1,0 +1,54 @@
+name: CI
+
+# Every push and every pull request. The suite, the typecheck and a real
+# production build all pass today, so a red run means something broke.
+on:
+  push:
+  pull_request:
+
+concurrency:
+  # A second push to the same branch cancels the first: the older answer is
+  # not worth the minutes.
+  group: ci-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Install
+        run: npm ci
+
+      - name: Typecheck
+        run: npm run typecheck
+
+      - name: Tests
+        run: npm test
+
+      # Not blocking YET. The rule is real and worth keeping, but there are
+      # 753 no-explicit-any errors outstanding (Trello CB-024) and a job that
+      # is red every single run teaches everybody to ignore it. Remove
+      # continue-on-error once CB-024 lands.
+      - name: Lint (advisory until CB-024)
+        run: npm run lint
+        continue-on-error: true
+
+      # The build prerenders a few public pages, which construct a Supabase
+      # client. These are DELIBERATE PLACEHOLDERS, not credentials: nothing is
+      # reached, the reads fail, and the pages fall back — which is exactly
+      # what they are written to do. A build must never need a real secret.
+      - name: Build
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: https://ci-placeholder.supabase.co
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ci-placeholder-anon-key
+          SUPABASE_SERVICE_KEY: ci-placeholder-service-key
+        run: npm run build
