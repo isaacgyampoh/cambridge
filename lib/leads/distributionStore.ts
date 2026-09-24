@@ -382,8 +382,6 @@ export async function distributeLead(
       method: 'already_assigned', failure: null }
   }
 
-  const eligibleIds = new Set(candidates.map(c => c.id))
-
   for (let attempt = 0; attempt < CAS_ATTEMPTS; attempt++) {
     let state: ReadResult | null
     try {

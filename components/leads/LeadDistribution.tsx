@@ -125,7 +125,13 @@ export default function LeadDistribution({ canEdit = true }: { canEdit?: boolean
       .catch(e => toast.error(messageFor(e, 'Could not load the allocation history.')))
   }, [tab, events])
 
-  const rows = overview?.members ?? []
+  /*
+   * Memoised, because `?? []` builds a NEW array on every render — so the
+   * four memos below saw a changed dependency each time and recomputed for
+   * nothing, including the scheduler preview that runs the real algorithm
+   * over twenty leads.
+   */
+  const rows = useMemo(() => overview?.members ?? [], [overview])
 
   const issues = useMemo(() => validateAllocations(
     rows.map(m => ({

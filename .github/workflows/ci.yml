@@ -34,13 +34,12 @@ jobs:
       - name: Tests
         run: npm test
 
-      # Not blocking YET. The rule is real and worth keeping, but there are
-      # 753 no-explicit-any errors outstanding (Trello CB-024) and a job that
-      # is red every single run teaches everybody to ignore it. Remove
-      # continue-on-error once CB-024 lands.
-      - name: Lint (advisory until CB-024)
+      # Blocking. Every rule enforces except no-explicit-any, which is a
+      # warning while the 706 outstanding ones are cleared (CB-025) — so a
+      # NEW unused variable or broken hook dependency fails the build today,
+      # rather than nothing failing at all.
+      - name: Lint
         run: npm run lint
-        continue-on-error: true
 
       # The build prerenders a few public pages, which construct a Supabase
       # client. These are DELIBERATE PLACEHOLDERS, not credentials: nothing is

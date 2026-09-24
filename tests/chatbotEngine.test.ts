@@ -1,6 +1,5 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
-import { readFileSync } from 'node:fs'
 import { classify, classifyAll, scoreIntent, ESCALATING } from '../lib/chatbot/intent.ts'
 import { nextStage, isHighIntent, STAGE_LABEL, type Stage } from '../lib/chatbot/stage.ts'
 import { actionsFor, renderActions, matchAction } from '../lib/chatbot/actions.ts'

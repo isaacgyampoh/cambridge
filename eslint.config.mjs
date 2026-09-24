@@ -40,6 +40,36 @@ const eslintConfig = defineConfig([
        * that was handed the file URL and ignored it. A warning is what let
        * them accumulate to fifty-one.
        */
+      /*
+       * A warning FOR NOW, so that everything else can block.
+       *
+       * 706 of these remain across 214 files (CB-025). While they were
+       * errors, the whole lint step had to run with continue-on-error in CI
+       * — which meant a genuinely new problem, an unused variable hiding a
+       * dropped call or a broken hook dependency, blocked nothing either.
+       *
+       * As a warning, the debt stays visible and counted while every other
+       * rule becomes enforcing. Raise this back to "error" and delete this
+       * comment the moment the count reaches zero; the hot paths
+       * (lib/data, lib/leads, lib/integrations) are already clear.
+       */
+      "@typescript-eslint/no-explicit-any": "warn",
+
+      /*
+       * A warning, not an error — deliberately.
+       *
+       * All 36 of these are the same idiom: setLoading(true) at the top of an
+       * effect that then fetches, with correct dependencies. That is not a
+       * render loop; the rule is objecting to one extra render pass. Every
+       * data-loading screen in the portal is written that way.
+       *
+       * Restructuring thirty-six screens for no behavioural gain would risk
+       * introducing real bugs to satisfy a stylistic preference, so the rule
+       * stays visible as a warning rather than being switched off or obeyed.
+       * If a genuine cascading-render bug appears, this is where to revisit.
+       */
+      "react-hooks/set-state-in-effect": "warn",
+
       "@typescript-eslint/no-unused-vars": ["error", {
         argsIgnorePattern: "^_",
         varsIgnorePattern: "^_",

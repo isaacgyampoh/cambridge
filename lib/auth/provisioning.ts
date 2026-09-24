@@ -4,7 +4,6 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, verifyPIN, hashToken } from '@/lib/auth/pin'
 import { generatePin } from '@/lib/auth/pinPolicy'
 import { CONFIG } from '@/lib/config'
-import { SECRETS } from '@/lib/config.server'
 import { usesEmailVerification } from '@/lib/auth/pinPolicy'
 import { emailConfigured } from '@/lib/integrations/email'
 
