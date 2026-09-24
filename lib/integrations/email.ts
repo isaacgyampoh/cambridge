@@ -4,6 +4,17 @@ import { BRAND } from '@/lib/brand'
 import { createServiceClient } from '@/lib/supabase/server'
 import nodemailer from 'nodemailer'
 
+/**
+ * A provider's reply, kept as data rather than `any`.
+ *
+ * The shape is the provider's to change, so nothing here claims to know it —
+ * but `any` switched off checking at every point that touched it, and two of
+ * this month's bugs were a field read off a response that did not have it.
+ * Unknown values are read through explicit narrowing instead.
+ */
+export type ProviderReply = Record<string, unknown> | null
+
+
 const RESEND_URL = 'https://api.resend.com/emails'
 
 /**
@@ -42,7 +53,7 @@ function getTransporter() {
 export async function sendEmail(to: string, subject: string, html: string, text?: string) {
   const from = SECRETS.resendFromEmail || 'Cambridge CE <portal@cambridge.edu.gh>'
   let status = 'pending'
-  let providerResponse: any = null
+  let providerResponse: ProviderReply = null
 
   // 1) Prefer SMTP (the campus mailbox)
   const tx = getTransporter()
@@ -51,8 +62,8 @@ export async function sendEmail(to: string, subject: string, html: string, text?
       const info = await tx.sendMail({ from, to, subject, html, text })
       status = 'sent'; providerResponse = { messageId: info.messageId, via: 'smtp' }
       return true
-    } catch (e: any) {
-      status = 'failed'; providerResponse = { error: e.message, via: 'smtp' }
+    } catch (e: unknown) {
+      status = 'failed'; providerResponse = { error: e instanceof Error ? e.message : String(e), via: 'smtp' }
     } finally {
       try { const sb = createServiceClient(); await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse }) } catch {}
     }
@@ -68,11 +79,17 @@ export async function sendEmail(to: string, subject: string, html: string, text?
         body: JSON.stringify({ from, to, subject, html, text }),
         signal: AbortSignal.timeout(10000),
       })
-      providerResponse = await res.json(); providerResponse.via = 'resend'
+      /*
+       * res.json() is `any` at the boundary, so it is taken as an object
+       * and the marker added deliberately — rather than assigned through
+       * a value the compiler cannot see the shape of.
+       */
+      const parsed = await res.json().catch(() => ({})) as Record<string, unknown>
+      providerResponse = { ...parsed, via: 'resend' }
       status = res.ok ? 'sent' : 'failed'
       return res.ok
-    } catch (e: any) {
-      status = 'failed'; providerResponse = { error: e.message, via: 'resend' }
+    } catch (e: unknown) {
+      status = 'failed'; providerResponse = { error: e instanceof Error ? e.message : String(e), via: 'resend' }
       return false
     } finally {
       try { const sb = createServiceClient(); await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse }) } catch {}

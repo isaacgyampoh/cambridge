@@ -4,6 +4,17 @@ import { SECRETS } from '@/lib/config.server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { recordingProviderFor } from '@/lib/messaging'
 
+/**
+ * A provider's reply, kept as data rather than `any`.
+ *
+ * The shape is the provider's to change, so nothing here claims to know it —
+ * but `any` switched off checking at every point that touched it, and two of
+ * this month's bugs were a field read off a response that did not have it.
+ * Unknown values are read through explicit narrowing instead.
+ */
+export type ProviderReply = Record<string, unknown> | null
+
+
 // WaSender API — https://wasenderapi.com
 const WASENDER_URL = SECRETS.wasenderUrl || 'https://wasenderapi.com/api/send-message'
 
@@ -115,7 +126,7 @@ async function wasenderSend(
   }
 
   let status = 'pending'
-  let providerResponse: any = null
+  let providerResponse: ProviderReply = null
   let failureKind: FailureKind | null = null
 
   try {
@@ -136,10 +147,11 @@ async function wasenderSend(
     failureKind = status === 'sent' ? null : classifyWasender(res.status, providerResponse)
     if (status !== 'sent') console.error('[WaSender]', phone, res.status, providerResponse)
     return status === 'sent'
-  } catch (e: any) {
+  } catch (e: unknown) {
     status = 'failed'
-    providerResponse = { error: e.message }
-    console.error('[WaSender] Error:', e.message)
+    const message = e instanceof Error ? e.message : String(e)
+    providerResponse = { error: message }
+    console.error('[WaSender] Error:', message)
     return false
   } finally {
     try {

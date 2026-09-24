@@ -65,9 +65,10 @@ export async function aiComplete(opts: {
     })
     if (!res.ok) { console.error('[ai-client] anthropic', res.status); return null }
     const data = await res.json()
-    return (data?.content || []).filter((b: any) => b.type === 'text').map((b: any) => b.text).join('\n').trim() || null
-  } catch (e: any) {
-    console.error('[ai-client] error', e.message)
+    const blocks = (data?.content || []) as Array<{ type?: string; text?: string }>
+    return blocks.filter(b => b.type === 'text').map(b => b.text ?? '').join('\n').trim() || null
+  } catch (e: unknown) {
+    console.error('[ai-client] error', (e instanceof Error ? e.message : String(e)))
     return null
   }
 }
