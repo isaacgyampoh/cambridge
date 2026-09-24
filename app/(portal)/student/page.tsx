@@ -14,6 +14,27 @@ export default function StudentDashboard() {
     })
   }, [])
 
+  /*
+   * The question a student actually asks. class_sessions is not readable by a
+   * student through /api/data — it has no owner column there, so they would
+   * see every batch's sessions including the attendance class_code. The route
+   * below is scoped to their own batches and never returns that code.
+   */
+  const [nextClass, setNextClass] = useState<{
+    course: string | null; batch: string | null; date: string; schedule: string | null
+    venue: string | null; zoomLink: string | null; mode: string | null; basis: 'session' | 'start'
+  } | null>(null)
+  const [nextState, setNextState] = useState<'loading' | 'ready' | 'error'>('loading')
+
+  useEffect(() => {
+    let alive = true
+    fetch('/api/student/next-class')
+      .then(r => r.json().then(d => { if (!r.ok) throw new Error(d.error); return d }))
+      .then(d => { if (alive) { setNextClass(d.next); setNextState('ready') } })
+      .catch(() => { if (alive) setNextState('error') })
+    return () => { alive = false }
+  }, [])
+
   const { data: enrollments, state: classesState } = useData({
     table: 'batch_students',
     select: '*, batch:batch_id(*, courses(name))',
@@ -97,6 +118,52 @@ export default function StudentDashboard() {
             </div>
           </div>
         ))}
+      </div>
+
+      {/* ── Next class ───────────────────────────────────────────────────── */}
+      <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 mb-4 shadow-[var(--shadow-raised)]">
+        <h3 className="text-sm font-semibold text-[var(--ink)] mb-3">Your next class</h3>
+        {nextState === 'loading' ? (
+          <p className="text-sm text-[var(--ink-faint)]">Checking your timetable…</p>
+        ) : nextState === 'error' ? (
+          <p className="text-sm text-[var(--attention)]">
+            We could not load your timetable just now. Please try again shortly.
+          </p>
+        ) : !nextClass ? (
+          <p className="text-sm text-[var(--ink-faint)]">
+            No class is scheduled yet. You will see the date here as soon as one is set.
+          </p>
+        ) : (
+          <>
+            <div className="font-display text-[22px] font-semibold text-[var(--ink)] leading-tight">
+              {new Date(`${nextClass.date}T12:00:00Z`).toLocaleDateString('en-GB', {
+                weekday: 'long', day: 'numeric', month: 'long', timeZone: 'Africa/Accra',
+              })}
+            </div>
+            <div className="text-sm text-[var(--ink-soft)] mt-1">
+              {nextClass.course || 'Your programme'}
+              {nextClass.schedule && <> · {nextClass.schedule}</>}
+            </div>
+            {nextClass.basis === 'start' && (
+              <div className="text-[12px] text-[var(--ink-faint)] mt-1">This is the start date for your class.</div>
+            )}
+            <div className="mt-3 flex flex-wrap gap-2">
+              {nextClass.zoomLink && (
+                <a href={nextClass.zoomLink} rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center min-h-[44px] px-4 rounded-[var(--radius-control)]
+                    bg-[var(--ink)] text-[var(--paper)] text-[14px] font-semibold">
+                  Join online
+                </a>
+              )}
+              {nextClass.venue && (
+                <span className="inline-flex items-center min-h-[44px] px-4 rounded-[var(--radius-control)]
+                  bg-[var(--canvas)] text-[var(--ink-soft)] text-[14px]">
+                  {nextClass.venue}
+                </span>
+              )}
+            </div>
+          </>
+        )}
       </div>
 
       {/* Classes */}
