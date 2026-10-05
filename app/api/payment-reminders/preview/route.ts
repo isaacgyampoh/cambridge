@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
+import { REMINDERS_KEY, remindersEnabled } from '@/lib/payments/reminderPolicy'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'accountant']
@@ -21,7 +22,17 @@ export async function GET(req: NextRequest) {
 
   const totalOwed = owing.reduce((sum: number, f: any) => sum + f.balance, 0)
 
+  // So the page can say reminders are off BEFORE anyone presses Send, rather
+  // than reporting "sent to 0 students" afterwards.
+  let enabled = false
+  try {
+    const { data } = await sb.from('settings')
+      .select('value').eq('key', REMINDERS_KEY).maybeSingle()
+    enabled = remindersEnabled(data?.value ?? null)
+  } catch { enabled = false }
+
   return NextResponse.json({
+    enabled,
     owingCount: owing.length,
     totalOwed: Math.round(totalOwed),
     sample: owing.slice(0, 8).map((f: any) => ({ name: f.name, balance: f.balance })),

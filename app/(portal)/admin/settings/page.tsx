@@ -52,6 +52,13 @@ export default function SettingsPage() {
   }
   const [autoAssign, setAutoAssign] = useState(true)
   const [savingToggle, setSavingToggle] = useState(false)
+  /*
+   * Fee reminders default to OFF here, matching the server. The server treats
+   * an absent setting as off, so showing "on" until the row loads would be a
+   * lie in the dangerous direction.
+   */
+  const [feeReminders, setFeeReminders] = useState(false)
+  const [savingFeeToggle, setSavingFeeToggle] = useState(false)
 
   async function loadStatus() {
     try {
@@ -69,6 +76,34 @@ export default function SettingsPage() {
       if (v != null) setAutoAssign(v !== 'false')
     }).catch(() => {})
   }, [])
+
+  useEffect(() => {
+    const params = new URLSearchParams({ table: 'settings', select: '*', filters: JSON.stringify([{ col: 'key', op: 'eq', val: 'payment_reminders_enabled' }]), limit: '1' })
+    fetch(`/api/data?${params}`).then(r => r.ok ? r.json() : { data: [] }).then(d => {
+      setFeeReminders(d.data?.[0]?.value === 'true')
+    }).catch(() => {})
+  }, [])
+
+  async function toggleFeeReminders(next: boolean) {
+    const previous = feeReminders
+    setFeeReminders(next)
+    setSavingFeeToggle(true)
+    try {
+      await mutate('POST', 'settings',
+        { key: 'payment_reminders_enabled', value: next ? 'true' : 'false' },
+        undefined, { upsert: true, onConflict: 'key' })
+      toast.success(next
+        ? 'Fee reminders are on. Students who owe will be chased daily.'
+        : 'Fee reminders are off. Nothing will be sent.')
+    } catch (e) {
+      setFeeReminders(previous)
+      toast.error(e instanceof Error && e.message !== 'Failed'
+        ? e.message
+        : 'That setting could not be saved. Please try again.')
+    } finally {
+      setSavingFeeToggle(false)
+    }
+  }
 
   async function toggleAutoAssign(next: boolean) {
     /*
@@ -269,6 +304,30 @@ export default function SettingsPage() {
               className={`relative block w-12 h-7 rounded-full transition-colors
                 ${autoAssign ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
             <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-[var(--paper)] shadow-[var(--shadow-raised)] transition-transform ${autoAssign ? 'translate-x-5' : ''}`} />
+            </span>
+          </button>
+        </div>
+      </Card>
+
+      {/* Fee reminders. Off: they were sending daily, unattended, to everyone owing. */}
+      <Card className="p-5 mb-10">
+        <div className="flex items-center justify-between gap-4">
+          <div className="min-w-0">
+            <div className="text-sm font-semibold text-[var(--ink)]">Fee reminders</div>
+            <p className="text-sm text-[var(--ink-soft)] mt-0.5">When on, every student with an outstanding balance is sent their balance and a payment link each day, automatically. When off, nothing is sent — not by the daily job, and not by the Send button on the Payment reminders page.</p>
+          </div>
+          <button
+            type="button"
+            role="switch" aria-checked={feeReminders} disabled={savingFeeToggle}
+            aria-label="Send fee reminders to students who owe"
+            onClick={() => toggleFeeReminders(!feeReminders)}
+            className="grid place-items-center min-h-[44px] min-w-[44px] flex-shrink-0
+              disabled:opacity-60 rounded-xl
+              focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
+            <span aria-hidden="true"
+              className={`relative block w-12 h-7 rounded-full transition-colors
+                ${feeReminders ? 'bg-[var(--accent)]' : 'bg-[var(--line)]'}`}>
+            <span className={`absolute top-1 left-1 w-5 h-5 rounded-full bg-[var(--paper)] shadow-[var(--shadow-raised)] transition-transform ${feeReminders ? 'translate-x-5' : ''}`} />
             </span>
           </button>
         </div>

@@ -42,6 +42,9 @@ export default function PaymentReminders() {
     setSending(false)
     if (d.success) toast.success(`Sent to ${d.students_notified} of ${d.total_owing} students`, { id: 'pr' })
     else toast.error(d.error || 'Could not send', { id: 'pr' })
+    // The switch may have been flipped by someone else while this page was
+    // open, so re-read it rather than leaving a stale Send button.
+    loadPreview()
   }
 
   return (
@@ -96,11 +99,29 @@ export default function PaymentReminders() {
             <Field label="Add a note (optional)">
               <textarea className={textareaClass} rows={2} placeholder="Kindly settle before Friday to keep your place." value={note} onChange={e => setNote(e.target.value)} />
             </Field>
-            <div className="rounded-2xl bg-[var(--canvas)] border border-[var(--line)] p-3 text-[12px] text-[var(--ink-soft)] leading-relaxed">
-              Each student gets: their name, outstanding balance, your note, and a personal pay link.
-            </div>
-            <Button onClick={send} disabled={sending || (preview?.owingCount ?? 0) === 0} className="w-full">
-              {sending ? 'Sending…' : `Send to ${preview?.owingCount ?? 0} students`}
+            {preview && preview.enabled === false ? (
+              /*
+                Reminders are switched off. Saying so here, and refusing the
+                click, is the point: the server already refuses it, and a
+                button that looks live but sends nothing is worse than one
+                that explains itself.
+              */
+              <div className="rounded-2xl bg-[var(--warn-soft,var(--canvas))] border border-[var(--line)] p-3 text-[12px] text-[var(--ink-soft)] leading-relaxed">
+                <span className="font-semibold text-[var(--ink)]">Fee reminders are switched off.</span>{' '}
+                Nothing is sent — not by the daily job, and not by this button.
+                A super admin can turn them back on under Admin → Settings.
+              </div>
+            ) : (
+              <div className="rounded-2xl bg-[var(--canvas)] border border-[var(--line)] p-3 text-[12px] text-[var(--ink-soft)] leading-relaxed">
+                Each student gets: their name, outstanding balance, your note, and a personal pay link.
+              </div>
+            )}
+            <Button onClick={send}
+              disabled={sending || preview?.enabled === false || (preview?.owingCount ?? 0) === 0}
+              className="w-full">
+              {sending ? 'Sending…'
+                : preview?.enabled === false ? 'Reminders are off'
+                : `Send to ${preview?.owingCount ?? 0} students`}
             </Button>
           </div>
         </Card>

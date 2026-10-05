@@ -5,6 +5,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
+import { REMINDERS_KEY, remindersEnabled, DISABLED_REASON } from '@/lib/payments/reminderPolicy'
 
 export async function POST(req: NextRequest) {
   // Payment reminders reach every student who owes money. Only finance may
@@ -20,6 +21,28 @@ export async function POST(req: NextRequest) {
  }
 
  const sb = createServiceClient()
+
+ /*
+  * The master switch, again. This route does NOT go through
+  * broadcastPaymentReminders — it reads `invoices` rather than
+  * `student_fees` and keeps its own `payment_reminders` log — so the guard
+  * there does not cover it. Turning reminders off has to mean off on every
+  * path that can put a message on a student's phone.
+  */
+ let switchRaw: string | null = null
+ try {
+ const { data, error } = await sb.from('settings')
+ .select('value').eq('key', REMINDERS_KEY).maybeSingle()
+ if (error) throw new Error(error.message)
+ switchRaw = data?.value ?? null
+ } catch (e: unknown) {
+ const why = e instanceof Error ? e.message : String(e)
+ console.error('[finance/payment-reminder] could not read', REMINDERS_KEY, '— treating as off:', why)
+ return NextResponse.json({ error: DISABLED_REASON, sent: 0 }, { status: 409 })
+ }
+ if (!remindersEnabled(switchRaw)) {
+ return NextResponse.json({ error: DISABLED_REASON, sent: 0 }, { status: 409 })
+ }
 
  // Get all invoices with outstanding balances
  const { data: invoices } = await sb.from('invoices')

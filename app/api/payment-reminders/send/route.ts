@@ -14,5 +14,13 @@ export async function POST(req: NextRequest) {
 
   const body = await req.json().catch(() => ({}))
   const result = await broadcastPaymentReminders({ channels: body.channels, note: body.note })
+  /*
+   * A skip is not a success. Spreading the result into { success: true } made
+   * the switch being off look like "sent to 0 of 0 students", which reads as
+   * "nobody owes anything" — the opposite of what happened.
+   */
+  if ('skipped' in result && result.skipped) {
+    return NextResponse.json({ error: result.skipped, ...result }, { status: 409 })
+  }
   return NextResponse.json({ success: true, ...result })
 }

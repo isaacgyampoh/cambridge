@@ -3,15 +3,38 @@ import { createLoginToken } from '@/lib/student/auth'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
 import { CONFIG } from '@/lib/config'
+import { REMINDERS_KEY, remindersEnabled, DISABLED_REASON } from '@/lib/payments/reminderPolicy'
 
 /**
  * Send a payment reminder to every student who currently owes a balance.
  * Personalised with their outstanding amount + a pay link. Used by the cron
  * (recurring) and manual "send now".
+ *
+ * Both of those go through here, which is why the master switch is checked
+ * here rather than in each route: a new caller cannot forget it.
  */
 export async function broadcastPaymentReminders(opts: { channels?: string; note?: string } = {}) {
   const sb = createServiceClient()
   const channels = (opts.channels || 'sms,whatsapp').split(',')
+
+  /*
+   * Read the switch before anything else. A failed read is treated as OFF —
+   * see reminderPolicy for why absence means off here and on for auto-assign.
+   */
+  let switchRaw: string | null = null
+  try {
+    const { data, error } = await sb.from('settings')
+      .select('value').eq('key', REMINDERS_KEY).maybeSingle()
+    if (error) throw new Error(error.message)
+    switchRaw = data?.value ?? null
+  } catch (e: unknown) {
+    const why = e instanceof Error ? e.message : String(e)
+    console.error('[paymentReminders] could not read', REMINDERS_KEY, '— treating as off:', why)
+    return { students_notified: 0, total_owing: 0, skipped: DISABLED_REASON }
+  }
+  if (!remindersEnabled(switchRaw)) {
+    return { students_notified: 0, total_owing: 0, skipped: DISABLED_REASON }
+  }
 
   // Pull the lead too, so the reminder can go out on the line the student
   // already knows — their own marketer's number, not a central one.

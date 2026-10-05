@@ -708,3 +708,11 @@ COMMIT;
 --
 --        UPDATE webhook_inbox SET raw = NULL WHERE created_at < '2026-09-22';
 -- ============================================================================
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 0024_payment_reminders_off.sql
+-- ───────────────────────────────────────────────────────────────────────────
+
+insert into settings (key, value)
+values ('payment_reminders_enabled', 'false')
+on conflict (key) do update set value = 'false';
