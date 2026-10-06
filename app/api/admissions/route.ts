@@ -4,6 +4,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendSMS, SMS } from '@/lib/integrations/sms'
 import { sendWhatsAppText, WA } from '@/lib/integrations/whatsapp'
 import { lookup, unavailable, saveFailed } from '@/lib/db/lookup'
+import { runQuietly } from '@/lib/quiet'
 
 export async function POST(req: NextRequest) {
   const token = req.cookies.get('cce_session')?.value
@@ -65,17 +66,38 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  await Promise.all([
-    sb.from('notifications').insert(notifications),
-    ...smsTasks,
-  ])
+  /*
+   * The admission row is already committed above. Everything from here is
+   * notification, and NONE of it may fail the request.
+   *
+   * It used to be one Promise.all over the notification insert and every
+   * officer's SMS. A single unreachable number rejected the whole thing, the
+   * route threw, and the caller was told the admission had failed — while the
+   * row sat in the database. The obvious response to that error is to press
+   * the button again, which is how one lead ends up with two admissions.
+   *
+   * allSettled, and each failure is logged by name so a silently broken
+   * number is findable.
+   */
+  const sideEffects: Promise<unknown>[] = [...smsTasks]
+  // An empty insert is not a no-op worth sending; skip it when nobody is on duty.
+  if (notifications.length > 0) {
+    sideEffects.unshift(Promise.resolve(sb.from('notifications').insert(notifications)))
+  } else {
+    console.warn('[Admissions] no active admissions officer or accountant to notify for lead', leadId)
+  }
 
-  // WhatsApp to lead
   if (lead.phone) {
-    await sendWhatsAppText(lead.phone, WA.applicationConfirmed(
+    sideEffects.push(sendWhatsAppText(lead.phone, WA.applicationConfirmed(
       lead.full_name,
       lead.course_interest || 'your chosen program'
-    ))
+    )))
+  }
+
+  const notified = await runQuietly(`[Admissions] lead ${leadId}`, sideEffects)
+  if (notified.failed > 0) {
+    console.warn('[Admissions] admission', admission.id, 'created;',
+      notified.failed, 'of', notified.total, 'notifications did not go out')
   }
 
   // Schedule auto-send if officer doesn't act in 20 mins

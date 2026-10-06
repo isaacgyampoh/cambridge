@@ -6,6 +6,7 @@ import { SECRETS } from '@/lib/config.server'
 import { recordAudit } from '@/lib/audit'
 import { normaliseWasenderKey, describeSessionStatus, keyFingerprint } from '@/lib/whatsapp/wasenderRules'
 import { sessionStatus, checkContact, sendText, credentialFor, recordLineStatus } from '@/lib/whatsapp/wasender'
+import { runQuietly } from '@/lib/quiet'
 
 export const runtime = 'nodejs'
 const ALLOWED = ['super_admin', 'administrator', 'project_manager']
@@ -61,7 +62,13 @@ export async function GET(req: NextRequest) {
     ...(lines || []).map(l => sessionStatus(normaliseWasenderKey(l.wasender_api_key as string))),
   ])
 
-  await Promise.all((lines || []).map((l, i) => recordLineStatus(l.id as string, perLine[i])))
+  /*
+   * Recording the status is bookkeeping. allSettled, because a single failed
+   * write must not cost the operator the page that tells them which line is
+   * down — that is exactly when they need to look at it.
+   */
+  await runQuietly('[whatsapp/status] recording line status',
+    (lines || []).map((l, i) => () => recordLineStatus(l.id as string, perLine[i])))
 
   return NextResponse.json({
     central: centralKey

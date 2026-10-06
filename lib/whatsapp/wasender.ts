@@ -47,7 +47,21 @@ async function call(key: string, method: 'GET' | 'POST', path: string, payload?:
     return { ok: false, kind: 'network', http: null, providerMessage: null }
   }
 
-  const raw = await res.text()
+  /*
+   * Reading the body can fail too — an aborted or truncated stream rejects
+   * here. That used to escape call() entirely, and because the status page
+   * checks every line in one Promise.all, a single truncated response blanked
+   * the whole page with a 500. A failed read is a network failure like any
+   * other, and is reported as one.
+   */
+  let raw: string
+  try {
+    raw = await res.text()
+  } catch (e) {
+    console.error('[wasender]', method, path, 'body unreadable:', e instanceof Error ? e.name : 'error')
+    return { ok: false, kind: 'network', http: res.status, providerMessage: null }
+  }
+
   let body: any
   try { body = JSON.parse(raw) } catch { body = { message: raw.slice(0, 200) } }
 
