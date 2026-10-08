@@ -4,19 +4,25 @@ import { PageHeader, Card, Button, Spinner, Badge } from '@/components/ui'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
 import type { CronRun } from '@/types'
+import { cadenceNote, runnerHealth, type TaskRun } from '@/lib/automation/cadence'
 
-const LABELS: Record<string, { name: string; desc: string; every: string }> = {
-  lead_notify:        { name: 'Lead alerts to marketers', desc: 'One consolidated SMS per marketer for new leads', every: '5 min' },
-  sequences:          { name: 'Follow-up sequences', desc: 'Nurture messages to leads on schedule', every: '15 min' },
-  class_start:        { name: 'Class starting reminders', desc: '30 minutes before class, with the join link. Mentions what they owe only while Fee reminders are on', every: '10 min' },
-  info_sessions:      { name: 'Info session invites', desc: 'Broadcasts the session to your audience', every: '15 min' },
-  info_followup:      { name: 'Info session follow-up', desc: 'Asks attendees if it was clear', every: '30 min' },
-  class_reminders:    { name: 'Class reminders', desc: 'Scheduled class notices', every: '15 min' },
-  paystack_reconcile: { name: 'Payment self-heal', desc: 'Fixes payments that did not complete', every: 'hourly' },
-  prep_reminders:     { name: 'Exam prep reminders', desc: 'Voucher expiry, tips, good wishes', every: 'twice daily' },
-  payment_reminders:  { name: 'Fee reminders', desc: 'Chases outstanding balances. Off unless switched on in Settings', every: 'daily' },
-  reports:            { name: 'Reports', desc: 'Generates performance reports', every: 'daily' },
-  tiers:              { name: 'Performance tiers', desc: 'Recalculates marketer tiers', every: 'weekly' },
+/*
+ * `everyMins` mirrors the TASKS list in app/api/cron/run/route.ts. It is the
+ * spacing each task ASKS for; whether it gets it depends on how often the
+ * runner is invoked, which is what the cadence note below reports.
+ */
+const LABELS: Record<string, { name: string; desc: string; every: string; everyMins: number }> = {
+  lead_notify:        { name: 'Lead alerts to marketers', desc: 'One consolidated SMS per marketer for new leads', every: '5 min', everyMins: 5 },
+  sequences:          { name: 'Follow-up sequences', desc: 'Nurture messages to leads on schedule', every: '15 min', everyMins: 15 },
+  class_start:        { name: 'Class starting reminders', desc: '30 minutes before class, with the join link. Mentions what they owe only while Fee reminders are on', every: '10 min', everyMins: 10 },
+  info_sessions:      { name: 'Info session invites', desc: 'Broadcasts the session to your audience', every: '15 min', everyMins: 15 },
+  info_followup:      { name: 'Info session follow-up', desc: 'Asks attendees if it was clear', every: '30 min', everyMins: 30 },
+  class_reminders:    { name: 'Class reminders', desc: 'Scheduled class notices', every: '15 min', everyMins: 15 },
+  paystack_reconcile: { name: 'Payment self-heal', desc: 'Fixes payments that did not complete', every: 'hourly', everyMins: 60 },
+  prep_reminders:     { name: 'Exam prep reminders', desc: 'Voucher expiry, tips, good wishes', every: 'twice daily', everyMins: 720 },
+  payment_reminders:  { name: 'Fee reminders', desc: 'Chases outstanding balances. Off unless switched on in Settings', every: 'daily', everyMins: 1440 },
+  reports:            { name: 'Reports', desc: 'Generates performance reports', every: 'daily', everyMins: 1440 },
+  tiers:              { name: 'Performance tiers', desc: 'Recalculates marketer tiers', every: 'weekly', everyMins: 10080 },
 }
 
 /*
@@ -36,6 +42,12 @@ function ago(t: string | null | undefined) {
 export default function AutomationPage() {
   const { data: runs, loading, refetch } = useData<CronRun>({ table: 'cron_runs', select: '*', limit: 50 })
   const [busy, setBusy] = useState<string | null>(null)
+  /*
+   * Read once per render rather than inside the map: reading the clock is not
+   * a render-time job done eleven times, and every row should be judged
+   * against the same instant.
+   */
+  const now = Date.now()
 
   /*
    * Run the due tasks now.
@@ -78,6 +90,18 @@ export default function AutomationPage() {
   }
   const neverRun = Object.keys(LABELS).filter(k => !byTask[k])
 
+  /*
+   * Judged from the rows already loaded — no extra read. See
+   * lib/automation/cadence: an interval is what a task asks for, and the
+   * runner only grants it as often as something invokes the runner.
+   */
+  const health = runnerHealth(
+    Object.entries(LABELS).map(([key, l]): TaskRun => ({
+      task: key, everyMins: l.everyMins, lastRunAt: byTask[key]?.last_run_at,
+    })),
+    now,
+  )
+
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
       <PageHeader eyebrow="System" title="Automation"
@@ -109,6 +133,21 @@ export default function AutomationPage() {
       </Card>
 
       {loading ? <Spinner /> : (
+        <>
+        {health.headline && (
+          /*
+            One line, not nine. Every sub-daily task late at once is a
+            deployment whose runner is invoked daily — a single fact about the
+            hosting, not eleven separate faults.
+          */
+          <Card className="p-4 mb-3 border-[var(--warn,var(--line))]">
+            <div className="text-[13px] font-semibold text-[var(--ink)] mb-1">
+              The automations are not keeping their own times
+            </div>
+            <p className="text-[12px] text-[var(--ink-soft)] leading-relaxed">{health.headline}</p>
+          </Card>
+        )}
+
         <div className="space-y-2">
           {Object.entries(LABELS).map(([key, l]) => {
             const r = byTask[key]
@@ -124,7 +163,8 @@ export default function AutomationPage() {
                     </div>
                     <div className="text-[12px] text-[var(--ink-soft)] mt-1">{l.desc}</div>
                     <div className="text-[12px] text-[var(--ink-faint)] mt-1">
-                      Runs {l.every} · last {ago(r?.last_run_at)}
+                      {cadenceNote({ task: key, everyMins: l.everyMins, lastRunAt: r?.last_run_at }, now)}
+                      {' · last '}{ago(r?.last_run_at)}
                     </div>
                     {failed && r?.last_detail && (
                       <div className="text-[12px] text-[var(--danger)] mt-1 break-all">{r.last_detail.slice(0, 160)}</div>
@@ -139,6 +179,7 @@ export default function AutomationPage() {
             )
           })}
         </div>
+        </>
       )}
 
       {neverRun.length > 0 && !loading && (
