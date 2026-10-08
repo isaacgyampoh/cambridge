@@ -6,6 +6,12 @@ import PortalView from '../PortalView'
  * PUBLIC DEMO — no login, no WhatsApp, no database. Opens instantly so the
  * portal can be shown to the team and to students. Toggle between the three
  * states a real student moves through.
+ *
+ * The figures are the CURRENT online PMP fee. They are shown to students, so a
+ * superseded amount here is a wrong price quoted by the centre, not a harmless
+ * fixture — this page was still showing 3,950 after the online fee became
+ * 4,950. If the fee changes, change it here too. Nothing reads it from the
+ * course record, because the demo deliberately touches no database.
  */
 const base = {
   student: { name: 'Kwame Boateng', phone: '0241234567' },
@@ -20,7 +26,7 @@ const base = {
 const STATES: Record<string, any> = {
   owing: {
     ...base,
-    fee: { total: 3950, paid: 200, balance: 3750, status: 'partial' },
+    fee: { total: 4950, paid: 200, balance: 4750, status: 'partial' },
     session: { sessionNumber: 2, freeSessions: 1, requiredTotal: 500, minTopUp: 300, canJoin: false, signedInToday: false, cohortEnded: false, zoomLink: null },
     materials: {
       unlocked: [{ name: 'PMP Module 1 — Foundations.pdf', url: '#' }],
@@ -33,7 +39,7 @@ const STATES: Record<string, any> = {
   },
   paid: {
     ...base,
-    fee: { total: 3950, paid: 2600, balance: 1350, status: 'partial' },
+    fee: { total: 4950, paid: 2600, balance: 2350, status: 'partial' },
     session: { sessionNumber: 4, freeSessions: 1, requiredTotal: 1500, minTopUp: 0, canJoin: true, signedInToday: false, cohortEnded: false, zoomLink: 'https://zoom.us/j/demo' },
     payments: [
       { amount: 1200, method: 'momo', receipt_number: 'RCP-10488', created_at: new Date(Date.now() - 2 * 864e5).toISOString() },
@@ -46,13 +52,13 @@ const STATES: Record<string, any> = {
         { name: 'PMP Module 2 — Planning.pdf', url: '#' },
         { name: 'PMP Module 3 — Execution.pdf', url: '#' },
       ],
-      locked: [{ name: 'PMP Exam Practice Questions.pdf', unlockAt: 3950 }],
+      locked: [{ name: 'PMP Exam Practice Questions.pdf', unlockAt: 4950 }],
     },
   },
   ended: {
     ...base,
-    fee: { total: 3950, paid: 3950, balance: 0, status: 'paid' },
-    session: { sessionNumber: 9, freeSessions: 1, requiredTotal: 3950, minTopUp: 0, canJoin: false, signedInToday: false, cohortEnded: true, endDate: new Date(Date.now() - 3 * 864e5).toISOString(), zoomLink: null },
+    fee: { total: 4950, paid: 4950, balance: 0, status: 'paid' },
+    session: { sessionNumber: 9, freeSessions: 1, requiredTotal: 4950, minTopUp: 0, canJoin: false, signedInToday: false, cohortEnded: true, endDate: new Date(Date.now() - 3 * 864e5).toISOString(), zoomLink: null },
     materials: {
       unlocked: [
         { name: 'PMP Module 1 — Foundations.pdf', url: '#' },

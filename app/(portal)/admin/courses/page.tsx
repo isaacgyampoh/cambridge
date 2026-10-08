@@ -70,7 +70,7 @@ export default function CoursesPage() {
     { key: 'code', label: 'Code', placeholder: 'PMP-001', type: 'text' },
     { key: 'duration', label: 'Duration', placeholder: '3 months', type: 'text' },
     { key: 'course_fee', label: 'Course fee — in person (GHS)', placeholder: '4950', type: 'number' },
-    { key: 'course_fee_online', label: 'Course fee — online (GHS)', placeholder: '3950', type: 'number' },
+    { key: 'course_fee_online', label: 'Course fee — online (GHS)', placeholder: '4950', type: 'number' },
     { key: 'registration_fee', label: 'Registration fee (GHS)', placeholder: '200', type: 'number' },
   ]
 

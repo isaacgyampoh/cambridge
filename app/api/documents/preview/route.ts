@@ -43,7 +43,10 @@ export async function POST(req: NextRequest) {
       course: 'Projects Management Professional (PMP)',
       batch: 'March Cohort',
       date: new Date().toLocaleDateString('en-GB', { day: 'numeric', month: 'long', year: 'numeric' }),
-      amount: 'GHS 3,950.00',
+      // Sample, like the name beside it — never the fee of record, which is
+      // read from the course. Kept current (in-person PMP) so a preview shows
+      // a realistic width for the amount field.
+      amount: 'GHS 5,950.00',
       email: 'kwame@example.com',
       phone: '0241234567',
       receipt_number: 'RCP-10231',
