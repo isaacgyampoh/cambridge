@@ -227,7 +227,9 @@ describe('an action is never offered unless it can be fulfilled', () => {
   test('it is named after the colleague when there is one', () => {
     const a = actionsFor({ capability: ALL, stage: 'DISCOVERY', humanName: 'Ruth Mensah' })
       .find(x => x.id === 'speak_to_human')
-    assert.equal(a?.label, 'Speak to Ruth')
+    // Relabelled at Isaac's request: the menu he drew says "Call a
+    // Supervisor". Naming the person who will pick up beats the generic.
+    assert.equal(a?.label, 'Call Ruth')
   })
 
   test('nothing is offered once a person has the conversation', () => {

@@ -3,6 +3,7 @@ import { isValidCronRequest } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { sendSMS } from '@/lib/integrations/sms'
+import { buildLeadContext, actionsFor, renderActions } from '@/lib/chatbot'
 
 /**
  * Cron runner — sends all due drip-sequence messages.
@@ -55,9 +56,40 @@ export async function GET(req: NextRequest) {
 
     if (lead.phone) {
       if (step.channel === 'sms') {
+        // No menu on SMS. Every option costs characters, and an SMS cannot be
+        // replied to through the WhatsApp line that would resolve the answer.
         await sendSMS(lead.phone, msg).catch(() => {})
       } else {
-        await sendWhatsAppText(lead.phone, msg, lead.assigned_to || undefined).catch(() => {})
+        /*
+         * A nurture message ends with what to do next.
+         *
+         * This is the sequence in Isaac's drawing: a message, then a numbered
+         * menu, and the option taken drops off the next one. Every piece of
+         * that already existed for inbound replies and nothing used it here,
+         * so a drip message arrived with no way to act on it.
+         *
+         * actionsFor is deterministic given the capability, the stage and
+         * what has been taken — the same three facts the webhook recomputes
+         * when a reply arrives. So the menu sent here and the menu the reply
+         * is matched against are the same list, and neither has to be stored.
+         *
+         * A failure to build the context must not cost the lead the message
+         * they were due: the menu is an addition to it, not a condition of it.
+         */
+        let menu = ''
+        try {
+          const ctx = await buildLeadContext({ lead, latestMessage: null })
+          menu = renderActions(actionsFor({
+            capability: ctx.capability,
+            stage: ctx.state.stage,
+            taken: ctx.state.taken,
+            humanName: ctx.marketerName,
+          }))
+        } catch (e: unknown) {
+          console.error('[sequences] no menu for lead', lead.id,
+            e instanceof Error ? e.message : String(e))
+        }
+        await sendWhatsAppText(lead.phone, msg + menu, lead.assigned_to || undefined).catch(() => {})
       }
       // Log
       await sb.from('lead_activities').insert({

@@ -258,6 +258,6 @@ describe('a channel that is not connected still runs the whole flow', () => {
     const sent = outbox.outbox[0].body
     assert.match(sent, /Reply with a number/)
     assert.match(sent, /1\. /)
-    assert.match(sent, /Speak to Ruth/)
+    assert.match(sent, /Call Ruth/)
   })
 })

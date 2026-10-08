@@ -43,14 +43,24 @@ export type Action = {
   label: string
 }
 
+/*
+ * The words Isaac asked for, from the nurturing sequence he drew: "Download
+ * brochure", "Apply Online", "Call a Supervisor", "Study the Schedule". They
+ * are imperative — each one names the thing the lead gets by choosing it —
+ * and the rest are phrased to match, so a menu reads as one voice.
+ *
+ * Changing these changes what a reply has to match. See matchAction: it reads
+ * every distinctive word of a label, not a fixed prefix, precisely so that
+ * rewording a label here cannot quietly stop "brochure" from working.
+ */
 const LABELS: Record<ActionId, string> = {
-  view_programme: 'Programme details',
-  view_fees: 'Fees',
-  view_schedule: 'Dates and schedule',
-  brochure: 'Send the brochure',
-  register: 'Register',
+  view_programme: 'See programme details',
+  view_fees: 'See the fees',
+  view_schedule: 'Study the Schedule',
+  brochure: 'Download brochure',
+  register: 'Apply Online',
   ask_question: 'Ask something else',
-  speak_to_human: 'Speak to someone',
+  speak_to_human: 'Call a Supervisor',
 }
 
 /**
@@ -79,13 +89,34 @@ export function actionsFor(opts: {
   const wanted: ActionId[] = []
 
   switch (stage) {
+    /*
+     * ── WHY register COMES SECOND, NOT LAST ────────────────────────────────
+     *
+     * Only three options survive the trim, and register sat fourth in both of
+     * the early stages — so "Apply Online" was never once offered to a NEW,
+     * DISCOVERY, PROGRAMME_INTEREST or PROGRAMME_DETAILS lead. It appeared
+     * only after somebody had already discussed a price or asked for a
+     * brochure. Those four stages are where nearly every lead actually is,
+     * which means the one action the whole conversation exists to produce was
+     * invisible to them.
+     *
+     * Isaac's drawing of the sequence puts it in the very first menu, second,
+     * straight after the brochure. It is ordered that way here.
+     *
+     * Promoting it costs a slot, and the one given up is "See programme
+     * details" rather than the fee. The fee is the question people actually
+     * ask, and view_programme is the vaguest of the four — by its own guard
+     * below it is only offered at all when a fee, a schedule or a brochure
+     * exists, which means at best it opens onto what the other three already
+     * say plainly.
+     */
     case 'NEW':
     case 'DISCOVERY':
-      wanted.push('view_programme', 'view_fees', 'brochure', 'register')
+      wanted.push('brochure', 'register', 'view_fees', 'view_programme')
       break
     case 'PROGRAMME_INTEREST':
     case 'PROGRAMME_DETAILS':
-      wanted.push('view_fees', 'view_schedule', 'brochure', 'register')
+      wanted.push('brochure', 'register', 'view_schedule', 'view_fees')
       break
     case 'PRICE_DISCUSSION':
       wanted.push('register', 'view_schedule', 'brochure')
@@ -137,8 +168,14 @@ export function actionsFor(opts: {
 
   return shown.map(id => ({
     id,
+    /*
+     * Named when the lead has somebody, generic when they do not. Isaac's
+     * drawing says "Call a Supervisor"; naming the person who will actually
+     * pick up is better than that wherever the name is known, and the brief
+     * made reaching a person first-class.
+     */
     label: id === 'speak_to_human' && humanName
-      ? `Speak to ${humanName.split(' ')[0]}`
+      ? `Call ${humanName.split(' ')[0]}`
       : LABELS[id],
   }))
 }
@@ -174,13 +211,39 @@ export function matchAction(reply: string, offered: Action[]): Action | null {
     return offered[i] || null
   }
 
-  // The label, or enough of it.
+  // The whole label, exactly.
   for (const a of offered) {
-    const label = a.label.toLowerCase()
-    if (t === label) return a
-    const distinctive = label.replace(/^(send the|speak to)\s+/, '').split(/\s+/)[0]
-    if (distinctive.length >= 4 && t.includes(distinctive)) return a
+    if (t === a.label.toLowerCase()) return a
+  }
+
+  /*
+   * Otherwise a distinctive word from the label — but only when the reply
+   * LOOKS like a choice.
+   *
+   * This used to take the first word after stripping "send the" or "speak
+   * to", which tied matching to the exact labels those prefixes belonged to:
+   * relabelling 'Send the brochure' to 'Download brochure' would have made
+   * the distinctive word "download" and quietly stopped a reply of
+   * "brochure" — the commonest word a person actually types — from matching
+   * anything. Every word of the label counts now.
+   *
+   * The guard matters because the words are ordinary. "Apply Online"
+   * contributes "online", and "is the class online?" is a question about
+   * delivery mode, not a request to register. So a long reply, or one with a
+   * question mark, is left to the assistant to answer properly.
+   */
+  const words = t.split(/\s+/).filter(Boolean)
+  if (words.length > 4 || t.includes('?')) return null
+
+  for (const a of offered) {
+    const tokens = a.label.toLowerCase()
+      .split(/[^a-z]+/)
+      .filter(w => w.length >= 4 && !STOPWORDS.has(w))
+    if (tokens.some(w => t.includes(w))) return a
   }
 
   return null
 }
+
+/** Words that carry no choice on their own. */
+const STOPWORDS = new Set(['the', 'and', 'with', 'your', 'this', 'that', 'something', 'else', 'see'])
