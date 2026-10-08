@@ -8,13 +8,13 @@ import type { CronRun } from '@/types'
 const LABELS: Record<string, { name: string; desc: string; every: string }> = {
   lead_notify:        { name: 'Lead alerts to marketers', desc: 'One consolidated SMS per marketer for new leads', every: '5 min' },
   sequences:          { name: 'Follow-up sequences', desc: 'Nurture messages to leads on schedule', every: '15 min' },
-  class_start:        { name: 'Class starting reminders', desc: '30 minutes before class, with what they owe', every: '10 min' },
+  class_start:        { name: 'Class starting reminders', desc: '30 minutes before class, with the join link. Mentions what they owe only while Fee reminders are on', every: '10 min' },
   info_sessions:      { name: 'Info session invites', desc: 'Broadcasts the session to your audience', every: '15 min' },
   info_followup:      { name: 'Info session follow-up', desc: 'Asks attendees if it was clear', every: '30 min' },
   class_reminders:    { name: 'Class reminders', desc: 'Scheduled class notices', every: '15 min' },
   paystack_reconcile: { name: 'Payment self-heal', desc: 'Fixes payments that did not complete', every: 'hourly' },
   prep_reminders:     { name: 'Exam prep reminders', desc: 'Voucher expiry, tips, good wishes', every: 'twice daily' },
-  payment_reminders:  { name: 'Fee reminders', desc: 'Chases outstanding balances', every: 'daily' },
+  payment_reminders:  { name: 'Fee reminders', desc: 'Chases outstanding balances. Off unless switched on in Settings', every: 'daily' },
   reports:            { name: 'Reports', desc: 'Generates performance reports', every: 'daily' },
   tiers:              { name: 'Performance tiers', desc: 'Recalculates marketer tiers', every: 'weekly' },
 }

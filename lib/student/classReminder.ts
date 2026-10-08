@@ -2,6 +2,7 @@ import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
 import { createLoginToken } from '@/lib/student/auth'
 import { CONFIG } from '@/lib/config'
+import { REMINDERS_KEY, remindersEnabled } from '@/lib/payments/reminderPolicy'
 
 /**
  * ~30 minutes before an online class, message each student from THEIR
@@ -13,6 +14,34 @@ export async function runClassStartReminders() {
   const sb = createServiceClient()
   const now = new Date()
   const today = now.toISOString().slice(0, 10)
+
+  /*
+   * Does this reminder chase money?
+   *
+   * This runs every ten minutes and, when a student owes for the session,
+   * tells them what to pay. That is a payment reminder arriving on a
+   * student's phone, so it answers to the same switch as the rest — which is
+   * how fee reminders kept arriving after they were switched off: nothing
+   * here consulted it.
+   *
+   * Switched off, the class reminder STILL GOES. Only the money sentence is
+   * dropped: a student who needs to join a class in thirty minutes must get
+   * the link whatever has been decided about chasing fees. What they owe
+   * remains visible in the portal, where they went to pay anyway.
+   *
+   * Read once per run, not per student.
+   */
+  let chaseFees = false
+  try {
+    const { data, error } = await sb.from('settings')
+      .select('value').eq('key', REMINDERS_KEY).maybeSingle()
+    if (error) throw new Error(error.message)
+    chaseFees = remindersEnabled(data?.value ?? null)
+  } catch (e: unknown) {
+    const why = e instanceof Error ? e.message : String(e)
+    console.error('[classReminder] could not read', REMINDERS_KEY, '— not chasing fees:', why)
+    chaseFees = false
+  }
 
   // Online batches with a session starting in the next 20-40 minutes
   const { data: batches } = await sb.from('batches')
@@ -60,7 +89,7 @@ export async function runClassStartReminders() {
       const url = `${CONFIG.appUrl}/portal/enter?t=${token}`
       const first = (st.full_name || 'there').split(' ')[0]
 
-      const msg = owed > 0
+      const msg = owed > 0 && chaseFees
         ? `Hi ${first}, how are you doing today?\n\nYour ${b.name} class starts in about 30 minutes. Open your student portal to sign in and join:\n${url}\n\nTo join this session you will need to have paid *GHS ${owed.toFixed(2)}* more. You can pay right inside the portal by mobile money or card, and the Join button unlocks straight away.\n\nSee you in class.`
         : `Hi ${first}, how are you doing today?\n\nJust a reminder that your ${b.name} class starts in about 30 minutes. Open your student portal and tap *Join class*:\n${url}\n\nSee you shortly.`
 

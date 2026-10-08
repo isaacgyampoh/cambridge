@@ -5,6 +5,7 @@ import { aiConfigured } from '@/lib/integrations/ai-client'
 import { SECRETS } from '@/lib/config.server'
 import { loadProgrammes, type Programme } from '@/lib/chatbot/programme'
 import { loadKnowledge } from '@/lib/chatbot/knowledge'
+import { unbackedAmounts } from '@/lib/chatbot/moneyGuard'
 import { capabilityOf } from '@/lib/chatbot/programmeRules'
 import { eligibleMarketers } from '@/lib/leads/eligibility'
 import { channelStatuses } from '@/lib/messaging'
@@ -183,6 +184,29 @@ export const GET = withGuard({ portals: ['settings'] }, async () => {
         : 'Empty. The assistant can still answer from programme records, but nothing about the centre itself.',
       fix: total ? undefined : 'Add entries under Knowledge so it can answer where you are, how payment works, and what to bring.',
     })
+
+    /*
+     * Fee figures written into the knowledge base that no course row backs.
+     *
+     * The money guard allows any amount that appears in this text, so that the
+     * centre's own words about money are not rejected. The cost of that is an
+     * FAQ still quoting a superseded fee: the assistant may repeat it, and the
+     * guard will permit it, because the guard's question is "did we write this
+     * down" and not "is it still true".
+     *
+     * Reported, never filtered — a registration fee, an instalment or a
+     * discount legitimately appears here with no course row behind it. A
+     * person has to read the list and decide.
+     */
+    const unbacked = unbackedAmounts(programmes, k.text)
+    core.push(
+      unbacked.length === 0
+        ? { id: 'fee_text', label: 'Fees quoted in knowledge', status: 'ok',
+            detail: 'Every amount written in the knowledge base matches a fee on a course record.' }
+        : { id: 'fee_text', label: 'Fees quoted in knowledge', status: 'warn',
+            detail: `${unbacked.length} amount${unbacked.length === 1 ? '' : 's'} appear in the knowledge base that no course fee backs: ${unbacked.slice(0, 8).map(a => `GHS ${Number(a).toLocaleString()}`).join(', ')}${unbacked.length > 8 ? ', …' : ''}. The assistant is allowed to quote any of these.`,
+            fix: 'Check each one. A registration fee, instalment or discount is fine. A figure that used to be a course fee is not — the assistant can still quote it as current. Correct or remove it under Knowledge.' },
+    )
   } catch (e) {
     if (!(e instanceof Error && e.message === 'handled')) {
       core.push({ id: 'knowledge', label: 'Knowledge base', status: 'fail',

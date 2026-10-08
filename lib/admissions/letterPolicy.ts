@@ -44,9 +44,13 @@ function money(v: unknown): number | null {
  *
  * In person reads course_fee; virtual reads course_fee_online — the columns
  * the Courses screen writes. There is deliberately no fallback from one to
- * the other: PMP is GHS 5,950 in person and 4,950 virtual, and printing the
- * in-person figure on a virtual student's letter because the virtual one was
- * blank is exactly the kind of wrong fee this exists to stop.
+ * the other. The two modes cost different amounts, so printing the in-person
+ * figure on a virtual student's letter because the virtual one was blank is
+ * exactly the kind of wrong fee this exists to stop.
+ *
+ * The amounts are deliberately not named here: whatever is written in a
+ * comment goes stale silently, and this file's whole purpose is to put the
+ * CURRENT recorded fee on a letter.
  */
 export function feeForMode(course: CourseFees | null | undefined, mode: ClassMode | null): number | null {
   if (!course || !mode) return null

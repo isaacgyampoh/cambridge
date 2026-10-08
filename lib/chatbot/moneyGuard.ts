@@ -114,3 +114,41 @@ export function unsupportedAmounts(reply: string, allowed: Set<string>): string[
   }
   return [...seen]
 }
+
+/**
+ * Amounts the knowledge base asserts that no course fee backs.
+ *
+ * `allowedAmounts` unions the canonical programme fees with every amount found
+ * in the knowledge text, so that the centre's own words about money are not
+ * rejected. That union is also a hole: an FAQ row still saying a programme
+ * costs GHS 3,950 after the fee became 5,950 makes 3,950 permissible, and the
+ * assistant can quote the superseded figure to a student with the guard's
+ * blessing. The guard is working as written — it is the text behind it that is
+ * out of date, and nothing was reporting that.
+ *
+ * This does not filter anything. A legitimate amount lives here too: a
+ * registration fee that no course row carries, an instalment, a discount. So
+ * it reports for a person to read rather than deciding on its own, and the
+ * caller presents it as something to check, never as a failure.
+ */
+export function unbackedAmounts(
+  programmes: FeeBearing[],
+  knowledgeText = '',
+): string[] {
+  const backed = new Set<string>()
+  for (const p of programmes || []) {
+    for (const fee of [p?.feeInPerson, p?.feeOnline, p?.registrationFee]) {
+      const c = canonical(fee ?? null)
+      if (c) backed.add(c)
+    }
+  }
+
+  const out: string[] = []
+  const seen = new Set<string>()
+  for (const a of amountsIn(knowledgeText)) {
+    if (backed.has(a) || seen.has(a)) continue
+    seen.add(a)
+    out.push(a)
+  }
+  return out
+}

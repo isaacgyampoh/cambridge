@@ -3,10 +3,15 @@
  *
  * ── WHY THIS IS ITS OWN DECISION ───────────────────────────────────────────
  *
- * The centre sells one programme two ways, at two prices: PMP is GHS 4,950 in
- * person and GHS 3,950 online. Internally those are one course row with two
- * fee columns, and the staff and the leads both call them "PMP Physical" and
- * "PMP Virtual".
+ * The centre sells one programme two ways, at two prices — in person costs
+ * more than online. Internally those are one course row with two fee columns
+ * (course_fee and course_fee_online), and the staff and the leads both call
+ * them "PMP Physical" and "PMP Virtual".
+ *
+ * No figure is written here on purpose. This comment used to name both
+ * prices, and a comment in lib/admissions/letterPolicy.ts named two DIFFERENT
+ * ones for the same programme — so the source asserted two contradictory
+ * fees, neither of which the code reads. Prices live on the course record.
  *
  * The assistant is handed both figures, so it can answer either — but nothing
  * told it WHICH one was asked for. "How much is virtual PMP?" and "how much
