@@ -83,7 +83,6 @@ describe('the two enrolment models are not quietly conflated', () => {
     const known = [
       'app/(portal)/student/page.tsx',
       'app/(portal)/trainer/classes/page.tsx',
-      'app/api/attendance/auto-send/route.ts',
       'app/api/reminders/personalized/route.ts',
       'app/api/student/next-class/route.ts',
     ].sort()
@@ -139,6 +138,31 @@ describe('the readers that could be repointed, were', () => {
                      'app/api/reminders/route.ts', 'app/api/trainer/dashboard/route.ts']) {
       assert.match(read(p), /\.eq\('status', 'active'\)/, `${p} does not filter to active`)
     }
+  })
+
+  test('the sign-in link goes out, and is attributed', () => {
+    const s = read('app/api/attendance/auto-send/route.ts')
+    assert.match(s, /from\('class_enrollments'\)/, 'the roster must be the one that exists')
+    assert.doesNotMatch(s, /from\('batch_students'\)/)
+
+    /*
+     * The marketer lookup asked admissions for a row matching student_id, and
+     * admissions.student_id is always NULL — nothing in the application ever
+     * sets it. Every link went out unattributed, on top of the loop running
+     * zero times.
+     */
+    assert.doesNotMatch(s, /\.eq\('student_id', student\.id\)/,
+      'admissions.student_id is never populated')
+    assert.match(s, /\.eq\('id', student\.lead_id/, 'the lead is the populated key')
+
+    /*
+     * Scoped to the lookup itself. A broader check tripped on the class
+     * session insert's .select().single(), which is correct there — it
+     * inserts exactly one row.
+     */
+    const lookup = s.slice(s.indexOf("from('leads')"), s.indexOf('const marketerId'))
+    assert.match(lookup, /maybeSingle\(\)/,
+      'single() reports no rows as an error; a student with no lead row is not an error')
   })
 
   test('no join to profiles is attempted', () => {

@@ -57,30 +57,45 @@ export async function POST(req: NextRequest) {
  if (error || !session) continue
  sessionsCreated++
 
- // Get all enrolled students
- const { data: enrollments } = await sb.from('batch_students')
- .select('*, student:student_id(*)')
- .eq('batch_id', batch.id)
+ /*
+  * The roster that is actually written. batch_students has no writer, so
+  * this loop ran zero times and no sign-in link was ever sent.
+  * class_enrollments carries the name and number inline — a student here is
+  * a lead, not a member of staff.
+  */
+ const { data: enrollments } = await sb.from('class_enrollments')
+ .select('lead_id, full_name, phone')
+ .eq('batch_id', batch.id).eq('status', 'active')
 
  const appUrl = CONFIG.appUrl
  const signinUrl =`${appUrl}/signin/${batch.id}`
  const courseName = (batch as any).courses?.name || batch.name
 
  for (const enrollment of enrollments || []) {
- const student = (enrollment as any).student
+ const student = enrollment as { lead_id?: string; full_name?: string; phone?: string }
  if (!student?.phone) continue
 
- // Get marketer for this student (from their admission)
- const { data: admission } = await sb.from('admissions')
- .select('*, lead:lead_id(assigned_to)')
- .eq('student_id', student.id)
- .single()
+ /*
+  * Whose link this is, so the sign-in credits the right marketer.
+  *
+  * This asked admissions for a row matching student_id, and
+  * admissions.student_id is ALWAYS NULL — nothing in the application sets
+  * it; completeApplication writes application_id, lead_id, course_id,
+  * admission_number and status. So the lookup matched nothing even where an
+  * admission existed, and every link went out unattributed.
+  *
+  * The lead is the key that is actually populated, and assigned_to is on
+  * the lead itself, so the admission is not needed at all. maybeSingle,
+  * because single() reports "no rows" as an error.
+  */
+ const { data: lead } = await sb.from('leads')
+ .select('assigned_to').eq('id', student.lead_id || '').maybeSingle()
 
- const marketerId = (admission as any)?.lead?.assigned_to
+ const marketerId = lead?.assigned_to
  const linkWithMarketer = marketerId ?`${signinUrl}?m=${marketerId}` : signinUrl
 
  const message =` *Cambridge CE — ${courseName}*\n\n` +
-`Good morning ${student.full_name.split(' ')[0]}!\n\n` +
+`Good morning ${(student.full_name || 'there').split(' ')[0]}!\n\n` +
 `Today's class is about to begin. Please sign in:\n\n` +
 ` ${linkWithMarketer}\n\n` +
 ` You'll need today's class code — it will be written on the board/screen when you arrive.\n\n` +
