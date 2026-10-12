@@ -30,8 +30,14 @@ async function getRecipients(sb: any, target_type: string, target_filters: any) 
       break
     }
     case 'batch_students': {
-      const { data } = await sb.from('batch_students').select('student:student_id(id, full_name, phone)').eq('batch_id', target_filters.batch_id || '')
-      recipients = (data || []).map((e: any) => e.student).filter((s: any) => s?.phone).map((s: any) => ({ phone: s.phone, name: s.full_name, id: s.id, type: 'student' }))
+      // batch_students has no writer, so "Specific Batch" reached nobody.
+      // class_enrollments is the roster that is written, and it carries the
+      // name and number inline — no join to profiles, because a student here
+      // is a lead rather than a member of staff.
+      const { data } = await sb.from('class_enrollments')
+        .select('lead_id, full_name, phone')
+        .eq('batch_id', target_filters.batch_id || '').eq('status', 'active')
+      recipients = (data || []).filter((e: any) => e?.phone).map((e: any) => ({ phone: e.phone, name: e.full_name, id: e.lead_id, type: 'student' }))
       break
     }
     case 'interested_not_converted': {

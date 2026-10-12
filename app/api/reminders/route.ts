@@ -25,9 +25,18 @@ export async function POST(req: NextRequest) {
   if (!batch) return NextResponse.json({ error: 'Batch not found' }, { status: 404 })
 
   // Get all enrolled students
-  const { data: enrollments } = await sb.from('batch_students')
-    .select('*, student:student_id(*)')
-    .eq('batch_id', batchId)
+  /*
+   * The roster that is actually written.
+   *
+   * batch_students has no writer anywhere in this codebase, so this returned
+   * nothing and the route answered "No students enrolled" — which reads as a
+   * class nobody joined rather than a reminder system that cannot see
+   * anybody. class_enrollments carries the name, number and email inline, so
+   * there is no join: a student here is a lead, not a member of staff.
+   */
+  const { data: enrollments } = await sb.from('class_enrollments')
+    .select('id, lead_id, full_name, phone, email')
+    .eq('batch_id', batchId).eq('status', 'active')
 
   if (!enrollments?.length) {
     return NextResponse.json({ success: true, count: 0, message: 'No students enrolled' })
@@ -44,8 +53,10 @@ export async function POST(req: NextRequest) {
 
   let count = 0
   for (const enrollment of enrollments) {
-    const student = (enrollment as any).student
-    if (!student) continue
+    // The row IS the student now, rather than an embed beside them.
+    const e = enrollment as { lead_id?: string; full_name?: string; phone?: string; email?: string }
+    const student = { id: e.lead_id, full_name: e.full_name, phone: e.phone, email: e.email }
+    if (!student.phone && !student.email) continue
     try {
       await onClassReminder(student, course?.name || batch.name, date, time, venue, daysUntil, zoom)
       count++

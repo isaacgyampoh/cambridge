@@ -64,16 +64,28 @@ describe('the two enrolment models are not quietly conflated', () => {
 
     // Accounted for in CB-032. A new entry here is a tenth feature that will
     // silently show nothing.
+    /*
+     * Four of the original nine have been repointed to class_enrollments —
+     * the ones that needed only a batch_id, a name and a number, which the
+     * roster carries inline.
+     *
+     * These five remain, and each is blocked on the same question rather than
+     * on effort: they read or write a column keyed to profiles(id), and a
+     * student in class_enrollments is a LEAD. Repointing them means deciding
+     * how a lead relates to a profile, which is CB-032.
+     *
+     *   student/page + next-class   read batch_students by the signed-in
+     *                               profile id
+     *   trainer/classes             writes attendance.student_id
+     *   attendance/auto-send        queries admissions by student_id
+     *   reminders/personalized      writes a log row keyed by student_id
+     */
     const known = [
       'app/(portal)/student/page.tsx',
       'app/(portal)/trainer/classes/page.tsx',
       'app/api/attendance/auto-send/route.ts',
-      'app/api/broadcast/route.ts',
-      'app/api/broadcast/send-now/route.ts',
       'app/api/reminders/personalized/route.ts',
-      'app/api/reminders/route.ts',
       'app/api/student/next-class/route.ts',
-      'app/api/trainer/dashboard/route.ts',
     ].sort()
 
     assert.deepEqual(readers, known,
@@ -94,5 +106,47 @@ describe('a script does not keep its own copy of the phone normaliser', () => {
       'a hand-copied normaliser had already drifted: it accepted a bare ' +
       'nine-digit number that lib/phone.ts rejects, which would have ' +
       'over-reported the very match rate the script measures')
+  })
+})
+
+describe('the readers that could be repointed, were', () => {
+  const read = (p: string) => readFileSync(p, 'utf8')
+
+  test('a broadcast to one class reaches the roster that exists', () => {
+    for (const p of ['app/api/broadcast/route.ts', 'app/api/broadcast/send-now/route.ts']) {
+      const s = read(p)
+      assert.match(s, /from\('class_enrollments'\)/, `${p} still reads the empty table`)
+      assert.doesNotMatch(s, /from\('batch_students'\)/, `${p} still reads batch_students`)
+    }
+  })
+
+  test('the trainer’s student count comes from the roster', () => {
+    const s = read('app/api/trainer/dashboard/route.ts')
+    assert.match(s, /from\('class_enrollments'\)/)
+    assert.doesNotMatch(s, /from\('batch_students'\)/)
+  })
+
+  test('class reminders find the students', () => {
+    const s = read('app/api/reminders/route.ts')
+    assert.match(s, /from\('class_enrollments'\)/)
+    assert.doesNotMatch(s, /from\('batch_students'\)/)
+  })
+
+  test('only active enrolments are messaged', () => {
+    // /api/classes/complete sets 'completed'. Somebody who has finished the
+    // course should not be reminded to attend it.
+    for (const p of ['app/api/broadcast/route.ts', 'app/api/broadcast/send-now/route.ts',
+                     'app/api/reminders/route.ts', 'app/api/trainer/dashboard/route.ts']) {
+      assert.match(read(p), /\.eq\('status', 'active'\)/, `${p} does not filter to active`)
+    }
+  })
+
+  test('no join to profiles is attempted', () => {
+    // A student in class_enrollments is a lead. student:student_id(...) would
+    // embed a staff profile and come back empty.
+    for (const p of ['app/api/broadcast/route.ts', 'app/api/broadcast/send-now/route.ts',
+                     'app/api/reminders/route.ts']) {
+      assert.doesNotMatch(read(p), /student:student_id\(/, `${p} still embeds a profile`)
+    }
   })
 })

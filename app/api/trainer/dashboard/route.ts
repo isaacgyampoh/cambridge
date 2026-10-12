@@ -21,7 +21,16 @@ export async function GET(req: NextRequest) {
   let totalStudents = 0
   const ids = all.map((b: any) => b.id)
   if (ids.length) {
-    const { count } = await sb.from('batch_students').select('id', { count: 'exact', head: true }).in('batch_id', ids)
+    /*
+     * class_enrollments, not batch_students. Nothing writes batch_students —
+     * no insert anywhere in the codebase, no seed, no trigger — so this count
+     * was always 0 and read as "no students", which is indistinguishable from
+     * a class nobody has joined. class_enrollments is the roster that is
+     * actually written, by /api/classes/enroll and by manual registration.
+     */
+    const { count } = await sb.from('class_enrollments')
+      .select('id', { count: 'exact', head: true })
+      .in('batch_id', ids).eq('status', 'active')
     totalStudents = count || 0
   }
 
