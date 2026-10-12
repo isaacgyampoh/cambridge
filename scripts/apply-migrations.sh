@@ -5,6 +5,17 @@
 #
 #   SUPABASE_ACCESS_TOKEN=sbp_xxx ./scripts/apply-migrations.sh
 #
+# ── FOR A FRESH DATABASE ONLY. ────────────────────────────────────────────
+#
+# The loop below globs "000*.sql", which matches 0001 to 0009 and nothing
+# else. On a database that is already running this does both wrong things at
+# once: it skips every migration from 0010 on, and it RE-RUNS 0001 — deleting
+# every pin_sessions row and setting must_change_pin on every profile, so all
+# staff are signed out and made to choose a new PIN, for nothing.
+#
+# To apply what is outstanding on a live database, use:
+#   ./scripts/apply-pending-migrations.sh
+#
 # Each migration is wrapped in BEGIN/COMMIT internally, so a failure rolls that
 # migration back rather than leaving it half-applied. The script stops on the
 # first error so a later migration never runs against a database the earlier

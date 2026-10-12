@@ -312,3 +312,47 @@ describe('the academic screen offers it', () => {
     assert.match(dialog, /No payment is recorded/i)
   })
 })
+
+describe('the migration runner picks the right migrations', () => {
+  /*
+   * scripts/apply-migrations.sh globs 000*.sql, which matches 0001 to 0009
+   * and nothing else. Run against the live database it would skip every
+   * pending migration AND re-run 0001, which deletes every pin_sessions row
+   * and forces a PIN reset on every profile. The allow-rule in
+   * .claude/settings.local.json names that script, so the trap is one
+   * keystroke away.
+   */
+  test('the fresh-database script says it is for a fresh database', () => {
+    const s = readFileSync('scripts/apply-migrations.sh', 'utf8')
+    assert.match(s, /FOR A FRESH DATABASE ONLY/)
+    assert.match(s, /apply-pending-migrations\.sh/, 'it must point at the right one')
+  })
+
+  test('the pending runner starts at 0018 and is ordered', () => {
+    const raw = readFileSync('scripts/apply-pending-migrations.sh', 'utf8')
+    // Strip shell comments: the script EXPLAINS the bad glob, and matching
+    // my own prose is not the same as matching the code. This assertion
+    // failed on exactly that.
+    const s = raw.replace(/^\s*#.*$/gm, '')
+    assert.match(s, /FROM="\$\{FROM_MIGRATION:-0018\}"/)
+    assert.match(s, /\[0-9\]\[0-9\]\[0-9\]\[0-9\]_\*\.sql/,
+      'a four-digit glob, so 0010 and later are not skipped')
+    assert.doesNotMatch(s, /000\*\.sql/, 'the glob that caused this')
+  })
+
+  test('it verifies the two things that matter after running', () => {
+    const s = readFileSync('scripts/apply-pending-migrations.sh', 'utf8')
+    assert.match(s, /relrowsecurity=false/, 'RLS coverage, which is CB-026')
+    assert.match(s, /registration_source/, 'the column this feature needs')
+  })
+
+  test('every pending migration is idempotent, so re-running is safe', () => {
+    // The runner has no record of what has already been applied; it relies on
+    // each file being a no-op the second time.
+    for (const n of ['0023_rls_on_exposed_tables', '0024_payment_reminders_off', '0025_manual_registration']) {
+      const sql = readFileSync(`supabase/migrations/${n}.sql`, 'utf8')
+      assert.match(sql, /IF NOT EXISTS|ON CONFLICT|DROP NOT NULL|ENABLE ROW LEVEL SECURITY/i,
+        `${n} is not written to survive a second run`)
+    }
+  })
+})
