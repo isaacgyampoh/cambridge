@@ -5,15 +5,37 @@ import { ManualRegistrationDialog } from '@/components/academics/ManualRegistrat
 import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, Button } from '@/components/ui'
 import Link from 'next/link'
-import type { Batch, Course } from '@/types'
+import type { Batch, Course, StudentFee } from '@/types'
 
 export default function AcademicsHub() {
-  const { data: courses, loading: lc, refetch: refetchCourses } = useData<Course>({ table: 'courses', limit: 200 })
+  const { data: courses, loading: lc } = useData<Course>({ table: 'courses', limit: 200 })
   const { data: batches, loading: lb, refetch: refetchBatches } = useData<Batch>({ table: 'batches', select: '*, courses(name)', orderBy: 'created_at', orderAsc: false, limit: 200 })
   const [registering, setRegistering] = useState(false)
+  const [studentSearch, setStudentSearch] = useState('')
+
+  /*
+   * The students themselves, read from the fee ledger.
+   *
+   * student_fees is the canonical record of a registered student — it is what
+   * the accountant's screen reads, and what an online registration creates.
+   * Reading the same table here means the academic department and Accounts
+   * are looking at one list, not two that can disagree.
+   *
+   * project_manager and accountant both hold it in lib/data/policy, and
+   * project_manager holds the `academics` portal that grants this page, so
+   * this one list serves the academic department and the PM without a second
+   * screen.
+   */
+  const { data: students, loading: ls, refetch: refetchStudents } = useData<StudentFee>({
+    table: 'student_fees', select: '*', orderBy: 'created_at', orderAsc: false, limit: 500,
+  })
 
   const loading = lc || lb
   const activeCourses = courses.filter((c) => c.is_active)
+  const owingCount = students.filter(st => Number(st.balance) > 0).length
+  const shownStudents = studentSearch
+    ? students.filter(st => (st.student_name || '').toLowerCase().includes(studentSearch.toLowerCase()))
+    : students
   const ongoing = batches.filter((b) => b.status === 'ongoing')
   const upcoming = batches.filter((b) => b.status === 'upcoming')
 
@@ -51,7 +73,7 @@ export default function AcademicsHub() {
          * local state: the record the list should show is the one that was
          * actually saved, including everything the canonical path filled in.
          */
-        onRegistered={() => { refetchCourses(); refetchBatches() }}
+        onRegistered={() => { refetchStudents(); refetchBatches() }}
       />
 
       {loading ? <Spinner /> : (
@@ -60,7 +82,63 @@ export default function AcademicsHub() {
             <StatCard label="Active courses" value={activeCourses.length} sub={`${courses.length} total`}  />
             <StatCard label="Ongoing classes" value={ongoing.length}  accent />
             <StatCard label="Upcoming" value={upcoming.length} sub="Scheduled to begin"  />
-            <StatCard label="All batches" value={batches.length}  />
+            <StatCard label="Registered students" value={students.length} sub={owingCount ? `${owingCount} owing` : 'all settled'} />
+          </div>
+
+          {/* ── Registered students ───────────────────────────────────────
+              The same rows the accountant sees, so the two departments are
+              never looking at different lists. */}
+          <div className="mb-10">
+            <div className="flex items-center justify-between gap-3 mb-4">
+              <SectionLabel>Registered students</SectionLabel>
+              <input
+                className="h-9 px-3 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[16px] sm:text-[13px] w-full max-w-[220px]
+                  focus:outline-none focus:border-[var(--accent)]"
+                placeholder="Search by name"
+                value={studentSearch}
+                onChange={e => setStudentSearch(e.target.value)}
+                aria-label="Search registered students"
+              />
+            </div>
+
+            {ls ? <Spinner /> : shownStudents.length === 0 ? (
+              <Card className="p-8 text-center">
+                <p className="text-sm text-[var(--ink-soft)]">
+                  {studentSearch
+                    ? `Nobody matching “${studentSearch}”.`
+                    : 'No students registered yet. Use Register Student Manually for anyone signed up at the desk.'}
+                </p>
+              </Card>
+            ) : (
+              <div className="space-y-2">
+                {shownStudents.slice(0, 50).map(st => (
+                  <Card key={st.id} className="p-4">
+                    <div className="flex items-start justify-between gap-3">
+                      <div className="min-w-0">
+                        <div className="font-medium text-[var(--ink)] truncate">{st.student_name || 'Unnamed'}</div>
+                        <div className="text-[12px] text-[var(--ink-soft)] mt-0.5 truncate">
+                          {st.course_name || 'No programme recorded'}
+                          {st.delivery ? ` · ${st.delivery === 'online' ? 'Online' : 'In person'}` : ''}
+                        </div>
+                      </div>
+                      <div className="text-right flex-shrink-0">
+                        <Badge tone={Number(st.balance) > 0 ? 'danger' : 'success'}>
+                          {Number(st.balance) > 0 ? `GHS ${Number(st.balance).toLocaleString()} owing` : 'Paid'}
+                        </Badge>
+                        <div className="text-[11px] text-[var(--ink-faint)] mt-1">
+                          {`GHS ${Number(st.amount_paid || 0).toLocaleString()} of ${Number(st.total_fee || 0).toLocaleString()}`}
+                        </div>
+                      </div>
+                    </div>
+                  </Card>
+                ))}
+                {shownStudents.length > 50 && (
+                  <p className="text-[12px] text-[var(--ink-faint)] pt-1">
+                    + {shownStudents.length - 50} more. Accounts has the full list under Finance → Student fees.
+                  </p>
+                )}
+              </div>
+            )}
           </div>
 
           {/* Two columns: courses + active batches */}
