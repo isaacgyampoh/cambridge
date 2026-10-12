@@ -716,3 +716,13 @@ COMMIT;
 insert into settings (key, value)
 values ('payment_reminders_enabled', 'false')
 on conflict (key) do update set value = 'false';
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 0025_manual_registration.sql
+-- ───────────────────────────────────────────────────────────────────────────
+
+ALTER TABLE applications ALTER COLUMN email DROP NOT NULL;
+ALTER TABLE applications ADD COLUMN IF NOT EXISTS registration_source TEXT DEFAULT 'online';
+CREATE INDEX IF NOT EXISTS idx_applications_registration_source
+  ON applications (registration_source);
+UPDATE applications SET registration_source = 'online' WHERE registration_source IS NULL;

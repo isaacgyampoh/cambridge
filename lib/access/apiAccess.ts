@@ -64,6 +64,14 @@ export const API_PORTALS: Record<string, string[]> = {
   '/api/remuneration':       ['remuneration'],
   '/api/tiers':              ['remuneration', 'marketers'],
 
+  /*
+   * Manual student registration. Scoped to `academics` alone, which is the
+   * portal that grants /admin/academics — so exactly the people who can open
+   * the page can call the route behind its button, and nobody else. An
+   * unmapped path is refused to everybody but a super admin, so without this
+   * entry the button would answer 403 to the very staff it is for.
+   */
+  '/api/academics':          ['academics'],
   '/api/classes':            ['academics', 'my_classes', 'attendance'],
   '/api/class-reminders':    ['academics', 'grp_automation'],
   '/api/certificates':       ['academics'],

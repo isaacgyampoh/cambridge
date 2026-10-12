@@ -1,13 +1,16 @@
 'use client'
+import { useState } from 'react'
 import { useData } from '@/hooks/useData'
+import { ManualRegistrationDialog } from '@/components/academics/ManualRegistrationDialog'
 import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, StatCard, Spinner, Badge, SectionLabel, Button } from '@/components/ui'
 import Link from 'next/link'
 import type { Batch, Course } from '@/types'
 
 export default function AcademicsHub() {
-  const { data: courses, loading: lc } = useData<Course>({ table: 'courses', limit: 200 })
-  const { data: batches, loading: lb } = useData<Batch>({ table: 'batches', select: '*, courses(name)', orderBy: 'created_at', orderAsc: false, limit: 200 })
+  const { data: courses, loading: lc, refetch: refetchCourses } = useData<Course>({ table: 'courses', limit: 200 })
+  const { data: batches, loading: lb, refetch: refetchBatches } = useData<Batch>({ table: 'batches', select: '*, courses(name)', orderBy: 'created_at', orderAsc: false, limit: 200 })
+  const [registering, setRegistering] = useState(false)
 
   const loading = lc || lb
   const activeCourses = courses.filter((c) => c.is_active)
@@ -27,9 +30,28 @@ export default function AcademicsHub() {
         actions={
           <>
             <Button variant="secondary" href="/admin/courses" >Courses</Button>
-            <Button href="/admin/classes" >Classes</Button>
+            <Button variant="secondary" href="/admin/classes" >Classes</Button>
+            {/*
+              The primary action on this page. Students signed up at the desk
+              never reach the online form, so without this there is no way to
+              put them into the records the accountant reads.
+            */}
+            <Button onClick={() => setRegistering(true)}>Register Student Manually</Button>
           </>
         }
+      />
+
+      <ManualRegistrationDialog
+        open={registering}
+        onClose={() => setRegistering(false)}
+        courses={courses}
+        batches={batches}
+        /*
+         * Reload from the server rather than pushing the new student into
+         * local state: the record the list should show is the one that was
+         * actually saved, including everything the canonical path filled in.
+         */
+        onRegistered={() => { refetchCourses(); refetchBatches() }}
       />
 
       {loading ? <Spinner /> : (

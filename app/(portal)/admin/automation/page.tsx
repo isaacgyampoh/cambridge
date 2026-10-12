@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { PageHeader, Card, Button, Spinner, Badge } from '@/components/ui'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
@@ -43,11 +43,19 @@ export default function AutomationPage() {
   const { data: runs, loading, refetch } = useData<CronRun>({ table: 'cron_runs', select: '*', limit: 50 })
   const [busy, setBusy] = useState<string | null>(null)
   /*
-   * Read once per render rather than inside the map: reading the clock is not
-   * a render-time job done eleven times, and every row should be judged
-   * against the same instant.
+   * The instant every row is judged against.
+   *
+   * Set after mount, not read during render. Date.now() in the render body is
+   * an impure call — React 19 says so and the lint rule fails the build over
+   * it, which is the same reason `ago` below sits at module scope. It also
+   * avoids a prerender and the browser disagreeing about the time and
+   * producing different text for the same row.
+   *
+   * 0 until then, which reads as "nothing is late" — the honest default
+   * before anything has been measured. It resolves on the first paint.
    */
-  const now = Date.now()
+  const [now, setNow] = useState(0)
+  useEffect(() => { setNow(Date.now()) }, [runs])
 
   /*
    * Run the due tasks now.
@@ -134,7 +142,7 @@ export default function AutomationPage() {
 
       {loading ? <Spinner /> : (
         <>
-        {health.headline && (
+        {now > 0 && health.headline && (
           /*
             One line, not nine. Every sub-daily task late at once is a
             deployment whose runner is invoked daily — a single fact about the
