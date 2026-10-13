@@ -23,6 +23,17 @@ export default function StudentFeesPage() {
   const [acting, setActing] = useState<string | null>(null)
   const [amounts, setAmounts] = useState<Record<string, string>>({})
   const [recordFor, setRecordFor] = useState<any>(null)
+  /*
+   * Correcting what a student is charged.
+   *
+   * total_fee is a snapshot taken when they registered and nothing could
+   * change it afterwards, so anybody registered under an old price list
+   * showed that price for ever — here, in their portal, and in any reminder
+   * quoting their balance.
+   */
+  const [repriceFor, setRepriceFor] = useState<any>(null)
+  const [repriceAmt, setRepriceAmt] = useState('')
+  const [repriceWhy, setRepriceWhy] = useState('')
   const [recordAmt, setRecordAmt] = useState('')
 
   const [pendingError, setPendingError] = useState<string | null>(null)
@@ -64,6 +75,37 @@ export default function StudentFeesPage() {
       loadPending(); refetch()
     } catch (e: any) { toast.error(e.message) }
     finally { setActing(null) }
+  }
+
+  async function reprice(useCourseFee: boolean) {
+    if (!repriceFor) return
+    if (acting === repriceFor.id) return          // a second click changes nothing
+    setActing(repriceFor.id)
+    try {
+      const res = await fetch('/api/fees/reprice', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          studentFeeId: repriceFor.id,
+          totalFee: useCourseFee ? undefined : repriceAmt,
+          useCourseFee,
+          reason: repriceWhy,
+        }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || d.error) { toast.error(d.error || 'That fee could not be changed.'); return }
+
+      toast.success(`Fee corrected from GHS ${Number(d.previousTotal).toFixed(2)} to GHS ${Number(d.totalFee).toFixed(2)}.`)
+      // A fee below what was already paid leaves the student in credit. That
+      // is a real state and an unusual one, so it is said rather than shown
+      // as a quiet minus sign.
+      if (d.inCredit) toast.error(`${repriceFor.student_name} is now in credit by GHS ${Math.abs(Number(d.balance)).toFixed(2)}.`)
+      setRepriceFor(null); setRepriceAmt(''); setRepriceWhy('')
+      refetch()
+    } catch {
+      toast.error('The server could not be reached. Nothing was changed.')
+    } finally {
+      setActing(null)
+    }
   }
 
   // Finance manually records a payment for a student (e.g. cash at desk)
@@ -130,12 +172,22 @@ export default function StudentFeesPage() {
     },
     {
       key: 'action', header: 'Record',
-      render: f => f.status !== 'paid' ? (
-        <Button size="sm" variant="secondary"
-          onClick={() => { setRecordFor(f); setRecordAmt(String(f.balance)) }}>
-          Record payment
-        </Button>
-      ) : null,
+      render: f => (
+        <div className="flex gap-1.5 justify-end">
+          {f.status !== 'paid' && (
+            <Button size="sm" variant="secondary"
+              onClick={() => { setRecordFor(f); setRecordAmt(String(f.balance)) }}>
+              Record payment
+            </Button>
+          )}
+          {/* Available whatever the status: a fee charged wrongly is worth
+              correcting after it has been settled, not only before. */}
+          <Button size="sm" variant="secondary"
+            onClick={() => { setRepriceFor(f); setRepriceAmt(String(f.total_fee ?? '')); setRepriceWhy('') }}>
+            Correct fee
+          </Button>
+        </div>
+      ),
     },
   ]
 
@@ -226,6 +278,42 @@ export default function StudentFeesPage() {
             <div className="flex gap-2">
               <Button onClick={recordPayment} disabled={acting === recordFor.id}>Record</Button>
               <Button variant="secondary" onClick={() => setRecordFor(null)}>Cancel</Button>
+            </div>
+          </div>
+        )}
+      </Modal>
+
+      <Modal open={!!repriceFor} onClose={() => setRepriceFor(null)} maxWidth="max-w-sm">
+        {repriceFor && (
+          <div className="p-6">
+            <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">Correct the fee</h2>
+            <p className="text-sm text-[var(--ink-soft)] mb-4">
+              {repriceFor.student_name} · {repriceFor.course_name || 'no programme'} ·
+              {' '}currently GHS {Number(repriceFor.total_fee || 0).toFixed(2)}
+            </p>
+
+            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Corrected fee</label>
+            <input value={repriceAmt} onChange={e => setRepriceAmt(e.target.value)} type="number"
+              className={inputClass + ' mb-3'} aria-label="Corrected fee" />
+
+            <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Why</label>
+            <input value={repriceWhy} onChange={e => setRepriceWhy(e.target.value)}
+              placeholder="e.g. charged the old price list"
+              className={inputClass + ' mb-4'} aria-label="Reason for the correction" />
+
+            <p className="text-[12px] text-[var(--ink-soft)] leading-relaxed mb-4">
+              GHS {Number(repriceFor.amount_paid || 0).toFixed(2)} already paid is not changed —
+              only what is owed. The reason is kept on the record.
+            </p>
+
+            <div className="flex flex-wrap gap-2">
+              <Button onClick={() => reprice(false)} disabled={acting === repriceFor.id}>
+                {acting === repriceFor.id ? 'Saving…' : 'Save'}
+              </Button>
+              <Button variant="secondary" onClick={() => reprice(true)} disabled={acting === repriceFor.id}>
+                Use current course fee
+              </Button>
+              <Button variant="secondary" onClick={() => setRepriceFor(null)}>Cancel</Button>
             </div>
           </div>
         )}
