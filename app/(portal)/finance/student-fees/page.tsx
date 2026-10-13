@@ -34,6 +34,22 @@ export default function StudentFeesPage() {
   const [repriceFor, setRepriceFor] = useState<any>(null)
   const [repriceAmt, setRepriceAmt] = useState('')
   const [repriceWhy, setRepriceWhy] = useState('')
+  /*
+   * Putting a whole programme onto its current fee.
+   *
+   * Correcting a course does not move the snapshots of students already
+   * registered, so after a price list is fixed every one of them still holds
+   * the old figure. One at a time is fine for a few and never happens for a
+   * cohort.
+   */
+  const { data: courses } = useData<{ id: string; name: string; is_active?: boolean }>({
+    table: 'courses', select: 'id, name, is_active', limit: 200,
+  })
+  const [bulkOpen, setBulkOpen] = useState(false)
+  const [bulkCourse, setBulkCourse] = useState('')
+  const [bulkWhy, setBulkWhy] = useState('')
+  const [bulkPlan, setBulkPlan] = useState<any>(null)
+  const [bulkBusy, setBulkBusy] = useState(false)
   const [recordAmt, setRecordAmt] = useState('')
 
   const [pendingError, setPendingError] = useState<string | null>(null)
@@ -106,6 +122,53 @@ export default function StudentFeesPage() {
     } finally {
       setActing(null)
     }
+  }
+
+  async function bulkPreview() {
+    if (!bulkCourse) { toast.error('Choose a programme.'); return }
+    setBulkBusy(true); setBulkPlan(null)
+    try {
+      const d = await fetch('/api/fees/reprice-bulk', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ courseId: bulkCourse }),
+      }).then(r => r.json())
+      if (d.error) { toast.error(d.error); return }
+      setBulkPlan(d)
+      if (!d.changes?.length) toast.success('Everybody on that programme is already on the current fee.')
+    } catch { toast.error('Could not work out what would change.') }
+    finally { setBulkBusy(false) }
+  }
+
+  async function bulkApply() {
+    if (!bulkPlan?.changes?.length) return
+    if (bulkBusy) return
+    /*
+     * Confirmed against the EXACT list that was shown. If the roster has
+     * moved since, the server refuses rather than re-pricing people this
+     * screen never listed.
+     */
+    setBulkBusy(true)
+    try {
+      const res = await fetch('/api/fees/reprice-bulk', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          courseId: bulkCourse, reason: bulkWhy,
+          confirmIds: bulkPlan.changes.map((c: any) => c.id),
+        }),
+      })
+      const d = await res.json().catch(() => ({}))
+      if (!res.ok || d.error) {
+        toast.error(d.error || 'Could not apply.')
+        if (d.stale) setBulkPlan(d)
+        return
+      }
+      toast.success(`${d.applied} of ${d.planned} students re-priced.`)
+      if (d.creditCount) toast.error(`${d.creditCount} are now in credit — they have paid more than the new fee.`)
+      if (d.failures?.length) toast.error(`${d.failures.length} could not be changed.`)
+      setBulkOpen(false); setBulkPlan(null); setBulkWhy('')
+      refetch()
+    } catch { toast.error('The server could not be reached.') }
+    finally { setBulkBusy(false) }
   }
 
   // Finance manually records a payment for a student (e.g. cash at desk)
@@ -193,7 +256,10 @@ export default function StudentFeesPage() {
 
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
-      <PageHeader eyebrow="Finance" title="Student fees" description="Every registered student and what they owe. Verify bank and cash payments here." />
+      <PageHeader eyebrow="Finance" title="Student fees"
+        description="Every registered student and what they owe. Verify bank and cash payments here."
+        actions={<Button variant="secondary" onClick={() => { setBulkOpen(true); setBulkPlan(null) }}>Re-price a programme</Button>}
+      />
 
       <div className="grid grid-cols-2 sm:grid-cols-3 gap-3 mb-6">
         <StatCard label="Students" value={String((fees || []).length)} />
@@ -281,6 +347,87 @@ export default function StudentFeesPage() {
             </div>
           </div>
         )}
+      </Modal>
+
+      <Modal open={bulkOpen} onClose={() => { if (!bulkBusy) { setBulkOpen(false); setBulkPlan(null) } }} maxWidth="max-w-lg">
+        <div className="p-6">
+          <h2 className="font-display text-lg font-semibold text-[var(--ink)] mb-1">Re-price a programme</h2>
+          <p className="text-sm text-[var(--ink-soft)] mb-4">
+            Puts every student on one programme onto its current fee. Nothing changes until you
+            have seen exactly who is affected.
+          </p>
+
+          <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Programme</label>
+          <select className={inputClass + ' mb-3'} value={bulkCourse}
+            onChange={e => { setBulkCourse(e.target.value); setBulkPlan(null) }} aria-label="Programme">
+            <option value="">Choose a programme</option>
+            {(courses || []).filter(c => c.is_active !== false).map(c => (
+              <option key={c.id} value={c.id}>{c.name}</option>
+            ))}
+          </select>
+
+          {!bulkPlan ? (
+            <div className="flex gap-2">
+              <Button onClick={bulkPreview} disabled={bulkBusy || !bulkCourse}>
+                {bulkBusy ? 'Checking…' : 'Show me what would change'}
+              </Button>
+              <Button variant="secondary" onClick={() => setBulkOpen(false)}>Cancel</Button>
+            </div>
+          ) : (
+            <>
+              <div className="rounded-2xl bg-[var(--canvas)] border border-[var(--line)] p-3 mb-3 text-[13px]">
+                <div className="text-[var(--ink)] font-medium mb-1">
+                  {bulkPlan.changes?.length || 0} student{bulkPlan.changes?.length === 1 ? '' : 's'} would change
+                </div>
+                <div className="text-[12px] text-[var(--ink-soft)] leading-relaxed">
+                  Current fee: GHS {Number(bulkPlan.inPerson || 0).toLocaleString()} in person ·
+                  {' '}GHS {Number(bulkPlan.online || 0).toLocaleString()} online.<br />
+                  Outstanding across them: GHS {Number(bulkPlan.owedBefore || 0).toLocaleString()}
+                  {' → '}GHS {Number(bulkPlan.owedAfter || 0).toLocaleString()}.
+                  {bulkPlan.creditCount > 0 && (
+                    <><br /><span className="text-[var(--danger)]">
+                      {bulkPlan.creditCount} would end up in credit — they have paid more than the new fee.
+                    </span></>
+                  )}
+                  {bulkPlan.skipped?.length > 0 && (
+                    <><br />{bulkPlan.skipped.length} left out (already correct, or no class mode recorded).</>
+                  )}
+                </div>
+              </div>
+
+              {bulkPlan.changes?.length > 0 && (
+                <div className="max-h-48 overflow-y-auto mb-3 space-y-1">
+                  {bulkPlan.changes.map((c: any) => (
+                    <div key={c.id} className="flex justify-between gap-3 text-[12px] py-1 border-b border-[var(--line-soft)] last:border-0">
+                      <span className="text-[var(--ink)] truncate">{c.student}</span>
+                      <span className="text-[var(--ink-soft)] flex-shrink-0">
+                        GHS {Number(c.from).toLocaleString()} → GHS {Number(c.to).toLocaleString()}
+                      </span>
+                    </div>
+                  ))}
+                </div>
+              )}
+
+              {bulkPlan.changes?.length > 0 && (
+                <>
+                  <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Why</label>
+                  <input value={bulkWhy} onChange={e => setBulkWhy(e.target.value)}
+                    placeholder="e.g. fee list corrected" className={inputClass + ' mb-4'} aria-label="Reason" />
+                </>
+              )}
+
+              <div className="flex flex-wrap gap-2">
+                {bulkPlan.changes?.length > 0 && (
+                  <Button onClick={bulkApply} disabled={bulkBusy}>
+                    {bulkBusy ? 'Applying…' : `Re-price ${bulkPlan.changes.length}`}
+                  </Button>
+                )}
+                <Button variant="secondary" onClick={() => setBulkPlan(null)} disabled={bulkBusy}>Back</Button>
+                <Button variant="secondary" onClick={() => setBulkOpen(false)} disabled={bulkBusy}>Cancel</Button>
+              </div>
+            </>
+          )}
+        </div>
       </Modal>
 
       <Modal open={!!repriceFor} onClose={() => setRepriceFor(null)} maxWidth="max-w-sm">
