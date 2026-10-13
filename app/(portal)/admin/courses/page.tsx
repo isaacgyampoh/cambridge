@@ -23,13 +23,36 @@ export default function CoursesPage() {
   }
   function openEdit(c: Course) { setEditing({ ...c }); setModal('edit') }
 
+  /*
+   * The columns this form edits, and the only ones it sends.
+   *
+   * It used to send back the whole row it had loaded — `{ ...c }` minus the
+   * id — which carried created_at, and /api/data refuses any write naming a
+   * globally unwritable column. So saving a course failed with "The field
+   * created_at cannot be changed here" and the corrected fee never reached
+   * the database, while the card went on showing the old price.
+   *
+   * Naming the fields is what stops it coming back: a column added to the
+   * courses table in future is not silently swept into an update by a form
+   * that never meant to touch it.
+   */
+  const EDITABLE = [
+    'name', 'code', 'duration',
+    'course_fee', 'course_fee_online', 'registration_fee',
+    'description', 'brochure_url',
+  ] as const
+
   async function save() {
     if (!editing?.name) { toast.error('Enter a course name'); return }
     setSaving(true)
     try {
-      const { id, ...data } = editing as any
+      const src = editing as Record<string, unknown>
+      const id = src.id as string | undefined
+      const data: Record<string, unknown> = {}
+      for (const k of EDITABLE) if (k in src) data[k] = src[k]
+
       if (modal === 'new') await mutate('POST', 'courses', data)
-      else await mutate('PATCH', 'courses', data, [{ col: 'id', val: id }])
+      else await mutate('PATCH', 'courses', data, [{ col: 'id', val: id as string }])
       toast.success(modal === 'new' ? 'Course created' : 'Course updated')
       setModal(null); setEditing(null); load()
     } catch (e: any) {

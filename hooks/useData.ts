@@ -158,6 +158,46 @@ export function useData<T = any>(opts: UseDataOptions): UseDataResult<T> {
   return { data, loading, error, state, refetch }
 }
 
+/**
+ * Columns the SERVER owns, dropped from an update before it is sent.
+ *
+ * ── WHY ────────────────────────────────────────────────────────────────────
+ *
+ * An edit form loads a row, copies it into state, and sends it back. The row
+ * it loaded carries created_at, so the update carried created_at, and
+ * /api/data refuses any write naming a globally unwritable column — the whole
+ * request, not just that field. The operator saw "The field created_at cannot
+ * be changed here" and the edit did not save.
+ *
+ * It made editing a course impossible. Isaac could type the corrected fee,
+ * press Save, and the price on the card never changed — which is why the
+ * portal went on showing an old fee no matter what was fixed elsewhere. The
+ * Knowledge and WhatsApp-line forms had the same shape.
+ *
+ * Carrying these back is not an attempt to change them; it is a form
+ * round-tripping what it was given. So they are dropped here, once, rather
+ * than every form remembering to omit them.
+ *
+ * ── WHAT IS DELIBERATELY NOT DROPPED ───────────────────────────────────────
+ *
+ * Only these two. The rest of GLOBALLY_UNWRITABLE — pin_hash, session_token,
+ * wasender_api_key, the recovery credentials — must go on being REFUSED, and
+ * loudly: nothing round-trips those by accident, so a request naming one is
+ * either a bug worth seeing or an attempt worth blocking. Silently dropping
+ * them would hide both.
+ */
+const SERVER_MANAGED = ['created_at', 'updated_at']
+
+function withoutServerManaged<T>(data: T): T {
+  if (Array.isArray(data)) return data.map(withoutServerManaged) as T
+  if (!data || typeof data !== 'object') return data
+  const out: Record<string, unknown> = {}
+  for (const [k, v] of Object.entries(data as Record<string, unknown>)) {
+    if (!SERVER_MANAGED.includes(k)) out[k] = v
+  }
+  return out as T
+}
+
 // Mutation helper
 export async function mutate(
   method: 'POST' | 'PATCH',
@@ -169,10 +209,17 @@ export async function mutate(
   filters?: { col: string; op?: 'eq' | 'in'; val: FilterValue | FilterValue[] }[],
   opts?: { upsert?: boolean; onConflict?: string }
 ) {
+  /*
+   * Only on PATCH. An insert that names created_at is a caller stating a
+   * value on purpose, and should still be refused rather than quietly
+   * ignored; an update that names it is a form handing back what it loaded.
+   */
+  const payload = method === 'PATCH' ? withoutServerManaged(data) : data
+
   const res = await fetch('/api/data', {
     method,
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ table, data, filters, ...opts }),
+    body: JSON.stringify({ table, data: payload, filters, ...opts }),
   })
   const json = await res.json()
   if (!res.ok) throw new Error(json.error || 'Failed')
