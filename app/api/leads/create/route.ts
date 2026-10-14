@@ -5,6 +5,7 @@ import { validateRow, phoneVariants, resolveSource } from '@/lib/leads/importVal
 import { isEligible } from '@/lib/leads/eligibility'
 import { autoAssignLead, onLeadAssigned } from '@/lib/autoAssign'
 import { recordAudit } from '@/lib/audit'
+import { decideOwner, entersLeadsForTheCompany } from '@/lib/leads/ownership'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -65,13 +66,15 @@ const Body = z.object({
   course_interest: z.string().trim().max(200).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
   source: z.string().trim().max(40).optional().nullable(),
-  /** Honoured only for a caller who distributes leads; ignored for everyone else. */
+  /** Honoured only for a caller who may name another owner; ignored for everyone else. */
   assigned_to: z.string().uuid().optional().nullable(),
+  /** A super admin or PM keeping this one rather than sending it to the centre. */
+  keep_for_self: z.boolean().optional(),
+  /** Anyone who may delegate, deliberately sending this one to distribution. */
+  to_pool: z.boolean().optional(),
   /** Set when the operator has already been shown the duplicate and chose to continue. */
   allowDuplicate: z.boolean().optional(),
 })
-
-const DISTRIBUTOR_PORTALS = ['leads', 'pm_leads']
 
 export const POST = withGuard(
   { portals: ['my_leads', 'leads', 'pm_leads'] },
@@ -93,23 +96,23 @@ export const POST = withGuard(
     const { name, phone, email } = check
 
     /*
-     * Attribution, decided here and not by the browser.
-     */
-    const distributes = portals.some(p => DISTRIBUTOR_PORTALS.includes(p)) || session.role === 'super_admin'
-
-    /*
-     * Three cases, and only the first is the caller's to influence:
+     * Attribution, decided by the ROLE and not by the browser — and not by
+     * the portal, which is what used to decide it and is why an accountant,
+     * an admissions officer and anyone granted `leads` individually lost
+     * their own leads to the lottery. See lib/leads/ownership.
      *
-     *   distributor + a named person  -> that person, if they can receive leads
-     *   distributor + nobody named    -> the weighted lottery, as distribution
-     *   anyone else                   -> themselves, whatever they sent
-     *
-     * `null` here means "let the pool decide" and is resolved after the row
-     * exists, because the lottery assigns an existing lead.
+     * `null` means the company pool, resolved after the row exists, because
+     * the lottery assigns an existing lead.
      */
-    const owner: string | null = distributes
-      ? (body.assigned_to || null)
-      : session.userId
+    const decision = decideOwner({
+      actorId: session.userId,
+      role: session.role,
+      portals,
+      requestedOwner: body.assigned_to ?? null,
+      keepForSelf: body.keep_for_self === true,
+      toPool: body.to_pool === true,
+    })
+    const owner = decision.owner
 
     if (owner && owner !== session.userId && !await isEligible(owner)) {
       return NextResponse.json(
@@ -159,7 +162,13 @@ export const POST = withGuard(
       status: 'new',
       landing_source: 'Added manually',
       assigned_to: owner,
-      assigned_by: owner ? session.userId : null,
+      /*
+       * Who put this lead into the system, recorded even when it goes to the
+       * centre's pool. There is no created_by column on leads, and without
+       * this a company lead carried no trace of who entered it until the
+       * lottery placed it.
+       */
+      assigned_by: session.userId,
       assigned_at: owner ? new Date().toISOString() : null,
     }).select('id').single()
 
@@ -177,7 +186,10 @@ export const POST = withGuard(
       resource: 'leads',
       resourceId: lead.id,
       success: true,
-      metadata: { assignedTo: owner, onBehalf: owner !== session.userId },
+      metadata: {
+        assignedTo: owner, onBehalf: Boolean(owner) && owner !== session.userId,
+        forTheCompany: owner === null, role: session.role, because: decision.because,
+      },
       request: req,
     })
 
@@ -202,11 +214,9 @@ export const POST = withGuard(
       lead_id: lead.id,
       activity_type: 'assignment',
       subject: 'Lead added manually',
-      description: assignedTo === session.userId
-        ? 'Added and assigned to themselves.'
-        : assignedTo
-          ? 'Added and assigned to a colleague.'
-          : 'Added; nobody was available to take it.',
+      description: owner === null && !assignedTo
+        ? `${decision.because} Nobody was available to take it yet.`
+        : decision.because,
       created_by: session.userId,
     }).then(() => {}, () => {})
 

@@ -120,6 +120,21 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
    * them watching the register can grant it as a duty instead of every
    * receptionist getting it by default.
    */
+  /*
+   * `my_leads` is deliberately NOT here, though the front desk may well need
+   * to enter a walk-in.
+   *
+   * That portal does two jobs at once: it grants the leads screens, and it is
+   * what makes somebody a DESTINATION for distributed leads (see
+   * lib/leads/eligibility and RC-1 in tests/leadAssignment). Adding it to the
+   * role would start routing the pool's leads to every receptionist, and a
+   * lead handed to somebody who does not work leads is a lead nobody works.
+   *
+   * It is granted per person instead, from the staff permissions screen,
+   * which already works — tests/leadWorkflows covers exactly that case. Which
+   * receptionist should hold it is a decision about that employee, not about
+   * the role.
+   */
   receptionist:      ['dashboard','reminders','clock_in','messages'],
   student:           ['dashboard','my_payments'],
 }

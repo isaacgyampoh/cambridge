@@ -191,10 +191,16 @@ describe('adding a lead by hand', () => {
    * the browser supplies and can therefore change.
    */
   test('attribution is resolved server-side, not taken from the browser', () => {
-    // The body's assigned_to may only ever be reached through the
-    // distributor check; a non-distributor gets session.userId.
-    assert.match(route, /distributes\s*\n?\s*\?\s*\(body\.assigned_to \|\| null\)\s*\n?\s*:\s*session\.userId/,
+    /*
+     * The decision moved into lib/leads/ownership, because inferring it from
+     * the caller's PORTALS was taking leads away from the five roles that
+     * hold `leads` for unrelated reasons. What matters here is unchanged: the
+     * identity comes from the session, never from the request body.
+     */
+    assert.match(route, /decideOwner\(\{[\s\S]{0,200}?actorId: session\.userId/,
       'the owner is not resolved from the session')
+    assert.match(route, /role: session\.role/,
+      'the rule must be about the role, not about a portal grant')
     assert.ok(!/assigned_to:\s*myId/.test(form),
       'the form still sends a client-supplied owner')
     assert.ok(!/auth\/me/.test(form),
@@ -204,7 +210,10 @@ describe('adding a lead by hand', () => {
   test('only a distributor may name someone else, and only if eligible', () => {
     assert.match(route, /isEligible\(owner\)/,
       'a lead can be assigned to somebody who cannot receive leads')
-    assert.match(route, /DISTRIBUTOR_PORTALS = \['leads', 'pm_leads'\]/)
+    // The constant lives with the rule now, not in the route.
+    const policy = readFileSync('lib/leads/ownership.ts', 'utf8')
+    assert.match(policy, /DISTRIBUTOR_PORTALS = \['leads', 'pm_leads'\]/)
+    assert.match(policy, /export function mayNameAnotherOwner/)
   })
 
   test('the fields the form collects are the fields that get saved', () => {

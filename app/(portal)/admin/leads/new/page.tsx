@@ -19,7 +19,7 @@ export default function NewLeadPage() {
     full_name: '', email: '', phone: '', gender: '',
     country: 'Ghana', city: '',
     source: 'manual', course_interest: '',
-    notes: '', assigned_to: '',
+    notes: '', assigned_to: '', keep_for_self: false,
   })
 
   useEffect(() => {
@@ -69,6 +69,13 @@ export default function NewLeadPage() {
           notes: form.notes || null,
           source: form.source || 'manual',
           assigned_to: form.assigned_to || null,
+          /*
+           * A super admin or project manager keeping this one. Without it,
+           * what they type in belongs to the centre and goes to distribution
+           * — which is the point of this screen — so it has to be said
+           * deliberately rather than assumed from who is logged in.
+           */
+          keep_for_self: form.keep_for_self,
           allowDuplicate,
         }),
       })
@@ -208,15 +215,35 @@ export default function NewLeadPage() {
             </div>
           </div>
 
-          {/* Assign to marketer */}
+          {/* Who the lead belongs to */}
           <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-5 shadow-[var(--shadow-raised)]">
-            <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Assign To (optional)</h2>
-            <p className="text-xs text-[var(--ink-faint)] mb-3">If assigned now, marketer gets notified via SMS & WhatsApp</p>
-            <select value={form.assigned_to} onChange={e => set('assigned_to', e.target.value)}
-              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)] transition">
-              <option value="">Leave unassigned</option>
+            <h2 className="text-sm font-semibold text-[var(--ink-soft)] mb-4">Who gets this lead</h2>
+            <p className="text-xs text-[var(--ink-faint)] mb-3">
+              Left alone, a lead entered here belongs to the centre and distribution places it.
+              Whoever is named is notified by SMS and WhatsApp.
+            </p>
+            <select value={form.assigned_to}
+              onChange={e => set('assigned_to', e.target.value)}
+              disabled={form.keep_for_self}
+              aria-label="Assign this lead to"
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] disabled:opacity-50 focus:outline-none focus:border-[var(--accent)] transition">
+              <option value="">The centre — let distribution place it</option>
               {marketers.map(m => <option key={m.id} value={m.id}>{m.full_name}</option>)}
             </select>
+
+            {/*
+              For the case Isaac described: a super admin or PM who went out
+              and found this person themselves, rather than entering it on
+              behalf of the centre.
+            */}
+            <label className="flex items-start gap-2.5 mt-3 cursor-pointer min-h-[44px] items-center">
+              <input type="checkbox" checked={form.keep_for_self}
+                onChange={e => { set('keep_for_self', e.target.checked as never); if (e.target.checked) set('assigned_to', '') }}
+                className="w-4 h-4 flex-shrink-0 accent-[var(--accent)]" />
+              <span className="text-[13px] text-[var(--ink)]">
+                I found this lead myself — keep it as mine
+              </span>
+            </label>
           </div>
 
           {/* Submit */}
