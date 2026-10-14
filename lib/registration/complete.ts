@@ -237,7 +237,29 @@ export async function completeApplication(
 
   // ── 3. Status ──
   if (isPaid) {
+    const { data: before } = await sb.from('leads').select('status').eq('id', leadId).maybeSingle()
     await sb.from('leads').update({ status: 'registered' }).eq('id', leadId)
+    /*
+     * The conversion, written down.
+     *
+     * This transition — the single most important one in the business — was
+     * never logged. /api/leads/status logs a manual change and this path sets
+     * the status directly, so lead_status_logs held every edit a person made
+     * by hand and not one actual registration. Nothing could answer "what did
+     * we convert in September" from it.
+     *
+     * It does not block the registration: a missing log line is worth far
+     * less than a student who could not register.
+     */
+    await sb.from('lead_status_logs').insert({
+      lead_id: leadId,
+      old_status: before?.status ?? null,
+      new_status: 'registered',
+      changed_by: null,                       // the payment did it, not a person
+      notes: 'Registered through the application and payment flow.',
+    }).then(() => {}, (e: unknown) => {
+      console.error('[complete] conversion not logged for', leadId, e)
+    })
     await sb.from('lead_activities').insert({
       lead_id: leadId, activity_type: 'note', subject: 'Registered via link',
       description: `Paid GHS 200 registration for ${courseName || 'programme'} through the registration link.`,

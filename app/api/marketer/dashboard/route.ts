@@ -16,7 +16,12 @@ export async function GET(req: NextRequest) {
   const year = new Date().getFullYear()
 
   const [leadsRes, enrollRes, quotaRes] = await Promise.all([
-    sb.from('leads').select('status, created_at, updated_at').eq('assigned_to', me).limit(5000),
+    /*
+     * assigned_at is selected now. Every per-day and per-month figure below
+     * was counting by created_at — when the lead first entered the system,
+     * which may be months before this person was given it.
+     */
+    sb.from('leads').select('status, created_at, updated_at, assigned_at').eq('assigned_to', me).limit(5000),
     sb.from('marketer_enrollments').select('points, registration_fee, created_at').eq('marketer_id', me).eq('year', year).limit(5000),
     readQuota(me),
   ])
@@ -64,7 +69,12 @@ export async function GET(req: NextRequest) {
   const byDay: number[] = Array.from({ length: 7 }, (_, i) => {
     const dayStart = new Date(); dayStart.setHours(0, 0, 0, 0); dayStart.setDate(dayStart.getDate() - (6 - i))
     const dayEnd = new Date(dayStart); dayEnd.setDate(dayEnd.getDate() + 1)
-    return all.filter((l: any) => { const t = new Date(l.created_at).getTime(); return t >= dayStart.getTime() && t < dayEnd.getTime() }).length
+    // By the day it was RECEIVED, falling back to creation for the older
+    // rows that have no assigned_at at all.
+    return all.filter((l: any) => {
+      const t = new Date(l.assigned_at || l.created_at).getTime()
+      return t >= dayStart.getTime() && t < dayEnd.getTime()
+    }).length
   })
 
   const conversionRate = totalLeads ? Math.round(registered / totalLeads * 100) : 0
