@@ -16,6 +16,23 @@ import type { NextConfig } from 'next'
  * can vary between development and production.
  */
 const nextConfig: NextConfig = {
+  /*
+   * A server this project can run anywhere.
+   *
+   * `standalone` emits .next/standalone with its own minimal node_modules and
+   * a server.js, so the portal runs under plain `node server.js` on any host
+   * that can run Node — Railway, Render, Fly, a VPS, a container. Vercel
+   * ignores it and builds as it always has, so setting it costs nothing there
+   * and removes the single-supplier risk that took the portal offline when
+   * the Vercel account was disabled.
+   *
+   * Nothing else in this codebase is Vercel-specific: no @vercel packages, no
+   * VERCEL_* environment variables, no edge-runtime routes. Only vercel.json
+   * is, and the cron it declares already has to be driven by an external
+   * pinger on the free plan.
+   */
+  output: 'standalone',
+
   images: {
     remotePatterns: [
       {
