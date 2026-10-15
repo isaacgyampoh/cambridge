@@ -26,24 +26,56 @@ Node 24. Set `PORT` and `HOSTNAME=0.0.0.0` if the host requires it.
 
 ## Environment variables
 
-Required — the app refuses to start sensibly without them:
+Read out of `lib/config.server.ts` and `lib/config.ts`, not from memory.
+
+**Required.** `required()` throws when one is missing, so the app does not
+start without all six:
 
 | Variable | What it is |
 |---|---|
-| `NEXT_PUBLIC_SUPABASE_URL` | Supabase project URL (public) |
-| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | Supabase anon key (public) |
 | `SUPABASE_SERVICE_KEY` | Service role key — **server only, never public** |
-| `PIN_PEPPER` | Staff PIN hashing pepper |
+| `PIN_PEPPER` | Staff PIN pepper. **Must be the same value as the old host, or every staff PIN stops verifying.** |
 | `SETUP_SECRET` | First-run setup guard |
 | `CRON_SECRET` | Authenticates the automation runner |
-| `NEXT_PUBLIC_APP_URL` | Public base URL, e.g. `https://portal.cambridge.edu.gh` |
+| `PAYSTACK_SECRET_KEY` | Payments |
+| `ARKESEL_API_KEY` | SMS |
 
-Also used: `ARKESEL_API_KEY` (SMS), `PAYSTACK_SECRET_KEY` and
-`NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` (payments, same account as each other),
-`WASENDER_API_KEY` (WhatsApp), `RESEND_API_KEY` (email), `ANTHROPIC_API_KEY`
-(the assistant).
+**Public — these are compiled into the browser bundle, so they must be set
+BEFORE the build, not after:**
 
-Copy them from the current host before switching. Do not commit them.
+| Variable | |
+|---|---|
+| `NEXT_PUBLIC_SUPABASE_URL` | |
+| `NEXT_PUBLIC_SUPABASE_ANON_KEY` | public by design |
+| `NEXT_PUBLIC_APP_URL` | e.g. `https://portal.cambridge.edu.gh` |
+| `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | **must belong to the same Paystack account as `PAYSTACK_SECRET_KEY`** |
+
+**Optional, but in use in production:** `WASENDER_API_KEY`,
+`WASENDER_WEBHOOK_SECRET` (WhatsApp), `RESEND_API_KEY` (email),
+`ANTHROPIC_API_KEY` and `AI_PROVIDER` (the assistant),
+`FACEBOOK_PAGE_ACCESS_TOKEN` (lead capture).
+
+Copy every value from the old host before switching. Do not commit them, and
+do not paste them into a chat session.
+
+## Moving to a different Vercel account
+
+The repository's `.vercel/project.json` still names the old project, and the
+CLI on a machine stays signed in to whichever account it was last logged into
+— neither follows a new account automatically. On the machine that deploys:
+
+```bash
+npx vercel login      # the NEW account
+npx vercel link       # pick the NEW project; rewrites .vercel/project.json
+npx vercel --prod
+```
+
+Set every variable above on the new project FIRST — the four `NEXT_PUBLIC_`
+ones are baked in at build time, so a build without them produces a bundle
+that is wrong in ways nothing will report.
+
+Move `portal.cambridge.edu.gh` to the new project **last**, once the new
+deployment answers correctly on its own `*.vercel.app` URL.
 
 ## The automations
 
