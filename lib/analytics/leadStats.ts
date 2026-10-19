@@ -193,3 +193,89 @@ export function monthlySeries(
     }
   })
 }
+
+export type Range = { startISO: string; endISO: string }
+
+/**
+ * A calendar month, which is what a monthly cohort actually is.
+ *
+ * generateReports took "monthly" to mean `setMonth(now.getMonth() - 1)` — the
+ * last thirty-ish days, sliding, ending today. Two reports run a day apart
+ * covered different windows and could not be compared, and neither was "what
+ * we did in September". The centre runs a cohort a month and reports on
+ * months, so a month is what this returns.
+ */
+export function calendarMonth(key: MonthKey): Range {
+  const [y, m] = key.split('-').map(Number)
+  return {
+    startISO: new Date(Date.UTC(y, m - 1, 1, 0, 0, 0, 0)).toISOString(),
+    endISO: new Date(Date.UTC(y, m, 1, 0, 0, 0, 0)).toISOString(),
+  }
+}
+
+/** The sliding windows the daily and weekly reports genuinely want. */
+export function slidingRange(now: Date, days: number): Range {
+  return {
+    startISO: new Date(now.getTime() - days * 86400000).toISOString(),
+    endISO: now.toISOString(),
+  }
+}
+
+const inRange = (iso: string | null | undefined, r: Range): boolean => {
+  if (!iso) return false
+  const t = new Date(iso).getTime()
+  if (Number.isNaN(t)) return false
+  // Half-open: the end instant belongs to the next period, so consecutive
+  // periods cannot both claim the same lead.
+  return t >= new Date(r.startISO).getTime() && t < new Date(r.endISO).getTime()
+}
+
+/**
+ * The same figures as statsForMonth, over an arbitrary period.
+ *
+ * Conversions are counted by WHEN THEY HAPPENED, from the admission date —
+ * not by "leads assigned in this period that are registered today", which is
+ * what the report generator did. Under that rule a lead assigned in September
+ * and registered in October belonged to neither report: October never saw it
+ * because it was not assigned in October, and September's had already been
+ * written. Conversions went missing, which is how a report comes to say two
+ * leads converted and nought converted in the same breath.
+ */
+export function statsForRange(
+  leads: LeadRow[],
+  admissionsByLead: Map<string, string>,
+  range: Range,
+  now: Date,
+): PeriodStats {
+  const out: PeriodStats = {
+    received: 0, created: 0, converted: 0, convertedInPeriod: 0,
+    followUpsDue: 0, conversionRate: null, receivedIds: [], convertedIds: [],
+  }
+
+  for (const lead of leads || []) {
+    if (inRange(lead.assigned_at, range)) {
+      out.received++
+      out.receivedIds.push(lead.id)
+      if (lead.status === 'registered') out.converted++
+      if (!CLOSED.has(String(lead.status ?? '')) && lead.follow_up_at
+          && new Date(lead.follow_up_at).getTime() <= now.getTime()) {
+        out.followUpsDue++
+      }
+    }
+    if (inRange(lead.created_at, range)) out.created++
+
+    const convertedOn = admissionsByLead.get(lead.id)
+    if (convertedOn && lead.status === 'registered' && inRange(convertedOn, range)) {
+      out.convertedInPeriod++
+      out.convertedIds.push(lead.id)
+    }
+  }
+
+  out.conversionRate = rate(out.convertedInPeriod, out.received)
+  return out
+}
+
+/** How a rate reads when there was nothing to convert. */
+export function rateLabel(rate: number | null): string {
+  return rate === null ? 'no leads received' : `${rate}%`
+}
