@@ -119,9 +119,41 @@ if (MGMT && REF) {
 
 console.log(`Checking ${tables.length} tables, from ${listSource}.\n`)
 
+/*
+ * A network failure must not end the run.
+ *
+ * An unhandled ECONNRESET killed this after 66 of 100 tables, leaving 34
+ * unchecked and the remaining output absent — the same under-reporting this
+ * script exists to prevent, arriving as a crash instead of a short list. A
+ * table that could not be reached is INCONCLUSIVE, which fails the run, and
+ * the run continues to the end so the whole picture is printed.
+ *
+ * One retry, because two hundred requests in a row against one host does
+ * occasionally get a connection reset that means nothing.
+ */
+async function probe(table) {
+  for (let attempt = 0; attempt < 2; attempt++) {
+    try {
+      const r = await readable(table)
+      const w = await writable(table)
+      return { r, w }
+    } catch (e) {
+      if (attempt === 1) {
+        return { failed: e instanceof Error ? e.message : String(e) }
+      }
+      await new Promise(done => setTimeout(done, 400))
+    }
+  }
+}
+
 for (const table of tables) {
-  const r = await readable(table)
-  const w = await writable(table)
+  const outcome = await probe(table)
+  if (outcome.failed) {
+    console.log(`${table.padEnd(26)} ${'unreachable'.padEnd(15)} —`)
+    findings.push(`${table}: could not be checked (${outcome.failed}) — this is not a pass`)
+    continue
+  }
+  const { r, w } = outcome
   const expected = PUBLIC_BY_DESIGN.includes(table)
 
   const leaked = r.rows !== null && r.rows > 0 && !expected
