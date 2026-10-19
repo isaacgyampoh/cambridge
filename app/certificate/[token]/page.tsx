@@ -2,6 +2,17 @@ import { createServiceClient } from '@/lib/supabase/server'
 import Image from 'next/image'
 import { lookup } from '@/lib/db/lookup'
 
+/*
+ * Per request, stated rather than relied upon.
+ *
+ * This is dynamic today only because [token] has no generateStaticParams —
+ * add one and Next would prerender it, and it reads a certificate through the
+ * service client, so the BUILD would start needing SUPABASE_SERVICE_KEY. That
+ * is how /public-alumni broke a deployment. Saying it here means that cannot
+ * happen quietly.
+ */
+export const dynamic = 'force-dynamic'
+
 export default async function CertificateDownload({ params }: { params: Promise<{ token: string }> }) {
   const { token } = await params
   const sb = createServiceClient()

@@ -76,7 +76,30 @@ function num(v: unknown): number | null {
  * rather than costing the assistant every fact it has.
  */
 export async function loadProgrammes(): Promise<LoadResult<Programme[]>> {
-  const sb = createServiceClient()
+  /*
+   * Building the client can fail before any query is made: SUPABASE_SERVICE_KEY
+   * is required and deliberately has no fallback, so an environment without it
+   * throws here.
+   *
+   * That escaped as an exception and took down anything rendering this at
+   * BUILD time — the public front page is statically generated, so a
+   * deployment whose service key was not yet set failed outright with
+   * "Export encountered an error on /welcome/page". A build should never
+   * depend on a production secret.
+   *
+   * It is the same condition this function already has a shape for: the
+   * courses cannot be read. Reported as that, loudly, rather than thrown —
+   * every caller already distinguishes "unreadable" from "no programmes",
+   * and the assistant hands such a conversation to a person.
+   */
+  let sb
+  try {
+    sb = createServiceClient()
+  } catch (e) {
+    const why = e instanceof Error ? e.message : String(e)
+    console.error('[chatbot] no database client, so no programmes:', why)
+    return { ok: false, error: why }
+  }
 
   let rows: CourseRecord[] | null = null
   const full = await sb.from('courses').select(COURSE_COLUMNS)

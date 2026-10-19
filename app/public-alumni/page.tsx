@@ -1,4 +1,22 @@
 import { createServiceClient } from '@/lib/supabase/server'
+
+/*
+ * Rendered per request, not at build time.
+ *
+ * This page reads alumni through the service client, and without this line
+ * Next prerenders it during the build — so the BUILD needed
+ * SUPABASE_SERVICE_KEY, a runtime secret, and failed outright on a
+ * deployment where it was not yet set:
+ *
+ *   Error occurred prerendering page "/public-alumni"
+ *   Missing required environment variable SUPABASE_SERVICE_KEY
+ *   Export encountered an error ... exiting the build
+ *
+ * A build should not depend on a production secret, and this page should not
+ * show whoever the alumni were on the day it was built. Both are fixed by
+ * rendering it when somebody asks for it.
+ */
+export const dynamic = 'force-dynamic'
 import { GraduationCap, Briefcase, ArrowRight } from 'lucide-react'
 import Link from 'next/link'
 import { BRAND } from '@/lib/brand'

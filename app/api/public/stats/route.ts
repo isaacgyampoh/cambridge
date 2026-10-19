@@ -26,7 +26,16 @@ export const runtime = 'nodejs'
  */
 
 /** Counts change slowly. A stale figure is fine; a slow login is not. */
-export const revalidate = 3600
+/*
+ * Dynamic, not statically revalidated.
+ *
+ * `revalidate` made this a static route evaluated AT BUILD TIME, so the build
+ * tried to count rows with the service key and logged
+ * "[public/stats] could not count" when it was absent. The counts are still
+ * cached for an hour — by the Cache-Control header below, at the CDN, which
+ * is where the caching belonged anyway.
+ */
+export const dynamic = 'force-dynamic'
 
 type Stats = { alumni: number; courses: number; graduates: number }
 
