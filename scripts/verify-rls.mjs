@@ -70,7 +70,56 @@ console.log(`Probing ${URL_BASE.replace(/https:\/\/([^.]+).*/, 'https://$1.supab
 console.log('table                      read            write')
 console.log('─'.repeat(58))
 
-for (const table of [...PRIVATE_TABLES, ...PUBLIC_BY_DESIGN]) {
+/*
+ * ── THE LIST ABOVE IS NOT TRUSTED ON ITS OWN ───────────────────────────────
+ *
+ * It was hand-written, and it was wrong. It covered enough tables to report
+ * NINE findings when fifty-seven tables carried a policy granting the public
+ * role every operation unconditionally. The probe was only ever as good as
+ * the list, and a security check that under-reports is worse than none:
+ * it was taken as evidence the rest were fine.
+ *
+ * So the real table list comes from the database when a service key is
+ * available. The anon key cannot be used to enumerate — PostgREST only
+ * advertises what the caller may reach, which after a correct lock-down is
+ * nothing at all, so asking it would always say "nothing to check".
+ */
+let tables = [...PRIVATE_TABLES, ...PUBLIC_BY_DESIGN]
+let listSource = 'the hand-written list in this file'
+
+/*
+ * The list comes from the database itself when a management token is
+ * available. PostgREST's own schema endpoint cannot supply it: it advertises
+ * only what the caller may reach, and after a correct lock-down that is
+ * nothing — so it would always answer "nothing to check", which is precisely
+ * the false comfort this is meant to stop.
+ */
+const MGMT = process.env.SUPABASE_ACCESS_TOKEN
+const REF = (URL_BASE.match(/https:\/\/([a-z0-9]+)\.supabase\.co/) || [])[1]
+if (MGMT && REF) {
+  try {
+    const res = await fetch(`https://api.supabase.com/v1/projects/${REF}/database/query`, {
+      method: 'POST',
+      headers: { authorization: `Bearer ${MGMT}`, 'content-type': 'application/json' },
+      body: JSON.stringify({
+        query: "SELECT tablename FROM pg_tables WHERE schemaname='public' ORDER BY tablename;",
+      }),
+    })
+    const rows = await res.json()
+    const found = Array.isArray(rows) ? rows.map(r => r.tablename).filter(Boolean) : []
+    if (found.length > 5) {
+      const missed = found.filter(t => !tables.includes(t))
+      tables = [...new Set([...tables, ...found])]
+      listSource = `the database — ${found.length} tables, ${missed.length} of which this file never named`
+    }
+  } catch (e) {
+    console.error('  could not enumerate tables, falling back to the list:', e.message)
+  }
+}
+
+console.log(`Checking ${tables.length} tables, from ${listSource}.\n`)
+
+for (const table of tables) {
   const r = await readable(table)
   const w = await writable(table)
   const expected = PUBLIC_BY_DESIGN.includes(table)

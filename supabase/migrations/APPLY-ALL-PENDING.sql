@@ -194,8 +194,18 @@ CREATE TABLE IF NOT EXISTS marketing_visits (
 
 -- One row per session per link per day. The beacon fires on every page view,
 -- so without this a person refreshing twice is two visits.
+--
+-- The day is pinned to UTC rather than written as created_at::date. Casting a
+-- timestamptz to a date uses the session's TimeZone setting, which makes the
+-- expression STABLE rather than IMMUTABLE, and Postgres refuses to index it:
+--
+--   ERROR: 42P17: functions in index expression must be marked IMMUTABLE
+--
+-- AT TIME ZONE with a literal zone is immutable, and Accra is UTC+0 all year,
+-- so the UTC day and the local day are the same day. The uniqueness this
+-- enforces is unchanged.
 CREATE UNIQUE INDEX IF NOT EXISTS idx_marketing_visits_once
-  ON marketing_visits (marketer_code, session_id, (created_at::date));
+  ON marketing_visits (marketer_code, session_id, ((created_at AT TIME ZONE 'UTC')::date));
 
 -- "How is MY link doing" — the marketer's own panel.
 CREATE INDEX IF NOT EXISTS idx_marketing_visits_code
@@ -726,3 +736,21 @@ ALTER TABLE applications ADD COLUMN IF NOT EXISTS registration_source TEXT DEFAU
 CREATE INDEX IF NOT EXISTS idx_applications_registration_source
   ON applications (registration_source);
 UPDATE applications SET registration_source = 'online' WHERE registration_source IS NULL;
+
+-- ───────────────────────────────────────────────────────────────────────────
+-- 0026_drop_wide_open_policies.sql
+-- ───────────────────────────────────────────────────────────────────────────
+
+DO $$
+DECLARE p RECORD; dropped INT := 0;
+BEGIN
+  FOR p IN SELECT schemaname, tablename, policyname FROM pg_policies
+    WHERE schemaname = 'public' AND roles::text LIKE '%public%'
+      AND (qual IS NULL OR qual::text = 'true')
+      AND (with_check IS NULL OR with_check::text = 'true')
+  LOOP
+    EXECUTE format('DROP POLICY IF EXISTS %I ON %I.%I', p.policyname, p.schemaname, p.tablename);
+    dropped := dropped + 1;
+  END LOOP;
+  RAISE NOTICE 'dropped % wide-open policies', dropped;
+END $$;
