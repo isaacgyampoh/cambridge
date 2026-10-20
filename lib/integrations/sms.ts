@@ -93,9 +93,13 @@ export async function deliverSMS(to: string, message: string): Promise<DeliveryR
       method: 'POST',
       headers: { 'Content-Type': 'application/json', 'api-key': apiKey },
       body: JSON.stringify({
-        // The registered sender id. See lib/brand.ts — changing it needs
-        // provider approval, or the networks drop the message silently.
-        sender: BRAND.smsSender,
+        /*
+         * The registered sender id. Provider approval is required for it, and
+         * an unregistered one is dropped by the networks silently — so this
+         * can be corrected through ARKESEL_SENDER_ID without a deploy, and
+         * falls back to the value in lib/brand.ts when unset.
+         */
+        sender: SECRETS.arkeselSenderId || BRAND.smsSender,
         message,
         recipients: [recipient],
       }),

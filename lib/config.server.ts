@@ -58,6 +58,19 @@ export const SECRETS = {
 
   // ── ARKESEL SMS ─────────────────────────────────────────────
   get arkeselApiKey() { return required('ARKESEL_API_KEY') },
+  /*
+   * The registered sender id, overridable without a deploy.
+   *
+   * It was a constant in lib/brand.ts, and it is the one setting here whose
+   * wrong value fails SILENTLY: an unregistered sender is dropped by the
+   * networks, so every message appears to send and none arrives. Which id is
+   * approved is a fact about the Arkesel account, not about this codebase,
+   * and it should be correctable in the time it takes to edit a variable.
+   *
+   * Empty means "use the one in lib/brand.ts", so nothing changes until
+   * somebody deliberately sets it.
+   */
+  get arkeselSenderId() { return optional('ARKESEL_SENDER_ID') },
 
   // ── WHATSAPP (WaSender) ─────────────────────────────────────
   get wasenderApiKey() { return optional('WASENDER_API_KEY') },
