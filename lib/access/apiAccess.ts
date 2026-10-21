@@ -91,6 +91,12 @@ export const API_PORTALS: Record<string, string[]> = {
   '/api/whatsapp':           ['wa_lines', 'conversations'],
 
   '/api/reports':            ['reports'],
+  /*
+   * The audit trail, behind its own portal. Not /api/admin, which is
+   * super-admin-only and would have locked out the project manager; and not
+   * `reports`, which a marketing officer also holds.
+   */
+  '/api/activity-log':       ['oversight'],
   '/api/analytics':          ['insights', 'dashboard'],
   '/api/info-sessions':      ['grp_automation'],
   '/api/sequences':          ['grp_automation'],
