@@ -50,10 +50,28 @@ BEFORE the build, not after:**
 | `NEXT_PUBLIC_APP_URL` | e.g. `https://portal.cambridge.edu.gh` |
 | `NEXT_PUBLIC_PAYSTACK_PUBLIC_KEY` | **must belong to the same Paystack account as `PAYSTACK_SECRET_KEY`** |
 
+**Email — the campus mailbox.** Cambridge runs its own mail on its own
+domain, through SiteGround. There is no third-party sending service, and the
+portal must not be pointed at one: the domain's SPF record authorises
+SiteGround and nothing else, so mail sent elsewhere fails alignment and lands
+in spam.
+
+| Variable | Value |
+|---|---|
+| `SMTP_HOST` | `mail.cambridge.edu.gh` — verified: answers on 465 and 587 as `gtxm1322.siteground.biz`, with a valid Let's Encrypt certificate for `*.cambridge.edu.gh` |
+| `SMTP_PORT` | `465` |
+| `SMTP_SECURE` | `true` (implicit TLS on 465; use `false` with port `587` for STARTTLS) |
+| `SMTP_USER` | the full mailbox address, e.g. `portal@cambridge.edu.gh` |
+| `SMTP_PASS` | that mailbox's password — from SiteGround Site Tools → Email Accounts |
+| `EMAIL_FROM` | `Cambridge CE <portal@cambridge.edu.gh>` — must be on cambridge.edu.gh |
+
+Without these, **PIN recovery cannot send a code**, and anyone locked out stays
+locked out.
+
 **Optional, but in use in production:** `WASENDER_API_KEY`,
-`WASENDER_WEBHOOK_SECRET` (WhatsApp), `RESEND_API_KEY` (email),
-`ANTHROPIC_API_KEY` and `AI_PROVIDER` (the assistant),
-`FACEBOOK_PAGE_ACCESS_TOKEN` (lead capture).
+`WASENDER_WEBHOOK_SECRET` (WhatsApp), `ANTHROPIC_API_KEY` and `AI_PROVIDER`
+(the assistant), `FACEBOOK_PAGE_ACCESS_TOKEN` (lead capture),
+`ARKESEL_SENDER_ID` (overrides the registered SMS sender id).
 
 Copy every value from the old host before switching. Do not commit them, and
 do not paste them into a chat session.

@@ -1,4 +1,4 @@
-import { SECRETS } from '@/lib/config.server'
+import { sendEmail, emailConfigured } from '@/lib/integrations/email'
 import { NextRequest, NextResponse } from 'next/server'
 import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
@@ -23,8 +23,16 @@ export async function POST(req: NextRequest) {
 
  if (!doc) return NextResponse.json({ error: 'Document not found' }, { status: 404 })
 
- const apiKey = SECRETS.resendApiKey
- if (!apiKey) return NextResponse.json({ error: 'Email not configured' }, { status: 500 })
+ /*
+  * Sent through the campus mailbox, like every other message the portal
+  * sends. This route used to call the Resend API directly with its own
+  * fetch — a second email path that did not go through sendEmail, did not
+  * write to email_logs, and would have kept using a third-party sender after
+  * the rest of the portal had stopped.
+  */
+ if (!emailConfigured()) {
+   return NextResponse.json({ error: 'Email is not configured — set SMTP_HOST, SMTP_USER and SMTP_PASS.' }, { status: 500 })
+ }
 
  let sent = 0
   let failed = 0
@@ -65,25 +73,8 @@ export async function POST(req: NextRequest) {
     let ok = false
     let failure: string | null = null
     try {
-      const res = await fetch('https://api.resend.com/emails', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${apiKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          from: SECRETS.resendFromEmail || 'Cambridge CE <noreply@cambridge.edu.gh>',
-          to: student.email,
-          subject,
-          html,
-        }),
-      })
-      const body = await res.json().catch(() => null)
-      ok = res.ok && !body?.error
-      if (!ok) {
-        failure = body?.error?.message || body?.message || `HTTP ${res.status}`
-        console.error('[Documents] Resend refused', student.email, '—', failure)
-      }
+      ok = await sendEmail(student.email, subject, html)
+      if (!ok) failure = 'the mail server did not accept it'
     } catch (e) {
       failure = e instanceof Error ? e.message : String(e)
       console.error('[Documents] Email error:', e)

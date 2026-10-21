@@ -1,6 +1,7 @@
 import { NextResponse } from 'next/server'
 import { CONFIG } from '@/lib/config'
 import { SECRETS } from '@/lib/config.server'
+import { emailConfigured } from '@/lib/integrations/email'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export async function GET() {
@@ -19,7 +20,12 @@ export async function GET() {
     paystackLive: CONFIG.paystackPublicKey?.startsWith('pk_live_') || false,
     wawpCentral: !!SECRETS.wasenderApiKey,
     wawpLines: waLines,
-    resend: !!SECRETS.resendApiKey,
+    /*
+     * Reported as "email", not as a provider name. Cambridge sends through
+     * its own campus mailbox, so the question is whether SMTP is configured
+     * — asking whether a third-party key is set reported the wrong blocker.
+     */
+    email: emailConfigured(),
     storage: !!CONFIG.supabaseUrl && !!SECRETS.supabaseServiceKey,
     ai: (SECRETS.aiProvider === 'openai' ? !!SECRETS.openaiApiKey : !!SECRETS.anthropicApiKey) && SECRETS.aiAssistantEnabled,
     senderId: CONFIG.arkeselSenderId,

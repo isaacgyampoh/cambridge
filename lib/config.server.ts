@@ -91,7 +91,6 @@ export const SECRETS = {
   get smtpSecure() { return optional('SMTP_SECURE', 'true') === 'true' },
   get smtpUser() { return optional('SMTP_USER') },
   get smtpPass() { return optional('SMTP_PASS') },
-  get resendApiKey() { return optional('RESEND_API_KEY') },
 
   /*
    * Where a super admin recovery code is sent.
@@ -102,7 +101,13 @@ export const SECRETS = {
    * login identity, never shown in a response, and never reaches the browser.
    */
   get superAdminRecoveryEmail() { return optional('SUPER_ADMIN_RECOVERY_EMAIL') },
-  get resendFromEmail() { return optional('EMAIL_FROM', 'Cambridge CE <portal@cambridge.edu.gh>') },
+  /*
+   * The address the portal sends from. It must be a mailbox on
+   * cambridge.edu.gh: the domain's SPF record authorises SiteGround to send
+   * for it and nothing else, so a From on any other domain fails alignment
+   * and lands in spam.
+   */
+  get emailFrom() { return optional('EMAIL_FROM', 'Cambridge CE <portal@cambridge.edu.gh>') },
 
   // ── AUTH ────────────────────────────────────────────────────
   // Used as pepper alongside a per-user salt. Rotating it invalidates every

@@ -101,7 +101,9 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
    *
    * This first asked three questions — recovery PIN, an address on the
    * account, a configured sender — and reported the super admin as
-   * incomplete because RESEND_API_KEY is unset.
+   * incomplete because no mailer was configured. (At the time that was read
+   * as a missing Resend key; the portal sends through the campus mailbox
+   * now, and the mistake would be the same with SMTP_HOST unset.)
    *
    * That is a staff rule applied to an account it does not govern. The super
    * admin is in NO_MAILBOX_ROLES: they have no corporate mailbox, sign-in

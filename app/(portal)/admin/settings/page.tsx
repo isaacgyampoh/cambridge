@@ -10,7 +10,7 @@ export default function SettingsPage() {
   /** What /api/config-status reports. Named so the JSX below is checked. */
   type ConfigStatus = {
     supabase?: boolean; arkesel?: boolean; paystack?: boolean; paystackLive?: boolean
-    wawpCentral?: boolean; wawpLines?: number; ai?: boolean; resend?: boolean
+    wawpCentral?: boolean; wawpLines?: number; ai?: boolean; email?: boolean
     storage?: boolean; senderId?: string
   }
   /** What /api/admin/chatbot-check reports, so the JSX below is checked. */
@@ -171,7 +171,13 @@ export default function SettingsPage() {
     { name: 'Payments', desc: 'Paystack', icon: CreditCard, ok: status.paystack, detail: status.paystack ? (status.paystackLive ? 'Live keys active' : 'Test keys') : 'Not configured' },
     { name: 'WhatsApp', desc: 'WaSender — central line plus each marketer\u2019s own number', icon: MessageSquare, ok: status.wawpCentral || (status.wawpLines ?? 0) > 0, detail: !status.wawpCentral && (status.wawpLines ?? 0) === 0 ? 'No key set' : `Key set${(status.wawpLines ?? 0) > 0 ? ` \u00b7 ${status.wawpLines} staff line${status.wawpLines === 1 ? '' : 's'} verified` : ' \u00b7 no staff lines verified yet'}` },
     { name: 'AI assistant', desc: 'Auto-answers WhatsApp inquiries', icon: Sparkles, ok: status.ai, detail: status.ai ? 'Active' : 'Add Anthropic key' },
-    { name: 'Email', desc: 'Resend', icon: Mail, ok: status.resend, detail: status.resend ? 'Active' : 'Optional — not set' },
+    /*
+     * The campus mailbox, not a third-party sender. It is not optional: the
+     * forgot-PIN flow emails the code, so with no email nobody who is locked
+     * out can get back in — which is exactly what happened.
+     */
+    { name: 'Email', desc: 'Campus mailbox — SMTP on cambridge.edu.gh', icon: Mail, ok: status.email,
+      detail: status.email ? 'Active' : 'Not set — PIN recovery cannot send' },
     { name: 'File storage', desc: 'Supabase Storage · flyers, documents, voice notes, letters', icon: Database, ok: status.storage, detail: status.storage ? 'Connected' : 'Set up the uploads bucket' },
   ] : []
 

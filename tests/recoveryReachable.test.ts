@@ -318,30 +318,39 @@ describe('the provisioning link can be opened in a browser', () => {
 describe('readiness asks whether email works, not which vendor', () => {
   const email = codeOf('lib/integrations/email.ts')
 
-  test('SMTP counts, because it is the preferred transport', () => {
+  test('readiness is SMTP, because the campus mailbox is the only transport', () => {
     /*
-     * sendEmail tries SMTP FIRST — the campus mailbox — and falls back to
-     * Resend. A check that asked about Resend alone reported that staff could
-     * not receive a recovery code on a deployment where SMTP was configured
-     * and working: a blocker that did not exist, sending somebody after a key
-     * they did not need.
+     * Cambridge runs its own email on its own domain. There is no
+     * third-party sending service, and the fallback to one was removed: the
+     * domain's SPF record authorises SiteGround and nothing else, so mail
+     * sent through another provider fails alignment and lands in spam.
      */
     assert.match(email, /export function emailConfigured/)
     assert.match(email, /SECRETS\.smtpHost && SECRETS\.smtpUser && SECRETS\.smtpPass/)
-    assert.match(email, /\|\| SECRETS\.resendApiKey/)
   })
 
-  test('and SMTP really is tried first', () => {
+  test('no third-party sender can creep back in', () => {
+    assert.doesNotMatch(email, /resend/i, 'the portal sends through the campus mailbox only')
+    assert.doesNotMatch(email, /api\.resend\.com|sendgrid|mailgun|postmark/i)
+  })
+
+  test('an unsendable message is reported as unsent', () => {
     /*
-     * Scoped to the SEND function. emailConfigured() names both transports
-     * near the top of the file, so a whole-file index comparison measures the
-     * predicate rather than the order of attempts.
+     * With no transport there is nothing to fall back to, so the one thing
+     * that matters is that false comes back. A recovery code that was never
+     * delivered must not look like one that was.
      */
-    const send = email.slice(email.indexOf('const tx = getTransporter()'))
-    const smtpAt = send.indexOf('tx.sendMail')
-    const resendAt = send.indexOf('SECRETS.resendApiKey')
-    assert.ok(smtpAt > 0 && resendAt > 0 && smtpAt < resendAt,
-      'if the order ever flips, the predicate is still right but the comment is not')
+    const send = email.slice(email.indexOf('export async function sendEmail'))
+    assert.match(send, /if \(!tx\) \{[\s\S]{0,400}?return false/,
+      'no transport must return false, not pretend')
+  })
+
+  test('accepted by the server is not assumed to mean delivered', () => {
+    // A message the server took but rejected every recipient of is a failure.
+    const send = email.slice(email.indexOf('export async function sendEmail'))
+    assert.match(send, /info\.accepted/)
+    assert.match(send, /info\.rejected/)
+    assert.match(send, /accepted > 0 && rejected === 0/)
   })
 
   test('nothing else asks about one vendor by name', () => {

@@ -15,28 +15,21 @@ import nodemailer from 'nodemailer'
 export type ProviderReply = Record<string, unknown> | null
 
 
-const RESEND_URL = 'https://api.resend.com/emails'
-
 /**
  * Can this deployment send an email at all?
  *
- * ── WHY THIS IS NOT "IS RESEND CONFIGURED" ─────────────────────────────────
- *
- * SMTP is the PREFERRED transport here — the campus mailbox — and Resend is
- * only the fallback. A readiness check that asked about Resend alone reported
- * that staff could not receive a recovery code on a deployment where SMTP was
- * configured and working, which is exactly backwards: it named a blocker that
- * did not exist and sent somebody looking for a key they did not need.
- *
- * One predicate, so nothing has to remember which transport is preferred.
+ * The campus mailbox is the only transport. Cambridge runs its own email on
+ * its own domain — SiteGround, mail.cambridge.edu.gh — and that is what the
+ * portal sends through. There is no third-party sending service, and a
+ * fallback to one was removed: it meant mail could leave under a different
+ * provider's reputation, from a domain whose SPF record does not list it,
+ * which is how transactional mail quietly starts landing in spam.
  */
 export function emailConfigured(): boolean {
-  return Boolean(
-    (SECRETS.smtpHost && SECRETS.smtpUser && SECRETS.smtpPass) || SECRETS.resendApiKey,
-  )
+  return Boolean(SECRETS.smtpHost && SECRETS.smtpUser && SECRETS.smtpPass)
 }
 
-// Reuse one SMTP transporter across calls
+// One transporter, reused across calls.
 let transporter: nodemailer.Transporter | null = null
 function getTransporter() {
   if (transporter) return transporter
@@ -46,58 +39,58 @@ function getTransporter() {
     port: SECRETS.smtpPort,
     secure: SECRETS.smtpSecure,
     auth: { user: SECRETS.smtpUser, pass: SECRETS.smtpPass },
+    /*
+     * Certificate verification stays on. mail.cambridge.edu.gh presents a
+     * valid Let's Encrypt certificate for *.cambridge.edu.gh, so there is
+     * nothing here to work around, and turning it off would make the
+     * connection trivially interceptable.
+     */
+    requireTLS: true,
   })
   return transporter
 }
 
 export async function sendEmail(to: string, subject: string, html: string, text?: string) {
-  const from = SECRETS.resendFromEmail || 'Cambridge CE <portal@cambridge.edu.gh>'
+  const from = SECRETS.emailFrom
   let status = 'pending'
   let providerResponse: ProviderReply = null
 
-  // 1) Prefer SMTP (the campus mailbox)
   const tx = getTransporter()
-  if (tx) {
-    try {
-      const info = await tx.sendMail({ from, to, subject, html, text })
-      status = 'sent'; providerResponse = { messageId: info.messageId, via: 'smtp' }
-      return true
-    } catch (e: unknown) {
-      status = 'failed'; providerResponse = { error: e instanceof Error ? e.message : String(e), via: 'smtp' }
-    } finally {
-      try { const sb = createServiceClient(); await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse }) } catch {}
-    }
+  if (!tx) {
+    /*
+     * Said plainly, and false returned. Nothing downstream may treat an
+     * unsent message as sent — a recovery code that was never delivered must
+     * not look like one that was.
+     */
+    console.error('[email] no SMTP configured — set SMTP_HOST, SMTP_USER and SMTP_PASS. Nothing was sent.')
+    return false
   }
 
-  // 2) Fallback: Resend (only if a key is set)
-  if (SECRETS.resendApiKey) {
-    status = 'pending'; providerResponse = null
+  try {
+    const info = await tx.sendMail({ from, to, subject, html, text })
+    /*
+     * Accepted by the server is not the same as delivered to a person, so
+     * the accepted/rejected lists are kept: a message the server took but
+     * rejected every recipient of is a failure, and reporting it as success
+     * is how a silent bounce becomes invisible.
+     */
+    const accepted = Array.isArray(info.accepted) ? info.accepted.length : 0
+    const rejected = Array.isArray(info.rejected) ? info.rejected.length : 0
+    const ok = accepted > 0 && rejected === 0
+    status = ok ? 'sent' : 'failed'
+    providerResponse = { messageId: info.messageId, accepted, rejected, response: info.response, via: 'smtp' }
+    return ok
+  } catch (e: unknown) {
+    status = 'failed'
+    providerResponse = { error: e instanceof Error ? e.message : String(e), via: 'smtp' }
+    return false
+  } finally {
+    // The log records the recipient, the subject and the outcome. Never the body.
     try {
-      const res = await fetch(RESEND_URL, {
-        method: 'POST',
-        headers: { 'Authorization': `Bearer ${SECRETS.resendApiKey}`, 'Content-Type': 'application/json' },
-        body: JSON.stringify({ from, to, subject, html, text }),
-        signal: AbortSignal.timeout(10000),
-      })
-      /*
-       * res.json() is `any` at the boundary, so it is taken as an object
-       * and the marker added deliberately — rather than assigned through
-       * a value the compiler cannot see the shape of.
-       */
-      const parsed = await res.json().catch(() => ({})) as Record<string, unknown>
-      providerResponse = { ...parsed, via: 'resend' }
-      status = res.ok ? 'sent' : 'failed'
-      return res.ok
-    } catch (e: unknown) {
-      status = 'failed'; providerResponse = { error: e instanceof Error ? e.message : String(e), via: 'resend' }
-      return false
-    } finally {
-      try { const sb = createServiceClient(); await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse }) } catch {}
-    }
+      const sb = createServiceClient()
+      await sb.from('email_logs').insert({ recipient: to, subject, status, provider_response: providerResponse })
+    } catch { /* a failed log must not fail the send */ }
   }
-
-  if (!tx) console.warn('[Email] No SMTP or Resend configured — skipping')
-  return false
 }
 
 // ── Email Templates ──────────────────────────────────────────
