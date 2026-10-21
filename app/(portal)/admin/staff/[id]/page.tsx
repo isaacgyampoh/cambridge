@@ -22,6 +22,7 @@ import Link from 'next/link'
 const PORTAL_DESC: Record<string, string> = {
   insights: 'Charts and trends across the centre',
   reports: 'Read-only performance reports',
+  oversight: 'The activity log — every action taken across the centre, by anyone',
   messages: 'Internal staff messaging',
   remuneration: 'Commission rates and marketer pay',
   my_earnings: 'Their own commission and earnings',

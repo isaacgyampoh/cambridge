@@ -66,7 +66,13 @@ export const NAV_SECTIONS: NavSection[] = [
   {
     id: 'reports',
     label: 'Reports',
-    portals: ['reports'],
+    /*
+     * `oversight` sits here, beside reports, because that is where somebody
+     * looks for it — but it is its OWN portal, not part of `reports`. A
+     * marketing officer holds `reports`, and the activity log shows every
+     * fee re-priced and every account provisioned across the centre.
+     */
+    portals: ['reports', 'oversight'],
   },
   {
     id: 'administration',

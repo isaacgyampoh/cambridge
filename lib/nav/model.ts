@@ -77,6 +77,20 @@ const CATALOGUE: CatalogueEntry[] = [
   HOME,
   { id: 'insights', label: 'Insights', icon: 'insights', href: '/admin/insights', section: 'top' },
   { id: 'reports', label: 'Reports', icon: 'reports', href: '/reports', section: 'top' },
+  /*
+   * Its own entry, and its own portal.
+   *
+   * The activity log shows every action taken across the centre — fees
+   * re-priced, accounts provisioned, leads created by hand. `reports` would
+   * have been the obvious place to hang it, and a marketing officer holds
+   * `reports`.
+   *
+   * Listing it here is also what makes it grantable: the permissions screen
+   * is built from this list, and a portal missing from it cannot be given
+   * back once a save has dropped it — which is what the staff-permissions
+   * tests caught when this portal was added without an entry.
+   */
+  { id: 'oversight', label: 'Activity log', icon: 'system', href: '/admin/activity', section: 'top' },
   { id: 'messages', label: 'Messages', icon: 'messages', href: '/messages', section: 'top' },
 
   /* ── Growth ── */
