@@ -124,3 +124,22 @@ export function maskEmail(email: string | null | undefined): string {
   if (at < 1) return 'your corporate email'
   return `${value[0]}${'•'.repeat(5)}${value.slice(at)}`
 }
+
+/**
+ * Mask a number for display: 024 ••• 4567
+ *
+ * The companion to maskEmail, for the channel a sign-in code now usually
+ * travels on. Same purpose, same caution: enough for the owner to recognise
+ * their own number, not enough for somebody reading over their shoulder to
+ * write it down or to start an account-recovery attempt against it elsewhere.
+ *
+ * The network prefix and the last four are shown because together they are
+ * what a person recognises; the three digits between them are the part that
+ * makes the number dialable, so they are the part that is hidden.
+ */
+export function maskPhone(raw: string | null | undefined): string {
+  const canonical = canonicalContact(raw)
+  if (!canonical) return 'your phone'
+  const local = '0' + canonical.slice(3)
+  return `${local.slice(0, 3)} ••• ${local.slice(-4)}`
+}

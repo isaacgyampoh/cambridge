@@ -32,11 +32,16 @@ const provisioning = codeOf('lib/auth/provisioning.ts')
 describe('readiness asks whether recovery can COMPLETE', () => {
   test('all three conditions are checked, not just the PIN', () => {
     /*
-     * A recovery PIN, an address on the account, and a configured sender.
+     * A recovery PIN, a destination on the account, and a configured sender.
      * Holding two of the three is worth nothing.
+     *
+     * The second and third are now asked as one question — "is there any
+     * channel that can carry a code to them" — because there are two, and
+     * either one is a complete route. channelsFor requires both halves, so
+     * this is the same three conditions, not a weaker check.
      */
-    assert.match(provisioning, /hasRecoveryEmail/)
-    assert.match(provisioning, /canSendEmail = emailConfigured\(\)/)
+    assert.match(provisioning, /channelsFor\(a, readiness\)\.length > 0/)
+    assert.match(provisioning, /smsReady: Boolean\(SECRETS\.arkeselApiKey\), emailReady: emailConfigured\(\)/)
     assert.match(provisioning, /recoveryReachable = recoveryBlockedReason === null/)
   })
 
@@ -48,15 +53,25 @@ describe('readiness asks whether recovery can COMPLETE', () => {
   test('each blockage names what to fix', () => {
     // "Incomplete" with no explanation sends somebody looking in the wrong place.
     assert.match(provisioning, /No recovery PIN is set/)
-    assert.match(provisioning, /no email address, so the one-time code has nowhere to go/)
-    assert.match(provisioning, /No email transport is configured \(SMTP or Resend\)/)
+    assert.match(provisioning, /no phone number or email address, so the one-time code has nowhere to go/)
+    assert.match(provisioning, /Neither SMS nor the campus mailbox is configured/)
+  })
+
+  test('and never names a service this deployment does not use', () => {
+    /*
+     * This file told an operator to look for an email transport "(SMTP or
+     * Resend)". Cambridge sends through its own campus mailbox and has no
+     * Resend account, so that sentence sent somebody looking for a key that
+     * was never meant to exist.
+     */
+    assert.ok(!/resend/i.test(provisioning), 'provisioning names a provider that is not in use')
   })
 
   test('a PIN-only role is not judged by an email rule', () => {
     /*
      * This was the bug in the first version of this check. It asked for an
      * address and a configured sender unconditionally, and reported the super
-     * admin as incomplete because RESEND_API_KEY was unset — a staff rule
+     * admin as incomplete because no mail transport was set — a staff rule
      * applied to an account it does not govern.
      *
      * super_admin is in NO_MAILBOX_ROLES. Sign-in skips the OTP for them and
@@ -67,12 +82,12 @@ describe('readiness asks whether recovery can COMPLETE', () => {
     assert.match(provisioning, /!superAdminUsesEmail/,
       'A no-mailbox role must short-circuit before the email checks.')
 
-    // And the branch order matters: the email tests must sit AFTER it.
+    // And the branch order matters: the delivery tests must sit AFTER it.
     const block = provisioning.slice(provisioning.indexOf('const recoveryBlockedReason'))
     const shortCircuit = block.indexOf('!superAdminUsesEmail')
-    const emailTest = block.indexOf('hasRecoveryEmail')
-    assert.ok(shortCircuit > 0 && shortCircuit < emailTest,
-      'The email checks must be unreachable for a PIN-only role.')
+    const channelTest = block.indexOf('reachableAdmin')
+    assert.ok(shortCircuit > 0 && shortCircuit < channelTest,
+      'The delivery checks must be unreachable for a PIN-only role.')
   })
 
   test('the one thing a PIN-only account still needs is a recovery PIN', () => {
@@ -169,12 +184,15 @@ describe('super admin sign-in never touches email', () => {
     assert.match(verifyPin, /if \(!SECRETS\.otpEnabled \|\| otpExempt\)/)
   })
 
-  test('and the missing-email refusal cannot catch them', () => {
+  test('and the unreachable refusal cannot catch them', () => {
     /*
      * That guard exists so an incomplete staff record cannot become an OTP
-     * bypass. It must not fire for a role that legitimately has no mailbox.
+     * bypass. It must not fire for a role that legitimately has no mailbox —
+     * nor for one that has no phone either, which is the super admin's case:
+     * `otpExempt` has to be the FIRST term, so the account that can unlock
+     * everybody else is never held at a delivery check it is not subject to.
      */
-    assert.match(verifyPin, /if \(!otpExempt && SECRETS\.otpEnabled && !profile\.email\)/)
+    assert.match(verifyPin, /if \(!otpExempt && SECRETS\.otpEnabled && reachable\.length === 0\)/)
   })
 
   test('a single-factor sign-in is still written to the audit log', () => {

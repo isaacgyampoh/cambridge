@@ -3,7 +3,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashToken, generateOTP } from '@/lib/auth/pin'
 import { rateLimit, clientIp, retryMessage } from '@/lib/auth/rateLimit'
-import { sendOTPEmail } from '@/lib/integrations/email'
+import { deliverOTP, undeliverableMessage } from '@/lib/auth/otpDelivery'
 import { recordAudit } from '@/lib/audit'
 import { SECRETS } from '@/lib/config.server'
 import { z } from 'zod'
@@ -73,7 +73,7 @@ export async function POST(req: NextRequest) {
   const sb = createServiceClient()
   const { row: profile, failed } = await lookup(
     sb.from('profiles')
-      .select('id, full_name, email, otp_expires_at')
+      .select('id, full_name, email, phone, otp_expires_at')
       .eq('id', userId).eq('is_active', true).maybeSingle(),
   )
 
@@ -91,7 +91,8 @@ export async function POST(req: NextRequest) {
    * one of the two that tells the person something true.
    */
   if (failed) return unavailable('[auth/resend-otp]', failed, 'your sign-in')
-  if (!profile?.email) return NextResponse.json(STALE, { status: 401 })
+  // A phone is enough on its own: the code may go by SMS.
+  if (!profile || (!profile.email && !profile.phone)) return NextResponse.json(STALE, { status: 401 })
   if (!profile.otp_expires_at || new Date(profile.otp_expires_at) < new Date()) {
     return NextResponse.json(STALE, { status: 401 })
   }
@@ -108,16 +109,14 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Could not send a new code. Please try again.' }, { status: 500 })
   }
 
-  const sent = await sendOTPEmail(profile.email, profile.full_name || '', code)
-  if (!sent) {
+  const delivery = await deliverOTP(profile, code)
+  if (!delivery.sent) {
     await recordAudit({
       actorId: userId, action: 'auth.otp_resend_failed',
       resource: 'profiles', resourceId: userId, success: false, request: req,
     })
-    return NextResponse.json(
-      { error: 'We could not email your code. Please try again shortly.' },
-      { status: 502 }
-    )
+    // Not "could not email": the code it could not send was probably a text.
+    return NextResponse.json({ error: undeliverableMessage(profile) }, { status: 502 })
   }
 
   await recordAudit({
@@ -125,5 +124,15 @@ export async function POST(req: NextRequest) {
     resource: 'profiles', resourceId: userId, success: true, request: req,
   })
 
-  return NextResponse.json({ success: true, expiresInSeconds: OTP_MINUTES * 60 })
+  /*
+   * The channel is reported again rather than assumed unchanged: if the first
+   * attempt went by email and this one fell through to SMS, the screen has to
+   * stop telling the person to check their inbox.
+   */
+  return NextResponse.json({
+    success: true,
+    sentVia: delivery.via,
+    hint: delivery.hint,
+    expiresInSeconds: OTP_MINUTES * 60,
+  })
 }

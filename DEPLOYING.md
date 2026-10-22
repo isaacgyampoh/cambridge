@@ -38,7 +38,7 @@ start without all six:
 | `SETUP_SECRET` | First-run setup guard |
 | `CRON_SECRET` | Authenticates the automation runner |
 | `PAYSTACK_SECRET_KEY` | Payments |
-| `ARKESEL_API_KEY` | SMS |
+| `ARKESEL_API_KEY` | SMS — **also how sign-in codes are delivered**, see below |
 
 **Public — these are compiled into the browser bundle, so they must be set
 BEFORE the build, not after:**
@@ -65,13 +65,28 @@ in spam.
 | `SMTP_PASS` | that mailbox's password — from SiteGround Site Tools → Email Accounts |
 | `EMAIL_FROM` | `Cambridge CE <portal@cambridge.edu.gh>` — must be on cambridge.edu.gh |
 
-Without these, **PIN recovery cannot send a code**, and anyone locked out stays
-locked out.
+## Sign-in codes: which channel carries them
+
+A sign-in code goes **by SMS first**, and falls back to email. Both are tried
+in turn, and the account is refused sign-in rather than shown a code screen if
+neither can carry it.
+
+This matters for a deployment: a missing `SMTP_PASS` no longer locks anybody
+out, because `ARKESEL_API_KEY` covers it — but a deployment with **neither**
+configured cannot sign in anybody except the super admin, who is exempt from
+codes. Every active member of staff needs a phone number or an email address
+on their profile; one with neither is refused.
+
+`OTP_CHANNEL=email` tries email first instead, without a deploy — worth
+knowing if the SMS credits run down, since each code is one credit and a busy
+day of sign-ins is a few hundred. It only reorders what is possible: with no
+mailbox configured, codes still go by SMS.
 
 **Optional, but in use in production:** `WASENDER_API_KEY`,
 `WASENDER_WEBHOOK_SECRET` (WhatsApp), `ANTHROPIC_API_KEY` and `AI_PROVIDER`
 (the assistant), `FACEBOOK_PAGE_ACCESS_TOKEN` (lead capture),
-`ARKESEL_SENDER_ID` (overrides the registered SMS sender id).
+`ARKESEL_SENDER_ID` (overrides the registered SMS sender id), `OTP_CHANNEL`
+(`sms` by default, `email` to reverse the order).
 
 Copy every value from the old host before switching. Do not commit them, and
 do not paste them into a chat session.

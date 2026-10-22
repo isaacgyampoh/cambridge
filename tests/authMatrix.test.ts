@@ -53,7 +53,7 @@ describe('exactly one role signs in without a code', () => {
       'verify-pin declares its own exemption list, which can drift from recovery')
   })
 
-  test('a missing email is NOT an exemption', () => {
+  test('being unreachable is NOT an exemption', () => {
     /*
      * This is the subtle one. The OTP branch used to read
      *
@@ -61,11 +61,18 @@ describe('exactly one role signs in without a code', () => {
      *
      * so an account with no address fell through to a session on the PIN
      * alone. An incomplete staff record silently removed the second factor.
+     *
+     * The property is unchanged; what counts as reachable is wider. A code
+     * can go by SMS now, so an account with a phone and no mailbox is sent
+     * one instead of being refused — and an account with NEITHER is still
+     * refused rather than signed in.
      */
     assert.ok(!/!SECRETS\.otpEnabled\s*\|\|\s*!profile\.email\s*\|\|\s*otpExempt/.test(VERIFY_PIN),
-      'a missing email still bypasses the sign-in code')
-    assert.match(VERIFY_PIN, /auth\.login_blocked_no_email/,
-      'an account with no email must be refused, not signed in')
+      'an unreachable account still bypasses the sign-in code')
+    assert.match(VERIFY_PIN, /auth\.login_blocked_no_channel/,
+      'an account with no phone and no email must be refused, not signed in')
+    assert.match(VERIFY_PIN, /reachable\.length === 0/,
+      'the refusal must consider every channel, not only email')
   })
 })
 

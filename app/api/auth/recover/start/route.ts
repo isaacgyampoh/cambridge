@@ -1,7 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { z } from 'zod'
 import { startRecovery } from '@/lib/auth/recovery'
-import { sendOTPEmail } from '@/lib/integrations/email'
+import { deliverOTP } from '@/lib/auth/otpDelivery'
 import { rateLimit, clientIp, retryMessage, isBlocked, recordFailure } from '@/lib/auth/rateLimit'
 import { recordAudit } from '@/lib/audit'
 import { PIN_PATTERN } from '@/lib/auth/pinPolicy'
@@ -9,7 +9,7 @@ import { PIN_PATTERN } from '@/lib/auth/pinPolicy'
 export const runtime = 'nodejs'
 
 /**
- * Step 1 of account recovery: recovery PIN in, code emailed out.
+ * Step 1 of account recovery: recovery PIN in, code sent out.
  *
  * Public by necessity — somebody who has forgotten their PIN cannot sign in to
  * ask for help. That makes it a guessing target, so it carries the same
@@ -125,17 +125,25 @@ export async function POST(req: NextRequest) {
 
   // Send it, then forget it. A failure here must not leave the caller thinking
   // a code is coming.
-  if (!result.email || !result.code) {
+  /*
+   * A phone number is enough. This required an email address, so an account
+   * reachable by SMS was refused recovery outright — and with the campus
+   * mailbox unconfigured that was every account, which is how somebody
+   * locked out stayed locked out.
+   */
+  if ((!result.email && !result.phone) || !result.code) {
     console.error('[recover] a code was expected but not produced for', result.userId)
     return NextResponse.json(
       { error: 'Recovery is unavailable right now. Please try again.' }, { status: 500 }
     )
   }
 
-  try {
-    await sendOTPEmail(result.email, result.fullName, result.code)
-  } catch (e) {
-    console.error('[recover] could not email the code:', e)
+  const delivery = await deliverOTP(
+    { email: result.email, phone: result.phone, full_name: result.fullName },
+    result.code,
+  )
+  if (!delivery.sent) {
+    console.error('[recover] no channel delivered the code for', result.userId, '— tried:', delivery.failed.join(', ') || 'none')
     return NextResponse.json(
       { error: 'We could not send your code. Please try again shortly.' },
       { status: 502 }
@@ -146,14 +154,17 @@ export async function POST(req: NextRequest) {
     actorId: result.userId, action: 'auth.recovery_started',
     resource: 'profiles', resourceId: result.userId,
     success: true, request: req,
-    metadata: { path: 'code_emailed' },
+    metadata: { path: 'code_sent', via: delivery.via },
   })
 
   return NextResponse.json({
     success: true,
     userId: result.userId,
     needsCode: true,
-    emailHint: result.emailHint,
+    // Where it actually went, so the screen does not say "check your email"
+    // about a text message.
+    sentVia: delivery.via,
+    hint: delivery.hint,
     expiresInSeconds: result.expiresInSeconds,
   })
 }

@@ -36,6 +36,20 @@ function formatCodeLeft(seconds: number): string {
   return `${seconds}s`
 }
 
+/**
+ * "by text to 024 ••• 4567" / "to i•••••@cambridge.edu.gh"
+ *
+ * Reads the channel the server reported. The fallbacks name a destination
+ * without claiming which one when the hint is missing, because the wrong
+ * instruction is worse than a vague one: somebody told to check their email
+ * will sit there while the code is already on their phone.
+ */
+function sentTo(via: 'sms' | 'email' | null, hint: string): string {
+  if (via === 'sms') return `by text to ${hint || 'your phone'}`
+  if (via === 'email') return `to ${hint || 'your email'}`
+  return hint ? `to ${hint}` : 'to your phone or email'
+}
+
 export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
   const router = useRouter()
   /*
@@ -55,7 +69,16 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
   /* The emailed code. A different length from the PIN, deliberately. */
   const [otp,     setOtp]     = useState('')
   const [otpUserId, setOtpUserId] = useState('')
-  const [emailHint, setEmailHint] = useState('')
+  /*
+   * Where the last code was sent, as reported by the server.
+   *
+   * Not assumed: a code goes by SMS when there is a number, and by email
+   * otherwise, so the screen has to be told rather than guessing. Telling
+   * somebody to check an inbox while the code sits on their lock screen is
+   * how a working sign-in looks broken.
+   */
+  const [sentVia, setSentVia] = useState<'sms' | 'email' | null>(null)
+  const [codeHint, setCodeHint] = useState('')
   const [resendIn,  setResendIn]  = useState(0)   // seconds until resend is offered
   const [codeLeft,  setCodeLeft]  = useState(0)   // seconds until the code expires
   const [pendingChangePin, setPendingChangePin] = useState(false)
@@ -101,7 +124,14 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
        * recovery mailbox by guessing.
        */
       setOtpUserId(d.userId)
-      setEmailHint('the recovery email')
+      /*
+       * Named vaguely on purpose, and email on purpose: this is the emergency
+       * route, which goes to the configured recovery mailbox and nowhere
+       * else. Showing the masked address would answer the question this path
+       * exists not to answer.
+       */
+      setSentVia('email')
+      setCodeHint('the recovery email')
       setCodeLeft(d.expiresInSeconds || 600)
       setOtp('')
       setStep('recover-otp')
@@ -125,10 +155,11 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
       setPin('')
       return
     }
-    // PIN correct → an OTP was emailed. Move to the OTP step.
+    // PIN correct → a code was sent. Move to the OTP step.
     if (d.otpRequired) {
       setOtpUserId(d.userId)
-      setEmailHint(d.emailHint || '')
+      setSentVia(d.sentVia ?? null)
+      setCodeHint(d.hint || '')
       setPendingChangePin(!!d.mustChangePIN)
       setCodeLeft(d.expiresInSeconds || 600)
       setResendIn(30)
@@ -167,6 +198,8 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
 
       if (d.success) {
         setOtp('')
+        setSentVia(d.sentVia ?? null)
+        setCodeHint(d.hint || '')
         setCodeLeft(d.expiresInSeconds || 600)
         setResendIn(30)
         return
@@ -211,7 +244,8 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
         return
       }
 
-      setEmailHint(d.emailHint || '')
+      setSentVia(d.sentVia ?? null)
+      setCodeHint(d.hint || '')
       setCodeLeft(d.expiresInSeconds || 600)
       setResendIn(30)
       setOtp('')
@@ -506,7 +540,7 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
             <>
               <div className="mb-8">
                 <h2 className="font-display text-[24px] leading-tight font-semibold text-[var(--ink)] mb-1.5">Check your email</h2>
-                <p className="text-[var(--ink-soft)] text-sm">We sent a {OTP_LENGTH}-digit code to {emailHint || 'your email'}. Enter it below to finish signing in.</p>
+                <p className="text-[var(--ink-soft)] text-sm">We sent a {OTP_LENGTH}-digit code {sentTo(sentVia, codeHint)}. Enter it below to finish signing in.</p>
               </div>
 
               <PinBoxes
@@ -686,7 +720,7 @@ export default function LoginForm({ heroSrc }: { heroSrc: string | null }) {
                   Check your email
                 </h2>
                 <p className="text-[var(--ink-soft)] text-sm">
-                  We sent a {OTP_LENGTH}-digit code to {emailHint || 'your email'}. Enter it to choose a new PIN.
+                  We sent a {OTP_LENGTH}-digit code {sentTo(sentVia, codeHint)}. Enter it to choose a new PIN.
                 </p>
               </div>
 

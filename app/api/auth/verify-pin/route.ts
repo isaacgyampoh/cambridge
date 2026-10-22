@@ -1,14 +1,13 @@
 import { OTP_MINUTES } from '@/lib/auth/otpPolicy'
 import { NextRequest, NextResponse } from 'next/server'
 import { PIN_PATTERN, PIN_LENGTH, NO_MAILBOX_ROLES } from '@/lib/auth/pinPolicy'
-import { maskEmail } from '@/lib/ui/contact'
 import { createServiceClient } from '@/lib/supabase/server'
 import {
   hashPIN, verifyPIN, hashToken, generateOTP, createSession,
   ROLE_PORTAL, SESSION_COOKIE, SESSION_COOKIE_OPTIONS,
 } from '@/lib/auth/pin'
 import { rateLimit, clearRateLimit, clientIp, retryMessage, isBlocked, recordFailure } from '@/lib/auth/rateLimit'
-import { sendOTPEmail } from '@/lib/integrations/email'
+import { deliverOTP, undeliverableMessage, channelsFor, channelReadiness } from '@/lib/auth/otpDelivery'
 import { recordAudit } from '@/lib/audit'
 import { SECRETS } from '@/lib/config.server'
 import { z } from 'zod'
@@ -137,7 +136,7 @@ export async function POST(req: NextRequest) {
   const sb = createServiceClient()
 
   const { data: candidates, error: loadErr } = await sb.from('profiles')
-    .select('id, full_name, email, role, pin_hash, must_change_pin, login_attempts, locked_until')
+    .select('id, full_name, email, phone, role, pin_hash, must_change_pin, login_attempts, locked_until')
     .eq('is_active', true)
     .not('pin_hash', 'is', null)
 
@@ -147,7 +146,8 @@ export async function POST(req: NextRequest) {
   }
 
   type Candidate = {
-    id: string; full_name: string; email: string | null; role: string
+    // phone, because a sign-in code may go by SMS — see lib/auth/otpDelivery.
+    id: string; full_name: string; email: string | null; phone: string | null; role: string
     pin_hash: string; must_change_pin: boolean | null
     login_attempts: number | null; locked_until: string | null
   }
@@ -248,24 +248,34 @@ export async function POST(req: NextRequest) {
   const otpExempt = OTP_EXEMPT_ROLES.includes(profile.role)
 
   /*
-   * An account that is NOT exempt and has no email cannot be signed in.
+   * An account that is NOT exempt and cannot be reached cannot be signed in.
    *
    * This previously fell through to a session on the PIN alone, which turned a
    * missing email address into an OTP bypass — the one thing standing between
    * a guessed PIN and full access, removed by an incomplete staff record. The
    * exemption is a deliberate property of a role, not an accident of data.
+   *
+   * It then asked about email ALONE, which went too far the other way: an
+   * account with a phone number and no mailbox was turned away even though a
+   * code could have been texted to it, and with the campus mailbox
+   * unconfigured that was every account. Reachable means any channel with
+   * both a destination on the account and a configured sender.
    */
-  if (!otpExempt && SECRETS.otpEnabled && !profile.email) {
-    console.error('[verify-pin] refusing sign-in: no email on file for', userId)
+  /*
+   * The same readiness the sender will use, from one function. Asking the two
+   * questions separately is how a guard comes to disagree with the send it
+   * guards: this would admit the account and deliverOTP would then find
+   * nothing it could use, which is the stranded code screen again.
+   */
+  const reachable = channelsFor(profile, channelReadiness())
+  if (!otpExempt && SECRETS.otpEnabled && reachable.length === 0) {
+    console.error('[verify-pin] refusing sign-in: no usable channel for', userId)
     await recordAudit({
-      actorId: userId, action: 'auth.login_blocked_no_email',
+      actorId: userId, action: 'auth.login_blocked_no_channel',
       resource: 'profiles', resourceId: userId, success: false, request: req,
-      metadata: { role: profile.role },
+      metadata: { role: profile.role, hasPhone: Boolean(profile.phone), hasEmail: Boolean(profile.email) },
     })
-    return NextResponse.json({
-      error: 'This account has no email address on file, so a sign-in code cannot be sent. '
-        + 'Ask an administrator to add one.',
-    }, { status: 403 })
+    return NextResponse.json({ error: undeliverableMessage(profile) }, { status: 403 })
   }
 
   if (!SECRETS.otpEnabled || otpExempt) {
@@ -305,26 +315,15 @@ export async function POST(req: NextRequest) {
    * this were ever reachable, sending nowhere would silently strand somebody
    * on a code screen.
    */
-  if (!profile.email) {
-    console.error('[verify-pin] unreachable: OTP path with no email for', userId)
-    return NextResponse.json(
-      { error: 'This account has no email address on file. Ask an administrator to add one.' },
-      { status: 403 }
-    )
-  }
-
-  const sent = await sendOTPEmail(profile.email, profile.full_name || '', code)
-  if (!sent) {
+  const delivery = await deliverOTP(profile, code)
+  if (!delivery.sent) {
     // The code exists but could not be delivered. Say so plainly rather than
     // stranding the user on a code screen no code will ever arrive at.
     await recordAudit({
       actorId: userId, action: 'auth.otp_send_failed',
       resource: 'profiles', resourceId: userId, success: false, request: req,
     })
-    return NextResponse.json(
-      { error: 'We could not email your sign-in code. Please try again shortly, or contact your administrator.' },
-      { status: 502 }
-    )
+    return NextResponse.json({ error: undeliverableMessage(profile) }, { status: 502 })
   }
 
   await recordAudit({
@@ -336,12 +335,13 @@ export async function POST(req: NextRequest) {
     success: true,
     otpRequired: true,
     userId,
-    emailHint: maskEmail(profile.email),
+    // Where it actually went, not where it used to always go.
+    sentVia: delivery.via,
+    hint: delivery.hint,
     expiresInSeconds: OTP_MINUTES * 60,
   })
 }
 
-/** n••••@cambridge.edu.gh — enough to recognise, not enough to harvest. */
 type SessionProfile = {
   id: string; full_name: string; role: string; must_change_pin: boolean | null
 }

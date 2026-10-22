@@ -114,6 +114,12 @@ export const SECRETS = {
   // stored PIN hash, so treat a change as a forced PIN reset for all staff.
   get pinPepper() { return required('PIN_PEPPER') },
   get otpEnabled() { return optional('OTP_ENABLED') !== 'false' },
+  /*
+   * Which way a sign-in code goes first. SMS by default: it arrives in
+   * seconds on a phone already in the person's hand and does not land in a
+   * spam folder. 'email' swaps the order without a deploy.
+   */
+  get otpChannel() { return optional('OTP_CHANNEL', 'sms') },
 
   // ── SCHEDULED JOBS ──────────────────────────────────────────
   // Previously hardcoded as 'cce-cron-2024' / 'cce-setup-2024' AND shipped to

@@ -6,6 +6,8 @@ import { generatePin } from '@/lib/auth/pinPolicy'
 import { CONFIG } from '@/lib/config'
 import { usesEmailVerification } from '@/lib/auth/pinPolicy'
 import { emailConfigured } from '@/lib/integrations/email'
+import { channelsFor } from '@/lib/auth/otpChannels'
+import { SECRETS } from '@/lib/config.server'
 
 /**
  * First-run provisioning of the super admin, from a browser.
@@ -86,7 +88,7 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
   const sb = createServiceClient()
 
   const { data: admins } = await sb.from('profiles')
-    .select('id, pin_hash, recovery_pin_hash, email')
+    .select('id, pin_hash, recovery_pin_hash, email, phone')
     .eq('role', 'super_admin')
     .eq('is_active', true)
 
@@ -101,9 +103,8 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
    *
    * This first asked three questions — recovery PIN, an address on the
    * account, a configured sender — and reported the super admin as
-   * incomplete because no mailer was configured. (At the time that was read
-   * as a missing Resend key; the portal sends through the campus mailbox
-   * now, and the mistake would be the same with SMTP_HOST unset.)
+   * incomplete because no mailer was configured. (The portal sends through
+   * the campus mailbox, so the same mistake happens with SMTP_HOST unset.)
    *
    * That is a staff rule applied to an account it does not govern. The super
    * admin is in NO_MAILBOX_ROLES: they have no corporate mailbox, sign-in
@@ -118,21 +119,28 @@ export async function readProvisioningState(): Promise<ProvisioningState> {
    */
   const superAdminUsesEmail = usesEmailVerification('super_admin')
 
-  const hasRecoveryEmail = (admins || []).some(a => Boolean(a.email && String(a.email).includes('@')))
-  // Any transport, not one of them. SMTP is preferred here and Resend is the
-  // fallback; asking about Resend alone reported a blocker that did not exist.
-  const canSendEmail = emailConfigured()
+  /*
+   * For a role that DOES need a code: can one reach them?
+   *
+   * Asked as "is there any channel", not "is there an email address and a
+   * mailer". A code goes by SMS first now, so a phone number and funded SMS
+   * is a complete route and reporting it as blocked would send somebody
+   * hunting for a mail fault that does not matter.
+   */
+  const readiness = { smsReady: Boolean(SECRETS.arkeselApiKey), emailReady: emailConfigured() }
+  const reachableAdmin = (admins || []).some(a => channelsFor(a, readiness).length > 0)
+  const noSenderAtAll = !readiness.smsReady && !readiness.emailReady
 
   const recoveryBlockedReason = !hasRecoveryPin
     ? 'No recovery PIN is set, so the only way back in is a setup window.'
     : !superAdminUsesEmail
       // PIN-only, by design. Nothing else to check.
       ? null
-      : !hasRecoveryEmail
-        ? 'This account has no email address, so the one-time code has nowhere to go.'
-        : !canSendEmail
-          ? 'No email transport is configured (SMTP or Resend), so the one-time code cannot be sent.'
-          : null
+      : reachableAdmin
+        ? null
+        : noSenderAtAll
+          ? 'Neither SMS nor the campus mailbox is configured, so a one-time code cannot be sent.'
+          : 'This account has no phone number or email address, so the one-time code has nowhere to go.'
 
   const recoveryReachable = recoveryBlockedReason === null
 

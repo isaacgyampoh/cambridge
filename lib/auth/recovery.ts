@@ -69,7 +69,7 @@ export type RecoveryStart =
       ok: true
       userId: string
       /**
-       * Whether this account must confirm with an emailed code.
+       * Whether this account must confirm with a code.
        *
        * False for the super admin, who has no mailbox. The caller branches on
        * this rather than assuming every account takes the same path.
@@ -77,26 +77,32 @@ export type RecoveryStart =
       needsCode: boolean
       /** Present only when needsCode is false: recovery is already authorised. */
       resetToken?: string
-      emailHint: string
       expiresInSeconds: number
       /**
-       * The plaintext code, for the caller to EMAIL.
+       * The plaintext code, for the caller to SEND.
        *
        * It must never reach the HTTP response — the route sends it and drops
-       * it. Returned rather than emailed here so the transport can change
+       * it. Returned rather than sent from here so the transport can change
        * without touching the security logic, and so this module stays
-       * testable.
+       * testable. Present only when needsCode is true.
        */
-      /** Present only when needsCode is true. Never returned over HTTP. */
       code: string | null
-      /** Where to send it, and who to address. Never returned over HTTP. */
+      /**
+       * Both destinations, and who to address.
+       *
+       * This used to return the email address alone, which made email the
+       * only possible transport and left anyone without a working mailbox
+       * unable to recover at all. Which channel is used is the caller's
+       * decision; the security logic stays here. Never returned over HTTP.
+       */
       email: string | null
+      phone: string | null
       fullName: string
     }
   | { ok: false; reason: string; status: number }
 
 /**
- * Step 1 — find the account this recovery PIN belongs to, and email it a code.
+ * Step 1 — find the account this recovery PIN belongs to, and send it a code.
  *
  * Verifies against every active account that has a recovery PIN, exactly as
  * sign-in verifies the account PIN, because there is no username to narrow it
@@ -110,7 +116,7 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
 
   const sb = createServiceClient()
   const { data: rows, error } = await sb.from('profiles')
-    .select('id, full_name, email, role, recovery_pin_hash, is_active')
+    .select('id, full_name, email, phone, role, recovery_pin_hash, is_active')
     .eq('is_active', true)
     .not('recovery_pin_hash', 'is', null)
 
@@ -119,10 +125,10 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
     return { ok: false, reason: 'Recovery is unavailable right now. Please try again.', status: 500 }
   }
 
-  const matches: Array<{ id: string; email: string | null; fullName: string; role: string }> = []
+  const matches: Array<{ id: string; email: string | null; phone: string | null; fullName: string; role: string }> = []
   for (const row of rows || []) {
     const { ok } = await verifyPIN(pin, row.recovery_pin_hash as string)
-    if (ok) matches.push({ id: row.id, email: row.email, fullName: row.full_name, role: row.role })
+    if (ok) matches.push({ id: row.id, email: row.email, phone: row.phone, fullName: row.full_name, role: row.role })
   }
 
   // Deliberately the same wording as a non-match: telling an attacker that a
@@ -151,19 +157,24 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
       userId: account.id,
       needsCode: false,
       resetToken: token,
-      emailHint: '',
       expiresInSeconds: RESET_TOKEN_MINUTES * 60,
       code: null,
       email: null,
+      phone: null,
       fullName: account.fullName,
     }
   }
 
-  if (!account.email) {
+  /*
+   * Refused only when there is NO destination at all. This asked about the
+   * email address alone, so an account with a phone number and no mailbox
+   * was told recovery was impossible — and the code can be texted.
+   */
+  if (!account.email && !account.phone) {
     return {
       ok: false,
       status: 400,
-      reason: 'This account has no corporate email address, so a code cannot be sent. Contact your administrator.',
+      reason: 'This account has no phone number or email address on file, so a code cannot be sent. Contact your administrator.',
     }
   }
 
@@ -185,10 +196,10 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
     ok: true,
     userId: account.id,
     needsCode: true,
-    emailHint: maskEmail(account.email),
     expiresInSeconds: OTP_MINUTES * 60,
     code,
     email: account.email,
+    phone: account.phone,
     fullName: account.fullName,
   }
 }
@@ -371,13 +382,6 @@ export async function setRecoveryPin(
     return { ok: false, reason: 'Could not set the recovery PIN.' }
   }
   return { ok: true, pin: chosen }
-}
-
-/** i•••••@cambridge.edu.gh — confirms the mailbox without publishing it. */
-function maskEmail(email: string): string {
-  const at = email.lastIndexOf('@')
-  if (at < 1) return 'your corporate email'
-  return `${email[0]}${'•'.repeat(5)}${email.slice(at)}`
 }
 
 
