@@ -90,7 +90,7 @@ const CATALOGUE: CatalogueEntry[] = [
    * back once a save has dropped it — which is what the staff-permissions
    * tests caught when this portal was added without an entry.
    */
-  { id: 'oversight', label: 'Activity log', icon: 'system', href: '/admin/activity', section: 'top' },
+  { id: 'oversight', label: 'Activity log', icon: 'clock', href: '/admin/activity', section: 'top' },
   { id: 'messages', label: 'Messages', icon: 'messages', href: '/messages', section: 'top' },
 
   /* ── Growth ── */
