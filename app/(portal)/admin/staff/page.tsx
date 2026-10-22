@@ -318,8 +318,14 @@ export default function StaffPage() {
                   </div>
 
                   <div className="flex items-center gap-2 mt-3 p-2 bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-xl">
-                    
-                    <p className="text-[12px] text-[var(--warn)] font-medium">They log in with phone number + PIN. Must change PIN on first login.</p>
+                    {/*
+                      * "Phone number + PIN" was never true — sign-in takes the
+                      * PIN alone, so this had administrators passing on
+                      * instructions for a field that does not exist.
+                      */}
+                    <p className="text-[12px] text-[var(--warn)] font-medium">
+                      {creds.note || 'They sign in with the PIN alone and must then choose their own.'}
+                    </p>
                   </div>
                 </div>
 

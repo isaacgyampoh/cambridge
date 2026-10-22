@@ -519,3 +519,32 @@ describe('resetting a colleague’s PIN tells them', () => {
     assert.match(page, /Full name and phone number are required/)
   })
 })
+
+describe('a new member of staff is told the truth about signing in', () => {
+  const route = codeOf('app/api/admin/create-staff/route.ts')
+  const page = codeOf('app/(portal)/admin/staff/page.tsx')
+
+  test('sign-in takes the PIN alone, and the message says so', () => {
+    /*
+     * The onboarding text read "Login with your phone (024…) and PIN". The
+     * login screen has one field, and verify-pin's body schema has one
+     * property: the PIN identifies the account, which is why two people
+     * cannot share one. So this sent every new member of staff looking for a
+     * field that does not exist.
+     */
+    assert.ok(!/with your phone|phone \+ PIN|phone number \+ PIN/i.test(route))
+    assert.ok(!/phone \+ PIN|phone number \+ PIN/i.test(page))
+    assert.match(route, /your PIN is all you need/)
+  })
+
+  test('and is given the portal address from one source', () => {
+    assert.match(route, /const portalUrl = CONFIG\.appUrl/,
+      'a second hardcoded address is the one that still names the old domain')
+    assert.match(route, /Sign in at \$\{portalUrl\}/)
+  })
+
+  test('the administrator is shown what the server actually said', () => {
+    // Rather than a second copy of the instructions, which can disagree.
+    assert.match(page, /creds\.note/)
+  })
+})

@@ -3,6 +3,7 @@ import { isValidPin, PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, getSessionFromCookies } from '@/lib/auth/pin'
 import { DUTIES, ROLE_DEFAULTS } from '@/lib/access/portals'
+import { CONFIG } from '@/lib/config'
 
 export const runtime = 'nodejs'
 
@@ -157,19 +158,29 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: profileErr.message }, { status: 500 })
   }
 
-  // ── Onboarding SMS: send the new staff their login details + portal link ──
+  /*
+   * ── Onboarding SMS: their PIN and where to use it ────────────────────────
+   *
+   * This used to say "Login with your phone (024…) and PIN". Sign-in takes
+   * the PIN and nothing else — the PIN identifies the account, which is why
+   * two people cannot share one — so it sent every new member of staff
+   * looking for a phone field that does not exist on the login screen.
+   *
+   * The address comes from CONFIG.appUrl rather than a constant written out
+   * here, so it cannot be the one place that still names an old domain.
+   */
   let smsSent = false
   try {
     const { sendSMS } = await import('@/lib/integrations/sms')
-    const portalUrl = 'https://portal.cambridge.edu.gh'
+    const portalUrl = CONFIG.appUrl
     const firstName = full_name.trim().split(' ')[0]
     const roleLabel = role.replace(/_/g, ' ')
     const msg =
       `Hi ${firstName}, welcome to Cambridge Center of Excellence!\n` +
       `You've been added as ${roleLabel}.\n` +
-      `Portal: ${portalUrl}\n` +
-      `Login with your phone (${rawPhone}) and PIN: ${pin}\n` +
-      `Please change your PIN after your first login.`
+      `Sign in at ${portalUrl} with PIN ${pin} — your PIN is all you need.\n` +
+      `You will be asked to choose your own, and a sign-in code will be texted to this number.\n` +
+      `Do not share this PIN with anyone.`
     smsSent = await sendSMS(phone233, msg)
   } catch { smsSent = false }
 
@@ -180,9 +191,13 @@ export async function POST(req: NextRequest) {
     credentials: {
       phone: rawPhone,           // show the original format they typed
       initial_pin: pin,
+      // Said accurately: the PIN is the whole credential, and a sign-in code
+      // follows it by text. Telling an administrator otherwise means they
+      // pass on the wrong instructions themselves.
       note: smsSent
-        ? 'Login details sent by SMS. Staff logs in with phone + PIN and must change PIN on first login.'
-        : 'Staff logs in with phone number + PIN. They must change PIN on first login. (SMS could not be sent — share the details manually.)',
+        ? 'Sent by SMS. They sign in with the PIN alone, are texted a code, and must then choose their own PIN.'
+        : 'They sign in with the PIN alone, are texted a code, and must then choose their own PIN. '
+          + '(The SMS could not be sent — pass the PIN and the portal address on yourself.)',
     },
   })
 }
