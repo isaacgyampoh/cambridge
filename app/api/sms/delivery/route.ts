@@ -42,10 +42,21 @@ export const GET = withGuard({ portals: ['broadcast', 'settings'] }, async (req)
   const kind = url.searchParams.get('kind')
   const sb = createServiceClient()
 
-  // The delivery record itself. `message` is included deliberately: knowing
-  // WHICH message failed is most of the diagnosis. It never contains a
-  // credential — provider_response is the response body, not the request, and
-  // the API key travels in a header that is never logged.
+  /*
+   * The delivery record itself. `message` is included deliberately: knowing
+   * WHICH message failed is most of the diagnosis.
+   *
+   * This comment used to assert that a message never contains a credential.
+   * That was true when every text was a class reminder; it stopped being true
+   * when sign-in codes, PIN resets and onboarding PINs started going by SMS.
+   * They are now stored as a label instead of a body — see redactedBody in
+   * lib/integrations/sms.ts — because this screen is readable by anyone
+   * holding `broadcast` or `settings`, and a sign-in code lasts six hours, so
+   * one in a readable log is a working second factor rather than history.
+   *
+   * provider_response is the response body, not the request, and the API key
+   * travels in a header that is never logged.
+   */
   let query = sb.from('sms_logs')
     .select('id, recipient, kind, entity_id, status, attempts, max_attempts, provider_message_id, last_error, created_at, sent_at, next_retry_at, message')
     .order('created_at', { ascending: false })

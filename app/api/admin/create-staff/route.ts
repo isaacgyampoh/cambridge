@@ -181,7 +181,8 @@ export async function POST(req: NextRequest) {
       `Sign in at ${portalUrl} with PIN ${pin} — your PIN is all you need.\n` +
       `You will be asked to choose your own, and a sign-in code will be texted to this number.\n` +
       `Do not share this PIN with anyone.`
-    smsSent = await sendSMS(phone233, msg)
+    // Carries their initial PIN, so the body is not kept in the delivery log.
+    smsSent = await sendSMS(phone233, msg, { kind: 'staff_onboarding', credential: true })
   } catch { smsSent = false }
 
   return NextResponse.json({

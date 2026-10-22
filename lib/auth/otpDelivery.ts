@@ -93,7 +93,13 @@ async function deliverByChannel(
  */
 export async function deliverOTP(target: OtpTarget, code: string): Promise<OtpDelivery> {
   return deliverByChannel(target, 'otp', {
-    sms: () => sendSMS(canonicalGhanaMobile(target.phone) as string, otpSmsText(code, target.full_name)),
+    sms: () => sendSMS(
+      canonicalGhanaMobile(target.phone) as string,
+      otpSmsText(code, target.full_name),
+      // The body is not written to sms_logs: a code lasts six hours, so one
+      // sitting in a readable log is a working second factor, not history.
+      { kind: 'auth_code', credential: true },
+    ),
     email: () => sendOTPEmail(String(target.email), target.full_name || '', code),
   })
 }
@@ -121,6 +127,7 @@ export async function deliverPinReset(target: OtpTarget, pin: string): Promise<O
     sms: () => sendSMS(
       canonicalGhanaMobile(target.phone) as string,
       pinResetSmsText(pin, target.full_name, url),
+      { kind: 'pin_reset', credential: true },
     ),
     email: () => sendEmail(
       String(target.email),

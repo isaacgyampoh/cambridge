@@ -39,6 +39,38 @@ import { readBalanceResponse } from './smsAccountCheck'
 export type DeliveryResult = SendOutcome
 
 /**
+ * What a message is, for the delivery log.
+ *
+ * ── WHY `credential` EXISTS ────────────────────────────────────────────────
+ *
+ * sms_logs stores the message body, and the delivery screen shows it to
+ * anyone holding the `broadcast` or `settings` portal. That was written when
+ * every text was a class reminder or a voucher request, and the comment
+ * beside it said so: "it never contains a credential".
+ *
+ * It does now. A sign-in code goes by SMS, a PIN reset goes by SMS, and an
+ * onboarding message has carried an initial PIN all along. A live sign-in
+ * code sitting in a readable log is not a leak of history — codes last six
+ * hours, so it is a working second factor that a colleague can read off a
+ * diagnostics screen.
+ *
+ * So a message marked `credential` is logged as a label. Status, provider,
+ * timing and the error are all kept, which is what the screen is for; the
+ * body is not, because nobody diagnosing a delivery needs the digits.
+ */
+export type SmsLogOptions = {
+  /** Groups messages on the delivery screen, e.g. 'auth_code'. */
+  kind?: string
+  /** The body carries a one-time credential and must not be stored. */
+  credential?: boolean
+}
+
+/** What is stored in place of a credential-bearing body. */
+export function redactedBody(kind?: string): string {
+  return `[not stored: ${kind ? kind.replace(/_/g, ' ') : 'this message'} carried a one-time credential]`
+}
+
+/**
  * One delivery attempt to one recipient.
  *
  * Distinguishing a permanent failure from a transient one is what stops the
@@ -50,7 +82,11 @@ export const arkeselProvider: SmsProvider = {
   send: (to, message) => deliverSMS(to, message),
 }
 
-export async function deliverSMS(to: string, message: string): Promise<DeliveryResult> {
+export async function deliverSMS(
+  to: string,
+  message: string,
+  log: SmsLogOptions = {},
+): Promise<DeliveryResult> {
   const recipient = normaliseRecipient(to)
   if (!recipient) {
     return { ok: false, permanent: true, error: `Not a valid Ghanaian mobile number: ${to}` }
@@ -74,6 +110,23 @@ export async function deliverSMS(to: string, message: string): Promise<DeliveryR
    */
   const recorder = recordingProviderFor('sms')
   if (recorder) {
+    /*
+     * A credential is the one thing that must NOT be recorded-and-reported.
+     *
+     * Recording exists so a flow that follows a text — an assignment
+     * notification, a voucher request — still runs when SMS is disconnected.
+     * A PIN is different: the whole point of the message is that the person
+     * receives it. Answering "sent" means an administrator is told their
+     * colleague has the PIN when nobody does, and the body would sit in the
+     * recorder besides.
+     */
+    if (log.credential) {
+      console.error('[sms] refusing to record a credential message as sent — SMS is not configured.')
+      return {
+        ok: false, permanent: true,
+        error: 'SMS is not configured, so a one-time credential could not be delivered.',
+      }
+    }
     const result = await recorder.send({ to: recipient, body: message, kind: 'text' })
     // Not permanent: a recorded message is not a rejected one, and nothing
     // about it should make the queue give up on the number.
@@ -141,21 +194,28 @@ export async function deliverSMS(to: string, message: string): Promise<DeliveryR
  * Prefer `queueSMS` from lib/notifications/sms.ts for anything a person is
  * relying on: this records the attempt but does not retry it.
  */
-export async function sendSMS(to: string | string[], message: string): Promise<boolean> {
+export async function sendSMS(
+  to: string | string[],
+  message: string,
+  log: SmsLogOptions = {},
+): Promise<boolean> {
   const recipients = (Array.isArray(to) ? to : [to])
     .map(normaliseRecipient)
     .filter((r): r is string => Boolean(r))
 
   if (!recipients.length) return false
 
-  const results = await Promise.all(recipients.map(r => deliverSMS(r, message)))
+  const results = await Promise.all(recipients.map(r => deliverSMS(r, message, log)))
+  // What goes in the log. A credential-bearing body is described, not kept.
+  const logged = log.credential ? redactedBody(log.kind) : message
 
   try {
     const sb = createServiceClient()
     await sb.from('sms_logs').insert(
       recipients.map((r, i) => ({
         recipient: r,
-        message,
+        message: logged,
+        kind: log.kind ?? null,
         status: results[i].ok ? 'sent' : 'failed',
         provider: 'arkesel',
         provider_response: results[i].response ?? null,

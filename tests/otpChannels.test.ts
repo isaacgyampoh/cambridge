@@ -548,3 +548,69 @@ describe('a new member of staff is told the truth about signing in', () => {
     assert.match(page, /creds\.note/)
   })
 })
+
+/**
+ * ─── A CODE IN A READABLE LOG IS NOT HISTORY ────────────────────────────────
+ *
+ * sms_logs stores the message body, and /admin/sms-delivery shows it to
+ * anyone holding `broadcast` or `settings`. The comment beside that select
+ * said "it never contains a credential", which was true when every text was a
+ * class reminder.
+ *
+ * A sign-in code lasts six hours. One sitting in a diagnostics screen a
+ * colleague can open is a working second factor, not a record of a past
+ * event — and the onboarding message has carried an initial PIN all along.
+ */
+describe('a credential is never written into the delivery log', () => {
+  const sms = codeOf('lib/integrations/sms.ts')
+  const delivery = codeOf('lib/auth/otpDelivery.ts')
+  const create = codeOf('app/api/admin/create-staff/route.ts')
+
+  test('the body stored is the redacted one, not the message', () => {
+    assert.match(sms, /const logged = log\.credential \? redactedBody\(log\.kind\) : message/)
+
+    /*
+     * Scoped to the sms_logs insert. The request to the provider has to
+     * contain the real message — that is the message — so asserting on the
+     * whole file would forbid sending anything at all.
+     */
+    const insert = sms.slice(sms.indexOf("from('sms_logs').insert("))
+    const row = insert.slice(0, insert.indexOf('}))'))
+    assert.match(row, /message: logged,/)
+    assert.ok(!/^\s*message,$/m.test(row), 'the raw body is still being inserted')
+  })
+
+  test('every message that carries one says so', () => {
+    for (const [what, code] of [['the sign-in code', delivery], ['onboarding', create]] as const) {
+      assert.match(code, /credential: true/, `${what} does not mark its message`)
+    }
+    assert.match(delivery, /kind: 'auth_code', credential: true/)
+    assert.match(delivery, /kind: 'pin_reset', credential: true/)
+    assert.match(create, /kind: 'staff_onboarding', credential: true/)
+  })
+
+  test('and the recorder cannot report a credential as sent', () => {
+    /*
+     * With no API key, deliverSMS hands the message to a recording provider
+     * that keeps it and answers ok, so a flow which follows a text still
+     * runs. For a PIN that is a lie with consequences: the administrator is
+     * told their colleague has it when nobody does, and the body is kept.
+     */
+    assert.match(sms, /if \(log\.credential\) \{/)
+    assert.match(sms, /refusing to record a credential message as sent/)
+    const branch = sms.slice(sms.indexOf('if (log.credential) {'))
+    const ret = branch.slice(0, branch.indexOf('const result'))
+    assert.match(ret, /ok: false, permanent: true/)
+  })
+
+  test('the screen no longer claims the log holds no credentials', () => {
+    const route = codeOf('app/api/sms/delivery/route.ts')
+    assert.ok(!/It never contains a\s+credential/.test(route))
+  })
+
+  test('what is stored still identifies the message', () => {
+    // Useless diagnostics would just move the problem: the kind is kept, and
+    // the label says what the body was.
+    assert.match(sms, /kind: log\.kind \?\? null,/)
+  })
+})
