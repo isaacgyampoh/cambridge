@@ -6,6 +6,7 @@ import { hashPIN, verifyPIN } from '@/lib/auth/pin'
 import { setRecoveryPin } from '@/lib/auth/recovery'
 import { recordAudit } from '@/lib/audit'
 import { PIN_PATTERN, PIN_LENGTH, pinRejectionReason } from '@/lib/auth/pinPolicy'
+import { deliverPinReset } from '@/lib/auth/otpDelivery'
 
 export const runtime = 'nodejs'
 
@@ -53,7 +54,7 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
 
   const sb = createServiceClient()
   const { data: target, error: readErr } = await sb.from('profiles')
-    .select('id, full_name, role, is_active').eq('id', userId).maybeSingle()
+    .select('id, full_name, role, is_active, phone, email').eq('id', userId).maybeSingle()
 
   if (readErr) {
     console.error('[reset-pin] could not read the account:', readErr.message)
@@ -119,13 +120,28 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
     else console.error('[reset-pin] could not set a recovery PIN:', result.reason)
   }
 
+  /*
+   * Tell them, rather than leaving the administrator to do it.
+   *
+   * A reset used to send nothing at all: the PIN was set and the colleague
+   * found out when somebody remembered to tell them. The message carries the
+   * PIN and the portal address together, so a person who has never signed in
+   * has everything they need in one text.
+   *
+   * By SMS where there is a number, falling back to email. The recovery PIN
+   * is NOT sent — it is shown to the administrator once, so a single
+   * intercepted message cannot hand over both credentials at once.
+   */
+  const notice = await deliverPinReset(target, newPin)
+
   await recordAudit({
     actorId: session.userId, action: 'staff.pin_reset',
     resource: 'profiles', resourceId: userId, success: true, request: req,
-    // Who, by whom, and when. Never what.
+    // Who, by whom, when, and whether they were told. Never what.
     metadata: {
       target: target.full_name, targetRole: target.role,
       recoveryPinIssued: Boolean(recoveryPin),
+      notified: notice.sent, notifiedVia: notice.via,
     },
   })
 
@@ -134,6 +150,18 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
     mustChangePin: true,
     // Shown once so the administrator can pass it on; not stored anywhere.
     recoveryPin,
-    message: `${target.full_name} can now sign in with that PIN and will be asked to choose their own.`,
+    /*
+     * Said plainly either way. An administrator who believes the PIN was sent
+     * and is wrong will not make the phone call they would otherwise have
+     * made, so a silent failure here is worse than no message at all.
+     */
+    notified: notice.sent,
+    notifiedVia: notice.via,
+    notifiedTo: notice.hint,
+    message: notice.sent
+      ? `${target.full_name} has been sent the new PIN and the portal address ${
+          notice.via === 'sms' ? 'by text' : 'by email'} (${notice.hint}), and will be asked to choose their own.`
+      : `${target.full_name} can sign in with that PIN and will be asked to choose their own — `
+        + 'but the message could not be sent, so you will need to pass it on yourself.',
   })
 })

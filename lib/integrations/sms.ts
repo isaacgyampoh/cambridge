@@ -24,6 +24,7 @@ import { recordingProviderFor } from '@/lib/messaging'
 
 const ARKESEL_URL = 'https://sms.arkesel.com/api/v2/sms/send'
 const TIMEOUT_MS = 15_000
+const ARKESEL_BALANCE_URL = 'https://sms.arkesel.com/api/v2/clients/balance-details'
 
 /*
  * Moved to ./smsRecipient so the rule can be exercised on its own — this
@@ -32,6 +33,7 @@ const TIMEOUT_MS = 15_000
  */
 import { normaliseRecipient } from './smsRecipient'
 export { normaliseRecipient }
+import { readBalanceResponse } from './smsAccountCheck'
 
 /** Kept as an alias so existing callers do not change. */
 export type DeliveryResult = SendOutcome
@@ -198,4 +200,75 @@ export const SMS = {
   registrationConfirmed: (name: string, programme: string, classMode: string) =>
     `${BRAND_VOICE.smsPrefix}: Hi ${name}, your registration for ${programme} (${classMode}) is confirmed and your payment has been received. ` +
     `Admission processing has begun — watch this number and your email for the next step. Welcome to ${BRAND.shortName}!`,
+}
+
+/**
+ * Is the SMS account actually usable, and how much is left in it?
+ *
+ * ── WHY "IS THE KEY SET" IS NOT THE QUESTION ───────────────────────────────
+ *
+ * The readiness screen reported SMS as configured because ARKESEL_API_KEY had
+ * a value. It did — a stale one, which the provider answered with
+ * {"message":"Invalid key"}. Present and working are different facts, and
+ * only the second one sends anything.
+ *
+ * That now matters more than it did. A sign-in code goes by SMS first, so a
+ * key that is set and rejected locks out every member of staff who is not
+ * OTP-exempt, and reports itself as healthy while doing it.
+ *
+ * Credits are returned for the same reason: each sign-in code is one, so a
+ * dwindling balance is a warning about the front door, not just about
+ * marketing messages.
+ *
+ * ── INCONCLUSIVE IS NOT FAILED ─────────────────────────────────────────────
+ *
+ * `accepted` is null when the check itself could not be completed — a
+ * timeout, a network error, a provider outage. Reporting that as "the key is
+ * invalid" would send somebody rotating a credential that was fine, during
+ * what is probably already an incident.
+ *
+ * The key is never returned, and never logged. Only the answer is.
+ */
+export type SmsAccount = {
+  /** A key is present in the environment. */
+  configured: boolean
+  /** The provider recognised it. Null when the check could not be completed. */
+  accepted: boolean | null
+  /** Messages remaining, when the provider reports it. */
+  credits: number | null
+  /** The sender id messages will be sent as — registration is separate. */
+  sender: string
+  /** What went wrong, for the screen. Never includes the key. */
+  error: string | null
+}
+
+export async function smsAccount(): Promise<SmsAccount> {
+  const sender = SECRETS.arkeselSenderId || BRAND.smsSender
+
+  let apiKey: string
+  try {
+    apiKey = SECRETS.arkeselApiKey
+  } catch {
+    return {
+      configured: false, accepted: false, credits: null, sender,
+      error: 'ARKESEL_API_KEY is not set, so no SMS can be sent — including sign-in codes.',
+    }
+  }
+
+  try {
+    const res = await fetch(ARKESEL_BALANCE_URL, {
+      headers: { 'api-key': apiKey },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: 'no-store',
+    })
+    const body = await res.json().catch(() => ({}))
+    const verdict = readBalanceResponse(res.status, body)
+    return { configured: true, sender, ...verdict }
+  } catch (e) {
+    // Inconclusive, not failed: the key was never judged.
+    return {
+      configured: true, accepted: null, credits: null, sender,
+      error: `The SMS provider could not be reached (${e instanceof Error ? e.message : 'unknown error'}), so this is inconclusive.`,
+    }
+  }
 }

@@ -1,7 +1,7 @@
 import { NextResponse } from 'next/server'
 import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
-import { normaliseRecipient } from '@/lib/integrations/sms'
+import { normaliseRecipient, smsAccount } from '@/lib/integrations/sms'
 import { smsHealth } from '@/lib/notifications/sms'
 
 export const runtime = 'nodejs'
@@ -72,7 +72,12 @@ export const GET = withGuard({ portals: ['broadcast', 'settings'] }, async (req)
 
   if (kind) query = query.eq('kind', kind)
 
-  const [{ data, error }, health] = await Promise.all([query, smsHealth()])
+  /*
+   * The account check runs alongside the log, because "nothing was sent" and
+   * "nothing could be sent" look identical in the queue — and the second one
+   * is now a locked front door, not a marketing inconvenience.
+   */
+  const [{ data, error }, health, account] = await Promise.all([query, smsHealth(), smsAccount()])
 
   if (error) {
     // Surfaced, not swallowed. An empty list because the query failed must not
@@ -85,6 +90,7 @@ export const GET = withGuard({ portals: ['broadcast', 'settings'] }, async (req)
 
   return NextResponse.json({
     health,
+    account,
     messages: (data || []).map(row => ({ ...row, diagnosis: diagnose(row) })),
     truncated: (data?.length || 0) === PAGE,
   })

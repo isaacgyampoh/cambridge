@@ -116,7 +116,14 @@ export default function StaffPage() {
       if (!d.success) { toast.error(d.error || 'Could not reset that PIN'); return }
       setIssuedRecovery(d.recoveryPin || null)
       setResetPin(''); setResetConfirm('')
-      toast.success(d.message || 'PIN reset')
+      /*
+       * A reset that could not be delivered is not a success story. The PIN
+       * is set either way, but somebody has to tell them — so it is shown as
+       * a warning that stays long enough to read, not a green tick.
+       */
+      if (d.notified) toast.success(d.message || 'PIN reset')
+      else toast.error(d.message || 'PIN reset, but the message could not be sent — tell them yourself.',
+        { duration: 10_000 })
     } catch {
       toast.error('Could not reach the server. Check your connection.')
     } finally {
@@ -133,12 +140,14 @@ export default function StaffPage() {
       toast.error('Full name and phone number are required')
       return
     }
-    if (!form.email.trim()) {
-      toast.error('Email is required — staff receive their login code by email')
-      return
-    }
-    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
-      toast.error('Please enter a valid email address')
+    /*
+     * A phone number is the one that matters, and it is already required
+     * above. This used to demand an email as well — "staff receive their
+     * login code by email" — which stopped being true when codes started
+     * going by SMS, and was the stricter requirement of the two.
+     */
+    if (form.email.trim() && !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.email.trim())) {
+      toast.error('That email address does not look right. Leave it blank if there is none.')
       return
     }
     setSaving(true)

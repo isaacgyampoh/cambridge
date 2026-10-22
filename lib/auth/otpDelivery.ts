@@ -1,10 +1,11 @@
 import { canonicalGhanaMobile } from '@/lib/phone'
 import { SECRETS } from '@/lib/config.server'
 import { sendSMS } from '@/lib/integrations/sms'
-import { sendOTPEmail, emailConfigured } from '@/lib/integrations/email'
+import { sendOTPEmail, sendEmail, emailConfigured } from '@/lib/integrations/email'
+import { CONFIG } from '@/lib/config'
 import { maskEmail, maskPhone } from '@/lib/ui/contact'
 import {
-  channelsFor, otpSmsText, undeliverableMessage,
+  channelsFor, otpSmsText, pinResetSmsText, undeliverableMessage,
   type OtpChannel, type OtpTarget,
 } from '@/lib/auth/otpChannels'
 
@@ -16,7 +17,7 @@ import {
  * touches the outside world.
  */
 
-export { channelsFor, otpSmsText, undeliverableMessage }
+export { channelsFor, otpSmsText, pinResetSmsText, undeliverableMessage }
 export type { OtpChannel, OtpTarget }
 
 export type OtpDelivery = {
@@ -38,36 +39,98 @@ export function channelReadiness() {
 }
 
 /**
- * Send the code, and say truthfully whether it went anywhere.
+ * Try each usable channel in turn, and say truthfully whether one carried it.
  *
- * Never reports sent:true because a channel was ATTEMPTED. A code that did
- * not arrive must not look like one that did — a caller that believes a code
- * was sent shows a code screen, and the person waits at it indefinitely.
- * That is the failure this whole path exists to remove, so it must not be
- * reintroduced one layer up.
+ * ── ONE LOOP, ONE PLACE THAT CAN CLAIM SUCCESS ─────────────────────────────
+ *
+ * Both messages the portal sends to a person's own phone or mailbox — the
+ * sign-in code and a PIN reset — go through here, because the loop is the
+ * part with the invariant in it: sent:true is returned ONLY in the branch of
+ * a send that returned true.
+ *
+ * sent:true because a channel was ATTEMPTED is the stranded code screen in
+ * its original form: the caller shows a code entry box, and the person waits
+ * at it for a message no provider ever accepted. Written twice, that is a
+ * property that holds in one copy and quietly lapses in the other.
+ *
+ * A sender that throws costs that channel its turn and nothing more. An HTTP
+ * client that throws on a timeout is the normal case, and letting it escape
+ * would take the fallback down with it.
  */
-export async function deliverOTP(target: OtpTarget, code: string): Promise<OtpDelivery> {
+async function deliverByChannel(
+  target: OtpTarget,
+  label: string,
+  send: Record<OtpChannel, () => Promise<boolean>>,
+): Promise<OtpDelivery> {
   const order = channelsFor(target, channelReadiness())
   const failed: OtpChannel[] = []
 
   for (const channel of order) {
     try {
-      if (channel === 'sms') {
-        // channelsFor only offers sms for a number that parses.
-        const to = canonicalGhanaMobile(target.phone) as string
-        if (await sendSMS(to, otpSmsText(code, target.full_name))) {
-          return { sent: true, via: 'sms', hint: maskPhone(target.phone), failed }
+      if (await send[channel]()) {
+        return {
+          sent: true,
+          via: channel,
+          hint: channel === 'sms' ? maskPhone(target.phone) : maskEmail(target.email),
+          failed,
         }
-      } else if (await sendOTPEmail(String(target.email), target.full_name || '', code)) {
-        return { sent: true, via: 'email', hint: maskEmail(target.email), failed }
       }
     } catch (e) {
-      // A thrown sender is a failed channel, not a failed sign-in: the next
-      // channel still gets its turn.
-      console.error('[otp] sending by', channel, 'threw:', e instanceof Error ? e.message : e)
+      console.error(`[${label}] sending by`, channel, 'threw:', e instanceof Error ? e.message : e)
     }
     failed.push(channel)
   }
 
   return { sent: false, via: null, hint: null, failed }
+}
+
+/**
+ * Send a sign-in code.
+ *
+ * channelsFor only offers a channel whose destination parses, which is what
+ * makes the assertions below safe: sms is never tried for a number
+ * canonicalGhanaMobile rejects.
+ */
+export async function deliverOTP(target: OtpTarget, code: string): Promise<OtpDelivery> {
+  return deliverByChannel(target, 'otp', {
+    sms: () => sendSMS(canonicalGhanaMobile(target.phone) as string, otpSmsText(code, target.full_name)),
+    email: () => sendOTPEmail(String(target.email), target.full_name || '', code),
+  })
+}
+
+/**
+ * Tell somebody their PIN was reset, and where to use it.
+ *
+ * ── WHY THE RESULT IS RETURNED RATHER THAN IGNORED ─────────────────────────
+ *
+ * Before this, a reset sent nothing: the administrator set a PIN and the
+ * colleague found out when somebody remembered to tell them. Sending it is
+ * the improvement — but an administrator who BELIEVES it was sent and is
+ * wrong is worse off than one who knows they have to make a phone call,
+ * because they will not make it. So the caller is told whether it arrived,
+ * and the screen says to pass it on when it did not.
+ *
+ * The PIN is in the message and nowhere else: not in the audit record, not in
+ * a log line, not in the HTTP response.
+ */
+export async function deliverPinReset(target: OtpTarget, pin: string): Promise<OtpDelivery> {
+  const url = CONFIG.appUrl
+  const first = String(target.full_name ?? '').trim().split(' ')[0]
+
+  return deliverByChannel(target, 'pin-reset', {
+    sms: () => sendSMS(
+      canonicalGhanaMobile(target.phone) as string,
+      pinResetSmsText(pin, target.full_name, url),
+    ),
+    email: () => sendEmail(
+      String(target.email),
+      'Your portal PIN has been reset',
+      `<p>${first || 'Hello'},</p>`
+      + `<p>Your PIN for the staff portal has been reset to <strong style="font-size:20px;letter-spacing:2px">${pin}</strong>.</p>`
+      + `<p>Sign in at <a href="${url}">${url}</a> and you will be asked to choose your own PIN.</p>`
+      + '<p>If you did not expect this, contact your administrator — do not share this PIN with anyone.</p>',
+      pinResetSmsText(pin, target.full_name, url)
+      + ' If you did not expect this, contact your administrator.',
+    ),
+  })
 }

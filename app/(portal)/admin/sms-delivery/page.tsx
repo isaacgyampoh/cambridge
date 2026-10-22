@@ -49,6 +49,20 @@ type Message = {
 
 type Health = { queued: number; retrying: number; failed24h: number; sent24h: number }
 
+/*
+ * The state of the account itself, as the provider reports it. Separate from
+ * the queue, because an empty queue and an unusable account look identical
+ * there — and a sign-in code now goes by SMS, so an unusable account is a
+ * locked front door rather than a marketing inconvenience.
+ */
+type Account = {
+  configured: boolean
+  accepted: boolean | null
+  credits: number | null
+  sender: string
+  error: string | null
+}
+
 /** The order an administrator cares about: problems first. */
 const FILTERS = ['failed', 'retrying', 'queued', 'sending', 'sent'] as const
 
@@ -64,6 +78,7 @@ export default function SmsDeliveryPage() {
   const [tab, setTab] = useState('')
   const [messages, setMessages] = useState<Message[]>([])
   const [health, setHealth] = useState<Health | null>(null)
+  const [account, setAccount] = useState<Account | null>(null)
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
   const [error, setError] = useState<string | null>(null)
   const [open, setOpen] = useState<string | null>(null)
@@ -77,7 +92,10 @@ export default function SmsDeliveryPage() {
    */
   const fetchDelivery = useCallback(async (
     opts: { phone?: string; status?: string } = {}
-  ): Promise<{ ok: true; messages: Message[]; health: Health | null } | { ok: false; error: string }> => {
+  ): Promise<
+    | { ok: true; messages: Message[]; health: Health | null; account: Account | null }
+    | { ok: false; error: string }
+  > => {
     try {
       const params = new URLSearchParams()
       if (opts.phone) params.set('phone', opts.phone)
@@ -91,7 +109,12 @@ export default function SmsDeliveryPage() {
       // nothing was ever sent.
       if (!res.ok) return { ok: false, error: json.error || 'Could not read the delivery log.' }
 
-      return { ok: true, messages: json.messages || [], health: json.health || null }
+      return {
+        ok: true,
+        messages: json.messages || [],
+        health: json.health || null,
+        account: json.account || null,
+      }
     } catch {
       return { ok: false, error: 'Could not reach the server. Check your connection and try again.' }
     }
@@ -101,6 +124,7 @@ export default function SmsDeliveryPage() {
     if (!result.ok) { setError(result.error); setState('error'); return }
     setMessages(result.messages)
     setHealth(result.health)
+    setAccount(result.account)
     setError(null)
     setState('ready')
   }, [])
@@ -139,8 +163,31 @@ export default function SmsDeliveryPage() {
         }
       />
 
+      {account && (account.accepted !== true || (account.credits !== null && account.credits < 100)) && (
+        <Card className={`p-4 mb-4 border-l-[3px] ${
+          account.accepted === false
+            ? 'border-l-[var(--danger)]'
+            : 'border-l-[var(--warn)]'
+        }`}>
+          <div className="text-[13px] font-semibold text-[var(--ink)]">
+            {account.accepted === false
+              ? 'No text message can be sent right now'
+              : account.accepted === null
+                ? 'The SMS account could not be checked'
+                : 'The SMS balance is running low'}
+          </div>
+          <div className="text-[12px] text-[var(--ink-soft)] mt-1 leading-snug">
+            {account.error
+              || `${account.credits} message${account.credits === 1 ? '' : 's'} left. `
+                 + 'Sign-in codes are sent by SMS, so staff cannot sign in once this reaches zero.'}
+          </div>
+        </Card>
+      )}
+
       {health && (
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-3 mb-5">
+        <div className={`grid grid-cols-2 gap-2.5 sm:gap-3 mb-5 ${
+          account ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+        }`}>
           {[
             { label: 'Delivered (24h)', value: health.sent24h, sub: 'Handed to the network' },
             { label: 'Given up (24h)', value: health.failed24h,
@@ -149,6 +196,17 @@ export default function SmsDeliveryPage() {
             { label: 'Waiting', value: health.queued, sub: 'Not yet attempted' },
             { label: 'Retrying', value: health.retrying, sub: 'Failed once, trying again',
               tone: health.retrying > 0 ? 'text-[var(--warn)]' : undefined },
+            ...(account
+              ? [{
+                  label: 'Credits left',
+                  value: account.accepted === true && account.credits !== null ? account.credits : '—',
+                  sub: account.accepted === true
+                    ? `Sent as "${account.sender}". Each sign-in code is one.`
+                    : 'The provider did not confirm the balance',
+                  tone: account.accepted !== true || (account.credits !== null && account.credits < 100)
+                    ? 'text-[var(--danger)]' : undefined,
+                }]
+              : []),
           ].map(stat => (
             <Card key={stat.label} className="p-4">
               <div className={`font-display text-[24px] leading-none font-semibold tabular-nums

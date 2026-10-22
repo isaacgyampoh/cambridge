@@ -1,8 +1,11 @@
 import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
-import { channelsFor, otpSmsText, undeliverableMessage } from '../lib/auth/otpChannels.ts'
+import {
+  channelsFor, otpSmsText, pinResetSmsText, undeliverableMessage,
+} from '../lib/auth/otpChannels.ts'
 import { maskPhone } from '../lib/ui/contact.ts'
+import { readBalanceResponse } from '../lib/integrations/smsAccountCheck.ts'
 
 /**
  * A CODE NOBODY COULD RECEIVE.
@@ -135,6 +138,41 @@ describe('the text of the message', () => {
   })
 })
 
+/**
+ * ─── A RESET THAT REACHES THE PERSON IT IS FOR ──────────────────────────────
+ *
+ * Resetting a colleague's PIN sent nothing at all. The administrator typed a
+ * new PIN and the colleague found out when somebody remembered to tell them —
+ * and if they had never signed in before, they did not know where the portal
+ * was either.
+ */
+describe('the message that goes out when an administrator resets a PIN', () => {
+  const URL = 'https://portal.cambridge.edu.gh'
+  const text = pinResetSmsText('4821', 'Ama Mensah', URL)
+
+  test('carries the new PIN and where to use it', () => {
+    assert.match(text, /4821/)
+    assert.ok(text.includes(URL), 'without the address, somebody new has nowhere to go')
+  })
+
+  test('says what to do next, and warns them off sharing it', () => {
+    assert.match(text, /choose your own PIN/)
+    assert.match(text, /Do not share/)
+  })
+
+  test('first name only, and reads correctly without one', () => {
+    assert.match(text, /^Ama, your/)
+    assert.ok(!text.includes('Mensah'))
+    assert.match(pinResetSmsText('4821', null, URL), /^Your portal PIN/)
+  })
+
+  test('fits in one text', () => {
+    // 160 characters, including the address. Two texts is two credits and a
+    // PIN split across them.
+    assert.ok(text.length <= 160, `the reset message is ${text.length} characters`)
+  })
+})
+
 describe('what the person is told when nothing can be sent', () => {
   test('an account with nothing on file is told to ask for one', () => {
     const m = undeliverableMessage({})
@@ -234,12 +272,14 @@ describe('a code that did not go anywhere is not reported as sent', () => {
       .map((line, i) => ({ line, i }))
       .filter(({ line }) => /sent: true/.test(line))
 
-    assert.ok(claims.length > 0, 'no success path left — deliverOTP can never report a send')
+    assert.equal(claims.length, 1,
+      'there must be exactly one place that can claim a send — a second copy is a second chance to get it wrong')
 
-    for (const { line, i } of claims) {
-      const previous = lines.slice(0, i).reverse().find(l => l.trim() !== '') ?? ''
-      assert.match(previous, /if \(await send[A-Za-z]+\(/,
-        `"${line.trim()}" is not guarded by a send that returned true`)
+    for (const { i } of claims) {
+      // The nearest condition above it, whatever the line breaks look like.
+      const guard = lines.slice(0, i).reverse().find(l => /\bif \(/.test(l)) ?? ''
+      assert.match(guard, /if \(await send/,
+        'the nearest condition above sent:true is not a send that returned true')
     }
   })
 
@@ -323,5 +363,159 @@ describe('the login screen says where the code went', () => {
     const resend = form.slice(form.indexOf('async function resendOtp'))
     const body = resend.slice(0, resend.indexOf('\n  }'))
     assert.match(body, /setSentVia\(/, 'the resend leaves a stale channel on screen')
+  })
+})
+
+/**
+ * ─── "CONFIGURED" IS NOT "WORKING" ─────────────────────────────────────────
+ *
+ * The readiness screen reported SMS as configured because ARKESEL_API_KEY had
+ * a value. It did — a stale one, which the provider answered with
+ * {"message":"Invalid key"} and an HTTP 200. Present and working are
+ * different facts, and only the second one sends anything.
+ *
+ * It matters more now that it did: a sign-in code goes by SMS first, so a key
+ * that is set and rejected locks out every member of staff who is not
+ * OTP-exempt, while reporting itself as healthy.
+ */
+describe('reading the SMS provider’s answer', () => {
+  test('a funded account reports its credits', () => {
+    const v = readBalanceResponse(200, { status: 'success', data: { sms_balance: 300, main_balance: 'GHS 1078.929' } })
+    assert.deepEqual(v, { accepted: true, credits: 300, error: null })
+  })
+
+  test('a rejected key is caught even though the status is 200', () => {
+    /*
+     * This is the exact body the provider returned for the key that was in
+     * the environment. Judging the response by HTTP status alone would have
+     * read it as a success with an unknown balance.
+     */
+    const v = readBalanceResponse(200, { message: 'Invalid key', status: 'error' })
+    assert.equal(v.accepted, false)
+    assert.match(String(v.error), /rejected this deployment/)
+    assert.match(String(v.error), /cannot be sent by SMS/)
+  })
+
+  test('and by status when the provider uses one', () => {
+    assert.equal(readBalanceResponse(401, {}).accepted, false)
+    assert.equal(readBalanceResponse(403, {}).accepted, false)
+  })
+
+  test('an outage is INCONCLUSIVE, not a rejected key', () => {
+    /*
+     * The important one. A 502 says nothing about the credential, and
+     * reporting it as invalid sends somebody rotating a working key in the
+     * middle of what is already an incident.
+     */
+    for (const status of [500, 502, 503, 429]) {
+      const v = readBalanceResponse(status, {})
+      assert.equal(v.accepted, null, `${status} was judged rather than reported`)
+      assert.match(String(v.error), /inconclusive/)
+    }
+  })
+
+  test('a success with no usable number does not invent one', () => {
+    const v = readBalanceResponse(200, { status: 'success', data: {} })
+    assert.equal(v.accepted, true)
+    assert.equal(v.credits, null, 'an unreadable balance must not become a number')
+  })
+
+  test('the verdict never carries the key', () => {
+    const v = readBalanceResponse(401, { message: 'Invalid key', key: 'should-not-be-echoed' })
+    assert.ok(!JSON.stringify(v).includes('should-not-be-echoed'))
+  })
+})
+
+describe('the SMS account state is visible to whoever has to fix it', () => {
+  test('the diagnostics endpoint checks the account, not just the queue', () => {
+    const route = codeOf('app/api/sms/delivery/route.ts')
+    assert.match(route, /smsAccount\(\)/)
+    assert.match(route, /account,/, 'the answer has to reach the screen')
+  })
+
+  test('and the screen says so plainly when nothing can be sent', () => {
+    const page = codeOf('app/(portal)/admin/sms-delivery/page.tsx')
+    assert.match(page, /No text message can be sent right now/)
+    assert.match(page, /could not be checked/, 'an inconclusive check must read differently from a refusal')
+    assert.match(page, /Credits left/)
+  })
+
+  test('the key itself is never sent to the browser', () => {
+    /*
+     * The endpoint reports an answer ABOUT the key, never the key. Three
+     * lines are allowed to mention it — reading it, declaring it, and putting
+     * it in the request header — and nothing else may, which is checked by
+     * removing exactly those and looking for what is left.
+     */
+    const sms = codeOf('lib/integrations/sms.ts')
+    const account = sms.slice(sms.indexOf('export async function smsAccount'))
+    const remaining = account.split('\n').filter(line =>
+      /\bapiKey\b/.test(line)
+      && !/^\s*let apiKey: string$/.test(line)
+      && !/^\s*apiKey = SECRETS\.arkeselApiKey$/.test(line)
+      && !/^\s*headers: \{ 'api-key': apiKey \},$/.test(line)
+    )
+    assert.deepEqual(remaining, [], 'the key is used somewhere it should not be')
+  })
+})
+
+describe('resetting a colleague’s PIN tells them', () => {
+  const route = codeOf('app/api/admin/reset-pin/route.ts')
+
+  test('the new PIN and the address are sent, not left with the administrator', () => {
+    assert.match(route, /deliverPinReset\(target, newPin\)/)
+    assert.match(route, /phone, email/, 'the destinations have to be read to be used')
+  })
+
+  test('and the administrator is told whether it actually arrived', () => {
+    /*
+     * The failure that matters. An administrator who believes the PIN was
+     * sent and is wrong will not make the phone call they would otherwise
+     * have made, so the response says which it was.
+     */
+    assert.match(route, /notified: notice\.sent/)
+    assert.match(route, /you will need to pass it on yourself/)
+  })
+
+  test('the audit records that they were told, never what they were told', () => {
+    assert.match(route, /notified: notice\.sent, notifiedVia: notice\.via/)
+    const audit = route.slice(route.indexOf("action: 'staff.pin_reset'"))
+    const metadata = audit.slice(audit.indexOf('metadata:'), audit.indexOf('})'))
+    assert.ok(!/newPin|\bpin\b/.test(metadata), 'the PIN must not reach the audit record')
+  })
+
+  test('the PIN is never in the response either', () => {
+    const response = route.slice(route.indexOf('return NextResponse.json({\n    success: true,'))
+    assert.ok(!/newPin/.test(response), 'the PIN travels in the message and nowhere else')
+  })
+
+  test('the recovery PIN is not sent in the same message', () => {
+    /*
+     * It is shown to the administrator once instead. Two credentials in one
+     * intercepted text hands over both the way in and the way back in.
+     */
+    const delivery = codeOf('lib/auth/otpDelivery.ts')
+    const fn = delivery.slice(delivery.indexOf('export async function deliverPinReset'))
+    assert.ok(!/recovery/i.test(fn))
+    assert.match(route, /deliverPinReset\(target, newPin\)/)
+    assert.ok(route.indexOf('deliverPinReset') > route.indexOf('setRecoveryPin'),
+      'the notice is sent after the recovery PIN is issued, and carries only the sign-in PIN')
+  })
+
+  test('a reset the colleague was not told about is not shown as a success', () => {
+    const page = codeOf('app/(portal)/admin/staff/page.tsx')
+    assert.match(page, /if \(d\.notified\) toast\.success/)
+    assert.match(page, /else toast\.error/)
+  })
+
+  test('and a phone number alone is enough to create them', () => {
+    /*
+     * Creating staff demanded an email "because staff receive their login
+     * code by email". They do not any more, and the phone number — which is
+     * the channel that works — was already required.
+     */
+    const page = codeOf('app/(portal)/admin/staff/page.tsx')
+    assert.ok(!/Email is required/.test(page))
+    assert.match(page, /Full name and phone number are required/)
   })
 })

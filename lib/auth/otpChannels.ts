@@ -92,6 +92,34 @@ export function otpSmsText(code: string, name?: string | null): string {
 }
 
 /**
+ * "Ama, your Cambridge portal PIN has been reset to 4821. Sign in at
+ *  https://portal.cambridge.edu.gh and choose your own PIN. Do not share it."
+ *
+ * ── WHY THE ADDRESS IS IN IT ───────────────────────────────────────────────
+ *
+ * A reset used to be a PIN read out across a desk: the administrator typed a
+ * new one and told the person what it was, or did not, and the colleague
+ * either knew where the portal lived or asked. Sending the PIN with the
+ * address makes the message complete on its own — somebody who has never
+ * signed in has everything they need in one text.
+ *
+ * ── AND WHY A LINK IS ALLOWED HERE ─────────────────────────────────────────
+ *
+ * otpSmsText deliberately carries no URL: a sign-in code that asks the reader
+ * to tap something trains them to obey code messages, which is the attack.
+ * This message is a different thing — it is the one that tells somebody their
+ * credential changed and where to use it, and withholding the address does
+ * not make the PIN in the same message any safer. It is the portal's own
+ * address from lib/url.ts, which is a constant in production, so it cannot be
+ * pointed somewhere else by configuration.
+ */
+export function pinResetSmsText(pin: string, name: string | null | undefined, portalUrl: string): string {
+  const first = String(name ?? '').trim().split(' ')[0]
+  return `${first ? first + ', y' : 'Y'}our portal PIN has been reset to ${pin}. `
+    + `Sign in at ${portalUrl} and choose your own PIN. Do not share this with anyone.`
+}
+
+/**
  * What to say when nothing could be sent.
  *
  * Two different situations, and they need different sentences: an account
