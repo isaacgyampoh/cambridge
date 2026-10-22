@@ -71,13 +71,14 @@ export async function POST(req: NextRequest) {
      * with a log that agreed.
      */
     let ok = false
-    let failure: string | null = null
     try {
       ok = await sendEmail(student.email, subject, html)
-      if (!ok) failure = 'the mail server did not accept it'
+      // The reason goes to the server log, because email_logs has no column
+      // for it — see below. It was being collected into a variable and then
+      // dropped, which is the same as not knowing.
+      if (!ok) console.error('[Documents] the mail server did not accept the message for', student.email)
     } catch (e) {
-      failure = e instanceof Error ? e.message : String(e)
-      console.error('[Documents] Email error:', e)
+      console.error('[Documents] Email error for', student.email + ':', e)
     }
 
     /*

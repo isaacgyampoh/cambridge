@@ -5,7 +5,7 @@ import { validateRow, phoneVariants, resolveSource } from '@/lib/leads/importVal
 import { isEligible } from '@/lib/leads/eligibility'
 import { autoAssignLead, onLeadAssigned } from '@/lib/autoAssign'
 import { recordAudit } from '@/lib/audit'
-import { decideOwner, entersLeadsForTheCompany } from '@/lib/leads/ownership'
+import { decideOwner } from '@/lib/leads/ownership'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
