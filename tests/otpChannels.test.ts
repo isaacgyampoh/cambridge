@@ -6,6 +6,7 @@ import {
 } from '../lib/auth/otpChannels.ts'
 import { maskPhone } from '../lib/ui/contact.ts'
 import { readBalanceResponse } from '../lib/integrations/smsAccountCheck.ts'
+import { redactStoredMessage } from '../lib/integrations/smsRedaction.ts'
 
 /**
  * A CODE NOBODY COULD RECEIVE.
@@ -612,5 +613,79 @@ describe('a credential is never written into the delivery log', () => {
     // Useless diagnostics would just move the problem: the kind is kept, and
     // the label says what the body was.
     assert.match(sms, /kind: log\.kind \?\? null,/)
+  })
+})
+
+/**
+ * ─── THE ROWS THAT WERE ALREADY WRITTEN ─────────────────────────────────────
+ *
+ * Marking a message as carrying a credential stopped new ones being stored.
+ * It did nothing about the ones already in the table — and production holds
+ * onboarding messages with a named member of staff's initial PIN in them, in
+ * a log this screen shows to anyone holding `broadcast` or `settings`.
+ *
+ * Migration 0027 rewrites those rows. A migration is a thing somebody has to
+ * run, so the exposure is closed where the rows are SERVED as well.
+ */
+describe('a credential already in the log is masked on the way out', () => {
+  test('the PIN in an onboarding message is hidden', () => {
+    const stored = "Hi Esther, welcome!\nYou've been added as project manager.\nLogin with your phone (0241234567) and PIN: 4821"
+    const out = String(redactStoredMessage(stored))
+    assert.ok(!out.includes('4821'), 'the PIN is still readable')
+    assert.match(out, /PIN: ••••/)
+  })
+
+  test('so is a reset PIN and a sign-in code', () => {
+    assert.ok(!String(redactStoredMessage('your portal PIN has been reset to 4821.')).includes('4821'))
+    assert.ok(!String(redactStoredMessage('your sign-in code is 481902. It lasts 6 hours.')).includes('481902'))
+  })
+
+  test('but the message still says which message it was', () => {
+    /*
+     * The screen exists to answer "why did this person not get their text?".
+     * Blanking the body takes the answer away along with the credential.
+     */
+    const out = String(redactStoredMessage("Hi Esther, welcome!\nPIN: 4821"))
+    assert.match(out, /Hi Esther, welcome!/)
+  })
+
+  test('and an ordinary message is untouched', () => {
+    /*
+     * Masking every run of four digits would redact the amount on a receipt,
+     * a class time and a receipt number — most of what this log is for. Each
+     * rule is anchored to the word that makes those digits a credential.
+     */
+    for (const ordinary of [
+      'CCE: Payment of GHS 5950.00 received. Your balance is GHS 1200.00.',
+      'Cambridge CE: PMP class today at 0900. Sign in at: https://x/y',
+      'CCE/RCT/2026/004821 is your receipt number.',
+      'Your class starts on 12 January 2026.',
+    ]) {
+      assert.equal(redactStoredMessage(ordinary), ordinary, `"${ordinary}" was altered`)
+    }
+  })
+
+  test('nothing in, nothing out', () => {
+    assert.equal(redactStoredMessage(null), null)
+    assert.equal(redactStoredMessage(''), '')
+  })
+
+  test('the delivery endpoint serves the masked body, not the stored one', () => {
+    const route = codeOf('app/api/sms/delivery/route.ts')
+    assert.match(route, /message: redactStoredMessage\(row\.message\)/)
+    assert.match(route, /redacted: carriedCredential\(row\.message\)/)
+    // And the raw body must not be spread back over the top of it.
+    const mapped = route.slice(route.indexOf('messages: (data || []).map'))
+    const body = mapped.slice(0, mapped.indexOf('truncated'))
+    assert.ok(body.indexOf('...row') < body.indexOf('message: redactStoredMessage'),
+      'the spread comes after the masking and overwrites it')
+  })
+
+  test('and the screen says why a message reads as dots', () => {
+    // Unexplained, it looks like a fault — and the next thing somebody does
+    // about a fault is report it.
+    const page = codeOf('app/(portal)/admin/sms-delivery/page.tsx')
+    assert.match(page, /row\.redacted && \(/)
+    assert.match(page, /is hidden/)
   })
 })

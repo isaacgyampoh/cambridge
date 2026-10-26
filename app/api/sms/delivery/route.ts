@@ -2,6 +2,7 @@ import { NextResponse } from 'next/server'
 import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { normaliseRecipient, smsAccount } from '@/lib/integrations/sms'
+import { redactStoredMessage, carriedCredential } from '@/lib/integrations/smsRedaction'
 import { smsHealth } from '@/lib/notifications/sms'
 
 export const runtime = 'nodejs'
@@ -102,7 +103,25 @@ export const GET = withGuard({ portals: ['broadcast', 'settings'] }, async (req)
   return NextResponse.json({
     health,
     account,
-    messages: (data || []).map(row => ({ ...row, diagnosis: diagnose(row) })),
+    /*
+     * The body is masked on the way out, not only on the way in.
+     *
+     * Messages carrying a credential stopped being stored when the sender
+     * started logging a label instead — which fixed everything sent after
+     * that and nothing sent before it. Production holds onboarding messages
+     * with a named member of staff's initial PIN in them, and this screen is
+     * readable by anyone holding `broadcast` or `settings`.
+     *
+     * Migration 0027 rewrites those rows, but a migration is a thing somebody
+     * has to run. This closes it now, and stays afterwards as the line of
+     * defence that does not depend on anybody remembering.
+     */
+    messages: (data || []).map(row => ({
+      ...row,
+      message: redactStoredMessage(row.message),
+      redacted: carriedCredential(row.message),
+      diagnosis: diagnose(row),
+    })),
     truncated: (data?.length || 0) === PAGE,
   })
 })

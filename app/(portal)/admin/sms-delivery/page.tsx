@@ -44,6 +44,8 @@ type Message = {
   sent_at: string | null
   next_retry_at: string | null
   message: string
+  /** True when a credential was masked out of the body before it was sent here. */
+  redacted?: boolean
   diagnosis: string
 }
 
@@ -298,6 +300,17 @@ export default function SmsDeliveryPage() {
               <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed whitespace-pre-wrap break-words">
                 {row.message}
               </p>
+              {/*
+                * Said, rather than left as an unexplained row of dots. A PIN
+                * masked with no explanation reads as a fault in the system,
+                * and the next thing somebody does about a fault is report it.
+                */}
+              {row.redacted && (
+                <p className="text-[12px] text-[var(--ink-faint)] mt-2 leading-snug">
+                  A one-time PIN or code in this message is hidden. It was sent in full — it is
+                  not shown here because this screen is open to colleagues it does not belong to.
+                </p>
+              )}
             </div>
 
             <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-3 text-[13px]">
