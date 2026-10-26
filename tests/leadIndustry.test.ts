@@ -54,37 +54,62 @@ describe('the list itself', () => {
     }
   })
 
-  test('there is a way to say "none of these"', () => {
-    // A list that cannot say it gets filled in with the nearest wrong answer.
-    assert.ok(INDUSTRY_CODES.includes('other'))
+  test('it is the centre\'s sixteen, in their order, with their labels', () => {
+    /*
+     * This list was written down by the centre and handed over as sixteen
+     * numbered lines. It is not this file's to extend, reorder or reword:
+     * "Energy, Oil and Gas" is one industry and not three, and the absence of
+     * an "Other" is a decision, not an omission — wording that matches none
+     * of the sixteen is recorded as nothing, which already says "nobody has
+     * said" without inventing a seventeenth answer.
+     */
+    assert.deepEqual(INDUSTRIES.map(i => i.label), [
+      'Agribusiness',
+      'Construction/Engineering',
+      'Education and Training',
+      'Energy, Oil and Gas',
+      'Entertainment',
+      'Financial Services',
+      'Health Care',
+      'Human Resources',
+      'Law and Legal Services',
+      'Manufacturing',
+      'Mining',
+      'National Security/Defence',
+      'NGO',
+      'Public Sector',
+      'Telecom and IT',
+      'Transport and Logistics',
+    ])
+    assert.ok(!INDUSTRY_CODES.includes('other'), 'a seventeenth answer has been added')
   })
 })
 
 describe('reading what a spreadsheet says', () => {
   test('the code itself, and the label as printed', () => {
-    assert.equal(parseIndustry('oil_gas'), 'oil_gas')
-    assert.equal(parseIndustry('Oil & Gas'), 'oil_gas')
-    assert.equal(parseIndustry('  OIL AND GAS  '), 'oil_gas')
+    assert.equal(parseIndustry('energy_oil_gas'), 'energy_oil_gas')
+    assert.equal(parseIndustry('Energy, Oil and Gas'), 'energy_oil_gas')
+    assert.equal(parseIndustry('  OIL AND GAS  '), 'energy_oil_gas')
+    assert.equal(parseIndustry('Construction/Engineering'), 'construction_engineering')
   })
 
   test('the spellings a real list actually arrives in', () => {
     const cases: Array<[string, string]> = [
-      ['O&G', 'oil_gas'],
-      ['Petroleum Services', 'oil_gas'],
-      ['GCB Bank', 'banking_finance'],
-      ['microfinance', 'banking_finance'],
-      ['Ghana Revenue Authority', 'government'],
-      ['Ministry of Trade', 'government'],
+      ['O&G', 'energy_oil_gas'],
+      ['Petroleum Services', 'energy_oil_gas'],
+      ['GCB Bank', 'financial_services'],
+      ['microfinance', 'financial_services'],
+      ['insurance brokers', 'financial_services'],
+      ['Ghana Revenue Authority', 'public_sector'],
+      ['Ministry of Trade', 'public_sector'],
       ['non-profit', 'ngo'],
-      ['NGO / Development', 'ngo'],
-      ['ICT Services', 'it_software'],
-      ['construction & civil works', 'construction'],
-      ['Law Chambers', 'legal'],
-      ['Nursing', 'health'],
-      ['Cocoa Board', 'agriculture'],
-      ['NSS', 'student'],
-      ['real estate', 'real_estate'],
-      ['estate developer', 'real_estate'],
+      ['ICT Services', 'telecom_it'],
+      ['construction & civil works', 'construction_engineering'],
+      ['Law Chambers', 'law_legal'],
+      ['Nursing', 'health_care'],
+      ['Cocoa Board', 'agribusiness'],
+      ['Ghana Police Service', 'national_security'],
+      ['recruitment', 'human_resources'],
     ]
     for (const [raw, expected] of cases) {
       assert.equal(parseIndustry(raw), expected, `"${raw}" was read as ${parseIndustry(raw)}`)
@@ -94,22 +119,36 @@ describe('reading what a spreadsheet says', () => {
   test('a two-letter alias does not match inside a longer word', () => {
     /*
      * The one that would quietly ruin the figures. 'it' is an alias of
-     * IT & Software, and a substring match reads "Hospitality", "Unit Trust"
+     * Telecom and IT, and a substring match reads "Hospitality", "Unit Trust"
      * and "Capital" as IT — which is not a rare edge case, it is most of a
      * list. Aliases match whole words only.
      */
-    assert.equal(parseIndustry('Hospitality'), 'hospitality_tourism')
+    assert.equal(parseIndustry('Hospitality'), null)
     assert.equal(parseIndustry('Unit Trust'), null)
     assert.equal(parseIndustry('Capital Holdings'), null)
-    assert.equal(parseIndustry('IT'), 'it_software')
-    assert.equal(parseIndustry('IT Support'), 'it_software')
+    assert.equal(parseIndustry('IT'), 'telecom_it')
+    assert.equal(parseIndustry('IT Support'), 'telecom_it')
+    // And 'hr' is the same shape of risk.
+    assert.equal(parseIndustry('HR'), 'human_resources')
+    assert.equal(parseIndustry('Chrome Fittings'), null)
   })
 
-  test('a longer alias wins over a shorter one inside it', () => {
-    // "real estate" must not be decided by "estate", nor "non-profit" by a
-    // word inside it.
-    assert.equal(parseIndustry('Real Estate Developers Ltd'), 'real_estate')
-    assert.equal(parseIndustry('non-profit organisation'), 'ngo')
+  test('a longer alias wins over a shorter one it contains', () => {
+    /*
+     * Three real collisions between the sixteen, each decided by taking the
+     * longest matching alias rather than the first one found:
+     *
+     *   "cyber security"  — 'security' belongs to National Security/Defence
+     *   "advertising agency" — 'agency' belongs to Public Sector
+     *   "film production" — 'production' belongs to Manufacturing
+     *
+     * Each would otherwise be filed under a plausible, wrong industry.
+     */
+    assert.equal(parseIndustry('cyber security'), 'telecom_it')
+    assert.equal(parseIndustry('advertising agency'), 'entertainment')
+    assert.equal(parseIndustry('film production'), 'entertainment')
+    // And a port that is an Authority is a public body.
+    assert.equal(parseIndustry('Ghana Ports and Harbours Authority'), 'public_sector')
   })
 
   test('nothing recognisable is null, never a guess', () => {
@@ -142,8 +181,8 @@ describe('reading what a spreadsheet says', () => {
 
 describe('showing it back', () => {
   test('a code becomes its label', () => {
-    assert.equal(industryLabel('oil_gas'), 'Oil & Gas')
-    assert.equal(industryLabel('banking_finance'), 'Banking & Finance')
+    assert.equal(industryLabel('energy_oil_gas'), 'Energy, Oil and Gas')
+    assert.equal(industryLabel('law_legal'), 'Law and Legal Services')
   })
 
   test('nothing recorded shows as a dash, not as blank or "null"', () => {
@@ -160,8 +199,8 @@ describe('showing it back', () => {
   })
 
   test('only a real code passes validation', () => {
-    assert.equal(isIndustryCode('oil_gas'), true)
-    for (const bad of ['Oil & Gas', 'oil gas', '', null, 42, {}, 'DROP TABLE leads']) {
+    assert.equal(isIndustryCode('energy_oil_gas'), true)
+    for (const bad of ['Energy, Oil and Gas', 'oil gas', '', null, 42, {}, 'DROP TABLE leads']) {
       assert.equal(isIndustryCode(bad), false, `${JSON.stringify(bad)} was accepted as a code`)
     }
   })

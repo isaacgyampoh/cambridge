@@ -21,10 +21,12 @@
  * with a parser in front of it, and a spreadsheet's own wording is mapped
  * onto the list rather than stored as it was written.
  *
- * ── AND WHY 'other' EXISTS ─────────────────────────────────────────────────
+ * ── AND WHY THERE IS NO 'OTHER' ────────────────────────────────────────────
  *
- * A list that cannot say "none of these" gets filled in with the nearest
- * wrong answer. `other` is an honest answer; null means nobody has said.
+ * The sixteen are the centre's own list. Wording that matches none of them is
+ * recorded as nothing at all — which is the honest answer, and already tells
+ * "nobody has said" apart from every real industry. An "Other" bucket would
+ * be this file adding a seventeenth entry to somebody else's list.
  */
 
 export type Industry = {
@@ -34,31 +36,48 @@ export type Industry = {
   aliases: readonly string[]
 }
 
+/**
+ * THE SIXTEEN, AS WRITTEN DOWN BY THE CENTRE.
+ *
+ * This list is not ours to extend on a hunch. It was given as a numbered list
+ * and is reproduced in that order, with the labels as they were written —
+ * "Energy, Oil and Gas" is one industry here and not three, and "Telecom and
+ * IT" is one and not two, because that is how the centre sells to them.
+ *
+ * The aliases are the only part this file decides. They exist so a purchased
+ * spreadsheet saying "GCB Bank", "Ministry of Trade" or "O&G" lands in the
+ * right one of the sixteen instead of being typed in again by hand.
+ *
+ * ── WHAT IS DELIBERATELY NOT HERE ──────────────────────────────────────────
+ *
+ * There is no "Other". A seventeenth entry would be this file adding to a
+ * list somebody else drew up — and it is not needed: wording that matches
+ * none of the sixteen is recorded as NOTHING, which is the honest answer and
+ * already distinguishable from every real one.
+ *
+ * Insurance, hospitality, retail and real estate are not on the list either.
+ * Where they clearly belong to one of the sixteen they are aliases of it
+ * (insurance → Financial Services); where they do not, they are left to fall
+ * through to "not stated" rather than being filed under the nearest wrong
+ * answer.
+ */
 export const INDUSTRIES: readonly Industry[] = [
-  { code: 'oil_gas', label: 'Oil & Gas', aliases: ['oil', 'gas', 'petroleum', 'o&g', 'upstream', 'downstream'] },
-  { code: 'mining', label: 'Mining', aliases: ['mining', 'mine', 'gold', 'quarry', 'minerals'] },
-  { code: 'banking_finance', label: 'Banking & Finance', aliases: ['bank', 'banking', 'finance', 'financial', 'microfinance', 'investment', 'accounting', 'audit'] },
-  { code: 'insurance', label: 'Insurance', aliases: ['insurance', 'insurer', 'assurance'] },
-  { code: 'telecoms', label: 'Telecoms', aliases: ['telecom', 'telecoms', 'telecommunication', 'mobile network', 'isp'] },
-  { code: 'construction', label: 'Construction', aliases: ['construction', 'building', 'contractor', 'civil works', 'infrastructure'] },
-  { code: 'engineering', label: 'Engineering', aliases: ['engineering', 'engineer'] },
-  { code: 'health', label: 'Health', aliases: ['health', 'hospital', 'clinic', 'medical', 'pharma', 'pharmaceutical', 'nursing'] },
-  { code: 'education', label: 'Education', aliases: ['education', 'school', 'university', 'college', 'training', 'academic', 'teaching'] },
-  { code: 'government', label: 'Government & Public Sector', aliases: ['government', 'public sector', 'ministry', 'municipal', 'district assembly', 'civil service', 'parastatal', 'authority'] },
-  { code: 'ngo', label: 'NGO & Development', aliases: ['ngo', 'non-governmental', 'nonprofit', 'non-profit', 'development', 'donor', 'charity', 'humanitarian'] },
-  { code: 'it_software', label: 'IT & Software', aliases: ['it', 'ict', 'software', 'technology', 'tech', 'data', 'computing', 'fintech'] },
-  { code: 'manufacturing', label: 'Manufacturing', aliases: ['manufacturing', 'factory', 'production', 'industrial', 'processing'] },
-  { code: 'transport_logistics', label: 'Transport & Logistics', aliases: ['transport', 'logistics', 'shipping', 'freight', 'haulage', 'port', 'aviation', 'airline'] },
-  { code: 'energy_utilities', label: 'Energy & Utilities', aliases: ['energy', 'power', 'electricity', 'utility', 'utilities', 'water', 'solar'] },
-  { code: 'agriculture', label: 'Agriculture', aliases: ['agric', 'agriculture', 'agro', 'farming', 'farm', 'cocoa', 'fishery', 'agribusiness'] },
-  { code: 'hospitality_tourism', label: 'Hospitality & Tourism', aliases: ['hospitality', 'hotel', 'tourism', 'travel', 'restaurant', 'catering'] },
-  { code: 'retail_trade', label: 'Retail & Trade', aliases: ['retail', 'trade', 'trading', 'wholesale', 'commerce', 'shop', 'supermarket'] },
-  { code: 'legal', label: 'Legal', aliases: ['legal', 'law', 'chambers', 'advocate', 'solicitor'] },
-  { code: 'media', label: 'Media & Communications', aliases: ['media', 'communication', 'communications', 'advertising', 'marketing agency', 'broadcast', 'publishing', 'pr'] },
-  { code: 'real_estate', label: 'Real Estate', aliases: ['real estate', 'property', 'estate', 'facilities'] },
-  { code: 'consulting', label: 'Consulting', aliases: ['consulting', 'consultancy', 'consultant', 'advisory'] },
-  { code: 'student', label: 'Student / Unemployed', aliases: ['student', 'graduate', 'unemployed', 'nss', 'national service', 'job seeker', 'jobseeker'] },
-  { code: 'other', label: 'Other', aliases: ['other', 'others', 'misc', 'n/a'] },
+  { code: 'agribusiness', label: 'Agribusiness', aliases: ['agribusiness', 'agric', 'agriculture', 'agro', 'farming', 'farm', 'cocoa', 'poultry', 'fishery', 'plantation'] },
+  { code: 'construction_engineering', label: 'Construction/Engineering', aliases: ['construction', 'engineering', 'engineer', 'building', 'contractor', 'civil works', 'infrastructure', 'quantity surveying', 'architecture'] },
+  { code: 'education_training', label: 'Education and Training', aliases: ['education', 'training', 'school', 'university', 'college', 'polytechnic', 'academic', 'teaching', 'institute'] },
+  { code: 'energy_oil_gas', label: 'Energy, Oil and Gas', aliases: ['oil', 'gas', 'petroleum', 'o and g', 'upstream', 'downstream', 'energy', 'power', 'electricity', 'solar', 'utility', 'utilities'] },
+  { code: 'entertainment', label: 'Entertainment', aliases: ['entertainment', 'media', 'music', 'film production', 'film', 'events', 'broadcast', 'advertising', 'creative arts', 'publishing'] },
+  { code: 'financial_services', label: 'Financial Services', aliases: ['financial services', 'finance', 'financial', 'bank', 'banking', 'microfinance', 'savings and loans', 'investment', 'insurance', 'assurance', 'accounting', 'audit', 'fintech'] },
+  { code: 'health_care', label: 'Health Care', aliases: ['health care', 'healthcare', 'health', 'hospital', 'clinic', 'medical', 'pharmaceutical', 'pharma', 'nursing', 'laboratory'] },
+  { code: 'human_resources', label: 'Human Resources', aliases: ['human resources', 'hr', 'recruitment', 'talent', 'people and culture', 'staffing'] },
+  { code: 'law_legal', label: 'Law and Legal Services', aliases: ['law', 'legal', 'chambers', 'advocate', 'solicitor', 'attorney', 'notary'] },
+  { code: 'manufacturing', label: 'Manufacturing', aliases: ['manufacturing', 'factory', 'production', 'industrial', 'processing', 'fmcg', 'brewery'] },
+  { code: 'mining', label: 'Mining', aliases: ['mining', 'mine', 'gold', 'bauxite', 'quarry', 'minerals'] },
+  { code: 'national_security', label: 'National Security/Defence', aliases: ['national security', 'defence', 'defense', 'military', 'army', 'navy', 'air force', 'police', 'immigration', 'prisons', 'security'] },
+  { code: 'ngo', label: 'NGO', aliases: ['ngo', 'non governmental', 'nonprofit', 'non profit', 'charity', 'humanitarian', 'development partner', 'donor'] },
+  { code: 'public_sector', label: 'Public Sector', aliases: ['public sector', 'government', 'ministry', 'municipal', 'district assembly', 'civil service', 'parastatal', 'authority', 'agency', 'commission'] },
+  { code: 'telecom_it', label: 'Telecom and IT', aliases: ['telecom', 'telecoms', 'telecommunication', 'it', 'ict', 'software', 'technology', 'tech', 'computing', 'data', 'isp', 'cyber security', 'cybersecurity'] },
+  { code: 'transport_logistics', label: 'Transport and Logistics', aliases: ['transport', 'logistics', 'shipping', 'freight', 'haulage', 'courier', 'port', 'aviation', 'airline', 'warehousing'] },
 ]
 
 export const INDUSTRY_CODES: readonly string[] = INDUSTRIES.map(i => i.code)
