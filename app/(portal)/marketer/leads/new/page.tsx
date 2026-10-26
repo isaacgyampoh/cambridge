@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { INDUSTRIES } from '@/lib/leads/industry'
 import { PageHeader, Card, Button, Field, inputClass } from '@/components/ui'
 import { useConfirm } from '@/hooks/useConfirm'
 
@@ -14,7 +15,7 @@ export default function MarketerNewLead() {
   const [courses, setCourses] = useState<string[]>(FALLBACK_COURSES)
   const [form, setForm] = useState({
     full_name: '', phone: '', email: '', gender: '',
-    city: '', course_interest: '', notes: '',
+    city: '', course_interest: '', industry: '', notes: '',
   })
 
   useEffect(() => {
@@ -59,6 +60,7 @@ export default function MarketerNewLead() {
           gender: form.gender || null,
           city: form.city.trim() || null,
           course_interest: form.course_interest || null,
+          industry: form.industry || null,
           notes: form.notes.trim() || null,
           source: 'manual',
           allowDuplicate,
@@ -140,6 +142,16 @@ export default function MarketerNewLead() {
               <select value={form.course_interest} onChange={e => set('course_interest', e.target.value)} className={inputClass}>
                 <option value="">Select a programme</option>
                 {courses.map(c => <option key={c} value={c}>{c}</option>)}
+              </select>
+            </Field>
+            {/*
+              * The same list the importer uses, so a lead you type in is
+              * counted alongside an uploaded one rather than as a gap.
+              */}
+            <Field label="Industry">
+              <select value={form.industry} onChange={e => set('industry', e.target.value)} className={inputClass}>
+                <option value="">Not stated</option>
+                {INDUSTRIES.map(i => <option key={i.code} value={i.code}>{i.label}</option>)}
               </select>
             </Field>
           </div>

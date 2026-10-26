@@ -25,6 +25,7 @@ import {
 import { telHref, whatsappHref } from '@/lib/ui/contact'
 import { Phone, MessageCircle } from 'lucide-react'
 import { describeStatus } from '@/lib/ui/status'
+import { industryLabel } from '@/lib/leads/industry'
 
 type BadgeTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'muted'
 import { exportToExcel } from '@/lib/utils/export'
@@ -123,7 +124,13 @@ export default function AdminLeads() {
    * it holds — counting after would make every tab show its own total.
    */
   const pool = leads.filter((l: LeadRow) => {
-    const matchSearch = !search || [l.full_name, l.email, l.phone, l.course_interest].some(v => v?.toLowerCase().includes(search.toLowerCase()))
+    /*
+     * The industry is searched by its LABEL, not its code. Nobody types
+     * "banking_finance" into a search box; they type "banking".
+     */
+    const matchSearch = !search || [
+      l.full_name, l.email, l.phone, l.course_interest, industryLabel(l.industry),
+    ].some(v => v?.toLowerCase().includes(search.toLowerCase()))
     const matchSource = sourceFilter === 'all' || l.source === sourceFilter
     const matchStatus = statusFilter === 'all' || l.status === statusFilter
     return matchSearch && matchSource && matchStatus
@@ -298,6 +305,7 @@ export default function AdminLeads() {
       Source: l.source,
       Stage: l.status?.replace(/_/g, ' '),
       Course: l.course_interest || '',
+      Industry: industryLabel(l.industry),
       Owner: l.assignee?.full_name || 'Unassigned',
       Added: formatDateTime(l.created_at),
     }))
@@ -308,9 +316,10 @@ export default function AdminLeads() {
   async function exportCSV() {
     const rows = filtered.map((l: LeadRow) => [
       l.full_name, l.email || '', l.phone || '', l.source, l.status,
-      l.course_interest || '', l.assignee?.full_name || '', formatDateTime(l.created_at)
+      l.course_interest || '', industryLabel(l.industry),
+      l.assignee?.full_name || '', formatDateTime(l.created_at)
     ].map(v => `"${v}"`).join(','))
-    const csv = 'Name,Email,Phone,Source,Status,Course,Assigned To,Date\n' + rows.join('\n')
+    const csv = 'Name,Email,Phone,Source,Status,Course,Industry,Assigned To,Date\n' + rows.join('\n')
     const a = document.createElement('a')
     a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv' }))
     a.download = `cce-leads-${new Date().toISOString().slice(0, 10)}.csv`
@@ -451,6 +460,7 @@ export default function AdminLeads() {
                       <>
                         <span>{l.source}</span>
                         {l.course_interest && <span className="truncate">{l.course_interest}</span>}
+                        {l.industry && <span className="truncate">{industryLabel(l.industry)}</span>}
                         <span className={l.assignee?.full_name ? '' : 'text-[var(--warn)] font-medium'}>
                           {l.assignee?.full_name || 'Unassigned'}
                         </span>

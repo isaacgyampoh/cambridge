@@ -99,6 +99,14 @@ export interface Lead {
   source: LeadSource
   status: LeadStatus
   course_interest: string | null
+  /**
+   * Industry code from lib/leads/industry.ts.
+   *
+   * Optional on the type because the column arrives with migration 0028: a
+   * deployment whose database has not run it yet simply has no value here,
+   * rather than a type that promises one.
+   */
+  industry?: string | null
   notes: string | null
   assigned_to: string | null
   assigned_by: string | null

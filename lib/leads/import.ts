@@ -5,6 +5,8 @@ import { distributeLead } from '@/lib/leads/distributionStore'
 import { notifyImportBatch } from '@/lib/leads/importNotify'
 import { recordAudit } from '@/lib/audit'
 import { phoneVariants, resolveSource, validateRow } from '@/lib/leads/importValidation'
+import { parseIndustry, isIndustryCode } from '@/lib/leads/industry'
+import { columnExists } from '@/lib/db/hasColumn'
 
 /**
  * Bulk lead import.
@@ -45,6 +47,8 @@ export type ImportRow = {
   city?: string | null
   notes?: string | null
   assigned_to?: string | null
+  /** Whatever the spreadsheet said, in its own words. Parsed, never stored raw. */
+  industry?: string | null
 }
 
 export type RowOutcome = 'assigned' | 'unassigned' | 'duplicate' | 'invalid' | 'failed'
@@ -61,6 +65,19 @@ export type ImportResult = {
   unassigned: number
   failed: number
   status: 'complete' | 'partial'
+  /**
+   * Leads created with no industry — nothing in the row, and no answer for
+   * the batch. Reported rather than hidden: an operator who meant to tag a
+   * list and finds half of it untagged can fix it while they still remember
+   * what the list was.
+   */
+  withoutIndustry: number
+  /**
+   * False when this database has no leads.industry column yet, so the field
+   * was dropped from every write. The leads still landed — see
+   * lib/db/hasColumn.ts for why it is asked rather than assumed.
+   */
+  industryRecorded: boolean
 }
 
 export async function importLeads(opts: {
@@ -71,6 +88,14 @@ export async function importLeads(opts: {
   reference?: string | null
   /** Row number of the first row in this batch, for traceability into the file. */
   rowOffset?: number
+  /**
+   * What industry this whole upload is, when the operator has said.
+   *
+   * A row that names its own wins. This is the answer for the rest, which is
+   * the normal case: a purchased list is usually one sector, and asking the
+   * operator once is the difference between a tagged list and an untagged one.
+   */
+  defaultIndustry?: string | null
 }): Promise<ImportResult> {
   const sb = createServiceClient()
   const { rows, importedBy, rowOffset = 0 } = opts
@@ -126,7 +151,21 @@ export async function importLeads(opts: {
   // It was one query per lead before, which at import volume is most of the
   // database traffic for information that does not change mid-batch.
   const candidates = await eligibleMarketers()
-  const counts = { valid: 0, invalid: 0, duplicates: 0, assigned: 0, unassigned: 0, failed: 0 }
+  const counts = {
+    valid: 0, invalid: 0, duplicates: 0, assigned: 0, unassigned: 0, failed: 0,
+    withoutIndustry: 0,
+  }
+
+  /*
+   * Does this database know about leads.industry yet?
+   *
+   * Asked once per import, not once per row, and asked at all because
+   * PostgREST refuses the WHOLE insert when it names a column that does not
+   * exist. Shipping this code before its migration must cost the industry
+   * field, not the import.
+   */
+  const industryColumn = await columnExists('leads', 'industry')
+  const batchIndustry = isIndustryCode(opts.defaultIndustry) ? String(opts.defaultIndustry) : null
 
   /*
    * Who received how many in THIS batch, so the people involved can be told
@@ -173,6 +212,19 @@ export async function importLeads(opts: {
       }
 
       // ── insert ──
+      /*
+       * The row's own industry wins over the batch's. A file that names it
+       * per row is being more specific than the person uploading it, and a
+       * mixed list is exactly when that matters.
+       *
+       * Unrecognised wording is not an error: a real person is not rejected
+       * over a sector label. It falls through to the batch's answer, and if
+       * there is none the lead is counted in withoutIndustry so the operator
+       * can see how much of the list went untagged.
+       */
+      const industry = parseIndustry(row.industry) || batchIndustry
+      if (!industry) counts.withoutIndustry++
+
       const { data: lead, error: insErr } = await sb.from('leads').insert({
         full_name: name,
         phone, email,
@@ -181,6 +233,7 @@ export async function importLeads(opts: {
         course_interest: row.course_interest || null,
         city: row.city || null,
         landing_source: `Imported (${reference})`,
+        ...(industryColumn && industry ? { industry } : {}),
       }).select('id').single()
 
       if (insErr || !lead) {
@@ -326,5 +379,12 @@ export async function importLeads(opts: {
     unassigned: totals.unassigned,
     failed: totals.failed,
     status,
+    /*
+     * Counted for THIS batch, not the whole import: the browser sends a large
+     * file fifty rows at a time and adds these up itself, exactly as it does
+     * with requestsFailed.
+     */
+    withoutIndustry: counts.withoutIndustry,
+    industryRecorded: industryColumn,
   }
 }

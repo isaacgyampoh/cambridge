@@ -2,6 +2,7 @@
 import { useState, useRef } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import { INDUSTRIES, parseIndustry, industryLabel } from '@/lib/leads/industry'
 
 interface ParsedLead {
   full_name: string
@@ -11,14 +12,22 @@ interface ParsedLead {
   source: string
   city: string
   notes: string
+  /** The row's own industry, already parsed to a code. Null when it said nothing. */
+  industry: string | null
   status: 'valid' | 'error'
   error?: string
 }
 
-const TEMPLATE_CSV = `full_name,phone,email,course_interest,source,city,notes
-Kwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes
-Abena Owusu,0551234567,abena@email.com,Corporate Training,google,Kumasi,
-John Doe,0201234567,,PHRI,manual,Takoradi,Called office`
+/*
+ * `industry` is LAST, deliberately. The parser below reads columns by
+ * position, so a file written against the old seven-column template still
+ * imports — those rows simply have no industry of their own and take the one
+ * chosen for the upload.
+ */
+const TEMPLATE_CSV = `full_name,phone,email,course_interest,source,city,notes,industry
+Kwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes,Oil & Gas
+Abena Owusu,0551234567,abena@email.com,Corporate Training,google,Kumasi,,Banking & Finance
+John Doe,0201234567,,PHRI,manual,Takoradi,Called office,Government`
 
 type ImportResult = {
   reference: string
@@ -30,6 +39,10 @@ type ImportResult = {
   unassigned: number
   failed: number
   status: 'complete' | 'partial'
+  /** Leads created with no industry, in THIS batch. Summed in the browser. */
+  withoutIndustry: number
+  /** False when this database has no leads.industry column yet. */
+  industryRecorded: boolean
 }
 
 export default function ImportLeadsPage() {
@@ -48,6 +61,13 @@ export default function ImportLeadsPage() {
    */
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
   const [result, setResult] = useState<(ImportResult & { requestsFailed: number }) | null>(null)
+  /*
+   * What industry this whole upload is.
+   *
+   * Asked once, here, because a purchased list is usually one sector and the
+   * person uploading it knows which. A row that names its own overrides it.
+   */
+  const [industry, setIndustry] = useState('')
 
   const VALID_SOURCES = ['facebook','google','linkedin','website','referral','manual']
 
@@ -71,9 +91,17 @@ export default function ImportLeadsPage() {
       }
       cols.push(cur.trim())
 
-      const [full_name='', phone='', email='', course_interest='', source='', city='', notes=''] = cols
+      const [full_name='', phone='', email='', course_interest='', source='', city='', notes='', industryCol=''] = cols
 
-      if (!full_name.trim()) return { full_name:'', phone, email, course_interest, source, city, notes, status: 'error', error: `Row ${i+2}: Name is required` }
+      /*
+       * Parsed here as well as on the server, so the preview can show the
+       * operator what their file's wording was understood as — before five
+       * hundred rows are written. Unrecognised wording is null, not an error:
+       * a real person is not rejected over a sector label.
+       */
+      const rowIndustry = parseIndustry(industryCol)
+
+      if (!full_name.trim()) return { full_name:'', phone, email, course_interest, source, city, notes, industry: rowIndustry, status: 'error', error: `Row ${i+2}: Name is required` }
 
       const cleanSource = source.toLowerCase().trim()
       const validSource = VALID_SOURCES.includes(cleanSource) ? cleanSource : 'manual'
@@ -86,6 +114,7 @@ export default function ImportLeadsPage() {
         source: validSource,
         city: city.trim(),
         notes: notes.trim(),
+        industry: rowIndustry,
         status: 'valid',
       }
     })
@@ -125,6 +154,12 @@ export default function ImportLeadsPage() {
     let reference: string | null = null
     let latest: ImportResult | null = null
     let requestsFailed = 0
+    /*
+     * Summed here, unlike the other totals, because the server counts it per
+     * batch — the accumulated figures come back from the import record, and
+     * this one does not live there.
+     */
+    let withoutIndustry = 0
 
     for (let i = 0; i < valid.length; i += BATCH) {
       const batch = valid.slice(i, i + BATCH)
@@ -136,6 +171,8 @@ export default function ImportLeadsPage() {
             reference,
             filename: fileRef.current?.files?.[0]?.name || undefined,
             rowOffset: i,
+            // The answer for the upload. A row's own industry still wins.
+            defaultIndustry: industry || null,
             leads: batch.map(l => ({
               full_name: l.full_name,
               phone: l.phone || null,
@@ -144,6 +181,7 @@ export default function ImportLeadsPage() {
               source: l.source,
               city: l.city || null,
               notes: l.notes || null,
+              industry: l.industry || null,
             })),
           }),
         })
@@ -158,6 +196,7 @@ export default function ImportLeadsPage() {
 
         reference = d.reference
         latest = d as ImportResult
+        withoutIndustry += d.withoutIndustry || 0
       } catch {
         requestsFailed += batch.length
         toast.error(`Rows ${i + 1}–${i + batch.length} could not be sent. Check your connection.`)
@@ -177,8 +216,13 @@ export default function ImportLeadsPage() {
       return
     }
 
-    setResult({ ...latest, requestsFailed })
+    setResult({ ...latest, requestsFailed, withoutIndustry })
     toast.success(`${latest.reference} — ${latest.assigned} assigned of ${latest.totalReceived} received.`)
+    if (latest.industryRecorded === false) {
+      toast.warning('The leads landed, but this database has no industry column yet, so the industry was not recorded.')
+    } else if (withoutIndustry > 0) {
+      toast.warning(`${withoutIndustry} of them have no industry. Choose one for the upload and re-import, or set it on each lead.`)
+    }
   }
 
   function downloadTemplate() {
@@ -190,6 +234,21 @@ export default function ImportLeadsPage() {
 
   const validCount = parsed.filter(p => p.status === 'valid').length
   const errorCount = parsed.filter(p => p.status === 'error').length
+
+  /*
+   * How much of the file would land untagged if it were imported as it
+   * stands, and what the file itself said where it said anything.
+   *
+   * Shown before the import rather than after, because "47 of these have no
+   * industry" is only useful while there is still a choice to make about it.
+   */
+  const untaggedCount = parsed.filter(p => p.status === 'valid' && !p.industry).length
+  const taggedByFile = Object.entries(
+    parsed.reduce<Record<string, number>>((acc, p) => {
+      if (p.status === 'valid' && p.industry) acc[p.industry] = (acc[p.industry] || 0) + 1
+      return acc
+    }, {}),
+  ).sort((a, b) => b[1] - a[1])
 
   return (
     <div className="w-full fade-in">
@@ -254,6 +313,7 @@ export default function ImportLeadsPage() {
               { label: 'Imported but unassigned', value: result.unassigned, tone: 'warn' },
               { label: 'Failed', value: result.failed, tone: 'danger' },
               { label: 'Never reached the server', value: result.requestsFailed, tone: 'danger' },
+              { label: 'No industry recorded', value: result.withoutIndustry, tone: result.withoutIndustry > 0 ? 'warn' : 'faint' },
             ].filter(r => r.value > 0 || r.label === 'Rows received' || r.label === 'Assigned to a marketer')
               .map(r => (
                 <div key={r.label} className="flex items-baseline justify-between gap-4 border-b border-[var(--line-soft)] pb-2 last:border-0">
@@ -315,7 +375,7 @@ export default function ImportLeadsPage() {
               
               <div className="flex-1 min-w-0">
                 <div className="text-sm font-bold text-[var(--accent)]">Need a template?</div>
-                <div className="text-xs text-[var(--accent)]">Columns: full_name, phone, email, course_interest, source, city, notes</div>
+                <div className="text-xs text-[var(--accent)]">Columns: full_name, phone, email, course_interest, source, city, notes, industry</div>
               </div>
               <button onClick={downloadTemplate}
                 className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-bold hover:brightness-110 transition flex-shrink-0">
@@ -433,6 +493,39 @@ export default function ImportLeadsPage() {
                     ))}
                   </div>
                 )}
+
+                {/*
+                  * Asked here, next to the button it affects, rather than at
+                  * the top of a long form where it would be filled in before
+                  * the file is even chosen — and forgotten by the time the
+                  * preview is read.
+                  */}
+                <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-4">
+                  <label htmlFor="batch-industry" className="block text-[13px] font-semibold text-[var(--ink)] mb-1">
+                    What industry is this list?
+                  </label>
+                  <p className="text-[12px] text-[var(--ink-faint)] mb-2.5 leading-snug">
+                    Applied to every row that does not name its own in an <code>industry</code> column.
+                    {untaggedCount > 0 && !industry && (
+                      <> <span className="text-[var(--warn)] font-medium">
+                        {untaggedCount} of {validCount} {untaggedCount === 1 ? 'row has' : 'rows have'} no industry.
+                      </span></>
+                    )}
+                  </p>
+                  <select id="batch-industry" value={industry} onChange={e => setIndustry(e.target.value)}
+                    className="w-full h-11 px-3 rounded-xl border-2 border-[var(--line)] bg-[var(--paper)]
+                      text-[14px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)] transition-colors">
+                    <option value="">Not stated — leave each row as it is</option>
+                    {INDUSTRIES.map(i => (
+                      <option key={i.code} value={i.code}>{i.label}</option>
+                    ))}
+                  </select>
+                  {taggedByFile.length > 0 && (
+                    <p className="text-[12px] text-[var(--ink-faint)] mt-2.5 leading-snug">
+                      From the file: {taggedByFile.map(([code, n]) => `${industryLabel(code)} (${n})`).join(', ')}
+                    </p>
+                  )}
+                </div>
 
                 {/* Import button */}
                 <button onClick={importLeads} disabled={importing || validCount === 0}

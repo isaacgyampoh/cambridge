@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react'
 import { useRouter } from 'next/navigation'
 import { toast } from 'sonner'
+import { INDUSTRIES } from '@/lib/leads/industry'
 import { UserPlus, Phone, Mail, Globe } from 'lucide-react'
 import Link from 'next/link'
 import { useConfirm } from '@/hooks/useConfirm'
@@ -19,6 +20,7 @@ export default function NewLeadPage() {
     full_name: '', email: '', phone: '', gender: '',
     country: 'Ghana', city: '',
     source: 'manual', course_interest: '',
+    industry: '',
     notes: '', assigned_to: '', keep_for_self: false,
   })
 
@@ -66,6 +68,7 @@ export default function NewLeadPage() {
           city: form.city.trim() || null,
           country: form.country.trim() || null,
           course_interest: form.course_interest || null,
+          industry: form.industry || null,
           notes: form.notes || null,
           source: form.source || 'manual',
           assigned_to: form.assigned_to || null,
@@ -179,6 +182,20 @@ export default function NewLeadPage() {
               className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
               <option value="">Select a course…</option>
               {courses.map(c => <option key={c} value={c}>{c}</option>)}
+            </select>
+
+            {/*
+              * Which industry they are in, from the same list the importer
+              * uses — so a lead typed in here can be counted alongside a
+              * list that was uploaded, instead of showing up as a gap.
+              */}
+            <label htmlFor="lead-industry" className="block text-xs font-semibold text-[var(--ink-faint)] mt-4 mb-1.5">
+              Industry
+            </label>
+            <select id="lead-industry" value={form.industry} onChange={e => set('industry', e.target.value)}
+              className="w-full h-11 px-4 rounded-2xl border border-[var(--line)] text-sm bg-[var(--paper)] focus:outline-none focus:border-[var(--accent)] focus:ring-4 focus:ring-[var(--accent-soft)] transition">
+              <option value="">Not stated</option>
+              {INDUSTRIES.map(i => <option key={i.code} value={i.code}>{i.label}</option>)}
             </select>
           </div>
 

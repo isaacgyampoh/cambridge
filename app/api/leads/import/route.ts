@@ -1,6 +1,7 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { withGuard } from '@/lib/auth/guard'
 import { importLeads, type ImportRow } from '@/lib/leads/import'
+import { isIndustryCode } from '@/lib/leads/industry'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -27,6 +28,12 @@ const Row = z.object({
   city: z.string().trim().max(120).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
   assigned_to: z.string().uuid().optional().nullable(),
+  /*
+   * Whatever the spreadsheet said, in its own words. Parsed into a code by
+   * lib/leads/industry.ts before anything is stored, so "O&G", "oil and gas"
+   * and "Petroleum Services" all become one industry rather than three.
+   */
+  industry: z.string().trim().max(120).optional().nullable(),
 })
 
 const Body = z.object({
@@ -36,6 +43,14 @@ const Body = z.object({
   filename: z.string().trim().max(260).optional().nullable(),
   /** Where this batch starts in the original file, so row numbers stay true. */
   rowOffset: z.number().int().min(0).max(1_000_000).optional(),
+  /**
+   * The industry of the whole upload, when the operator has said.
+   *
+   * Validated against the list rather than trusted: this reaches a text
+   * column, and a code nobody recognises would be stored, counted as its own
+   * industry on every report, and impossible to find again.
+   */
+  defaultIndustry: z.string().trim().max(60).refine(isIndustryCode, 'That is not an industry we recognise.').optional().nullable(),
 })
 
 export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: NextRequest, { session }) => {
@@ -47,7 +62,7 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
     )
   }
 
-  const { leads, reference, filename, rowOffset } = parsed.data
+  const { leads, reference, filename, rowOffset, defaultIndustry } = parsed.data
 
   try {
     const result = await importLeads({
@@ -56,6 +71,7 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
       filename: filename ?? null,
       reference: reference ?? null,
       rowOffset: rowOffset ?? 0,
+      defaultIndustry: defaultIndustry ?? null,
     })
 
     // The reference goes back so the browser can send the next batch into the

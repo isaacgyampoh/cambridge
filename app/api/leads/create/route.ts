@@ -6,6 +6,8 @@ import { isEligible } from '@/lib/leads/eligibility'
 import { autoAssignLead, onLeadAssigned } from '@/lib/autoAssign'
 import { recordAudit } from '@/lib/audit'
 import { decideOwner } from '@/lib/leads/ownership'
+import { isIndustryCode } from '@/lib/leads/industry'
+import { columnExists } from '@/lib/db/hasColumn'
 import { z } from 'zod'
 
 export const runtime = 'nodejs'
@@ -66,6 +68,12 @@ const Body = z.object({
   course_interest: z.string().trim().max(200).optional().nullable(),
   notes: z.string().trim().max(2000).optional().nullable(),
   source: z.string().trim().max(40).optional().nullable(),
+  /*
+   * Validated against the list rather than stored as typed. A lead entered by
+   * hand has to be countable alongside an imported one, or the industry
+   * figures describe the imports and nothing else.
+   */
+  industry: z.string().trim().max(60).refine(isIndustryCode, 'That is not an industry we recognise.').optional().nullable(),
   /** Honoured only for a caller who may name another owner; ignored for everyone else. */
   assigned_to: z.string().uuid().optional().nullable(),
   /** A super admin or PM keeping this one rather than sending it to the centre. */
@@ -149,6 +157,16 @@ export const POST = withGuard(
     // gender and notes are written. The import pipeline drops both, so
     // everything the operator typed into those two fields had been discarded
     // silently since the form was rewired through it.
+    /*
+     * Dropped rather than refused when this database has no industry column
+     * yet: PostgREST rejects the whole insert over an unknown column, and
+     * losing the lead somebody just typed in would be far worse than losing
+     * the sector label. See lib/db/hasColumn.ts.
+     */
+    const industry = body.industry && await columnExists('leads', 'industry')
+      ? { industry: body.industry }
+      : {}
+
     const { data: lead, error } = await sb.from('leads').insert({
       full_name: name,
       phone,
@@ -158,6 +176,7 @@ export const POST = withGuard(
       country: body.country || null,
       course_interest: body.course_interest || null,
       notes: body.notes || null,
+      ...industry,
       source: resolveSource(body.source || 'manual'),
       status: 'new',
       landing_source: 'Added manually',
