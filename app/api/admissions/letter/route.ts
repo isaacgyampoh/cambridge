@@ -81,6 +81,10 @@ export async function POST(req: NextRequest) {
     sent: action === 'send',
     pdfUrl: result.pdfUrl,
     recorded: result.recorded,
+    // Which channel carried it, and the masked destination, so the screen can
+    // say where it went rather than naming the mailbox for a text message.
+    via: result.via ?? null,
+    sentTo: result.sentTo ?? null,
     preview: result.preview,
   })
 }

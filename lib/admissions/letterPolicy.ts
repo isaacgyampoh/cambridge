@@ -1,7 +1,16 @@
+/*
+ * One relative import, to lib/phone.ts, which is itself import-free — so this
+ * module stays loadable by the node test runner, which does not resolve the
+ * '@/' alias. The number rule is deliberately the SAME one the SMS sender
+ * uses to dial, so a letter is never refused as unsendable to a number the
+ * system would in fact have texted.
+ */
+import { canonicalGhanaMobile } from '../phone.ts'
+
 /**
  * THE RULES FOR ISSUING AN ADMISSION LETTER.
  *
- * Pure and import-free, so every rule here is unit tested directly.
+ * Pure, so every rule here is unit tested directly.
  *
  * ── WHY THESE RULES EXIST ──────────────────────────────────────────────────
  *
@@ -79,9 +88,22 @@ export function modeLabel(mode: ClassMode): string {
 export type LetterInput = {
   studentName: string | null
   email: string | null
+  /** The other way to reach them. A letter is a link; a link can be texted. */
+  phone: string | null
   course: CourseFees | null
   mode: ClassMode | null
   admissionNumber: string | null
+}
+
+/** A valid-enough address to send a document to. */
+export function hasEmailAddress(email: string | null | undefined): boolean {
+  const value = String(email || '').trim()
+  return Boolean(value) && /^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(value)
+}
+
+/** A number the SMS sender would actually dial. */
+export function hasPhoneNumber(phone: string | null | undefined): boolean {
+  return Boolean(canonicalGhanaMobile(phone))
 }
 
 /**
@@ -104,11 +126,105 @@ export function blockingReason(input: LetterInput): string | null {
   if (!input.admissionNumber?.trim()) {
     return 'Admission letter cannot be sent because this admission has no admission number yet. Admit the student first.'
   }
-  const email = String(input.email || '').trim()
-  if (!email || !/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
-    return 'Admission letter cannot be sent because there is no valid email address for this student.'
+  /*
+   * ── REACHABLE, NOT MAILABLE ──────────────────────────────────────────────
+   *
+   * This refused any student without a valid email address. The letter was
+   * email-only, so the refusal was at least honest — but it meant a student
+   * who had given a phone number and no email could not be admitted at all,
+   * and with the campus mailbox unconfigured that refusal was the only
+   * possible outcome for everybody.
+   *
+   * The letter is a generated PDF at a URL. A URL can be sent by WhatsApp or
+   * by text just as well as by email, so what has to be true is that there is
+   * SOME way to reach them — and only an admission with no address and no
+   * number is genuinely undeliverable.
+   */
+  if (!hasEmailAddress(input.email) && !hasPhoneNumber(input.phone)) {
+    return 'Admission letter cannot be sent because this student has no email address and no phone number on file. Add one to their record first.'
   }
   return null
+}
+
+/**
+ * ─── GETTING THE LETTER TO THE STUDENT ──────────────────────────────────────
+ *
+ * The letter is a generated PDF at a URL, and it went by email and only by
+ * email. With the campus mailbox unconfigured that meant every send answered
+ * "the email provider did not accept the letter" and no student could be sent
+ * one at all.
+ *
+ * Three ways to deliver it now, in this order:
+ *
+ *   email     — the document itself, formatted, with the PDF attached by link
+ *   whatsapp  — what the registration screen has always promised: "your
+ *               admission letter is on its way by WhatsApp"
+ *   sms       — the one that always works
+ *
+ * Email first because an admission letter IS a document and arrives as one.
+ * The others carry a link to the same PDF, which is the whole letter.
+ */
+export type LetterChannel = 'email' | 'whatsapp' | 'sms'
+
+export type LetterDestinations = { hasEmail: boolean; hasPhone: boolean }
+
+/**
+ * Which channels can carry this letter, in the order to try them.
+ *
+ * Two conditions for each, both required: somewhere to send it, and a sender
+ * the deployment has configured. A channel missing either is not offered —
+ * offering it would mark a letter as sent to a provider that was never going
+ * to carry it, which is how a student ends up recorded as having received a
+ * letter they have never seen.
+ */
+export function letterChannels(
+  to: LetterDestinations,
+  ready: { emailReady: boolean; whatsappReady: boolean; smsReady: boolean },
+): LetterChannel[] {
+  const out: LetterChannel[] = []
+  if (to.hasEmail && ready.emailReady) out.push('email')
+  if (to.hasPhone && ready.whatsappReady) out.push('whatsapp')
+  if (to.hasPhone && ready.smsReady) out.push('sms')
+  return out
+}
+
+/**
+ * The message that carries the link.
+ *
+ * Names the programme and the admission number, because that is what the
+ * student will be asked for in every exchange that follows, and because a
+ * bare link from an unknown sender is a link nobody opens.
+ */
+export function letterNoticeText(
+  studentName: string | null,
+  programme: string | null,
+  admissionNumber: string | null,
+  url: string,
+): string {
+  const first = String(studentName || '').trim().split(' ')[0]
+  return `${first ? first + ', c' : 'C'}ongratulations — you have been admitted`
+    + `${programme ? ` to ${programme}` : ''} at Cambridge Center of Excellence.`
+    + `${admissionNumber ? ` Your admission number is ${admissionNumber}.` : ''}`
+    + ` Your admission letter: ${url}`
+}
+
+/**
+ * "sent by text to 024 ••• 4567" — what to tell the officer who sent it.
+ *
+ * The screen said "Admission letter sent to <email address>" whatever
+ * happened, which was true while email was the only channel. A letter that
+ * went to a phone, announced as going to a mailbox, sends somebody looking in
+ * an inbox for it — and then telling the student it was never sent.
+ *
+ * Pure, so the wording for every channel is exercised in a test rather than
+ * read off the screen once and assumed.
+ */
+export function letterSentPhrase(via: LetterChannel | null, hint: string | null): string {
+  if (!hint) return 'Admission letter sent'
+  if (via === 'email') return `Admission letter emailed to ${hint}`
+  if (via === 'whatsapp') return `Admission letter sent by WhatsApp to ${hint}`
+  if (via === 'sms') return `Admission letter sent by text to ${hint}`
+  return `Admission letter sent to ${hint}`
 }
 
 /** The version of the generated letter, recorded with every send. */

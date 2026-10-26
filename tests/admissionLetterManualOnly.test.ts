@@ -5,6 +5,9 @@ import { join } from 'node:path'
 import {
   feeForMode, registrationFee, letterDate, blockingReason, formatGHS,
   ADMISSIONS_ROLES, LETTER_TIMEZONE,
+  letterChannels,
+  letterNoticeText,
+  letterSentPhrase,
 } from '../lib/admissions/letterPolicy.ts'
 
 /**
@@ -105,12 +108,29 @@ describe('admitting does not send an admission letter', () => {
 })
 
 describe('the letter sender can be reached from exactly one place', () => {
-  test('emailAdmissionLetter is called only by lib/admissions/letter.ts', () => {
+  test('emailAdmissionLetter is called from exactly one place', () => {
+    /*
+     * The property is "one door out", not "that particular door". The letter
+     * now has three channels — email, WhatsApp, SMS — and choosing between
+     * them is its own module, so the mail template is called from there
+     * rather than from letter.ts. What must stay true is that there is a
+     * single caller: a second one is a letter leaving the system without the
+     * fee check, the admission-number check and the audit record.
+     */
     const callers = source
       .filter(f => /\bemailAdmissionLetter\(/.test(f.src))
       .map(f => f.path)
       .filter(p => !p.endsWith('lib/integrations/email.ts'))
-    assert.deepEqual(callers, ['lib/admissions/letter.ts'])
+    assert.deepEqual(callers, ['lib/admissions/letterDelivery.ts'])
+  })
+
+  test('and so is every other way of sending the letter', () => {
+    // The same rule for the two channels added with it.
+    const callers = source
+      .filter(f => /letterNoticeText\(/.test(f.src))
+      .map(f => f.path)
+      .filter(p => !p.endsWith('lib/admissions/letterPolicy.ts'))
+    assert.deepEqual(callers, ['lib/admissions/letterDelivery.ts'])
   })
 
   test('issueAdmissionLetter is called only by the guarded route', () => {
@@ -165,8 +185,9 @@ describe('sending is deliberate', () => {
 
   test('a review builds the letter and sends nothing', () => {
     const idx = letter.indexOf('if (opts.review) return')
-    const send = letter.indexOf('await emailAdmissionLetter(')
-    assert.ok(idx > -1 && idx < send, 'review must return before the email is sent')
+    const send = letter.indexOf('await deliverLetter(')
+    assert.ok(idx > -1 && send > -1 && idx < send,
+      'review must return before anything is sent, on any channel')
   })
 
   test('the checks are made again on send, not trusted from the preview', () => {
@@ -175,11 +196,17 @@ describe('sending is deliberate', () => {
     assert.match(fn, /if \(p\.blocked\) return/)
   })
 
-  test('a failed email is not recorded as sent', () => {
-    const fn = letter.slice(letter.indexOf('if (!sent) {'))
+  test('a send that no channel accepted is not recorded as sent', () => {
+    /*
+     * The admission is marked as sent, the audit says so, and the officer is
+     * told it has gone. If that happens on a failed send, the student never
+     * gets their letter and nobody has any reason to look.
+     */
+    const guard = letter.indexOf('if (!delivery.sent) {')
     const mark = letter.indexOf('admission_letter_sent: true')
-    assert.ok(letter.indexOf('if (!sent) {') < mark)
-    assert.match(fn.slice(0, 500), /return \{ ok: false/)
+    assert.ok(guard > -1, 'the delivery result is no longer checked')
+    assert.ok(guard < mark, 'the letter is marked as sent before the send is checked')
+    assert.match(letter.slice(guard, guard + 600), /return \{ ok: false/)
   })
 
   test('every send is audited with what the letter said', () => {
@@ -290,7 +317,7 @@ describe('the date', () => {
 
 describe('a letter that cannot be stated correctly is refused', () => {
   const ok = {
-    studentName: 'Ama Mensah', email: 'ama@example.com',
+    studentName: 'Ama Mensah', email: 'ama@example.com', phone: '0241234567',
     course: { name: 'PMP', course_fee: 5950, course_fee_online: 4950 },
     mode: 'in_person' as const, admissionNumber: 'CCE/2026/00012',
   }
@@ -317,9 +344,41 @@ describe('a letter that cannot be stated correctly is refused', () => {
     assert.match(blockingReason({ ...ok, course: null })!, /programme/)
   })
 
-  test('no email', () => {
-    assert.match(blockingReason({ ...ok, email: null })!, /no valid email/)
-    assert.match(blockingReason({ ...ok, email: 'not-an-email' })!, /no valid email/)
+  test('no way at all to reach them', () => {
+    /*
+     * This asked for a valid email address and refused anything else. The
+     * letter was email-only, so the refusal was honest — but it meant a
+     * student who had given a phone number and no email could not be admitted,
+     * and with the campus mailbox unconfigured that was every student.
+     *
+     * The letter is a PDF at a URL, and a URL can be texted. So what must be
+     * true is that there is SOME way to reach them; only an admission with
+     * neither is genuinely undeliverable.
+     */
+    const neither = { ...ok, email: null, phone: null }
+    assert.match(blockingReason(neither)!, /no email address and no phone number/)
+    assert.match(blockingReason({ ...ok, email: 'not-an-email', phone: 'nonsense' })!,
+      /no email address and no phone number/)
+  })
+
+  test('a phone number on its own is enough', () => {
+    assert.equal(blockingReason({ ...ok, email: null }), null)
+    assert.equal(blockingReason({ ...ok, email: 'not-an-email' }), null)
+  })
+
+  test('and an email address on its own is still enough', () => {
+    assert.equal(blockingReason({ ...ok, phone: null }), null)
+  })
+
+  test('the number is judged by the rule the sender dials by', () => {
+    /*
+     * Not "is it non-empty". A letter must not be accepted as sendable to a
+     * number the SMS sender would reject, because the student would then be
+     * recorded as having been sent a letter that went nowhere.
+     */
+    assert.match(blockingReason({ ...ok, email: null, phone: '12345' })!, /no phone number/)
+    assert.match(blockingReason({ ...ok, email: null, phone: '241234567' })!, /no phone number/)
+    assert.equal(blockingReason({ ...ok, email: null, phone: '+233 24 123 4567' }), null)
   })
 
   test('not admitted yet', () => {
@@ -348,5 +407,184 @@ describe('what stays', () => {
   test('registration still creates the admission record', () => {
     assert.match(complete, /from\('admissions'\)\.insert\(/)
     assert.match(complete, /next_admission_number/)
+  })
+})
+
+/* ══ IT CAN ACTUALLY BE DELIVERED ═════════════════════════════════════════ */
+
+/**
+ * ─── A LETTER NOBODY COULD RECEIVE ──────────────────────────────────────────
+ *
+ * The letter went by email and only by email, and `blockingReason` refused
+ * any student without a valid address. With the campus mailbox unconfigured
+ * that meant every send answered "the email provider did not accept the
+ * letter", and a student who had given a phone number and no email could not
+ * be sent one at all — while the registration screen told them, in writing,
+ * that their admission letter was on its way by WhatsApp.
+ */
+describe('the letter goes by whatever can carry it', () => {
+  const delivery = codeOf('lib/admissions/letterDelivery.ts')
+  const policy = codeOf('lib/admissions/letterPolicy.ts')
+
+  test('email, then WhatsApp, then SMS', () => {
+    /*
+     * Email first because an admission letter is a document and should
+     * arrive as one. The other two carry a link to the same PDF.
+     */
+    assert.deepEqual(
+      letterChannels(
+        { hasEmail: true, hasPhone: true },
+        { emailReady: true, whatsappReady: true, smsReady: true },
+      ),
+      ['email', 'whatsapp', 'sms'],
+    )
+  })
+
+  test('a channel with nowhere to send is not offered', () => {
+    assert.deepEqual(
+      letterChannels({ hasEmail: false, hasPhone: true }, { emailReady: true, whatsappReady: true, smsReady: true }),
+      ['whatsapp', 'sms'],
+    )
+    assert.deepEqual(
+      letterChannels({ hasEmail: true, hasPhone: false }, { emailReady: true, whatsappReady: true, smsReady: true }),
+      ['email'],
+    )
+  })
+
+  test('nor is one this deployment has not configured', () => {
+    /*
+     * The case that was live: a mailbox with no password, so email could not
+     * send at all. The answer must be the channels that work, not "email,
+     * and hope".
+     */
+    assert.deepEqual(
+      letterChannels({ hasEmail: true, hasPhone: true }, { emailReady: false, whatsappReady: false, smsReady: true }),
+      ['sms'],
+    )
+    assert.deepEqual(
+      letterChannels({ hasEmail: true, hasPhone: true }, { emailReady: false, whatsappReady: true, smsReady: true }),
+      ['whatsapp', 'sms'],
+    )
+  })
+
+  test('nothing configured anywhere is an empty list, not a guess', () => {
+    assert.deepEqual(
+      letterChannels({ hasEmail: true, hasPhone: true }, { emailReady: false, whatsappReady: false, smsReady: false }),
+      [],
+    )
+  })
+
+  test('the senders are asked whether they are connected, not just tried', () => {
+    /*
+     * This is the subtle one, and it is the credential-recorder trap again.
+     * With no API key, BOTH sendWhatsAppText and sendSMS hand the message to
+     * a recording provider that keeps it and answers true. For a lead
+     * notification that is deliberate. For a letter it would mark the
+     * admission as sent, write the send into the audit trail and tell the
+     * officer it had gone — while the student received nothing.
+     */
+    assert.match(delivery, /whatsappReady: whatsappConnected\(\)/)
+    assert.match(delivery, /smsReady: smsConnected\(\)/)
+    assert.match(delivery, /emailReady: emailConfigured\(\)/)
+  })
+
+  test('the notice names the programme and the admission number', () => {
+    // A bare link from an unknown sender is a link nobody opens.
+    const text = letterNoticeText('Ama Mensah', 'PMP', 'CCE/2026/00012', 'https://x/letter.pdf')
+    assert.match(text, /^Ama, congratulations/)
+    assert.match(text, /PMP/)
+    assert.match(text, /CCE\/2026\/00012/)
+    assert.match(text, /https:\/\/x\/letter\.pdf$/)
+    assert.ok(!text.includes('Mensah'), 'a surname adds nothing on a lock screen')
+  })
+
+  test('and reads correctly with nothing to put in it', () => {
+    const bare = letterNoticeText(null, null, null, 'https://x/l.pdf')
+    assert.match(bare, /^Congratulations/)
+    assert.ok(!/undefined|null/.test(bare))
+  })
+
+  test('a letter is reported as sent only when a channel took it', () => {
+    /*
+     * The admission is marked sent, the audit records it and the officer is
+     * told. sent:true for a channel that was merely attempted is a student
+     * who never receives their letter and nobody with a reason to look.
+     */
+    const lines = delivery.split('\n')
+    const claims = lines.map((line, i) => ({ line, i })).filter(({ line }) => /sent: true/.test(line))
+    assert.equal(claims.length, 1,
+      'there must be one place that can claim a send — a second is a second chance to get it wrong')
+    for (const { i } of claims) {
+      const guard = lines.slice(0, i).reverse().find(l => /\bif \(/.test(l)) ?? ''
+      assert.match(guard, /if \(await send\[channel\]\(\)\)/,
+        'the nearest condition above sent:true is not a send that returned true')
+    }
+  })
+
+  test('and the fall-through says plainly that it went nowhere', () => {
+    const last = delivery.split('\n').filter(l => /return \{ sent:/.test(l)).pop() ?? ''
+    assert.match(last, /sent: false, via: null, hint: null/)
+  })
+
+  test('a provider that throws costs that channel its turn, not the letter', () => {
+    const lines = delivery.split('\n')
+    const at = (re: RegExp) => lines.findIndex(l => re.test(l))
+    const loop = at(/for \(const channel of order\)/)
+    const tried = at(/^\s*try \{/)
+    const caught = at(/\} catch \(e\) \{/)
+    const pushed = at(/^\s*failed\.push\(channel\)/)
+    assert.ok(loop >= 0 && tried > loop && caught > tried && pushed > caught)
+    assert.ok(!/\b(throw|return)\b/.test(lines.slice(caught, pushed).join('\n')),
+      'one throwing provider ends every attempt')
+  })
+
+  test('the refusal does not name a missing secret', () => {
+    // It reaches an admissions officer, not an operator, and SMTP_PASS is
+    // not something they can act on.
+    assert.ok(!/SMTP|ARKESEL|WASENDER|API_KEY/.test(delivery))
+    assert.match(delivery, /no email, WhatsApp or SMS sender is configured/)
+  })
+
+  test('the policy no longer treats a mailbox as the only way in', () => {
+    assert.match(policy, /hasEmailAddress\(input\.email\) && !hasPhoneNumber\(input\.phone\)/)
+    assert.ok(!/no valid email address for this student/.test(policy))
+  })
+})
+
+describe('the screen says where the letter went', () => {
+  const page = codeOf('app/(portal)/admin/admissions/page.tsx')
+
+  test('every channel has its own words, and they are exercised here', () => {
+    /*
+     * The wording is a pure function so the test runs it, rather than
+     * searching the page source for a phrase and calling that a check.
+     */
+    assert.equal(letterSentPhrase('email', 'i•••••@cambridge.edu.gh'),
+      'Admission letter emailed to i•••••@cambridge.edu.gh')
+    assert.equal(letterSentPhrase('whatsapp', '024 ••• 4567'),
+      'Admission letter sent by WhatsApp to 024 ••• 4567')
+    assert.equal(letterSentPhrase('sms', '024 ••• 4567'),
+      'Admission letter sent by text to 024 ••• 4567')
+  })
+
+  test('and it never claims a destination it was not given', () => {
+    // Naming the wrong place is worse than naming none.
+    assert.equal(letterSentPhrase(null, null), 'Admission letter sent')
+    assert.equal(letterSentPhrase('sms', null), 'Admission letter sent')
+  })
+
+  test('the screen uses it instead of naming the mailbox', () => {
+    assert.ok(!/Admission letter sent to \$\{letter\.email\}/.test(page))
+    assert.match(page, /toast\.success\(letterSentPhrase\(d\.via \?\? null, d\.sentTo \?\? null\)\)/)
+  })
+
+  test('and shows both destinations on the preview', () => {
+    assert.match(page, /\[letter\.email, letter\.phone\]\.filter\(Boolean\)/)
+  })
+
+  test('the route passes the channel through', () => {
+    const route = codeOf('app/api/admissions/letter/route.ts')
+    assert.match(route, /via: result\.via/)
+    assert.match(route, /sentTo: result\.sentTo/)
   })
 })

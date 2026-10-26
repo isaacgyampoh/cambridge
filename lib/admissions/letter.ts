@@ -1,11 +1,12 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
 import { generateAdmissionPDF } from '@/lib/generateAdmissionPDF'
-import { emailAdmissionLetter } from '@/lib/integrations/email'
+import { deliverLetter, undeliverableLetterMessage } from '@/lib/admissions/letterDelivery'
 import { classModeForLead } from '@/lib/registration/classModeForLead'
 import { recordAudit } from '@/lib/audit'
 import {
   blockingReason, feeForMode, registrationFee, letterDate, formatGHS, modeLabel,
+  type LetterChannel,
   LETTER_TEMPLATE_VERSION, LETTER_TIMEZONE, type ClassMode, type CourseFees,
 } from '@/lib/admissions/letterPolicy'
 
@@ -35,6 +36,8 @@ export type LetterPreview = {
   admissionId: string
   studentName: string | null
   email: string | null
+  /** The other way to reach them. A letter is a link, and a link can be texted. */
+  phone: string | null
   programme: string | null
   mode: ClassMode | null
   modeLabel: string | null
@@ -71,22 +74,39 @@ export async function prepareAdmissionLetter(admissionId: string): Promise<LoadR
   // Who the letter is for: the linked student, then their application, then the lead.
   let studentName: string | null = null
   let email: string | null = null
+  let phone: string | null = null
+
+  /*
+   * The phone number is read beside the address, from the same sources in the
+   * same order, and each source fills in whatever the one before it did not.
+   *
+   * The loop condition asks for a name AND an address AND a number rather
+   * than stopping at the first two: a profile with an address but no number
+   * used to end the search, so the application's number — the one the student
+   * actually registered with — was never looked at, and the letter had
+   * nowhere to go but a mailbox.
+   */
   if (adm.student_id) {
-    const { data: p } = await sb.from('profiles').select('full_name, email').eq('id', adm.student_id).maybeSingle()
+    const { data: p } = await sb.from('profiles')
+      .select('full_name, email, phone').eq('id', adm.student_id).maybeSingle()
     studentName = (p?.full_name as string) || null
     email = (p?.email as string) || null
+    phone = (p?.phone as string) || null
   }
-  if ((!studentName || !email) && adm.lead_id) {
+  if ((!studentName || !email || !phone) && adm.lead_id) {
     const { data: app } = await sb.from('applications')
-      .select('full_name, email').eq('lead_id', adm.lead_id)
+      .select('full_name, email, phone').eq('lead_id', adm.lead_id)
       .order('created_at', { ascending: false }).limit(1).maybeSingle()
     studentName = studentName || (app?.full_name as string) || null
     email = email || (app?.email as string) || null
+    phone = phone || (app?.phone as string) || null
   }
-  if ((!studentName || !email) && adm.lead_id) {
-    const { data: lead } = await sb.from('leads').select('full_name, email').eq('id', adm.lead_id).maybeSingle()
+  if ((!studentName || !email || !phone) && adm.lead_id) {
+    const { data: lead } = await sb.from('leads')
+      .select('full_name, email, phone').eq('id', adm.lead_id).maybeSingle()
     studentName = studentName || (lead?.full_name as string) || null
     email = email || (lead?.email as string) || null
+    phone = phone || (lead?.phone as string) || null
   }
 
   // The CURRENT course record — the same columns the Courses screen edits.
@@ -125,6 +145,7 @@ export async function prepareAdmissionLetter(admissionId: string): Promise<LoadR
     admissionId,
     studentName,
     email,
+    phone,
     programme: course?.name ?? null,
     mode,
     modeLabel: mode ? modeLabel(mode) : null,
@@ -138,7 +159,7 @@ export async function prepareAdmissionLetter(admissionId: string): Promise<LoadR
     alreadySent: adm.admission_letter_sent === true,
     sentAt: (adm.offer_letter_sent_at as string) || null,
     blocked: blockingReason({
-      studentName, email, course, mode,
+      studentName, email, phone, course, mode,
       admissionNumber: (adm.admission_number as string) || null,
     }),
   }
@@ -147,7 +168,15 @@ export async function prepareAdmissionLetter(admissionId: string): Promise<LoadR
 }
 
 export type SendResult =
-  | { ok: true; pdfUrl: string; preview: LetterPreview; recorded: boolean }
+  | {
+      ok: true
+      pdfUrl: string
+      preview: LetterPreview
+      recorded: boolean
+      /** Which channel carried it, and the masked destination. */
+      via?: LetterChannel | null
+      sentTo?: string | null
+    }
   | { ok: false; status: number; reason: string; needsResendConfirmation?: boolean; preview?: LetterPreview }
 
 /**
@@ -193,26 +222,39 @@ export async function issueAdmissionLetter(
 
   if (opts.review) return { ok: true, pdfUrl, preview: p, recorded: false }
 
-  const sent = await emailAdmissionLetter({
-    to: p.email!,
-    name: p.studentName!,
-    course: p.programme!,
-    admissionNo: p.admissionNumber!,
-    letterDate: p.letterDate,
-    mode: p.modeLabel!,
-    fee: p.fee!,
-    registrationFee: p.registrationFee,
-    startDate: p.startDate,
+  /*
+   * ── BY WHATEVER CAN CARRY IT ─────────────────────────────────────────────
+   *
+   * This called emailAdmissionLetter and nothing else, and answered "the
+   * email provider did not accept the letter" when it failed. With the campus
+   * mailbox unconfigured that was the only possible outcome, for every
+   * student — so no admission letter could be issued at all.
+   *
+   * Email first, because an admission letter is a document and should arrive
+   * as one. Then WhatsApp, which is what the registration screen has always
+   * promised the student. Then SMS, which always works. The last two carry a
+   * link to the same PDF, which is the whole letter.
+   */
+  const delivery = await deliverLetter(
+    {
+      studentName: p.studentName, email: p.email, phone: p.phone,
+      programme: p.programme, admissionNumber: p.admissionNumber,
+      modeLabel: p.modeLabel, fee: p.fee, registrationFee: p.registrationFee,
+      startDate: p.startDate, letterDate: p.letterDate,
+    },
     pdfUrl,
-  })
+  )
 
-  if (!sent) {
+  if (!delivery.sent) {
     await recordAudit({
       actorId, action: 'admission.letter_send_failed', resource: 'admissions',
       resourceId: admissionId, success: false,
-      metadata: { recipient: p.email, programme: p.programme, fee: p.fee, letterDate: p.letterDate },
+      metadata: {
+        recipient: p.email, phone: Boolean(p.phone), programme: p.programme,
+        fee: p.fee, letterDate: p.letterDate, triedChannels: delivery.failed,
+      },
     })
-    return { ok: false, status: 502, reason: 'The email provider did not accept the letter. Nothing was marked as sent. Please try again.' }
+    return { ok: false, status: 502, reason: undeliverableLetterMessage(p) }
   }
 
   const sb = createServiceClient()
@@ -241,6 +283,11 @@ export async function issueAdmissionLetter(
     success: true,
     metadata: {
       student: p.studentName,
+      // Which channel carried it, and where to. "Sent" on its own cannot
+      // answer the question a student asks: I never got it, where did it go?
+      via: delivery.via,
+      sentTo: delivery.hint,
+      channelsTried: delivery.failed,
       recipient: p.email,
       programme: p.programme,
       mode: p.modeLabel,
@@ -260,5 +307,8 @@ export async function issueAdmissionLetter(
     console.error('[admission letter] sent but not marked as sent:', admissionId, markError.message)
   }
 
-  return { ok: true, pdfUrl, preview: p, recorded: !markError }
+  return {
+    ok: true, pdfUrl, preview: p, recorded: !markError,
+    via: delivery.via, sentTo: delivery.hint,
+  }
 }

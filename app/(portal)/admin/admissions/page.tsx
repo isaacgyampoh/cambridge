@@ -2,6 +2,7 @@
 import { useData, mutate } from '@/hooks/useData'
 import { displayPhone, telHref, whatsappHref } from '@/lib/ui/contact'
 import { displayName } from '@/lib/ui/name'
+import { letterSentPhrase } from '@/lib/admissions/letterPolicy'
 import { useState } from 'react'
 import Modal from '@/components/shared/Modal'
 import { toast } from 'sonner'
@@ -89,7 +90,8 @@ export default function AdminAdmissions() {
    * nowhere else.
    */
   type LetterPreview = {
-    studentName: string | null; email: string | null; programme: string | null
+    studentName: string | null; email: string | null; phone: string | null
+    programme: string | null
     modeLabel: string | null; fee: string | null; registrationFee: string | null
     letterDate: string; startDate: string | null; admissionNumber: string | null
     alreadySent: boolean; sentAt: string | null; blocked: string | null
@@ -150,7 +152,14 @@ export default function AdminAdmissions() {
         if (d?.needsResendConfirmation) setLetter(l => l ? { ...l, alreadySent: true } : l)
         throw new Error(d?.error || 'The admission letter was not sent.')
       }
-      toast.success(`Admission letter sent to ${letter.email}`)
+      /*
+       * Where it ACTUALLY went, as the server reported it. The wording lives
+       * in letterPolicy.letterSentPhrase, which is unit tested for every
+       * channel — this screen said "sent to <email address>" whatever
+       * happened, and a letter that went to a phone announced as going to a
+       * mailbox sends somebody looking in an inbox for it.
+       */
+      toast.success(letterSentPhrase(d.via ?? null, d.sentTo ?? null))
       if (d.recorded === false) {
         toast.warning('The letter went, but could not be marked as sent. Tell an administrator.')
       }
@@ -396,8 +405,18 @@ export default function AdminAdmissions() {
                 </>)}
                 <dt className="text-[var(--ink-faint)]">Admission no.</dt>
                 <dd className="font-medium text-[var(--ink)]">{letter.admissionNumber || '—'}</dd>
+                {/*
+                  * Both destinations, because either can carry it: email
+                  * first, then WhatsApp or a text to the number. Showing only
+                  * the mailbox made a student with a phone and no email look
+                  * unreachable when they were not.
+                  */}
                 <dt className="text-[var(--ink-faint)]">Recipient</dt>
-                <dd className="font-medium text-[var(--ink)] break-all">{letter.email || '—'}</dd>
+                <dd className="font-medium text-[var(--ink)] break-all">
+                  {letter.email || letter.phone
+                    ? [letter.email, letter.phone].filter(Boolean).join(' · ')
+                    : '—'}
+                </dd>
               </dl>
 
               {letter.blocked && (
