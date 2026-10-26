@@ -14,8 +14,8 @@
  *
  * ── A CODE, NOT A TYPED ANSWER ─────────────────────────────────────────────
  *
- * TEXT, holding one of the codes in lib/leads/industry.ts, written only after
- * being parsed through that module. Deliberately not a Postgres enum: the
+ * TEXT, holding one of the sixteen codes in lib/leads/industry.ts, written
+ * only after being parsed through that module. Deliberately not a Postgres enum: the
  * list will gain entries, and an enum makes every addition a migration and a
  * deploy — while lead_source being an enum is exactly why a row that said
  * "walk_in" once failed its insert with no explanation anybody could act on.
@@ -27,7 +27,7 @@
 ALTER TABLE leads ADD COLUMN IF NOT EXISTS industry TEXT;
 
 COMMENT ON COLUMN leads.industry IS
-  'Industry code from lib/leads/industry.ts. NULL = not stated; ''other'' = stated as none of the list.';
+  'One of the sixteen industry codes in lib/leads/industry.ts. NULL means not stated: there is deliberately no ''other''.';
 
 /*
  * The index is for the question this column exists to answer: "how many of
