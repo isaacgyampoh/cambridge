@@ -154,7 +154,15 @@ export async function POST(req: NextRequest) {
   }
 
   const verified = decision.outcome === 'verified'
+  /*
+   * `amt` is what the fee is credited. For a mobile-money payment that is the
+   * provider's figure LESS the 1% the payer was charged on top of what they
+   * owed — crediting the gross would clear a GHS 1,000 balance with
+   * GHS 1,010 and leave them in credit on every payment.
+   */
   const amt = decision.amount
+  const gross = decision.gross
+  const serviceCharge = decision.serviceCharge
   const reference = decision.reference
 
   /* ── record it, exactly once ──────────────────────────────────────────── */
@@ -233,13 +241,31 @@ export async function POST(req: NextRequest) {
       resource: 'fee_payments',
       resourceId: payment.id,
       success: true,
-      metadata: { studentFeeId: fee.id, amount: amt, reference, balance: newBalance },
+      /*
+       * Both figures. What the student was charged and what their fee was
+       * credited differ by the service charge, and a reconciliation against
+       * the Paystack settlement needs the first while the ledger needs the
+       * second.
+       */
+      metadata: {
+        studentFeeId: fee.id, credited: amt, grossPaid: gross,
+        serviceCharge, reference, balance: newBalance,
+      },
     })
 
     /* ── tell them ─────────────────────────────────────────────────────── */
 
     const first = (fee.student_name || '').split(' ')[0] || 'there'
-    const msg = `Hello ${first}, we've received your payment of GHS ${amt.toFixed(2)}. Receipt: ${rcpt}.` +
+    /*
+     * The receipt names what was credited to the fee, and says what the 1%
+     * came to when there was one. A receipt that matches neither their
+     * balance nor their bank statement is the one that generates a phone
+     * call to the office.
+     */
+    const charged = serviceCharge > 0
+      ? ` (GHS ${gross.toFixed(2)} charged, including GHS ${serviceCharge.toFixed(2)} service charge)`
+      : ''
+    const msg = `Hello ${first}, we've received your payment of GHS ${amt.toFixed(2)}${charged}. Receipt: ${rcpt}.` +
       (newBalance > 0
         ? ` Your remaining balance is GHS ${newBalance.toFixed(2)}.`
         : ' Your fees are fully paid — thank you!')
@@ -290,7 +316,8 @@ export async function POST(req: NextRequest) {
   }
 
   return NextResponse.json({
-    success: true, verified, receiptNo: rcpt, amount: amt, balance: newBalance,
+    success: true, verified, receiptNo: rcpt, amount: amt,
+    grossPaid: gross, serviceCharge, balance: newBalance,
     message: verified
       ? 'Payment received'
       : (method === 'bank'

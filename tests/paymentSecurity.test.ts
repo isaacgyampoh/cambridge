@@ -68,8 +68,23 @@ describe('2 & 3. the provider decides the amount, never the caller', () => {
       paystackSaid(1)                                            // actually paid 1
     )
     assert.equal(decision.outcome, 'verified')
-    assert.equal((decision as { amount: number }).amount, 1,
-      'the amount banked must be what Paystack reports')
+
+    /*
+     * What the gateway collected is the provider's figure and nothing else.
+     * The claim is not a smaller influence on it — it is no influence.
+     */
+    const d = decision as { amount: number; gross: number; serviceCharge: number }
+    assert.equal(d.gross, 1, 'the gross banked must be what Paystack reports')
+
+    /*
+     * The amount CREDITED is that gross less the 1% the payer was charged on
+     * top of what they owed. It is derived from the provider's figure, so a
+     * claim of 5000 cannot reach it either.
+     */
+    assert.equal(d.amount, 0.99)
+    assert.equal(d.serviceCharge, 0.01)
+    assert.equal(d.amount + d.serviceCharge, d.gross,
+      'the split must account for every pesewa the provider reported')
   })
 
   test('the reference banked is the provider\'s, not the one supplied', () => {
@@ -88,7 +103,28 @@ describe('2 & 3. the provider decides the amount, never the caller', () => {
       )
       // Whatever nonsense was claimed, the provider's figure is what stands.
       assert.equal(decision.outcome, 'verified')
-      assert.equal((decision as { amount: number }).amount, 250)
+      const d = decision as { amount: number; gross: number; serviceCharge: number }
+      assert.equal(d.gross, 250)
+      // 250 collected is 247.52 of fee and 2.48 of service charge.
+      assert.equal(d.amount, 247.52)
+      assert.equal(d.amount + d.serviceCharge, 250)
+    }
+  })
+
+  test('the 1% is never taken off a payment that did not go through the gateway', () => {
+    /*
+     * The charge pays for collecting a payment through Paystack. Cash handed
+     * over at the desk and a bank transfer do not go near it, so taking 1% of
+     * those would be charging for nothing — and would quietly short every
+     * student who paid at the office by a percent of their fee.
+     */
+    for (const method of ['cash', 'bank']) {
+      const decision = decidePayment({ method, amount: 1000, reference: null }, null)
+      assert.equal(decision.outcome, 'pending')
+      const d = decision as { amount: number; gross: number; serviceCharge: number }
+      assert.equal(d.serviceCharge, 0, `${method} was charged a gateway fee`)
+      assert.equal(d.amount, 1000, `${method} must credit the whole amount claimed`)
+      assert.equal(d.gross, 1000)
     }
   })
 })

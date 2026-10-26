@@ -15,6 +15,7 @@
  * provider — and so they stay tested. Every invariant below is asserted in
  * tests/paymentSecurity.test.ts, which is intended to remain green forever.
  */
+import { splitGross } from './serviceCharge.ts'
 
 /** What the caller asked for. Every field is untrusted. */
 export type PaymentRequest = {
@@ -32,14 +33,25 @@ export type ProviderVerification =
 export type PaymentDecision =
   | {
       outcome: 'verified'
-      /** The amount to bank. For mobile money this is the PROVIDER's figure. */
+      /**
+       * The amount to credit to the fee.
+       *
+       * For mobile money this is derived from the PROVIDER's figure, less the
+       * 1% service charge the payer was charged on top of what they owed.
+       */
       amount: number
+      /** What the payer was actually charged, provider-reported. */
+      gross: number
+      /** The 1%. Zero for a method that goes nowhere near the gateway. */
+      serviceCharge: number
       reference: string
     }
   | {
       /** Recorded, but not credited: finance confirms it by hand. */
       outcome: 'pending'
       amount: number
+      gross: number
+      serviceCharge: number
       reference: null
     }
   | { outcome: 'rejected'; reason: string }
@@ -91,25 +103,43 @@ export function decidePayment(
       return { outcome: 'rejected', reason: 'The provider reported an invalid amount' }
     }
     /*
-     * The provider's figure, never the caller's. This single line is the
-     * difference between a student paying one cedi and a student clearing
-     * their fees.
+     * The provider's figure, never the caller's. This is the difference
+     * between a student paying one cedi and a student clearing their fees.
+     *
+     * ── AND THE SPLIT IS DERIVED, NOT READ ─────────────────────────────────
+     *
+     * The payer was charged 1% on top of what they owed, so the provider's
+     * figure is the gross and the fee is credited the base. The split is
+     * computed FROM the provider's figure rather than taken from the
+     * transaction metadata, because this path's Paystack transaction is
+     * created by the inline popup in the browser — so its metadata is the
+     * caller's to write, and a caller who could write `base_amount` could
+     * claim the whole gross was fee and keep the charge.
      */
+    const split = splitGross(verification.amount)
     return {
       outcome: 'verified',
-      amount: verification.amount,
+      amount: split.base,
+      gross: verification.amount,
+      serviceCharge: split.charge,
       reference: verification.reference,
     }
   }
 
-  // Bank transfer or cash: a CLAIM, not a payment. The amount is the caller's
-  // because a human checks it before anything is credited, and it stays
-  // pending until they do.
+  /*
+   * Bank transfer or cash: a CLAIM, not a payment. The amount is the caller's
+   * because a human checks it before anything is credited, and it stays
+   * pending until they do.
+   *
+   * No service charge. The 1% pays for taking a payment through the gateway,
+   * and money handed over at the desk or moved by bank transfer does not go
+   * through it — charging for it would be charging for nothing.
+   */
   const claimed = Number(request.amount)
   if (!Number.isFinite(claimed) || claimed <= 0) {
     return { outcome: 'rejected', reason: 'Enter a valid amount' }
   }
-  return { outcome: 'pending', amount: claimed, reference: null }
+  return { outcome: 'pending', amount: claimed, gross: claimed, serviceCharge: 0, reference: null }
 }
 
 /**

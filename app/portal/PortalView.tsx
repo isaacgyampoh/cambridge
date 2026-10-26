@@ -2,6 +2,7 @@
 import { useEffect, useState, useCallback, useSyncExternalStore } from 'react'
 import MaterialViewer from './MaterialViewer'
 import { postJson, messageFor } from '@/lib/api/post'
+import { grossWithCharge, serviceChargeOn, SERVICE_CHARGE_LABEL } from '@/lib/payments/serviceCharge'
 
 /**
  * The student portal.
@@ -537,7 +538,34 @@ export default function PortalView({ demo, demoData }: { demo?: boolean; demoDat
                 At least {ghs(s.minTopUp)} to unlock the next session. You may pay more.
               </p>
             ) : null}
-            <Button onClick={pay} disabled={paying}>{paying ? 'Opening payment…' : 'Pay now'}</Button>
+            {/*
+              * What they will actually be charged, before they leave the page.
+              * The gateway adds 1%; seeing that total for the first time on
+              * Paystack's own screen is how a payment becomes a complaint.
+              * The amount typed is what comes off the fees — that is the
+              * figure the ledger is credited.
+              */}
+            {Number(amount) > 0 && (
+              <div className="rounded-2xl bg-[var(--canvas)] p-3 mb-3 text-[13px]">
+                <div className="flex justify-between py-0.5 text-[var(--ink-soft)]">
+                  <span>Off your fees</span>
+                  <span className="tabular-nums font-semibold text-[var(--ink)]">{ghs(Number(amount))}</span>
+                </div>
+                <div className="flex justify-between py-0.5 text-[var(--ink-soft)]">
+                  <span>{SERVICE_CHARGE_LABEL}</span>
+                  <span className="tabular-nums">{ghs(serviceChargeOn(Number(amount)))}</span>
+                </div>
+                <div className="flex justify-between py-1 border-t border-[var(--line)] mt-1 pt-1.5">
+                  <span className="font-semibold text-[var(--ink)]">Total to pay</span>
+                  <span className="tabular-nums font-bold text-[var(--ink)]">{ghs(grossWithCharge(Number(amount)))}</span>
+                </div>
+              </div>
+            )}
+            <Button onClick={pay} disabled={paying}>
+              {paying
+                ? 'Opening payment…'
+                : Number(amount) > 0 ? `Pay ${ghs(grossWithCharge(Number(amount)))}` : 'Pay now'}
+            </Button>
           </Card>
         )}
 

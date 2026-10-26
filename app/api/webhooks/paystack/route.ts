@@ -8,7 +8,8 @@ import { recordAudit } from '@/lib/audit'
 import { parseClassMode, classModeLabel } from '@/lib/classMode'
 import {
   verifyPaystackSignature, classifyPayment, eventKey,
-  minorUnitsToGHS, amountIsAcceptable, type PaystackEvent,
+  minorUnitsToGHS, amountIsAcceptable, paymentSplit, expectedGross,
+  type PaystackEvent,
 } from '@/lib/payments/verify'
 import { lookup } from '@/lib/db/lookup'
 
@@ -167,31 +168,57 @@ async function handleApplicationPayment(
     return NextResponse.json({ received: true, note: 'application not found' })
   }
 
-  // Amount check. Underpayment is refused; overpayment is accepted at its true
-  // value, because refusing a registration for paying too much would be absurd.
+  /*
+   * Amount check, against the GROSS.
+   *
+   * The payer is charged the registration fee plus 1%, so comparing what
+   * arrived against the bare fee would read every correct payment as an
+   * overpayment — and, worse, would accept a payment of exactly the fee from
+   * somebody who had found a way to skip the charge.
+   *
+   * Underpayment is refused; overpayment is accepted at its true value,
+   * because refusing a registration for paying too much would be absurd.
+   */
   const course = (app as { course?: { registration_fee?: number; name?: string } }).course
-  const expected = typeof course?.registration_fee === 'number' ? course.registration_fee : null
+  const expectedBase = typeof course?.registration_fee === 'number' ? course.registration_fee : null
+  const expected = expectedGross(expectedBase)
   const check = amountIsAcceptable(amount, expected)
   if (!check.ok) {
     console.warn('[paystack] amount mismatch on', reference, check.reason)
     await recordAudit({
       action: 'payment.amount_mismatch', resource: 'applications',
       resourceId: applicationId, success: false,
-      metadata: { reference, received: amount, expected }, request: req,
+      metadata: { reference, received: amount, expected, expectedBase }, request: req,
     })
     // Recorded, not silently accepted, and not retried.
     return NextResponse.json({ received: true, note: 'amount mismatch recorded' })
   }
 
+  /*
+   * What of it was the fee, and what was the charge.
+   *
+   * The payment is RECORDED at the base: that is what the centre has taken in
+   * for the registration, and it is the figure a receipt and a revenue total
+   * should show. The 1% paid for collecting it and is not income from the
+   * student. The gross and the charge both survive in paystack_response, so
+   * the full transaction can always be reconciled against the gateway.
+   */
+  const split = paymentSplit(event, amount)
+
   // Record the payment. The unique index on reference is the real guard.
   const { data: rows, error: payErr } = await sb.rpc('record_payment_once', {
     p_reference: reference,
-    p_amount: amount,
+    p_amount: split.base,
     p_method: 'paystack',
     p_purpose: 'registration',
     p_application: applicationId,
     p_student: null,
-    p_response: event.data ?? null,
+    p_response: {
+      ...(event.data ?? {}),
+      cce_service_charge: split.charge,
+      cce_gross_paid: amount,
+      cce_split_derived: split.derived,
+    },
   })
   if (payErr) {
     console.error('[paystack] record_payment_once failed:', payErr.message)
@@ -203,7 +230,8 @@ async function handleApplicationPayment(
     payment_status: 'paid',
     paystack_ref: reference,
     paid_at: new Date().toISOString(),
-    amount_paid: amount,
+    // The fee, not the fee plus the cost of collecting it.
+    amount_paid: split.base,
     is_submitted: true,
     submitted_at: new Date().toISOString(),
   }).eq('id', applicationId)
@@ -246,7 +274,11 @@ async function handleApplicationPayment(
   await recordAudit({
     action: 'payment.registration_recorded', resource: 'payments',
     resourceId: applicationId, success: true,
-    metadata: { reference, amount, wasNew: payment?.was_new !== false }, request: req,
+    metadata: {
+      reference, grossPaid: amount, fee: split.base, serviceCharge: split.charge,
+      splitDerived: split.derived, wasNew: payment?.was_new !== false,
+    },
+    request: req,
   })
 
   return NextResponse.json({
@@ -261,14 +293,29 @@ async function handleCourseFeePayment(
   sb: SB, leadId: string, reference: string,
   amount: number, event: PaystackEvent, req: NextRequest
 ) {
+  /*
+   * Split the money before anything is recorded.
+   *
+   * The student asked to pay a figure off their balance and was charged 1%
+   * more than it. Only the base belongs to the fee: crediting the gross would
+   * clear a GHS 1,000 balance with GHS 1,010 and leave them ten cedis in
+   * credit, on every payment, for ever.
+   */
+  const split = paymentSplit(event, amount)
+
   const { data: rows, error: payErr } = await sb.rpc('record_payment_once', {
     p_reference: reference,
-    p_amount: amount,
+    p_amount: split.base,
     p_method: 'paystack',
     p_purpose: 'course_fee',
     p_application: null,
     p_student: null,
-    p_response: event.data ?? null,
+    p_response: {
+      ...(event.data ?? {}),
+      cce_service_charge: split.charge,
+      cce_gross_paid: amount,
+      cce_split_derived: split.derived,
+    },
   })
   if (payErr) throw new Error(payErr.message)
 
@@ -280,7 +327,7 @@ async function handleCourseFeePayment(
   // Atomic increment: the balance arithmetic happens inside the UPDATE, so two
   // payments landing together cannot overwrite one another's total.
   const { data: feeRows, error: feeErr } = await sb.rpc('apply_fee_payment', {
-    p_lead: leadId, p_amount: amount,
+    p_lead: leadId, p_amount: split.base,
   })
   if (feeErr) {
     console.error('[paystack] apply_fee_payment failed:', feeErr.message)
@@ -299,9 +346,17 @@ async function handleCourseFeePayment(
 
   if (lead?.phone) {
     const balance = Number(fee.balance || 0)
+    /*
+     * The figure named is the one credited to their fees, with the charge
+     * stated separately. Naming the gross would not match their balance and
+     * naming only the base would not match their bank statement; a receipt
+     * that matches neither is the one that generates the phone call.
+     */
+    const paid = `GHS ${split.base.toFixed(2)}`
+    const charged = split.charge > 0 ? ` (GHS ${amount.toFixed(2)} charged, including the 1% service charge)` : ''
     const msg = balance > 0
-      ? `CCE: Payment of GHS ${amount.toFixed(2)} received, thank you. Your outstanding balance is GHS ${balance.toFixed(2)}.`
-      : `CCE: Payment of GHS ${amount.toFixed(2)} received, thank you. Your fees are now fully paid.`
+      ? `CCE: Payment of ${paid} received, thank you${charged}. Your outstanding balance is GHS ${balance.toFixed(2)}.`
+      : `CCE: Payment of ${paid} received, thank you${charged}. Your fees are now fully paid.`
 
     let waOk = false
     try { waOk = Boolean(await sendWhatsAppText(lead.phone, msg)) } catch { /* fall through to SMS */ }
@@ -317,7 +372,12 @@ async function handleCourseFeePayment(
   await recordAudit({
     action: 'payment.course_fee_recorded', resource: 'payments',
     resourceId: leadId, success: true,
-    metadata: { reference, amount, balance: fee.balance }, request: req,
+    metadata: {
+      reference, grossPaid: amount, credited: split.base,
+      serviceCharge: split.charge, splitDerived: split.derived,
+      balance: fee.balance,
+    },
+    request: req,
   })
 
   return NextResponse.json({ success: true, balance: fee.balance })

@@ -3,7 +3,8 @@ import { uploadFile } from '@/lib/upload'
 import { CONFIG } from '@/lib/config'
 
 import { useState, useEffect, use } from 'react'
-import type { Profile, Course } from '@/types'
+import type { Profile } from '@/types'
+import { grossWithCharge, serviceChargeOn } from '@/lib/payments/serviceCharge'
 import { toast } from 'sonner'
 import Script from 'next/script'
 import Image from 'next/image'
@@ -21,10 +22,27 @@ function prettySource(s?: string): string {
   return m[s.toLowerCase()] || (s.charAt(0).toUpperCase() + s.slice(1))
 }
 
+/*
+ * What /api/courses/public answers with. The registration fee and its 1%
+ * service charge come from the server: this page used to print "GHS 200" as a
+ * literal in three places and send that same 200 as the amount to charge, so
+ * the price lived in a React component and anybody could edit it in the
+ * browser before paying.
+ */
+type PublicCourse = {
+  id: string
+  name: string
+  registrationFee: number
+  serviceCharge: number
+  registrationTotal: number
+}
+
+const ghs = (n: number) => `GHS ${n.toLocaleString('en-GB', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+
 export default function ApplicationPage({ params }: { params: Promise<{ marketerId: string }> }) {
   const { marketerId } = use(params)
   const [marketer, setMarketer] = useState<Profile | null>(null)
-  const [courses, setCourses] = useState<Course[]>([])
+  const [courses, setCourses] = useState<PublicCourse[]>([])
   const [step, setStep] = useState(1) // 1=form, 2=payment, 3=success
   const [submitting, setSubmitting] = useState(false)
   const [applicationId, setApplicationId] = useState<string | null>(null)
@@ -112,6 +130,13 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
     load()
   }, [marketerId])
 
+  /*
+   * The course they picked, which is where the registration fee comes from.
+   * Null until a selection is made, and every figure derived from it is
+   * written so the page says nothing about price until it knows the price.
+   */
+  const selectedCourse = courses.find(c => c.id === form.course_id) || null
+
   function set(key: string, value: any) {
     setForm(f => ({ ...f, [key]: value }))
   }
@@ -180,12 +205,15 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
 
     // Initialize server-side (recommended). Paystack returns a hosted checkout
     // URL; if anything is misconfigured it returns a clear error message.
-    const ref = `CCE-APP-${applicationId}-${Date.now()}`
+    /*
+     * The amount, the reference and the metadata are all the server's now.
+     * This used to send `amount: 200` from the browser, which the server
+     * initialised Paystack with as given.
+     */
     const init = await fetch('/api/paystack/init', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
-        email: form.email, amount: 200, reference: ref,
-        metadata: { application_id: applicationId, purpose: 'registration_fee' },
+        applicationId,
         callback_url: typeof window !== 'undefined' ? window.location.href.split('?')[0] : undefined,
       }),
     }).then(r => r.json()).catch(() => null)
@@ -194,8 +222,8 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
       toast.error(init?.error || 'Could not start payment. Please try again.')
       return
     }
-    // Remember the ref so we can confirm on return
-    try { sessionStorage.setItem('cce_pay_ref', ref); sessionStorage.setItem('cce_pay_app', applicationId) } catch {}
+    // Remember the server's reference so we can confirm on return.
+    try { sessionStorage.setItem('cce_pay_ref', init.reference); sessionStorage.setItem('cce_pay_app', applicationId) } catch {}
     // Go to Paystack's secure checkout
     window.location.href = init.authorization_url
   }
@@ -360,7 +388,22 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
 
               {/* Payment method */}
               <div className="border-t border-[var(--line)] pt-5 mb-6">
-                <p className="text-[13px] font-semibold text-[var(--ink)] mb-3">Registration Fee — GHS 200</p>
+                <p className="text-[13px] font-semibold text-[var(--ink)] mb-3">
+                  {selectedCourse
+                    ? <>Registration Fee — {ghs(selectedCourse.registrationFee)}</>
+                    : <>Registration Fee</>}
+                </p>
+                {selectedCourse && selectedCourse.serviceCharge > 0 && form.payment_method === 'paystack' && (
+                  /*
+                   * Said before they choose, not for the first time on the
+                   * gateway's own page. A total a percent above the figure
+                   * somebody agreed to is how a payment becomes a chargeback.
+                   */
+                  <p className="text-[12px] text-[var(--ink-faint)] mb-3">
+                    Paying online adds a 1% service charge of {ghs(selectedCourse.serviceCharge)},
+                    so the total is {ghs(selectedCourse.registrationTotal)}. Paying cash at the office does not.
+                  </p>
+                )}
                 <div className="grid grid-cols-2 gap-3">
                   {[
                     { value: 'paystack', label: 'Pay Online', sub: 'MoMo or Card' },
@@ -400,11 +443,30 @@ export default function ApplicationPage({ params }: { params: Promise<{ marketer
                 </svg>
               </div>
               <h2 className="text-xl font-bold text-[var(--ink)] mb-2">Pay Registration Fee</h2>
-              <p className="text-[var(--ink-faint)] mb-2">Registration fee: <span className="font-bold text-[var(--ink)]">GHS 200</span></p>
+              {selectedCourse ? (
+                <div className="text-[var(--ink-faint)] mb-2 text-[14px]">
+                  <div className="flex justify-between max-w-xs mx-auto py-1">
+                    <span>Registration fee</span>
+                    <span className="font-semibold text-[var(--ink)] tabular-nums">{ghs(selectedCourse.registrationFee)}</span>
+                  </div>
+                  {selectedCourse.serviceCharge > 0 && (
+                    <div className="flex justify-between max-w-xs mx-auto py-1">
+                      <span>Service charge (1%)</span>
+                      <span className="font-semibold text-[var(--ink)] tabular-nums">{ghs(selectedCourse.serviceCharge)}</span>
+                    </div>
+                  )}
+                  <div className="flex justify-between max-w-xs mx-auto py-1 border-t border-[var(--line)] mt-1 pt-2">
+                    <span className="font-semibold text-[var(--ink)]">Total to pay</span>
+                    <span className="font-bold text-[var(--ink)] tabular-nums">{ghs(selectedCourse.registrationTotal)}</span>
+                  </div>
+                </div>
+              ) : (
+                <p className="text-[var(--ink-faint)] mb-2">The exact amount is shown on the payment page.</p>
+              )}
               <p className="text-sm text-[var(--ink-faint)] mb-8">Complete payment to submit your application</p>
               <button onClick={payWithPaystack}
                 className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-[1.08] transition shadow-[var(--shadow-raised)]">
-                Pay GHS 200 via Paystack
+                {selectedCourse ? <>Pay {ghs(selectedCourse.registrationTotal)} via Paystack</> : <>Pay via Paystack</>}
               </button>
               <p className="text-xs text-[var(--ink-faint)] mt-4">Secured by Paystack · Mobile Money & Card accepted</p>
             </div>
@@ -447,10 +509,18 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
     const keyRes = await fetch('/api/paystack/key').then(r => r.json()).catch(() => null)
     const payKey = keyRes?.key
     if (!payKey) { toast.error('Payment is not configured. Please contact us.'); return }
+    /*
+     * The gateway collects the amount PLUS the 1% service charge; the fee is
+     * credited the amount. The server does not take this figure on trust — it
+     * derives the split from what Paystack reports it actually collected,
+     * because this transaction is created here in the browser and its
+     * metadata would be the caller's to write.
+     */
+    const total = grossWithCharge(amt)
     ps.setup({
       key: payKey,
       email: `${(fee.student_name || 'student').replace(/\s+/g, '').toLowerCase()}@cce.edu.gh`,
-      amount: Math.round(amt * 100), currency: 'GHS',
+      amount: Math.round(total * 100), currency: 'GHS',
       ref: `CCE-FEE-${fee.id}-${Date.now()}`,
       channels: ['mobile_money', 'card'],
       callback: (res: any) => record('momo', amt, res.reference),
@@ -512,7 +582,33 @@ function FeePayStep({ applicationId, firstName }: { applicationId: string | null
           <>
             <label className="block text-xs font-semibold text-[var(--ink-faint)] uppercase mb-1.5">Amount to pay</label>
             <p className="text-[11px] text-[var(--ink-faint)] mb-2">You can pay all or part of GHS {Number(fee.balance).toFixed(2)}.</p>
-            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full h-12 px-4 rounded-2xl border border-[var(--line)] text-[15px] mb-4 outline-none" />
+            <input type="number" value={amount} onChange={e => setAmount(e.target.value)} className="w-full h-12 px-4 rounded-2xl border border-[var(--line)] text-[15px] mb-3 outline-none" />
+            {/*
+              * Stated before they choose a method, because it applies to one
+              * of the two. Mobile money goes through the gateway and carries
+              * the 1%; a bank transfer does not go near it and does not.
+              */}
+            {Number(amount) > 0 && (
+              <div className="rounded-xl bg-[var(--canvas)] p-3 mb-4 text-[12px] text-[var(--ink-soft)]">
+                <div className="flex justify-between py-0.5">
+                  <span>Paying by MoMo or card</span>
+                  <span className="tabular-nums font-semibold text-[var(--ink)]">
+                    GHS {grossWithCharge(Number(amount)).toFixed(2)}
+                  </span>
+                </div>
+                <div className="flex justify-between py-0.5">
+                  <span>includes 1% service charge</span>
+                  <span className="tabular-nums">GHS {serviceChargeOn(Number(amount)).toFixed(2)}</span>
+                </div>
+                <div className="flex justify-between py-0.5 border-t border-[var(--line)] mt-1 pt-1.5">
+                  <span>By bank transfer</span>
+                  <span className="tabular-nums font-semibold text-[var(--ink)]">GHS {Number(amount).toFixed(2)}</span>
+                </div>
+                <p className="mt-1.5 text-[var(--ink-faint)]">
+                  Either way GHS {Number(amount).toFixed(2)} comes off your fees.
+                </p>
+              </div>
+            )}
             <button onClick={payMomo} disabled={busy} className={btn + " mb-2.5"} style={{ background: '#ffcc00', color: 'var(--ink)' }}>Mobile Money (MoMo)</button>
             <button onClick={() => setView('bank')} className={btn + " text-white"} style={{ background: '#1e3a8a' }}>Bank transfer</button>
           </>
