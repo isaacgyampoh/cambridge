@@ -253,8 +253,114 @@ export function canRead(table: string, role: string, portals?: string[] | null):
   if (table === 'leads') return leadAccessFor(role, portals) !== null
 
   const list = READ_TABLES[role] || []
-  return list.includes(ALL_TABLES_WILDCARD) || list.includes(table)
+  if (list.includes(ALL_TABLES_WILDCARD) || list.includes(table)) return true
+
+  /*
+   * The programme list and the points bands, for anybody who can work a lead.
+   * Without these the Register student dialog has an empty dropdown and the
+   * conversion cannot be recorded at all.
+   */
+  if (LEAD_REFERENCE_TABLES.includes(table) && leadAccessFor(role, portals) !== null) return true
+
+  /*
+   * And whatever the portals this person has been GRANTED need in order to
+   * render. The navigation and the API path guard both honour a grant; this
+   * is the third place that has to, or the grant produces a screen that
+   * refuses its own data.
+   */
+  if (NOT_STAFF.includes(role)) return false
+
+  const held = resolvePortals(role, portals)
+  return held.some(portal => (PORTAL_READ_TABLES[portal] || []).includes(table))
 }
+
+/**
+ * WHAT A GRANTED PORTAL LETS SOMEBODY READ.
+ *
+ * ── THE FAULT THIS FIXES ───────────────────────────────────────────────────
+ *
+ * An administrator can grant a portal to one person from the staff screen, and
+ * the navigation honours it: the screen appears in their sidebar. The API path
+ * guard honours it too. This file did not — read access was decided by ROLE
+ * alone, with `leads` as the single exception.
+ *
+ * So granting an admissions officer the `finance` portal gave them Payments,
+ * Student fees and Class payments in the sidebar, and every one of those
+ * screens answered "You do not have access to this information." with every
+ * figure at zero. The grant looked like it worked and did nothing. That is
+ * exactly what was reported, by an admissions officer holding nineteen
+ * granted portals.
+ *
+ * ── WHY READS AND NOT WRITES ───────────────────────────────────────────────
+ *
+ * Granting a portal is saying "you may look at this". It is not saying "you
+ * may move money", and these tables include the ones money lives in. Writing
+ * still follows the ROLE, so somebody who should genuinely do finance work is
+ * given the finance ROLE rather than a portal that quietly widens what they
+ * can change.
+ *
+ * ── HOW THIS LIST WAS BUILT ────────────────────────────────────────────────
+ *
+ * Not from memory: by reading every screen each portal unlocks in
+ * lib/nav/model.ts and collecting the tables those pages actually query. A
+ * portal grants exactly what its own screens need to render, and nothing
+ * else.
+ */
+const PORTAL_READ_TABLES: Record<string, readonly string[]> = {
+  leads:          ['leads', 'courses'],
+  my_leads:       ['leads', 'courses', 'follow_up_queue'],
+  pm_leads:       ['leads', 'lead_activities', 'profiles'],
+  admissions:     ['admissions', 'applications'],
+  registrations:  ['applications', 'admissions'],
+  finance:        ['payments', 'invoices', 'student_fees', 'fee_payments', 'courses', 'profiles'],
+  academics:      ['batches', 'courses', 'student_fees', 'certificates', 'class_enrollments', 'profiles'],
+  attendance:     ['batches', 'class_sessions', 'class_signins'],
+  my_classes:     ['batches', 'batch_students', 'attendance'],
+  my_attendance:  ['batches'],
+  broadcast:      ['batches', 'broadcasts'],
+  clock_in:       ['staff_attendance'],
+  workforce:      ['staff_attendance', 'office_locations', 'profiles'],
+  conversations:  ['ai_conversations', 'profiles'],
+  documents:      ['documents', 'profiles'],
+  knowledge:      ['knowledge_base'],
+  remuneration:   ['program_points', 'rank_bands', 'marketer_enrollments'],
+  sequences:      ['sequences', 'sequence_steps', 'sequence_enrollments'],
+  settings:       ['settings', 'cron_runs'],
+  staff:          ['profiles'],
+  wa_lines:       ['profiles'],
+  alumni:         ['alumni'],
+  my_link:        ['applications', 'profiles'],
+  prep:           ['testimonials'],
+  reminders:      ['batches'],
+}
+
+/**
+ * Reference data anybody working a lead has to be able to read.
+ *
+ * `program_points` is the programme list the Register student dialog fills its
+ * dropdown from. Without it that dropdown is EMPTY — the person sees "Select
+ * programme" and nothing to select, and cannot register anybody at all. An
+ * admissions officer hit exactly that: they could open the lead, see the
+ * button, open the dialog, and go no further.
+ *
+ * It is a lookup table of programme names and their points. Reading it tells
+ * nobody anything about a person.
+ */
+const LEAD_REFERENCE_TABLES: readonly string[] = ['program_points', 'rank_bands', 'courses']
+
+/**
+ * Roles a portal grant may NOT widen.
+ *
+ * resolvePortals honours a custom portal list for any role at all, including
+ * a student's — so without this, a `finance` portal on a student row would
+ * hand them the payments table. That row should never exist, which is not an
+ * argument for the policy depending on it not existing.
+ *
+ * Listed as who is NOT staff rather than who is, so that adding a staff role
+ * to the system does not quietly leave it with no screens. A student is a
+ * customer; everybody else on the enum works here.
+ */
+const NOT_STAFF: readonly string[] = ['student']
 
 /** Tables anyone who can be given a lead must be able to work it with. */
 const LEAD_WORKING_TABLES = ['leads', 'lead_activities', 'lead_comments', 'lead_status_logs', 'follow_up_queue']
@@ -311,6 +417,20 @@ export function embeddedRelations(select: string): string[] {
 export const FK_TARGETS: Record<string, string> = {
   student_id: 'profiles',
   assigned_to: 'profiles',
+  /*
+   * Missing, and the whole All-leads screen was refused because of it.
+   *
+   * That page selects `assigner:assigned_by(full_name)`. An unmapped relation
+   * falls back to its own name, so the check asked whether the caller could
+   * read a table called "assigned_by" — which exists in no list — and the
+   * request was refused outright. Every role except the two holding the
+   * wildcard saw an empty list and an access error on the leads screen.
+   *
+   * `staff_id` is the same fault on the workforce screen. Both are confirmed
+   * against the database's own foreign keys.
+   */
+  assigned_by: 'profiles',
+  staff_id: 'profiles',
   marketer_id: 'profiles',
   user_id: 'profiles',
   created_by: 'profiles',
