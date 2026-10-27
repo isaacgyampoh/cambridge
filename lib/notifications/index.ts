@@ -5,9 +5,21 @@ import { sendPaymentReceipt, sendClassReminder } from '@/lib/integrations/email'
 
 const sb = () => createServiceClient()
 
-// Create in-app notification
-export async function notify(userId: string, type: string, title: string, body: string, data?: any) {
-  await sb().from('notifications').insert({ user_id: userId, type, title, body, data: data || null })
+/**
+ * Create an in-app notification.
+ *
+ * `data` is where anything beyond the four text fields goes, a link included:
+ * the table has no column for one, and naming a column that does not exist
+ * refuses the whole insert. Fifteen call sites learned that the hard way —
+ * see lib/notifications/shape.ts.
+ */
+export async function notify(
+  userId: string, type: string, title: string, body: string,
+  data?: Record<string, unknown> | null,
+  link?: string | null,
+) {
+  const payload = link ? { ...(data || {}), link } : data || null
+  await sb().from('notifications').insert({ user_id: userId, type, title, body, data: payload })
 }
 
 // Notify all users of a given role

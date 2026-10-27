@@ -89,7 +89,8 @@ export async function POST(req: NextRequest) {
         user_id: a.id, type: 'transfer',
         title: 'Lead transfer request',
         body: `A marketer is requesting ${lead.full_name}. Review and decide.`,
-        link: '/admin/transfers',
+        // The link lives in `data`: notifications has no link column.
+        data: { link: '/admin/transfers' },
       }))).then(() => {}, () => {})
     }
     return NextResponse.json({ success: true, request: tr })
@@ -196,7 +197,8 @@ export async function POST(req: NextRequest) {
       user_id: tr.requested_by, type: 'transfer',
       title: `Transfer ${approving ? 'approved' : 'declined'}`,
       body: approving ? 'The lead is now assigned to you.' : 'Your transfer request was declined.',
-      link: '/marketer',
+      // The link lives in `data`: notifications has no link column.
+      data: { link: '/marketer' },
     })
     if (noteErr) console.error('[transfer] requester not notified:', noteErr.message)
 

@@ -84,7 +84,8 @@ export async function POST(req: NextRequest) {
         user_id: p.id, type: 'link',
         title: `New link: ${body.title}`,
         body: 'A new link is available in My Links.',
-        link: p.role === 'marketing_officer' ? '/marketer/link' : '/links',
+        // The link lives in `data`: notifications has no link column.
+        data: { link: p.role === 'marketing_officer' ? '/marketer/link' : '/links' },
       }))).then(() => {}, () => {})
     }
 

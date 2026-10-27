@@ -171,7 +171,8 @@ async function notifyOwner(
   }
   const { error } = await sb.from('notifications').insert({
     user_id: lead.assigned_to, type: 'handoff', title, body,
-    link: `/marketer/leads/${lead.id}`,
+    // The link lives in `data`: notifications has no link column.
+    data: { link: `/marketer/leads/${lead.id}` },
   })
   if (error) console.error('[whatsapp] could not notify owner of:', title, error.message)
 }
@@ -579,7 +580,8 @@ async function handleInbound(req: NextRequest) {
         user_id: marketer.id, type: 'message',
         title: `New WhatsApp from ${lead?.full_name || phone}`,
         body: (text || 'New message').slice(0, 80),
-        link: lead?.id ? `/marketer/leads/${lead.id}` : '/marketer/leads',
+        // The link lives in `data`: notifications has no link column.
+        data: { link: lead?.id ? `/marketer/leads/${lead.id}` : '/marketer/leads' },
       }).then(() => {}, () => {})
     }
     await sb.from('ai_conversations').insert({
@@ -716,7 +718,8 @@ async function handleInbound(req: NextRequest) {
         user_id: marketer.id, type: 'register_intent',
         title: 'A lead wants to register',
         body: `${lead?.full_name || phone} asked to register. The registration link was sent automatically.`,
-        link: lead?.id ? `/marketer/leads/${lead.id}` : '/marketer',
+        // The link lives in `data`: notifications has no link column.
+        data: { link: lead?.id ? `/marketer/leads/${lead.id}` : '/marketer' },
       })
     }
     return NextResponse.json({ ok: true, sentLink: true })
@@ -937,7 +940,8 @@ async function handleInbound(req: NextRequest) {
         user_id: lead.assigned_to, type: 'handoff',
         title: 'Lead needs a reply',
         body: `${lead.full_name || phone}: "${String(text).slice(0, 90)}" — the assistant could not answer.`,
-        link: `/marketer/leads/${lead.id}`,
+        // The link lives in `data`: notifications has no link column.
+        data: { link: `/marketer/leads/${lead.id}` },
       }).then(() => {}, () => {})
     }
   }
@@ -958,7 +962,8 @@ async function handleInbound(req: NextRequest) {
           user_id: lead.assigned_to, type: 'handoff',
           title: 'Question needs a real answer',
           body: `${lead.full_name || phone} asked: "${String(text).slice(0, 90)}" — please confirm the details with them yourself.`,
-          link: `/marketer/leads/${lead.id}`,
+          // The link lives in `data`: notifications has no link column.
+          data: { link: `/marketer/leads/${lead.id}` },
         }).then(() => {}, () => {})
         const { data: mp } = await sb.from('profiles').select('phone, full_name').eq('id', lead.assigned_to).maybeSingle()
         if (mp?.phone) {
@@ -1012,7 +1017,8 @@ async function handleInbound(req: NextRequest) {
               user_id: lead.assigned_to, type: 'lead',
               title: 'Lead is ready to register',
               body: `${lead.full_name}: ${read.summary || 'showed strong interest'}`,
-              link: `/marketer/leads/${lead.id}`,
+              // The link lives in `data`: notifications has no link column.
+              data: { link: `/marketer/leads/${lead.id}` },
             }).then(() => {}, () => {})
           }
         }

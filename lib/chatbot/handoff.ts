@@ -140,7 +140,8 @@ export async function handOffToHuman(opts: {
         type: 'lead',
         title: score === 'READY_TO_REGISTER' ? 'A lead is ready to register' : 'A lead is asking for you',
         body,
-        link: `/marketer/leads/${leadId}`,
+        // The link lives in `data`: notifications has no link column.
+        data: { link: `/marketer/leads/${leadId}` },
       })
       if (notifyErr) {
         console.error('[chatbot] HANDOVER NOT ANNOUNCED for lead', leadId,

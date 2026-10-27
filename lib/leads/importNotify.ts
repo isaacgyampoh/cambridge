@@ -78,7 +78,8 @@ export async function notifyImportBatch(
       type: 'lead',
       title: `${many} assigned to you`,
       body: `${many} ${fromWhere} have been assigned to you. Start with the oldest.`,
-      link: '/marketer/leads',
+      // The link lives in `data`: notifications has no link column.
+      data: { link: '/marketer/leads' },
     })
     if (inAppError) out.failures.push(`in-app for ${person.id}: ${inAppError.message}`)
     else out.inApp++

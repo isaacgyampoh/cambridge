@@ -229,7 +229,8 @@ export async function completeApplication(
           user_id: creditTo, type: 'points',
           title: `+${points} points earned`,
           body: `${app.full_name} registered and paid for ${prog.name}. ${points} points + GHS 200 registration added to your annual total.`,
-          link: '/marketer/earnings',
+          // The link lives in `data`: notifications has no link column.
+          data: { link: '/marketer/earnings' },
         }).then(() => {}, () => {})
       }
     }

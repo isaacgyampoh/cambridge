@@ -43,7 +43,8 @@ export async function POST(req: NextRequest) {
     user_id: marketerId, type: 'commission_paid',
     title: 'Registration commission paid',
     body: `Finance has paid your registration commission of GHS ${amount.toLocaleString()} for ${count} student${count === 1 ? '' : 's'}.`,
-    link: '/marketer/earnings',
+    // The link lives in `data`: notifications has no link column.
+    data: { link: '/marketer/earnings' },
   })
 
   return NextResponse.json({ success: true, amount, count })

@@ -191,7 +191,8 @@ export async function POST(req: NextRequest) {
           user_id: creditTo, type: 'points',
           title: `+${points} points earned`,
           body: `${lead.full_name} registered for ${prog.name}. ${points} points + GHS 200 registration added to your annual total.`,
-          link: '/marketer/earnings',
+          // The link lives in `data`: notifications has no link column.
+          data: { link: '/marketer/earnings' },
         })
       }
       }

@@ -1,6 +1,7 @@
 'use client'
 
 import { useState, useEffect, useRef, useCallback } from 'react'
+import { notificationLink } from '@/lib/notifications/shape'
 import { Bell, Check } from 'lucide-react'
 import { useRouter } from 'next/navigation'
 import Link from 'next/link'
@@ -112,7 +113,14 @@ export default function NotificationBell({ userId }: { userId: string | null }) 
 
   function openItem(n: Notif) {
     if (!n.is_read) markRead(n.id)
-    if (n.link) { setOpen(false); router.push(n.link) }
+    /*
+     * The link lives in `data.link`: the table has no link column, and the
+     * inserts that assumed one failed outright for six weeks. The helper
+     * reads either place, so this does not have to change again if the
+     * column is ever added.
+     */
+    const href = notificationLink(n)
+    if (href) { setOpen(false); router.push(href) }
   }
 
   return (

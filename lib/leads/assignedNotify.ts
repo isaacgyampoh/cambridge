@@ -86,7 +86,8 @@ export async function notifyLeadAssigned(
       type: 'lead',
       title: 'New lead assigned to you',
       body: `${leadName}${lead?.source ? ` (${lead.source})` : ''} was assigned to you. Reach out soon.`,
-      link: `/marketer/leads/${leadId}`,
+      // The link lives in `data`: notifications has no link column.
+      data: { link: `/marketer/leads/${leadId}` },
     })
     if (error) {
       out.inApp = 'failed'
