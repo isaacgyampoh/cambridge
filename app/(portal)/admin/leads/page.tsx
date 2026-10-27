@@ -1,5 +1,5 @@
 'use client'
-import { useState } from 'react'
+import { useState, useEffect } from 'react'
 import { displayPhone } from '@/lib/ui/contact'
 import { displayName } from '@/lib/ui/name'
 import { useData } from '@/hooks/useData'
@@ -26,6 +26,7 @@ import { telHref, whatsappHref } from '@/lib/ui/contact'
 import { Phone, MessageCircle } from 'lucide-react'
 import { describeStatus } from '@/lib/ui/status'
 import { industryLabel } from '@/lib/leads/industry'
+import { UNSTATED, type IndustryGroup } from '@/lib/leads/industryStats'
 
 type BadgeTone = 'neutral' | 'accent' | 'success' | 'warning' | 'danger' | 'muted'
 import { exportToExcel } from '@/lib/utils/export'
@@ -119,6 +120,25 @@ export default function AdminLeads() {
   const [segment, setSegment] = useState('all')
 
   /*
+   * The industry groups across every lead on the desk, from the server.
+   *
+   * Counted there rather than from the rows loaded here, so the figure beside
+   * a group is the real one and not "how many of this page happen to be in
+   * mining".
+   */
+  const [industryFilter, setIndustryFilter] = useState<string | null>(null)
+  const [industryGroups, setIndustryGroups] = useState<IndustryGroup[]>([])
+
+  useEffect(() => {
+    let alive = true
+    fetch('/api/leads/industry-summary?scope=all')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => { if (alive && d?.available) setIndustryGroups(d.groups || []) })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [])
+
+  /*
    * Search and the two selects narrow the pool; the segment then splits it.
    * Counting on the pre-segment set is what lets each tab show how many leads
    * it holds — counting after would make every tab show its own total.
@@ -133,7 +153,10 @@ export default function AdminLeads() {
     ].some(v => v?.toLowerCase().includes(search.toLowerCase()))
     const matchSource = sourceFilter === 'all' || l.source === sourceFilter
     const matchStatus = statusFilter === 'all' || l.status === statusFilter
-    return matchSearch && matchSource && matchStatus
+    const matchIndustry = !industryFilter || (industryFilter === UNSTATED
+      ? !l.industry
+      : l.industry === industryFilter)
+    return matchSearch && matchSource && matchStatus && matchIndustry
   })
 
   const segments = SEGMENTS.map(seg => ({
@@ -404,6 +427,46 @@ export default function AdminLeads() {
           ))}
         </select>
       </div>
+
+      {/*
+        * The whole desk by industry, with the counts the server holds.
+        * Clicking one narrows everything below it; the stage tabs, the search
+        * and the two selects all still apply inside it.
+        */}
+      {industryGroups.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <h2 className="text-[13px] font-semibold text-[var(--ink-soft)]">By industry</h2>
+            {industryFilter && (
+              <button onClick={() => setIndustryFilter(null)}
+                className="text-[13px] font-medium text-[var(--accent)] hover:underline">
+                Show every industry
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {industryGroups.map(g => {
+              const active = industryFilter === g.code
+              return (
+                <button key={g.code} onClick={() => setIndustryFilter(active ? null : g.code)}
+                  aria-pressed={active}
+                  className={`shrink-0 text-left rounded-xl border px-3 py-2 transition min-w-[8.5rem]
+                    ${active
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line)] bg-[var(--paper)] hover:border-[var(--ink-faint)]'}`}>
+                  <div className="font-display text-[18px] font-semibold text-[var(--ink)] tabular-nums leading-none">
+                    {g.total}
+                  </div>
+                  <div className="text-[12px] text-[var(--ink-soft)] mt-1 truncate max-w-[9rem]">{g.label}</div>
+                  <div className="text-[11px] text-[var(--ink-faint)] mt-0.5">
+                    {g.converted} registered · {g.pending} open
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+        </div>
+      )}
 
       <Tabs
         tabs={segments}

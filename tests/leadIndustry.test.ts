@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs'
 import {
   INDUSTRIES, INDUSTRY_CODES, parseIndustry, industryLabel, isIndustryCode,
 } from '../lib/leads/industry.ts'
+import { guessMapping } from '../lib/leads/importMapping.ts'
 
 /**
  * WHAT INDUSTRY A LEAD IS IN.
@@ -222,9 +223,22 @@ describe('the upload asks, and the answer is used', () => {
   test('a row that names its own industry wins over the batch', () => {
     /*
      * A file that names it per row is being more specific than the person
-     * uploading it, and a mixed list is exactly when that matters.
+     * uploading it, and a mixed list is exactly when that matters. The
+     * upload's answer fills the gaps and nothing else.
      */
-    assert.match(importer, /const industry = parseIndustry\(row\.industry\) \|\| batchIndustry/)
+    assert.match(importer, /const industry = opts\.overrideRowIndustry/)
+    assert.match(importer, /: \(rowIndustry \|\| batchIndustry\)/)
+  })
+
+  test('overruling the file takes a deliberate flag, not just a default', () => {
+    /*
+     * Choosing an industry for an upload must not quietly overwrite the
+     * industries the file states. Somebody has to say they mean it.
+     */
+    assert.match(importer, /\? \(batchIndustry \|\| rowIndustry\)/)
+    const route = codeOf('app/api/leads/import/route.ts')
+    assert.match(route, /overrideRowIndustry: z\.boolean\(\)\.optional\(\)/)
+    assert.match(route, /overrideRowIndustry: overrideRowIndustry === true/)
   })
 
   test('the batch answer is validated, not trusted', () => {
@@ -245,28 +259,41 @@ describe('the upload asks, and the answer is used', () => {
       'the row validator now has an opinion about industry')
   })
 
-  test('the screen asks before the import, and says how much is untagged', () => {
-    assert.match(page, /What industry is this list\?/)
-    assert.match(page, /defaultIndustry: industry \|\| null/)
-    assert.match(page, /untaggedCount/)
+  test('the screen asks for an industry, and says what cannot be read', () => {
+    assert.match(page, /This file has no industry column/)
+    assert.match(page, /defaultIndustry: defaultIndustry \|\| null/)
+    assert.match(page, /needsIndustryReview/)
   })
 
-  test('the template and the column hint both mention it', () => {
+  test('the template names an industry column', () => {
     // A column nobody knows about is a column nobody fills in.
-    assert.match(page, /notes,industry/)
-    assert.match(page, /Columns: full_name, phone, email, course_interest, source, city, notes, industry/)
+    const header = page.match(/const TEMPLATE_CSV = `([^\n]+)/)?.[1] ?? ''
+    assert.match(header, /Industry/, `the template header is "${header}"`)
   })
 
-  test('industry is the LAST column, so old files still import', () => {
+  test('column ORDER no longer decides anything', () => {
     /*
-     * The parser reads columns by position. Putting the new one anywhere but
-     * the end would silently shift every field after it — a file written
-     * against the old template would import phone numbers as emails.
+     * This used to assert that `industry` was the last column, because the
+     * parser read columns by position and inserting one anywhere else would
+     * shift every field after it — a file written against the old template
+     * would have imported phone numbers as emails.
+     *
+     * That constraint is gone, not relaxed: columns are matched by their
+     * header now. The property worth holding is the one it was protecting —
+     * a file in the OLD order still imports correctly — and it is stronger,
+     * because a file in ANY order does.
      */
-    const header = page.match(/const TEMPLATE_CSV = `([^\n]+)/)?.[1] ?? ''
-    assert.ok(header.endsWith('industry'), `the template header is "${header}"`)
-    const destructure = page.match(/const \[full_name='',[^\]]+\]/)?.[0] ?? ''
-    assert.match(destructure, /industryCol=''\]$/)
+    const oldOrder = guessMapping(
+      ['full_name', 'phone', 'email', 'course_interest', 'source', 'city', 'notes', 'industry'])
+    assert.equal(oldOrder[0], 'full_name')
+    assert.equal(oldOrder[3], 'course_interest')
+    assert.equal(oldOrder[7], 'industry')
+
+    const reversed = guessMapping(
+      ['Industry', 'Notes', 'City', 'Source', 'Course of Interest', 'Email', 'Phone', 'Full Name'])
+    assert.equal(reversed[0], 'industry')
+    assert.equal(reversed[4], 'course_interest')
+    assert.equal(reversed[7], 'full_name')
   })
 })
 

@@ -1,4 +1,6 @@
 import { createServiceClient } from '@/lib/supabase/server'
+import { parseIndustry } from '@/lib/leads/industry'
+import { columnExists } from '@/lib/db/hasColumn'
 import { canonicalPhone, phoneVariants } from '@/lib/leads/importValidation'
 import { lookup } from '@/lib/db/lookup'
 import { autoAssignLead } from '@/lib/autoAssign'
@@ -29,6 +31,15 @@ export type IncomingLead = {
   landing_source?: string | null
   city?: string | null
   education_level?: string | null
+  /**
+   * Whatever the source called their industry, in its own words.
+   *
+   * A Facebook lead form can ask for it, and a Google Sheet exported from one
+   * carries the answer. Parsed onto our own list before it is stored, exactly
+   * as the importer does, so a lead that arrives by webhook is counted in the
+   * same groups as one that arrives in a spreadsheet.
+   */
+  industry?: string | null
   raw_payload?: any
   extra?: Record<string, any>    // source-specific columns (e.g. fb_lead_id)
   preferredMarketerId?: string | null  // assign straight to this marketer (personal referral link)
@@ -126,6 +137,16 @@ export async function intakeLead(input: IncomingLead): Promise<{ leadId: string 
   }
 
   // 2) Create the lead with full attribution
+  /*
+   * Dropped rather than refused when the column is not there yet: PostgREST
+   * rejects the whole insert over an unknown column, and losing an incoming
+   * lead would be far worse than losing its industry. See lib/db/hasColumn.
+   */
+  const industryCode = parseIndustry(input.industry)
+  const industryField = industryCode && await columnExists('leads', 'industry')
+    ? { industry: industryCode }
+    : {}
+
   const { data: lead, error } = await sb.from('leads').insert({
     full_name: input.full_name?.trim() || `${PRETTY[input.source] || 'New'} Lead`,
     email, phone,
@@ -140,6 +161,7 @@ export async function intakeLead(input: IncomingLead): Promise<{ leadId: string 
     utm_content: input.utm_content || null,
     landing_source: input.landing_source || PRETTY[input.source] || input.source,
     raw_payload: input.raw_payload || null,
+    ...industryField,
     ...(input.extra || {}),
   }).select().single()
 

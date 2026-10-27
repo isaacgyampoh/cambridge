@@ -5,6 +5,7 @@ import { useState, useEffect, useCallback } from 'react'
 import { Card, SectionHeader, Skeleton, ErrorState } from '@/components/ui'
 import { formatGHS } from '@/lib/utils'
 import Overview from '@/components/dashboard/Overview'
+import type { IndustryGroup } from '@/lib/leads/industryStats'
 
 /**
  * A marketer's home.
@@ -50,18 +51,26 @@ type MarketerStats = {
 
 export default function MarketerHome() {
   const [stats, setStats] = useState<MarketerStats | null>(null)
+  /*
+   * The industry breakdown, from the endpoint that counts every lead this
+   * person owns. Separate from the dashboard call so a slow or missing
+   * breakdown never holds up the figures above it — and so an older database
+   * with no industry column simply shows no card.
+   */
+  const [industry, setIndustry] = useState<IndustryGroup[]>([])
   const [role, setRole] = useState('')
   const [name, setName] = useState('')
   const [state, setState] = useState<'loading' | 'ready' | 'error'>('loading')
 
   const fetchStats = useCallback(async () => {
     try {
-      const [dash, me] = await Promise.all([
+      const [dash, me, groups] = await Promise.all([
         fetch('/api/marketer/dashboard').then(r => (r.ok ? r.json() : null)),
         fetch('/api/auth/me').then(r => (r.ok ? r.json() : null)),
+        fetch('/api/leads/industry-summary').then(r => (r.ok ? r.json() : null)).catch(() => null),
       ])
       if (!dash) return null
-      return { dash: dash as MarketerStats, me }
+      return { dash: dash as MarketerStats, me, groups }
     } catch {
       return null
     }
@@ -70,6 +79,7 @@ export default function MarketerHome() {
   const apply = useCallback((result: Awaited<ReturnType<typeof fetchStats>>) => {
     if (!result) { setState('error'); return }
     setStats(result.dash)
+    setIndustry(result.groups?.available ? (result.groups.groups || []) : [])
     setName((result.me?.fullName || '').split(' ')[0])
     setRole(result.me?.role || '')
     setState('ready')
@@ -216,6 +226,64 @@ export default function MarketerHome() {
             lead{stats.quota.used === 1 ? '' : 's'}.
           </p>
         ) : null}
+
+        {/*
+          * WHAT THEIR LEADS DO FOR A LIVING.
+          *
+          * Deliberately below the target and in its own card: a target is a
+          * period figure measured against a number somebody set, and this is
+          * a breakdown of everything they hold. Reading as one block, the
+          * industry totals look like progress towards the target and do not
+          * add up to it.
+          *
+          * Every lead appears in exactly one row, so these totals sum to the
+          * total — see breakdownBalances in lib/leads/industryStats.ts.
+          */}
+        {industry.length > 0 && (
+          <Card className="mt-4 p-4">
+            <div className="flex items-baseline justify-between gap-2 mb-1">
+              <h2 className="text-[13px] font-semibold text-[var(--ink)]">Your leads by industry</h2>
+              <span className="text-[12px] text-[var(--ink-faint)] tabular-nums">
+                {industry.reduce((n, g) => n + g.total, 0)} in all
+              </span>
+            </div>
+            <p className="text-[12px] text-[var(--ink-faint)] mb-3 leading-snug">
+              Everything assigned to you, whenever it arrived. Tap one to work through it.
+            </p>
+            <div className="overflow-x-auto -mx-1 px-1">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="text-[11px] uppercase tracking-wide text-[var(--ink-faint)] border-b border-[var(--line)]">
+                    <th className="text-left font-semibold py-1.5">Industry</th>
+                    <th className="text-right font-semibold py-1.5">Leads</th>
+                    <th className="text-right font-semibold py-1.5">Registered</th>
+                    <th className="text-right font-semibold py-1.5">Open</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {industry.map(g => (
+                    <tr key={g.code} className="border-b border-[var(--line-soft)] last:border-0">
+                      <td className="py-2 pr-2">
+                        <Link href={`/marketer/leads?industry=${encodeURIComponent(g.code)}`}
+                          className="font-medium text-[var(--ink)] hover:text-[var(--accent)] transition">
+                          {g.label}
+                        </Link>
+                        {g.courses.length > 0 && (
+                          <div className="text-[11px] text-[var(--ink-faint)] mt-0.5 truncate max-w-[14rem]">
+                            {g.courses.slice(0, 3).map(c => `${c.course} (${c.count})`).join(' · ')}
+                          </div>
+                        )}
+                      </td>
+                      <td className="py-2 text-right tabular-nums font-semibold text-[var(--ink)]">{g.total}</td>
+                      <td className="py-2 text-right tabular-nums text-[var(--ok)]">{g.converted}</td>
+                      <td className="py-2 text-right tabular-nums text-[var(--ink-soft)]">{g.pending}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </Card>
+        )}
       </section>
     </div>
   )

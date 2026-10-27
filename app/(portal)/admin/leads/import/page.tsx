@@ -1,33 +1,41 @@
 'use client'
-import { useState, useRef } from 'react'
+import { useState, useRef, useMemo, useEffect, useCallback } from 'react'
 import { toast } from 'sonner'
 import Link from 'next/link'
+import {
+  FIELDS, guessMapping, readRow, cellToText, rowIsEmpty, unmappedHeaders,
+  type ColumnMapping, type FieldKey,
+} from '@/lib/leads/importMapping'
 import { INDUSTRIES, parseIndustry, industryLabel } from '@/lib/leads/industry'
+import { validateRow } from '@/lib/leads/importValidation'
+import { mayNameAnotherOwner } from '@/lib/leads/ownership'
 
-interface ParsedLead {
-  full_name: string
-  phone: string
-  email: string
-  course_interest: string
-  source: string
-  city: string
-  notes: string
-  /** The row's own industry, already parsed to a code. Null when it said nothing. */
-  industry: string | null
-  status: 'valid' | 'error'
-  error?: string
-}
-
-/*
- * `industry` is LAST, deliberately. The parser below reads columns by
- * position, so a file written against the old seven-column template still
- * imports — those rows simply have no industry of their own and take the one
- * chosen for the upload.
+/**
+ * BULK LEAD IMPORT.
+ *
+ * ── WHAT THIS REPLACED ─────────────────────────────────────────────────────
+ *
+ * The previous version read columns BY POSITION from pasted CSV text: first
+ * column a name, second a phone, and so on. It worked for a file made from
+ * our own template and for nothing else — and the files that actually arrive
+ * are Google Sheets exported from Facebook lead forms and spreadsheets bought
+ * from somebody else, in whatever order their columns happened to be. A file
+ * whose second column was an email imported every email as a phone number,
+ * and the operator found out afterwards.
+ *
+ * It also could not open a .xlsx at all, which is what a spreadsheet is.
+ *
+ * ── THE SHAPE OF IT NOW ────────────────────────────────────────────────────
+ *
+ *   choose a file  →  check what each column is  →  import  →  what happened
+ *
+ * The middle step is the point. Nothing is written until somebody has seen
+ * what the system decided each column means, what industry and course it read
+ * for each person, which rows are already on file, and which rows it cannot
+ * use. Every one of those is correctable on that screen.
  */
-const TEMPLATE_CSV = `full_name,phone,email,course_interest,source,city,notes,industry
-Kwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes,Oil & Gas
-Abena Owusu,0551234567,abena@email.com,Corporate Training,google,Kumasi,,Banking & Finance
-John Doe,0201234567,,PHRI,manual,Takoradi,Called office,Government`
+
+type Step = 'choose' | 'map' | 'done'
 
 type ImportResult = {
   reference: string
@@ -39,161 +47,281 @@ type ImportResult = {
   unassigned: number
   failed: number
   status: 'complete' | 'partial'
-  /** Leads created with no industry, in THIS batch. Summed in the browser. */
   withoutIndustry: number
-  /** False when this database has no leads.industry column yet. */
   industryRecorded: boolean
 }
 
+type Staff = { id: string; full_name: string; email?: string | null }
+
+type RowIssue = 'no_name' | 'no_contact' | 'industry_unreadable' | 'assignee_unknown'
+
+const TEMPLATE_CSV = `Full Name,Phone,Email,Course of Interest,Industry,Company,City,Notes
+Kwame Mensah,0241234567,kwame@email.com,PMP,Energy Oil and Gas,Ghana Gas,Accra,Interested in weekend classes
+Abena Owusu,0551234567,abena@email.com,PHRi,Financial Services,GCB Bank,Kumasi,
+John Doe,0201234567,,PMP,Construction/Engineering,,Takoradi,Called the office`
+
+/** How many rows the preview table shows. Every row is still imported. */
+const PREVIEW_ROWS = 60
+
 export default function ImportLeadsPage() {
   const fileRef = useRef<HTMLInputElement>(null)
-  const [raw,       setRaw]       = useState('')
-  const [parsed,    setParsed]    = useState<ParsedLead[]>([])
+  const [step, setStep] = useState<Step>('choose')
+  const [fileName, setFileName] = useState('')
+  const [headers, setHeaders] = useState<string[]>([])
+  const [rows, setRows] = useState<unknown[][]>([])
+  const [mapping, setMapping] = useState<ColumnMapping>({})
+  const [parsing, setParsing] = useState(false)
+
+  /** The industry for the whole upload, and whether it overrules the file. */
+  const [defaultIndustry, setDefaultIndustry] = useState('')
+  const [overrideRowIndustry, setOverrideRowIndustry] = useState(false)
+  /** Corrections the operator made to individual rows, by row index. */
+  const [industryFix, setIndustryFix] = useState<Record<number, string>>({})
+
+  const [staff, setStaff] = useState<Staff[]>([])
+  const [me, setMe] = useState<{ role?: string; portals?: string[] } | null>(null)
+  const [duplicates, setDuplicates] = useState<(string | null)[]>([])
+  const [checkedDuplicates, setCheckedDuplicates] = useState(false)
+
   const [importing, setImporting] = useState(false)
-  /*
-   * How far through we are.
-   *
-   * The browser sends the file in batches of fifty. A five-hundred-row list is
-   * ten sequential requests, and the screen previously said nothing at all
-   * between the first and the last — several minutes of a disabled button,
-   * which is indistinguishable from a hang and is exactly when somebody
-   * reloads the page and imports the list twice.
-   */
   const [progress, setProgress] = useState<{ done: number; total: number } | null>(null)
-  const [result, setResult] = useState<(ImportResult & { requestsFailed: number }) | null>(null)
-  /*
-   * What industry this whole upload is.
+  const [result, setResult] = useState<(ImportResult & { requestsFailed: number; withoutIndustry: number }) | null>(null)
+
+  const mayAssign = mayNameAnotherOwner(me?.role, me?.portals || [])
+
+  useEffect(() => {
+    fetch('/api/auth/me').then(r => (r.ok ? r.json() : null)).then(d => {
+      if (d?.valid) setMe({ role: d.role, portals: d.portals || [] })
+    }).catch(() => {})
+  }, [])
+
+  useEffect(() => {
+    // Only fetched by somebody who may actually assign: an ordinary marketer
+    // has no business holding a list of their colleagues' ids.
+    if (!mayAssign) return
+    fetch('/api/data?table=profiles&select=id,full_name,email&filters=' + encodeURIComponent(JSON.stringify([
+      { col: 'is_active', op: 'eq', val: true },
+    ])) + '&orderBy=full_name&orderAsc=true')
+      .then(r => r.json()).then(d => setStaff(d.data || [])).catch(() => setStaff([]))
+  }, [mayAssign])
+
+  /* ── reading the file ─────────────────────────────────────────────────── */
+
+  /**
+   * One parser for .xlsx, .xls and .csv.
    *
-   * Asked once, here, because a purchased list is usually one sector and the
-   * person uploading it knows which. A row that names its own overrides it.
+   * SheetJS reads all three, so a CSV is not a second code path with its own
+   * quoting bugs — which is what the hand-rolled comma splitter here used to
+   * be. Loaded on demand: it is 268 KB, and most visits to this page are
+   * somebody looking at a past import.
    */
-  const [industry, setIndustry] = useState('')
+  const parseWorkbook = useCallback(async (input: ArrayBuffer | string, name: string) => {
+    setParsing(true)
+    try {
+      const XLSX = await import('xlsx')
+      const wb = typeof input === 'string'
+        ? XLSX.read(input, { type: 'string', raw: false })
+        : XLSX.read(new Uint8Array(input), { type: 'array', raw: false })
 
-  const VALID_SOURCES = ['facebook','google','linkedin','website','referral','manual']
-
-  function parseCSV(text: string): ParsedLead[] {
-    const lines = text.trim().split('\n').filter(l => l.trim())
-    if (lines.length < 2) return []
-
-    // Detect header
-    const firstLine = lines[0].toLowerCase()
-    const hasHeader = firstLine.includes('full_name') || firstLine.includes('name') || firstLine.includes('phone')
-    const dataLines = hasHeader ? lines.slice(1) : lines
-
-    return dataLines.map((line, i) => {
-      // Handle quoted CSV
-      const cols: string[] = []
-      let cur = '', inQ = false
-      for (const ch of line) {
-        if (ch === '"') { inQ = !inQ }
-        else if (ch === ',' && !inQ) { cols.push(cur.trim()); cur = '' }
-        else cur += ch
-      }
-      cols.push(cur.trim())
-
-      const [full_name='', phone='', email='', course_interest='', source='', city='', notes='', industryCol=''] = cols
+      const sheet = wb.Sheets[wb.SheetNames[0]]
+      if (!sheet) { toast.error('That file has no sheets in it.'); return }
 
       /*
-       * Parsed here as well as on the server, so the preview can show the
-       * operator what their file's wording was understood as — before five
-       * hundred rows are written. Unrecognised wording is null, not an error:
-       * a real person is not rejected over a sector label.
+       * `raw: false` asks for the FORMATTED text of each cell, which is what
+       * keeps a phone number stored as text with its leading zero. A number
+       * that lost its zero in Excel long ago arrives as nine digits, which
+       * the phone rule already understands as a local number.
        */
-      const rowIndustry = parseIndustry(industryCol)
+      const aoa = XLSX.utils.sheet_to_json<unknown[]>(sheet, {
+        header: 1, blankrows: false, defval: '', raw: false,
+      })
 
-      if (!full_name.trim()) return { full_name:'', phone, email, course_interest, source, city, notes, industry: rowIndustry, status: 'error', error: `Row ${i+2}: Name is required` }
-
-      const cleanSource = source.toLowerCase().trim()
-      const validSource = VALID_SOURCES.includes(cleanSource) ? cleanSource : 'manual'
-
-      return {
-        full_name: full_name.trim(),
-        phone: phone.trim().replace(/\s+/g,'').replace(/^0/,'233'),
-        email: email.trim(),
-        course_interest: course_interest.trim(),
-        source: validSource,
-        city: city.trim(),
-        notes: notes.trim(),
-        industry: rowIndustry,
-        status: 'valid',
+      const nonEmpty = aoa.filter(r => !rowIsEmpty(r))
+      if (nonEmpty.length < 2) {
+        toast.error('That file needs a header row and at least one lead.')
+        return
       }
-    })
-  }
 
-  function handleText(text: string) {
-    setRaw(text)
-    setResult(null)
-    if (text.trim()) setParsed(parseCSV(text))
-    else setParsed([])
-  }
+      const head = (nonEmpty[0] as unknown[]).map(cellToText)
+      const body = nonEmpty.slice(1)
+      const guessed = guessMapping(head)
+
+      setFileName(name)
+      setHeaders(head)
+      setRows(body)
+      setMapping(guessed)
+      setIndustryFix({})
+      setDuplicates([])
+      setCheckedDuplicates(false)
+      setResult(null)
+      setStep('map')
+
+      if (!Object.values(guessed).includes('full_name')) {
+        toast.warning('No name column was recognised. Say which one it is below.')
+      }
+    } catch (e) {
+      toast.error(e instanceof Error ? `That file could not be read: ${e.message}` : 'That file could not be read.')
+    } finally {
+      setParsing(false)
+    }
+  }, [])
 
   function handleFile(file: File) {
     const reader = new FileReader()
-    reader.onload = e => handleText(e.target?.result as string)
-    reader.readAsText(file)
+    reader.onerror = () => toast.error('That file could not be opened.')
+    reader.onload = e => {
+      const data = e.target?.result
+      if (data instanceof ArrayBuffer) parseWorkbook(data, file.name)
+      else if (typeof data === 'string') parseWorkbook(data, file.name)
+    }
+    reader.readAsArrayBuffer(file)
   }
 
-  async function importLeads() {
-    const valid = parsed.filter(p => p.status === 'valid')
-    if (!valid.length) { toast.error('No valid leads to import'); return }
+  /* ── what each row will become ────────────────────────────────────────── */
+
+  const mappedFields = useMemo(() => new Set(Object.values(mapping)), [mapping])
+  const fileNamesIndustry = mappedFields.has('industry')
+
+  const prepared = useMemo(() => rows.map((cells, i) => {
+    const v = readRow(cells, mapping)
+    const check = validateRow({ full_name: v.full_name, phone: v.phone, email: v.email })
+
+    const fromFile = parseIndustry(v.industry)
+    const corrected = industryFix[i]
+    const industry = corrected !== undefined
+      ? (corrected || null)
+      : overrideRowIndustry
+        ? (defaultIndustry || fromFile)
+        : (fromFile || defaultIndustry || null)
+
+    // Named in the file, matched against real staff. Never guessed at.
+    const wanted = String(v.assigned_to || '').trim().toLowerCase()
+    const match = wanted
+      ? staff.find(s =>
+          s.full_name?.trim().toLowerCase() === wanted ||
+          String(s.email || '').trim().toLowerCase() === wanted)
+      : undefined
+
+    const issues: RowIssue[] = []
+    if (!check.ok && check.reason === 'No name') issues.push('no_name')
+    else if (!check.ok) issues.push('no_contact')
+    // Only a flag when the file HAS an industry column and this row's value
+    // could not be read. A file with no such column is not a row problem.
+    if (fileNamesIndustry && !industry) issues.push('industry_unreadable')
+    if (wanted && !match) issues.push('assignee_unknown')
+
+    return {
+      index: i,
+      values: v,
+      valid: check.ok,
+      industry,
+      industryFromFile: fromFile,
+      assignedTo: mayAssign ? match?.id ?? null : null,
+      assigneeName: match?.full_name ?? null,
+      wantedAssignee: wanted || null,
+      issues,
+    }
+  }), [rows, mapping, industryFix, overrideRowIndustry, defaultIndustry, staff, mayAssign, fileNamesIndustry])
+
+  const validRows = useMemo(() => prepared.filter(p => p.valid), [prepared])
+  const invalidRows = useMemo(() => prepared.filter(p => !p.valid), [prepared])
+  const needsIndustryReview = useMemo(
+    () => validRows.filter(p => p.issues.includes('industry_unreadable')), [validRows])
+  const unknownAssignees = useMemo(
+    () => validRows.filter(p => p.issues.includes('assignee_unknown')), [validRows])
+  const duplicateCount = duplicates.filter(Boolean).length
+
+  const industryTally = useMemo(() => {
+    const counts = new Map<string, number>()
+    for (const p of validRows) {
+      const key = p.industry || '—'
+      counts.set(key, (counts.get(key) || 0) + 1)
+    }
+    return [...counts.entries()].sort((a, b) => b[1] - a[1])
+  }, [validRows])
+
+  /* ── duplicates, before anything is written ───────────────────────────── */
+
+  const checkDuplicates = useCallback(async () => {
+    if (!validRows.length) return
+    const found: (string | null)[] = new Array(rows.length).fill(null)
+    try {
+      for (let i = 0; i < validRows.length; i += 500) {
+        const slice = validRows.slice(i, i + 500)
+        const d = await fetch('/api/leads/import/check', {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            contacts: slice.map(p => ({ phone: p.values.phone || null, email: p.values.email || null })),
+          }),
+        }).then(r => r.json())
+        if (!d?.success) throw new Error(d?.error || 'The check failed.')
+        slice.forEach((p, n) => { found[p.index] = d.duplicates[n] })
+      }
+      setDuplicates(found)
+      setCheckedDuplicates(true)
+    } catch (e) {
+      // Not silently "no duplicates": that is the answer that makes somebody
+      // import a list they would otherwise have stopped to look at.
+      setCheckedDuplicates(false)
+      toast.error(e instanceof Error ? e.message : 'Existing leads could not be checked.')
+    }
+  }, [validRows, rows.length])
+
+  useEffect(() => {
+    if (step === 'map' && validRows.length && !checkedDuplicates) checkDuplicates()
+    // Re-run only when the mapping changes what a row's contact details are.
+  }, [step, mapping, validRows.length, checkedDuplicates, checkDuplicates])
+
+  /* ── the import itself ────────────────────────────────────────────────── */
+
+  async function runImport() {
+    if (!validRows.length) { toast.error('There are no rows that can be imported.'); return }
+    if (!mappedFields.has('full_name')) { toast.error('Say which column holds the name first.'); return }
+
     setImporting(true)
     setResult(null)
-    setProgress({ done: 0, total: valid.length })
+    setProgress({ done: 0, total: validRows.length })
 
-    /*
-     * Batches accumulate into ONE import record, identified by a reference the
-     * server allocates on the first call and we carry through the rest.
-     *
-     * The previous version summed its own counters in the browser and reported
-     * a whole batch as failed whenever a request died — which it did, because
-     * the endpoint greeted every lead inline and outlived its own timeout. The
-     * server is now the only thing that counts, so a number shown here is one
-     * the database can be asked about afterwards.
-     */
     const BATCH = 50
     let reference: string | null = null
     let latest: ImportResult | null = null
     let requestsFailed = 0
-    /*
-     * Summed here, unlike the other totals, because the server counts it per
-     * batch — the accumulated figures come back from the import record, and
-     * this one does not live there.
-     */
     let withoutIndustry = 0
 
-    for (let i = 0; i < valid.length; i += BATCH) {
-      const batch = valid.slice(i, i + BATCH)
+    for (let i = 0; i < validRows.length; i += BATCH) {
+      const batch = validRows.slice(i, i + BATCH)
       try {
         const res: Response = await fetch('/api/leads/import', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({
             reference,
-            filename: fileRef.current?.files?.[0]?.name || undefined,
+            filename: fileName || undefined,
             rowOffset: i,
-            // The answer for the upload. A row's own industry still wins.
-            defaultIndustry: industry || null,
-            leads: batch.map(l => ({
-              full_name: l.full_name,
-              phone: l.phone || null,
-              email: l.email || null,
-              course_interest: l.course_interest || null,
-              source: l.source,
-              city: l.city || null,
-              notes: l.notes || null,
-              industry: l.industry || null,
+            defaultIndustry: defaultIndustry || null,
+            overrideRowIndustry,
+            leads: batch.map(p => ({
+              full_name: p.values.full_name || '',
+              phone: p.values.phone || null,
+              email: p.values.email || null,
+              course_interest: p.values.course_interest || null,
+              source: p.values.source || 'manual',
+              city: p.values.city || null,
+              notes: p.values.notes || null,
+              company: p.values.company || null,
+              // The code this screen showed, so what is imported is what was
+              // previewed — including a correction made to this row.
+              industry: p.industry || null,
+              assigned_to: p.assignedTo || null,
             })),
           }),
         })
         const d: (ImportResult & { success?: boolean; error?: string }) | null =
           await res.json().catch(() => null)
-
         if (!res.ok || !d?.success) {
           requestsFailed += batch.length
           toast.error(d?.error || `Rows ${i + 1}–${i + batch.length} could not be sent.`)
           continue
         }
-
         reference = d.reference
         latest = d as ImportResult
         withoutIndustry += d.withoutIndustry || 0
@@ -201,28 +329,42 @@ export default function ImportLeadsPage() {
         requestsFailed += batch.length
         toast.error(`Rows ${i + 1}–${i + batch.length} could not be sent. Check your connection.`)
       } finally {
-        // Advance whether the batch landed or not: the bar tracks how much of
-        // the file has been attempted, and a stalled bar during a failing run
-        // is the least useful thing it could do.
-        setProgress({ done: Math.min(i + BATCH, valid.length), total: valid.length })
+        setProgress({ done: Math.min(i + BATCH, validRows.length), total: validRows.length })
       }
     }
 
     setImporting(false)
     setProgress(null)
 
-    if (!latest) {
-      toast.error('Nothing was imported.')
-      return
-    }
+    if (!latest) { toast.error('Nothing was imported.'); return }
 
     setResult({ ...latest, requestsFailed, withoutIndustry })
+    setStep('done')
     toast.success(`${latest.reference} — ${latest.assigned} assigned of ${latest.totalReceived} received.`)
     if (latest.industryRecorded === false) {
       toast.warning('The leads landed, but this database has no industry column yet, so the industry was not recorded.')
-    } else if (withoutIndustry > 0) {
-      toast.warning(`${withoutIndustry} of them have no industry. Choose one for the upload and re-import, or set it on each lead.`)
     }
+  }
+
+  /* ── the rows this import cannot use, as a file ───────────────────────── */
+
+  function downloadProblemRows() {
+    const problems = prepared.filter(p => p.issues.length)
+    if (!problems.length) { toast.info('There is nothing wrong with any row.'); return }
+    const lines = [
+      'Row,Name,Phone,Email,Problem',
+      ...problems.map(p => [
+        p.index + 2,                       // +2: a header row, and humans count from one
+        p.values.full_name || '',
+        p.values.phone || '',
+        p.values.email || '',
+        p.issues.map(describeIssue).join('; '),
+      ].map(v => `"${String(v).replace(/"/g, '""')}"`).join(',')),
+    ]
+    const a = document.createElement('a')
+    a.href = URL.createObjectURL(new Blob([lines.join('\n')], { type: 'text/csv' }))
+    a.download = `rows-needing-attention-${new Date().toISOString().slice(0, 10)}.csv`
+    a.click()
   }
 
   function downloadTemplate() {
@@ -232,72 +374,300 @@ export default function ImportLeadsPage() {
     a.click()
   }
 
-  const validCount = parsed.filter(p => p.status === 'valid').length
-  const errorCount = parsed.filter(p => p.status === 'error').length
+  function setColumn(index: number, key: string) {
+    setMapping(current => {
+      const next: ColumnMapping = { ...current }
+      // A field belongs to one column. Choosing it here takes it off whichever
+      // column had it, rather than silently having two columns feed one field.
+      for (const [col, field] of Object.entries(next)) {
+        if (field === key) delete next[Number(col)]
+      }
+      if (key) next[index] = key as FieldKey
+      else delete next[index]
+      return next
+    })
+    setCheckedDuplicates(false)
+  }
 
-  /*
-   * How much of the file would land untagged if it were imported as it
-   * stands, and what the file itself said where it said anything.
-   *
-   * Shown before the import rather than after, because "47 of these have no
-   * industry" is only useful while there is still a choice to make about it.
-   */
-  const untaggedCount = parsed.filter(p => p.status === 'valid' && !p.industry).length
-  const taggedByFile = Object.entries(
-    parsed.reduce<Record<string, number>>((acc, p) => {
-      if (p.status === 'valid' && p.industry) acc[p.industry] = (acc[p.industry] || 0) + 1
-      return acc
-    }, {}),
-  ).sort((a, b) => b[1] - a[1])
+  function fixAllFlagged(code: string) {
+    setIndustryFix(current => {
+      const next = { ...current }
+      for (const p of needsIndustryReview) next[p.index] = code
+      return next
+    })
+  }
+
+  /* ── render ───────────────────────────────────────────────────────────── */
 
   return (
     <div className="w-full fade-in">
-      {/* Header */}
       <div className="flex items-center gap-3 mb-6">
         <Link href="/admin/leads"
           className="flex items-center gap-1.5 h-9 px-3 bg-[var(--paper)] border border-[var(--line)] text-[var(--ink-soft)] rounded-xl text-sm font-medium hover:bg-[var(--line-soft)] transition">
-           Leads
+          Leads
         </Link>
         <div>
-          <h1 className="font-display text-xl font-semibold text-[var(--ink)]">Import Leads</h1>
-          <p className="text-[var(--ink-faint)] text-sm">Upload a CSV file or paste data to import multiple leads at once</p>
+          <h1 className="font-display text-[22px] font-semibold text-[var(--ink)]">Import leads</h1>
+          <p className="text-[13px] text-[var(--ink-soft)]">
+            An Excel or CSV file from a Google Sheet, a Facebook lead form, or a list you were sent.
+          </p>
         </div>
       </div>
 
-      {/* While the file is being sent, say how far through it is. Ten
-          sequential requests with a silent disabled button is
-          indistinguishable from a hang, and that is when somebody reloads and
-          imports the same list twice. */}
-      {importing && progress && (
-        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 max-w-lg mx-auto mb-5"
-          role="status" aria-live="polite">
-          <div className="flex items-baseline justify-between gap-3 mb-3">
-            <span className="text-[15px] font-semibold text-[var(--ink)]">Importing…</span>
-            <span className="text-[13px] text-[var(--ink-soft)] tabular-nums">
-              {progress.done} of {progress.total}
+      {step === 'choose' && (
+        <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 sm:p-8 max-w-xl mx-auto">
+          <label className="flex flex-col items-center justify-center h-40 rounded-2xl border-2 border-dashed border-[var(--line)] cursor-pointer hover:border-[var(--accent)] transition mb-4">
+            <span className="text-[15px] font-semibold text-[var(--ink)]">
+              {parsing ? 'Reading the file…' : 'Choose a spreadsheet'}
             </span>
+            <span className="text-[13px] text-[var(--ink-faint)] mt-1">.xlsx, .xls or .csv</span>
+            <input ref={fileRef} type="file" className="hidden"
+              accept=".xlsx,.xls,.csv,text/csv,application/vnd.ms-excel,application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+              onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
+          </label>
+
+          <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mb-3">
+            The columns can be in any order and named however the file names them —
+            you will be shown what each one was understood as before anything is imported.
+          </p>
+
+          <button onClick={downloadTemplate}
+            className="text-[13px] font-medium text-[var(--accent)] hover:underline">
+            Download a template
+          </button>
+        </div>
+      )}
+
+      {step === 'map' && (
+        <div className="space-y-5 max-w-5xl mx-auto">
+          {/* What each column is */}
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
+            <div className="flex items-baseline justify-between gap-3 mb-1">
+              <h2 className="font-display text-[17px] font-semibold text-[var(--ink)]">What each column is</h2>
+              <span className="text-[12px] text-[var(--ink-faint)] truncate">{fileName}</span>
+            </div>
+            <p className="text-[13px] text-[var(--ink-soft)] mb-4">
+              {rows.length} row{rows.length === 1 ? '' : 's'}. Correct anything that was read wrongly —
+              a course and an industry are different things and must not share a column.
+            </p>
+
+            <div className="grid gap-2 sm:grid-cols-2">
+              {headers.map((header, i) => (
+                <div key={i} className="flex items-center gap-2 rounded-xl border border-[var(--line-soft)] p-2.5">
+                  <div className="min-w-0 flex-1">
+                    <div className="text-[13px] font-semibold text-[var(--ink)] truncate">{header || `Column ${i + 1}`}</div>
+                    <div className="text-[11px] text-[var(--ink-faint)] truncate">
+                      {cellToText(rows[0]?.[i]) || '—'}
+                    </div>
+                  </div>
+                  <select value={mapping[i] || ''} onChange={e => setColumn(i, e.target.value)}
+                    className="h-9 px-2 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[13px] text-[var(--ink)] shrink-0">
+                    <option value="">Ignore</option>
+                    {FIELDS.map(f => (
+                      <option key={f.key} value={f.key}
+                        disabled={mapping[i] !== f.key && mappedFields.has(f.key)}>
+                        {f.label}
+                      </option>
+                    ))}
+                  </select>
+                </div>
+              ))}
+            </div>
+
+            {unmappedHeaders(headers, mapping).length > 0 && (
+              <p className="text-[12px] text-[var(--ink-faint)] mt-3 leading-snug">
+                Not imported: {unmappedHeaders(headers, mapping).join(', ')}.
+              </p>
+            )}
+            {!mappedFields.has('full_name') && (
+              <p className="text-[13px] text-[var(--danger)] font-medium mt-3">
+                Say which column holds the name. Nothing can be imported without one.
+              </p>
+            )}
           </div>
-          <div className="h-2 rounded-full bg-[var(--line-soft)] overflow-hidden">
-            <div className="h-full bg-[var(--accent)] transition-[width] duration-300 ease-out"
-              style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
+
+          {/* Industry */}
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5">
+            <h2 className="font-display text-[17px] font-semibold text-[var(--ink)] mb-1">Industry</h2>
+            {fileNamesIndustry ? (
+              <p className="text-[13px] text-[var(--ink-soft)] mb-3">
+                This file states an industry per row, and those are kept.
+                {needsIndustryReview.length > 0 && (
+                  <> <span className="text-[var(--warn)] font-medium">
+                    {needsIndustryReview.length} row{needsIndustryReview.length === 1 ? '' : 's'} could not be read
+                    and need{needsIndustryReview.length === 1 ? 's' : ''} your answer.
+                  </span></>
+                )}
+              </p>
+            ) : (
+              <p className="text-[13px] text-[var(--ink-soft)] mb-3">
+                This file has no industry column. Choose one for the whole list, or leave it unstated.
+              </p>
+            )}
+
+            <div className="flex flex-wrap items-center gap-2 mb-3">
+              <select value={defaultIndustry} onChange={e => setDefaultIndustry(e.target.value)}
+                className="h-11 px-3 rounded-xl border-2 border-[var(--line)] bg-[var(--paper)] text-[14px] text-[var(--ink)] min-w-[16rem]">
+                <option value="">Not stated</option>
+                {INDUSTRIES.map(i => <option key={i.code} value={i.code}>{i.label}</option>)}
+              </select>
+              {needsIndustryReview.length > 0 && defaultIndustry && (
+                <button onClick={() => fixAllFlagged(defaultIndustry)}
+                  className="h-11 px-3 rounded-xl bg-[var(--line-soft)] text-[13px] font-semibold text-[var(--ink)] hover:brightness-95 transition">
+                  Use it for the {needsIndustryReview.length} unreadable row{needsIndustryReview.length === 1 ? '' : 's'}
+                </button>
+              )}
+            </div>
+
+            {fileNamesIndustry && defaultIndustry && (
+              <label className="flex items-start gap-2 text-[13px] text-[var(--ink-soft)]">
+                <input type="checkbox" checked={overrideRowIndustry} className="mt-0.5"
+                  onChange={e => setOverrideRowIndustry(e.target.checked)} />
+                <span>
+                  Use <strong>{industryLabel(defaultIndustry)}</strong> for every row, overruling what the file says.
+                  Off unless you mean it — the file is usually the better authority.
+                </span>
+              </label>
+            )}
+
+            {industryTally.length > 0 && (
+              <p className="text-[12px] text-[var(--ink-faint)] mt-3 leading-snug">
+                Will import as: {industryTally.map(([code, n]) =>
+                  `${code === '—' ? 'Not stated' : industryLabel(code)} (${n})`).join(', ')}
+              </p>
+            )}
           </div>
-          <p className="text-[12px] text-[var(--ink-faint)] mt-3 leading-relaxed">
-            Sent in batches so a long list cannot time out. Please keep this page open.
+
+          {/* What will happen */}
+          <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5">
+            {[
+              { label: 'Ready to import', value: validRows.length - duplicateCount, tone: 'var(--ok)' },
+              { label: 'Already on file', value: checkedDuplicates ? duplicateCount : '—', tone: 'var(--ink-soft)' },
+              { label: 'Cannot be used', value: invalidRows.length, tone: invalidRows.length ? 'var(--danger)' : 'var(--ink-soft)' },
+              { label: 'Rows in the file', value: rows.length, tone: 'var(--ink-soft)' },
+            ].map(s => (
+              <div key={s.label} className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-3 text-center">
+                <div className="font-display text-[22px] font-semibold tabular-nums" style={{ color: s.tone }}>{s.value}</div>
+                <div className="text-[12px] text-[var(--ink-faint)] mt-0.5">{s.label}</div>
+              </div>
+            ))}
+          </div>
+
+          {unknownAssignees.length > 0 && (
+            <div className="bg-[var(--warn-soft)] border border-[var(--warn)]/20 rounded-xl p-3">
+              <p className="text-[13px] text-[var(--ink)]">
+                {unknownAssignees.length} row{unknownAssignees.length === 1 ? '' : 's'} name a colleague who could not be
+                matched{mayAssign ? '' : ', and you are not able to assign leads to other people'}. Those leads will be
+                assigned the usual way instead.
+              </p>
+            </div>
+          )}
+
+          {/* The rows themselves */}
+          <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] overflow-hidden">
+            <div className="flex items-baseline justify-between gap-3 p-4 pb-2">
+              <h2 className="font-display text-[17px] font-semibold text-[var(--ink)]">
+                The first {Math.min(PREVIEW_ROWS, rows.length)} rows
+              </h2>
+              <button onClick={downloadProblemRows}
+                className="text-[13px] font-medium text-[var(--accent)] hover:underline">
+                Download rows needing attention
+              </button>
+            </div>
+            <div className="overflow-x-auto">
+              <table className="w-full text-[13px]">
+                <thead>
+                  <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--ink-faint)] border-b border-[var(--line)]">
+                    <th className="px-3 py-2 font-semibold">Name</th>
+                    <th className="px-3 py-2 font-semibold">Phone</th>
+                    <th className="px-3 py-2 font-semibold">Course</th>
+                    <th className="px-3 py-2 font-semibold">Industry</th>
+                    {mayAssign && <th className="px-3 py-2 font-semibold">Assign to</th>}
+                    <th className="px-3 py-2 font-semibold">Status</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  {prepared.slice(0, PREVIEW_ROWS).map(p => {
+                    const dup = duplicates[p.index]
+                    return (
+                      <tr key={p.index} className="border-b border-[var(--line-soft)] last:border-0">
+                        <td className="px-3 py-2 text-[var(--ink)] font-medium">{p.values.full_name || <span className="text-[var(--danger)]">—</span>}</td>
+                        <td className="px-3 py-2 text-[var(--ink-soft)] tabular-nums">{p.values.phone || '—'}</td>
+                        <td className="px-3 py-2 text-[var(--ink-soft)]">{p.values.course_interest || '—'}</td>
+                        <td className="px-3 py-2">
+                          <select
+                            value={industryFix[p.index] ?? p.industry ?? ''}
+                            onChange={e => setIndustryFix(c => ({ ...c, [p.index]: e.target.value }))}
+                            className={`h-8 px-1.5 rounded-lg border text-[12px] bg-[var(--paper)] max-w-[11rem]
+                              ${p.issues.includes('industry_unreadable')
+                                ? 'border-[var(--warn)] text-[var(--warn)]'
+                                : 'border-[var(--line)] text-[var(--ink-soft)]'}`}>
+                            <option value="">Not stated</option>
+                            {INDUSTRIES.map(i => <option key={i.code} value={i.code}>{i.label}</option>)}
+                          </select>
+                          {p.issues.includes('industry_unreadable') && p.values.industry && (
+                            <div className="text-[11px] text-[var(--warn)] mt-0.5 truncate max-w-[11rem]">
+                              file says “{p.values.industry}”
+                            </div>
+                          )}
+                        </td>
+                        {mayAssign && (
+                          <td className="px-3 py-2 text-[var(--ink-soft)]">
+                            {p.assigneeName || (p.wantedAssignee
+                              ? <span className="text-[var(--warn)]">no match</span>
+                              : <span className="text-[var(--ink-faint)]">automatic</span>)}
+                          </td>
+                        )}
+                        <td className="px-3 py-2">
+                          {!p.valid
+                            ? <span className="text-[var(--danger)]">{p.issues.map(describeIssue)[0]}</span>
+                            : dup
+                              ? <span className="text-[var(--ink-faint)]">already on file ({dup})</span>
+                              : <span className="text-[var(--ok)]">will import</span>}
+                        </td>
+                      </tr>
+                    )
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {importing && progress && (
+            <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-5" role="status" aria-live="polite">
+              <div className="flex items-baseline justify-between gap-3 mb-2">
+                <span className="text-[15px] font-semibold text-[var(--ink)]">Importing…</span>
+                <span className="text-[13px] text-[var(--ink-soft)] tabular-nums">{progress.done} of {progress.total}</span>
+              </div>
+              <div className="h-2 rounded-full bg-[var(--line-soft)] overflow-hidden">
+                <div className="h-full bg-[var(--accent)] transition-[width] duration-300 ease-out"
+                  style={{ width: `${Math.round((progress.done / Math.max(1, progress.total)) * 100)}%` }} />
+              </div>
+              <p className="text-[12px] text-[var(--ink-faint)] mt-3">
+                Sent in batches so a long list cannot time out. Please keep this page open.
+              </p>
+            </div>
+          )}
+
+          <div className="flex flex-wrap gap-2">
+            <button onClick={runImport} disabled={importing || !validRows.length || !mappedFields.has('full_name')}
+              className="flex-1 min-w-[14rem] h-12 bg-[var(--accent)] text-white rounded-xl text-[15px] font-semibold hover:brightness-110 disabled:opacity-50 transition">
+              {importing
+                ? `Importing ${validRows.length} leads…`
+                : `Import ${validRows.length - duplicateCount} lead${validRows.length - duplicateCount === 1 ? '' : 's'}`}
+            </button>
+            <button onClick={() => { setStep('choose'); setRows([]); setHeaders([]) }} disabled={importing}
+              className="h-12 px-4 rounded-xl bg-[var(--line-soft)] text-[var(--ink-soft)] text-[14px] font-semibold hover:brightness-95 disabled:opacity-50 transition">
+              Choose another file
+            </button>
+          </div>
+          <p className="text-[12px] text-[var(--ink-faint)] text-center">
+            Leads already on file are skipped. Nothing existing is overwritten or reassigned.
           </p>
         </div>
       )}
 
-      {result ? (
-        /*
-         * Every row accounted for.
-         *
-         * The old summary showed "imported" and "failed" counted in the
-         * browser, which reported a whole batch as failed whenever a request
-         * died — and requests died routinely, because the endpoint greeted
-         * each lead inline and outlived its own timeout. These figures come
-         * from the server, and the reference beneath them can be used to ask
-         * the database exactly which rows did what.
-         */
+      {step === 'done' && result && (
         <div className="bg-[var(--paper)] rounded-2xl border border-[var(--line)] p-6 sm:p-8 max-w-lg mx-auto">
           <h2 className="font-display text-xl font-semibold text-[var(--ink)] mb-1">
             {result.status === 'complete' ? 'Import complete' : 'Import finished with problems'}
@@ -306,239 +676,43 @@ export default function ImportLeadsPage() {
 
           <dl className="space-y-2 mb-6 text-[14px]">
             {[
-              { label: 'Rows received', value: result.totalReceived, tone: 'ink' },
-              { label: 'Assigned to a marketer', value: result.assigned, tone: 'ok' },
-              { label: 'Already in the system', value: result.duplicates, tone: 'faint' },
-              { label: 'Could not be read', value: result.invalid, tone: 'warn' },
-              { label: 'Imported but unassigned', value: result.unassigned, tone: 'warn' },
-              { label: 'Failed', value: result.failed, tone: 'danger' },
-              { label: 'Never reached the server', value: result.requestsFailed, tone: 'danger' },
-              { label: 'No industry recorded', value: result.withoutIndustry, tone: result.withoutIndustry > 0 ? 'warn' : 'faint' },
-            ].filter(r => r.value > 0 || r.label === 'Rows received' || r.label === 'Assigned to a marketer')
-              .map(r => (
-                <div key={r.label} className="flex items-baseline justify-between gap-4 border-b border-[var(--line-soft)] pb-2 last:border-0">
-                  <dt className="text-[var(--ink-soft)]">{r.label}</dt>
-                  <dd className={`font-semibold tabular-nums ${
-                    r.tone === 'ok' ? 'text-[var(--ok)]'
-                      : r.tone === 'danger' ? 'text-[var(--danger)]'
-                      : r.tone === 'warn' ? 'text-[var(--warn)]'
-                      : r.tone === 'faint' ? 'text-[var(--ink-faint)]'
-                      : 'text-[var(--ink)]'
-                  }`}>{r.value}</dd>
-                </div>
-              ))}
+              { label: 'Rows received', value: result.totalReceived },
+              { label: 'Assigned to a marketer', value: result.assigned },
+              { label: 'Imported but unassigned', value: result.unassigned },
+              { label: 'Already in the system', value: result.duplicates },
+              { label: 'Could not be read', value: result.invalid },
+              { label: 'Failed', value: result.failed },
+              { label: 'Never reached the server', value: result.requestsFailed },
+              { label: 'No industry recorded', value: result.withoutIndustry },
+            ].map(r => (
+              <div key={r.label} className="flex justify-between gap-3">
+                <dt className="text-[var(--ink-soft)]">{r.label}</dt>
+                <dd className="font-semibold text-[var(--ink)] tabular-nums">{r.value}</dd>
+              </div>
+            ))}
           </dl>
 
-          {(result.unassigned > 0 || result.failed > 0) && (
-            <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mb-5">
-              Every row that did not land is recorded against {result.reference} with the
-              reason. Open the full report below to see which people are missing and why.
-            </p>
-          )}
-
-          <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed mb-6">
-            Welcome messages are queued and go out over the next few minutes, rather than
-            during the import — that is what keeps a large list from timing out.
-          </p>
-
-          <div className="flex flex-col sm:flex-row gap-2.5">
-            {/* The row-level report. Every figure above is traceable to the
-                rows behind it, which was recorded from the start but had
-                nowhere to be seen. */}
-            <Link href={`/admin/leads/import/${encodeURIComponent(result.reference)}`}
-              className="flex-1 min-h-[44px] bg-[var(--accent)] text-white rounded-xl text-sm font-bold
-                hover:brightness-110 transition flex items-center justify-center
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)] focus-visible:ring-offset-2">
-              See the full report
+          <div className="flex flex-wrap gap-2">
+            <Link href={`/admin/leads/import/${result.reference}`}
+              className="flex-1 min-w-[12rem] h-11 flex items-center justify-center rounded-xl bg-[var(--accent)] text-white text-[14px] font-semibold hover:brightness-110 transition">
+              See every row and what happened to it
             </Link>
-            <Link href="/admin/leads"
-              className="flex-1 min-h-[44px] bg-[var(--paper)] border border-[var(--line)] text-[var(--ink)]
-                rounded-xl text-sm font-semibold hover:bg-[var(--canvas)] transition
-                flex items-center justify-center
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-              View leads
-            </Link>
-            <button onClick={() => { setResult(null); setParsed([]); setRaw('') }}
-              className="flex-1 min-h-[44px] bg-[var(--line-soft)] text-[var(--ink-soft)] rounded-xl text-sm font-semibold
-                hover:bg-[var(--line)] transition
-                focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--accent)]">
-              Import another list
+            <button onClick={() => { setStep('choose'); setRows([]); setHeaders([]); setResult(null) }}
+              className="h-11 px-4 rounded-xl bg-[var(--line-soft)] text-[var(--ink-soft)] text-[14px] font-semibold hover:brightness-95 transition">
+              Import another file
             </button>
-          </div>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 xl:grid-cols-2 gap-5">
-          {/* Left — input */}
-          <div className="space-y-4">
-            {/* Template download */}
-            <div className="bg-[var(--accent-soft)] border border-[var(--accent-line)] rounded-2xl p-4 flex items-center gap-3">
-              
-              <div className="flex-1 min-w-0">
-                <div className="text-sm font-bold text-[var(--accent)]">Need a template?</div>
-                <div className="text-xs text-[var(--accent)]">Columns: full_name, phone, email, course_interest, source, city, notes, industry</div>
-              </div>
-              <button onClick={downloadTemplate}
-                className="flex items-center gap-1.5 px-3 py-2 bg-[var(--accent)] text-white rounded-xl text-xs font-bold hover:brightness-110 transition flex-shrink-0">
-                 Template
-              </button>
-            </div>
-
-            {/* File upload */}
-            <div>
-              <input ref={fileRef} type="file" accept=".csv,.txt" className="hidden"
-                onChange={e => { const f = e.target.files?.[0]; if (f) handleFile(f) }} />
-              <button onClick={() => fileRef.current?.click()}
-                className="w-full h-28 border-2 border-dashed border-[var(--line)] rounded-2xl flex flex-col items-center justify-center gap-2 text-[var(--ink-faint)] hover:border-[var(--accent)] hover:text-[var(--accent)] hover:bg-[var(--accent-soft)] transition-all">
-                
-                <span className="text-sm font-semibold">Click to upload CSV file</span>
-                <span className="text-xs">or drag & drop</span>
-              </button>
-            </div>
-
-            {/* Paste area */}
-            <div>
-              <label className="block text-[13px] font-medium text-[var(--ink-faint)] mb-2">
-                Or paste CSV data directly
-              </label>
-              <textarea
-                value={raw}
-                onChange={e => handleText(e.target.value)}
-                rows={12}
-                placeholder={`full_name,phone,email,course_interest,source,city,notes\nKwame Mensah,0241234567,kwame@email.com,PMP,facebook,Accra,Interested in weekend classes\nAbena Owusu,0551234567,,PHRI,google,Kumasi,`}
-                className="w-full px-4 py-3 rounded-2xl border border-[var(--line)] text-sm font-mono resize-none focus:outline-none focus:border-[var(--accent)] bg-[var(--line-soft)] focus:bg-[var(--paper)] transition"
-              />
-            </div>
-          </div>
-
-          {/* Right — preview */}
-          <div className="space-y-4">
-            {parsed.length === 0 ? (
-              <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] p-12 text-center text-[var(--ink-faint)] shadow-[var(--shadow-raised)]">
-                
-                <p className="font-medium">Preview will appear here</p>
-                <p className="text-sm mt-1">Upload or paste your CSV data</p>
-              </div>
-            ) : (
-              <>
-                {/* Stats bar */}
-                <div className="flex gap-3">
-                  <div className="flex-1 bg-[var(--ok-soft)] border border-[var(--ok-soft)] rounded-xl p-3 text-center">
-                    <div className="text-xl font-bold text-[var(--ok)]">{validCount}</div>
-                    <div className="text-xs text-[var(--ok)] font-semibold">Ready to import</div>
-                  </div>
-                  {errorCount > 0 && (
-                    <div className="flex-1 bg-[var(--danger-soft)] border border-[var(--danger-soft)] rounded-xl p-3 text-center">
-                      <div className="text-xl font-bold text-[var(--danger)]">{errorCount}</div>
-                      <div className="text-xs text-[var(--danger)] font-semibold">Will be skipped</div>
-                    </div>
-                  )}
-                  <div className="flex-1 bg-[var(--line-soft)] border border-[var(--line-soft)] rounded-xl p-3 text-center">
-                    <div className="text-xl font-bold text-[var(--ink-soft)]">{parsed.length}</div>
-                    <div className="text-xs text-[var(--ink-faint)] font-semibold">Total rows</div>
-                  </div>
-                </div>
-
-                {/* Preview table */}
-                <div className="bg-[var(--paper)] rounded-xl border border-[var(--line-soft)] overflow-hidden shadow-[var(--shadow-raised)]">
-                  <div className="px-4 py-3 border-b border-[var(--line-soft)] flex items-center justify-between">
-                    <span className="text-sm font-semibold text-[var(--ink)]">Preview</span>
-                    <span className="text-xs text-[var(--ink-faint)]">Showing first 20 rows</span>
-                  </div>
-                  {/*
-                    Deliberately still a table, and the only one left in the
-                    portal. This is a CSV preview: the point is to check that
-                    each column landed in the right field before importing, and
-                    a grid with headers is exactly the tool for that. Cards
-                    would break the column alignment that makes a mis-mapped
-                    import recorded against its reference.
-                  */}
-                  <div className="overflow-x-auto max-h-80 overflow-y-auto">
-                    <table className="rtc w-full">
-                      <thead className="bg-[var(--line-soft)] sticky top-0">
-                        <tr>
-                          {['', 'Name', 'Phone', 'Email', 'Course', 'Source'].map(h => (
-                            <th key={h} className="text-left text-[11px] font-bold text-[var(--ink-faint)] uppercase tracking-wide px-3 py-2">{h}</th>
-                          ))}
-                        </tr>
-                      </thead>
-                      <tbody>
-                        {parsed.slice(0, 20).map((row, i) => (
-                          <tr key={i} className={`border-t border-[var(--line-soft)] ${row.status === 'error' ? 'bg-[var(--danger-soft)]' : 'hover:bg-[var(--line-soft)]'}`}>
-                            <td className="px-3 py-2">
-                              {row.status === 'valid'
-                                ? null : null}
-                            </td>
-                            <td data-label="Name" className="px-3 py-2 text-xs font-semibold text-[var(--ink)] max-w-32 truncate">{row.full_name || <span className="text-[var(--danger)] italic">missing</span>}</td>
-                            <td data-label="Phone" className="px-3 py-2 text-xs text-[var(--ink-faint)]">{row.phone || '—'}</td>
-                            <td data-label="Email" className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-32 truncate">{row.email || '—'}</td>
-                            <td data-label="Course" className="px-3 py-2 text-xs text-[var(--ink-faint)] max-w-28 truncate">{row.course_interest || '—'}</td>
-                            <td data-label="Source" className="px-3 py-2">
-                              <span className="text-[11px] font-bold px-1.5 py-0.5 rounded-full capitalize bg-[var(--line-soft)] text-[var(--ink-soft)]">{row.source}</span>
-                            </td>
-                          </tr>
-                        ))}
-                      </tbody>
-                    </table>
-                  </div>
-                </div>
-
-                {/* Errors */}
-                {errorCount > 0 && (
-                  <div className="bg-[var(--warn-soft)] border border-yellow-200 rounded-xl p-3">
-                    <div className="flex items-center gap-2 text-sm font-bold text-[var(--warn)] mb-2">
-                       {errorCount} row{errorCount > 1 ? 's' : ''} will be skipped:
-                    </div>
-                    {parsed.filter(p => p.status === 'error').map((p, i) => (
-                      <div key={i} className="text-xs text-[var(--warn)]">{p.error}</div>
-                    ))}
-                  </div>
-                )}
-
-                {/*
-                  * Asked here, next to the button it affects, rather than at
-                  * the top of a long form where it would be filled in before
-                  * the file is even chosen — and forgotten by the time the
-                  * preview is read.
-                  */}
-                <div className="bg-[var(--paper)] rounded-xl border border-[var(--line)] p-4">
-                  <label htmlFor="batch-industry" className="block text-[13px] font-semibold text-[var(--ink)] mb-1">
-                    What industry is this list?
-                  </label>
-                  <p className="text-[12px] text-[var(--ink-faint)] mb-2.5 leading-snug">
-                    Applied to every row that does not name its own in an <code>industry</code> column.
-                    {untaggedCount > 0 && !industry && (
-                      <> <span className="text-[var(--warn)] font-medium">
-                        {untaggedCount} of {validCount} {untaggedCount === 1 ? 'row has' : 'rows have'} no industry.
-                      </span></>
-                    )}
-                  </p>
-                  <select id="batch-industry" value={industry} onChange={e => setIndustry(e.target.value)}
-                    className="w-full h-11 px-3 rounded-xl border-2 border-[var(--line)] bg-[var(--paper)]
-                      text-[14px] text-[var(--ink)] focus:outline-none focus:border-[var(--accent)] transition-colors">
-                    <option value="">Not stated — leave each row as it is</option>
-                    {INDUSTRIES.map(i => (
-                      <option key={i.code} value={i.code}>{i.label}</option>
-                    ))}
-                  </select>
-                  {taggedByFile.length > 0 && (
-                    <p className="text-[12px] text-[var(--ink-faint)] mt-2.5 leading-snug">
-                      From the file: {taggedByFile.map(([code, n]) => `${industryLabel(code)} (${n})`).join(', ')}
-                    </p>
-                  )}
-                </div>
-
-                {/* Import button */}
-                <button onClick={importLeads} disabled={importing || validCount === 0}
-                  className="w-full h-12 bg-[var(--accent)] text-white rounded-xl text-sm font-bold hover:brightness-110 disabled:opacity-50 transition flex items-center justify-center gap-2">
-                  {importing
-                    ? <><span className="w-4 h-4 border-2 border-white/30 border-t-white rounded-full animate-spin" /> Importing {validCount} leads...</>
-                    : <> Import {validCount} Lead{validCount !== 1 ? 's' : ''}</>}
-                </button>
-              </>
-            )}
           </div>
         </div>
       )}
     </div>
   )
+}
+
+function describeIssue(issue: RowIssue): string {
+  switch (issue) {
+    case 'no_name': return 'no name'
+    case 'no_contact': return 'no usable phone or email'
+    case 'industry_unreadable': return 'industry not recognised'
+    case 'assignee_unknown': return 'the named colleague could not be matched'
+  }
 }

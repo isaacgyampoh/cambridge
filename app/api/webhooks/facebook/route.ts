@@ -82,6 +82,15 @@ export async function POST(req: NextRequest) {
       // Facebook form fields for this account: full name, email, phone, city,
       // educational level. Field keys can vary slightly, so check the common ones.
       const city = fields.city || fields.town || null
+      /*
+       * The industry, where the form asks for it. Field keys vary between
+       * forms, so the common spellings are all checked — and whatever comes
+       * back is parsed onto our own list rather than stored as typed, so a
+       * lead from a form is counted in the same groups as one from a
+       * spreadsheet.
+       */
+      const industry = fields.industry || fields.sector || fields.business_sector
+        || fields.industry_sector || fields.what_industry_are_you_in || null
       const education = fields.education_level || fields.educational_level || fields.education || fields.level_of_education || null
 
       // Unified intake: de-dupe, create, auto-assign (+ AI opening), notify PMs
@@ -91,7 +100,7 @@ export async function POST(req: NextRequest) {
         phone: phone || null,
         source: 'facebook',
         course_interest: fields.course || fields.program || null,
-        city, education_level: education,
+        city, education_level: education, industry,
         utm_source: 'facebook',
         utm_campaign: fields.campaign_name || null,
         raw_payload: leadData,

@@ -9,6 +9,8 @@ import { useData, mutate } from '@/hooks/useData'
 import { changeLeadStatus } from '@/lib/leadStatus'
 import { telHref, whatsappHref, displayPhone } from '@/lib/ui/contact'
 import { describeStatus } from '@/lib/ui/status'
+import { UNSTATED, type IndustryGroup } from '@/lib/leads/industryStats'
+import { industryLabel } from '@/lib/leads/industry'
 import {
   PageHeader, Button, Search, Tabs, MobileList, ListRow, RowAction,
   StatusBadge, Avatar, Dialog, Textarea, ActionMenu, Card,
@@ -104,6 +106,11 @@ export default function MarketerLeads() {
     return show === 'new' ? 'new' : show === 'registered' ? 'registered' : 'all'
   })
   const followUpOnly = params.get('show') === 'followup'
+  /*
+   * Arrived from the dashboard's industry table. Read once into state rather
+   * than used directly, so the group buttons here can still change it.
+   */
+  const industryParam = params.get('industry')
 
   // The status change that is waiting on a comment.
   const [pending, setPending] = useState<{ lead: Lead; status: string } | null>(null)
@@ -111,6 +118,19 @@ export default function MarketerLeads() {
   const [saving, setSaving] = useState(false)
 
   const [transferOpen, setTransferOpen] = useState(false)
+
+  /*
+   * Which industry the list is narrowed to, and the counts behind the
+   * buttons.
+   *
+   * The counts come from the server rather than from the rows on this screen:
+   * this list is one page of leads, and counting it would say "Mining 12"
+   * meaning twelve HERE, beside a quota figure covering everything. The two
+   * would never agree, and the quota is the number somebody is measured by.
+   */
+  const [industry, setIndustry] = useState<string | null>(null)
+  const [groups, setGroups] = useState<IndustryGroup[]>([])
+  const [industryAvailable, setIndustryAvailable] = useState(false)
 
   useEffect(() => {
     let alive = true
@@ -121,9 +141,27 @@ export default function MarketerLeads() {
     return () => { alive = false }
   }, [])
 
+  useEffect(() => {
+    if (industryParam) setIndustry(industryParam)
+  }, [industryParam])
+
+  useEffect(() => {
+    if (!myId) return
+    let alive = true
+    fetch('/api/leads/industry-summary')
+      .then(r => (r.ok ? r.json() : null))
+      .then(d => {
+        if (!alive || !d) return
+        setIndustryAvailable(Boolean(d.available))
+        setGroups(d.groups || [])
+      })
+      .catch(() => {})
+    return () => { alive = false }
+  }, [myId])
+
   const { data: leads, state, refetch } = useData<Lead>({
     table: 'leads',
-    select: 'id, full_name, phone, email, status, course_interest, follow_up_at, created_at, updated_at, needs_human, ai_paused',
+    select: 'id, full_name, phone, email, status, course_interest, industry, follow_up_at, created_at, updated_at, needs_human, ai_paused',
     filters: myId ? [{ col: 'assigned_to', op: 'eq', val: myId }] : [],
     orderBy: 'updated_at',
     enabled: !!myId,
@@ -161,6 +199,15 @@ export default function MarketerLeads() {
   const shown = useMemo(() => {
     const needle = query.trim().toLowerCase()
     return leads.filter(lead => {
+      /*
+       * The industry group, before anything else. UNSTATED collects the leads
+       * nobody has said an industry for, which is a real group somebody works
+       * through — not a bucket to hide them in.
+       */
+      if (industry) {
+        const own = (lead as Lead & { industry?: string | null }).industry || null
+        if (industry === UNSTATED ? Boolean(own) : own !== industry) return false
+      }
       // Arrived from the dashboard's "Needs follow-up" tile.
       if (followUpOnly && !isOverdue(lead)) return false
       if (tab === 'overdue' && !isOverdue(lead)) return false
@@ -176,7 +223,7 @@ export default function MarketerLeads() {
         (lead.course_interest || '').toLowerCase().includes(needle)
       )
     })
-  }, [leads, tab, query, followUpOnly])
+  }, [leads, tab, query, followUpOnly, industry])
 
   const tabs = useMemo(() => [
     // Waiting first: these are people the assistant has already promised a
@@ -319,6 +366,59 @@ export default function MarketerLeads() {
         </Card>
       )}
 
+      {/*
+        * The industries this person's leads are in.
+        *
+        * A marketer with thirty leads has one list of thirty names, and what
+        * they actually do is ring the eight people in construction about the
+        * same programme, one after another. Sorting that out by eye, every
+        * morning, was the work being left to them.
+        *
+        * The counts are the server's, across every lead they own — not the
+        * rows on this screen — so they agree with the quota figures computed
+        * from the same leads.
+        */}
+      {industryAvailable && groups.length > 0 && (
+        <div className="mb-4">
+          <div className="flex items-baseline justify-between gap-3 mb-2">
+            <h2 className="text-[13px] font-semibold text-[var(--ink-soft)]">By industry</h2>
+            {industry && (
+              <button onClick={() => setIndustry(null)}
+                className="text-[13px] font-medium text-[var(--accent)] hover:underline">
+                Show all leads
+              </button>
+            )}
+          </div>
+          <div className="flex gap-2 overflow-x-auto pb-1 -mx-1 px-1">
+            {groups.map(g => {
+              const active = industry === g.code
+              return (
+                <button key={g.code} onClick={() => setIndustry(active ? null : g.code)}
+                  aria-pressed={active}
+                  className={`shrink-0 text-left rounded-xl border px-3 py-2 transition min-w-[8.5rem]
+                    ${active
+                      ? 'border-[var(--accent)] bg-[var(--accent-soft)]'
+                      : 'border-[var(--line)] bg-[var(--paper)] hover:border-[var(--ink-faint)]'}`}>
+                  <div className="font-display text-[18px] font-semibold text-[var(--ink)] tabular-nums leading-none">
+                    {g.total}
+                  </div>
+                  <div className="text-[12px] text-[var(--ink-soft)] mt-1 truncate max-w-[9rem]">{g.label}</div>
+                  <div className="text-[11px] text-[var(--ink-faint)] mt-0.5">
+                    {g.converted} registered · {g.pending} open
+                  </div>
+                </button>
+              )
+            })}
+          </div>
+          {industry && (
+            <p className="text-[12px] text-[var(--ink-faint)] mt-2">
+              Showing {industry === UNSTATED ? 'leads with no industry on file' : groups.find(g => g.code === industry)?.label}.
+              Search and the status filters still apply inside it.
+            </p>
+          )}
+        </div>
+      )}
+
       <div className="space-y-3 mb-4">
         <Search value={query} onChange={setQuery}
           placeholder="Search by name, phone or course" label="Search your leads" />
@@ -361,6 +461,16 @@ export default function MarketerLeads() {
               meta={
                 <>
                   {lead.course_interest && <span className="truncate">{lead.course_interest}</span>}
+                  {/*
+                    * The industry beside the course, because inside a group
+                    * the useful distinction is "PMP — Construction" against
+                    * "Data Analytics — Construction". Hidden while a group is
+                    * open: every row there has the same one, and repeating it
+                    * crowds out the course.
+                    */}
+                  {!industry && (lead as Lead & { industry?: string | null }).industry && (
+                    <span className="truncate">{industryLabel((lead as Lead & { industry?: string | null }).industry)}</span>
+                  )}
                   {lead.follow_up_at && (
                     <span className={overdueHere ? 'text-[var(--warn)] font-semibold' : ''}>
                       {overdueHere ? 'Follow-up overdue' : `Follow up ${new Date(lead.follow_up_at)

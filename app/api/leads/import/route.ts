@@ -34,6 +34,8 @@ const Row = z.object({
    * and "Petroleum Services" all become one industry rather than three.
    */
   industry: z.string().trim().max(120).optional().nullable(),
+  /** Their employer. There is no company column, so it joins the notes. */
+  company: z.string().trim().max(200).optional().nullable(),
 })
 
 const Body = z.object({
@@ -51,6 +53,8 @@ const Body = z.object({
    * industry on every report, and impossible to find again.
    */
   defaultIndustry: z.string().trim().max(60).refine(isIndustryCode, 'That is not an industry we recognise.').optional().nullable(),
+  /** Deliberately overwrite the industries the file states. Off by default. */
+  overrideRowIndustry: z.boolean().optional(),
 })
 
 export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: NextRequest, { session }) => {
@@ -62,7 +66,7 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
     )
   }
 
-  const { leads, reference, filename, rowOffset, defaultIndustry } = parsed.data
+  const { leads, reference, filename, rowOffset, defaultIndustry, overrideRowIndustry } = parsed.data
 
   try {
     const result = await importLeads({
@@ -72,6 +76,7 @@ export const POST = withGuard({ portals: ['leads', 'pm_leads'] }, async (req: Ne
       reference: reference ?? null,
       rowOffset: rowOffset ?? 0,
       defaultIndustry: defaultIndustry ?? null,
+      overrideRowIndustry: overrideRowIndustry === true,
     })
 
     // The reference goes back so the browser can send the next batch into the

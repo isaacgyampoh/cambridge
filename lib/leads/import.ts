@@ -49,9 +49,33 @@ export type ImportRow = {
   assigned_to?: string | null
   /** Whatever the spreadsheet said, in its own words. Parsed, never stored raw. */
   industry?: string | null
+  /**
+   * Their employer, where the file names one.
+   *
+   * There is no company column on a lead, so this is appended to the notes as
+   * a labelled line rather than dropped. Labelled, because an unexplained
+   * company name in a free-text field is indistinguishable from something a
+   * marketer typed.
+   */
+  company?: string | null
 }
 
 export type RowOutcome = 'assigned' | 'unassigned' | 'duplicate' | 'invalid' | 'failed'
+
+/**
+ * Keep the employer with the notes, labelled.
+ *
+ * A lead has no company column. Dropping the value loses the most useful
+ * thing on a corporate list, and writing it bare into the notes makes it
+ * indistinguishable from a marketer's own words — so it goes in with its
+ * name on it.
+ */
+function withCompany(notes?: string | null, company?: string | null): string | null {
+  const n = String(notes || '').trim()
+  const c = String(company || '').trim()
+  if (!c) return n || null
+  return n ? `Company: ${c}\n${n}` : `Company: ${c}`
+}
 
 export type ImportResult = {
   reference: string
@@ -96,6 +120,15 @@ export async function importLeads(opts: {
    * operator once is the difference between a tagged list and an untagged one.
    */
   defaultIndustry?: string | null
+  /**
+   * Use the upload's industry even where the row states one.
+   *
+   * Off unless the operator deliberately turns it on. A file that names
+   * industries per row is the better authority, and overwriting it from a
+   * dropdown is a decision somebody has to make on purpose — which is why it
+   * is a separate flag and not a consequence of choosing a default.
+   */
+  overrideRowIndustry?: boolean
 }): Promise<ImportResult> {
   const sb = createServiceClient()
   const { rows, importedBy, rowOffset = 0 } = opts
@@ -222,7 +255,10 @@ export async function importLeads(opts: {
        * there is none the lead is counted in withoutIndustry so the operator
        * can see how much of the list went untagged.
        */
-      const industry = parseIndustry(row.industry) || batchIndustry
+      const rowIndustry = parseIndustry(row.industry)
+      const industry = opts.overrideRowIndustry
+        ? (batchIndustry || rowIndustry)
+        : (rowIndustry || batchIndustry)
       if (!industry) counts.withoutIndustry++
 
       const { data: lead, error: insErr } = await sb.from('leads').insert({
@@ -232,6 +268,7 @@ export async function importLeads(opts: {
         status: 'new',
         course_interest: row.course_interest || null,
         city: row.city || null,
+        notes: withCompany(row.notes, row.company),
         landing_source: `Imported (${reference})`,
         ...(industryColumn && industry ? { industry } : {}),
       }).select('id').single()
