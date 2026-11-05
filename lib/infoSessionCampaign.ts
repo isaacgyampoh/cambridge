@@ -148,7 +148,68 @@ export async function enrolRecipients(sessionId: string, audience: string): Prom
       return { error: 'The recipients could not be enrolled just now.', retryable: true }
     }
   }
+
+  await honourEarlierSends(sessionId)
   return leads.length
+}
+
+/**
+ * Credit anybody this campaign has already reached, before it resumes.
+ *
+ * ── WHY THIS IS NEEDED AT ALL ──────────────────────────────────────────────
+ *
+ * Campaigns sent before the ledger existed left their record in sms_logs and
+ * nowhere else. Enrolling such a campaign marks every recipient `pending`,
+ * including the ones already texted — and while the queue's dedupe key stops
+ * a second TEXT, it says nothing about WhatsApp, which is tried first. Those
+ * people would get the invitation a second time, by the other door.
+ *
+ * One campaign in production is in exactly that state: a hundred and five
+ * recipients texted across the runs that had to be pressed by hand, and the
+ * remainder never reached.
+ *
+ * So the texts that definitely went are read back and credited. Only rows
+ * still `pending` are touched, so a result this campaign has since recorded
+ * for itself is never overwritten by history.
+ */
+async function honourEarlierSends(sessionId: string): Promise<void> {
+  const sb = createServiceClient()
+
+  const { data: already, error } = await sb.from('sms_logs')
+    .select('dedupe_key')
+    .eq('kind', 'info_session')
+    .eq('entity_id', sessionId)
+    .eq('status', 'sent')
+    .limit(5000)
+
+  if (error) {
+    // Not fatal: the worst case is the queue's dedupe key doing this job for
+    // the SMS channel alone, which is where it was before.
+    console.error('[campaign] could not read earlier sends:', error.message)
+    return
+  }
+
+  /*
+   * The lead id is the third part of the key this system wrote:
+   * info_session:<session>:<lead>. Parsed rather than joined, because
+   * sms_logs records a phone number and not a lead.
+   */
+  const leadIds = (already || [])
+    .map(r => String(r.dedupe_key || '').split(':')[2])
+    .filter(id => /^[0-9a-f-]{36}$/i.test(id))
+
+  for (let i = 0; i < leadIds.length; i += 500) {
+    const { error: markErr } = await sb.from('info_session_recipients')
+      .update({ status: 'sent', channel: 'sms', sent_at: new Date().toISOString() })
+      .eq('session_id', sessionId)
+      .eq('status', 'pending')
+      .in('lead_id', leadIds.slice(i, i + 500))
+    if (markErr) console.error('[campaign] could not credit earlier sends:', markErr.message)
+  }
+
+  if (leadIds.length) {
+    console.log(`[campaign] ${sessionId}: credited ${leadIds.length} recipient(s) reached before the ledger existed.`)
+  }
 }
 
 /* ── 2. Progress ──────────────────────────────────────────────────────────── */

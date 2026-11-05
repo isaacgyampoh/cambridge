@@ -242,6 +242,47 @@ describe('the campaign remembers who it has reached', () => {
   })
 })
 
+describe('a campaign that was part-sent before the ledger existed', () => {
+  /**
+   * One campaign in production is in exactly this state: 105 recipients
+   * texted across the runs that had to be pressed by hand, and the remainder
+   * never reached. Enrolling it marks everybody `pending`, including those
+   * 105 — and while the queue's dedupe key stops a second TEXT, it says
+   * nothing about WhatsApp, which is tried first. They would get the
+   * invitation again, through the other door.
+   */
+  test('the texts that definitely went are credited first', () => {
+    assert.match(campaign, /async function honourEarlierSends/)
+    assert.match(campaign, /await honourEarlierSends\(sessionId\)/)
+    assert.match(campaign, /\.eq\('kind', 'info_session'\)/)
+    assert.match(campaign, /\.eq\('status', 'sent'\)/)
+  })
+
+  test('the lead is read from the key this system wrote', () => {
+    // sms_logs records a phone number, not a lead. The key carries the id:
+    // info_session:<session>:<lead>.
+    assert.match(campaign, /String\(r\.dedupe_key \|\| ''\)\.split\(':'\)\[2\]/)
+    assert.match(campaign, /\/\^\[0-9a-f-\]\{36\}\$\/i\.test\(id\)/)
+  })
+
+  test('and only rows still pending are credited', () => {
+    /*
+     * A result the campaign has since recorded for itself must not be
+     * overwritten by history — a recipient marked failed yesterday is not
+     * made "sent" by a text from last week.
+     */
+    const fn = campaign.slice(campaign.indexOf('async function honourEarlierSends'))
+    const update = fn.slice(fn.indexOf("from('info_session_recipients')"))
+    assert.match(update.slice(0, 400), /\.eq\('status', 'pending'\)/)
+  })
+
+  test('a failed read there does not stop the campaign', () => {
+    // The worst case is the dedupe key doing this job for SMS alone, which is
+    // where it was before.
+    assert.match(campaign, /could not read earlier sends/)
+  })
+})
+
 describe('a campaign finishes even when a hop does not', () => {
   test('the dispatcher sweeps for anything unfinished', () => {
     /*
