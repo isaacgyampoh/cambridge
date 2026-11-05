@@ -1,10 +1,11 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useMemo } from 'react'
 import { readableStatus } from '@/lib/ui/status'
 import { PageHeader, Card, Button, Field, inputClass, textareaClass, Spinner, EmptyState, Badge } from '@/components/ui'
 import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 import { postJson, messageFor } from '@/lib/api/post'
+import type { Progress } from '@/lib/infoSessionCampaign'
 
 export default function InfoSessions() {
   const { confirm, dialog } = useConfirm()
@@ -37,29 +38,66 @@ export default function InfoSessions() {
   }
   useEffect(() => { load() }, [])
 
+  /*
+   * Live progress for anything still sending.
+   *
+   * Polled while at least one campaign is in flight and stopped the moment
+   * none are, so an idle screen is not asking the server a question every
+   * four seconds for ever.
+   */
+  const [progress, setProgress] = useState<Record<string, Progress>>({})
+
+  const sending = useMemo(
+    () => sessions.filter((x: any) => x.status === 'sending').map((x: any) => x.id),
+    [sessions],
+  )
+
+  useEffect(() => {
+    if (!sending.length) return
+    let alive = true
+
+    const tick = async () => {
+      const entries = await Promise.all(sending.map(async (id: string) => {
+        try {
+          const d = await fetch(`/api/info-sessions/progress?session=${encodeURIComponent(id)}`)
+            .then(r => (r.ok ? r.json() : null))
+          return d?.success ? ([id, d] as const) : null
+        } catch { return null }
+      }))
+      if (!alive) return
+
+      const next: Record<string, Progress> = {}
+      let anyComplete = false
+      for (const e of entries) {
+        if (!e) continue
+        next[e[0]] = e[1]
+        if (e[1].complete) anyComplete = true
+      }
+      setProgress(p => ({ ...p, ...next }))
+      // One finished: reload so its status and totals are the server's.
+      if (anyComplete) load()
+    }
+
+    tick()
+    const timer = setInterval(tick, 4000)
+    return () => { alive = false; clearInterval(timer) }
+  }, [sending.join(',')])
+
   function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
 
   /**
-   * What a send actually did, in the words of the five things it can be.
+   * A campaign has STARTED. Not what it sent — it has not sent it yet.
    *
-   * Shared by "send now" on a saved session and by creating one that sends
-   * immediately, so the two cannot describe the same outcome differently.
+   * This used to report the outcome of the one batch the request managed,
+   * and then tell the operator how many were "left to send" and to press the
+   * button again. Pressing a button repeatedly is not a progress bar. The
+   * campaign now runs itself and the row below reports where it has got to.
    */
-  function reportSend(d: any, toastId?: string) {
-    const parts = [`${d.leads_notified} reached`]
-    if (d.queued) parts.push(`${d.queued} queued`)
-    if (d.failed) parts.push(`${d.failed} failed`)
-    if (d.unreachable) parts.push(`${d.unreachable} with no usable number`)
-    toast.success(parts.join(' · '), toastId ? { id: toastId } : undefined)
-
-    if (d.pending) {
-      toast.warning(`${d.pending} left to send — press Send on the session to continue. Nobody is messaged twice.`,
-        { duration: 10_000 })
-    }
-    if (d.badNumbers?.length) {
-      toast.warning(`${d.badNumbers.length} number${d.badNumbers.length === 1 ? '' : 's'} need correcting: ${d.badNumbers.slice(0, 3).join(', ')}${d.badNumbers.length > 3 ? '…' : ''}`,
-        { duration: 12_000 })
-    }
+  function reportStart(d: any, toastId?: string) {
+    toast.success(
+      d.message || `Sending to ${d.recipients} lead${d.recipients === 1 ? '' : 's'}. It continues on its own.`,
+      toastId ? { id: toastId } : undefined,
+    )
   }
 
   function blank() {
@@ -87,7 +125,7 @@ export default function InfoSessions() {
 
     if (sendNow && !await confirm({
       title: 'Create and send it now?',
-      message: `"${form.title.trim()}" goes to ${preview?.leadCount ?? 'every targeted'} lead${preview?.leadCount === 1 ? '' : 's'} immediately. It cannot be recalled.`,
+      message: `"${form.title.trim()}" goes to ${preview?.leadCount ?? 'every targeted'} lead${preview?.leadCount === 1 ? '' : 's'}. Sending starts now and continues on its own — it cannot be recalled.`,
       confirmLabel: 'Send now',
       tone: 'accent',
     })) return
@@ -107,8 +145,8 @@ export default function InfoSessions() {
      * be sent from the list, and saying only "could not send" would read as
      * though nothing had been kept.
      */
-    if (sendNow && d.sent) reportSend(d)
-    else if (sendNow) toast.error(d.error || 'Saved, but it could not be sent. Send it from the list.', { duration: 10_000 })
+    if (sendNow && d.started) reportStart(d)
+    else if (sendNow) toast.error(d.error || 'Saved, but it could not be started. Start it from the list.', { duration: 10_000 })
     else toast.success('Info session scheduled. It will send automatically.')
 
     blank()
@@ -135,14 +173,14 @@ export default function InfoSessions() {
   async function sendNow(id: string, title: string) {
     if (!await confirm({
       title: 'Send this session invitation now?',
-      message: `"${title}" goes to every targeted lead immediately. It cannot be recalled.`,
+      message: `"${title}" goes to every targeted lead. Sending starts now and continues on its own — it cannot be recalled.`,
       confirmLabel: 'Send now',
       tone: 'accent',
     })) return
     toast.loading('Sending…', { id: 'sn' })
     const res = await fetch('/api/info-sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'send_now' }) })
     const d = await res.json()
-    if (!d.success) { toast.error(d.error || 'Could not send', { id: 'sn' }); load(); return }
+    if (!d.started) { toast.error(d.error || 'Could not start sending', { id: 'sn' }); load(); return }
 
     /*
      * What actually happened, not "sent".
@@ -152,7 +190,7 @@ export default function InfoSessions() {
      * nobody reported a clean success. The five figures are kept apart, and
      * reported by the same function the create-and-send path uses.
      */
-    reportSend(d, 'sn')
+    reportStart(d, 'sn')
     load()
   }
 
@@ -188,12 +226,76 @@ export default function InfoSessions() {
                         {s.status === 'scheduled' && <p className="text-[13px] text-[var(--ink-faint)]">Auto-sends: {sendWhen}</p>}
                         {s.status === 'sent' && <p className="text-[13px] text-[var(--ok)]">Sent to {s.leads_notified} leads · {s.marketers_notified} marketers notified</p>}
                         <a href={s.link} target="_blank" className="text-[13px] text-[var(--accent)] hover:underline break-all">{s.link}</a>
+
+                        {/*
+                          * Where it has got to, while it gets there.
+                          *
+                          * Read from the recipient ledger every few seconds —
+                          * so "sent" is people a channel accepted, not a
+                          * figure the first batch guessed. The operator can
+                          * close this page; the campaign is not running in it.
+                          */}
+                        {s.status === 'sending' && (
+                          <div className="mt-3 rounded-xl bg-[var(--canvas)] border border-[var(--line)] p-3">
+                            {progress[s.id] ? (
+                              <>
+                                <div className="flex items-baseline justify-between gap-3 mb-2">
+                                  <span className="text-[13px] font-semibold text-[var(--ink)]">Sending…</span>
+                                  <span className="text-[12px] text-[var(--ink-soft)] tabular-nums">
+                                    {progress[s.id].sent + progress[s.id].failed + progress[s.id].unreachable}
+                                    {' of '}{progress[s.id].total}
+                                  </span>
+                                </div>
+                                <div className="h-2 rounded-full bg-[var(--line-soft)] overflow-hidden mb-2">
+                                  <div className="h-full bg-[var(--accent)] transition-[width] duration-500 ease-out"
+                                    style={{ width: `${Math.round(((progress[s.id].sent + progress[s.id].failed + progress[s.id].unreachable) / Math.max(1, progress[s.id].total)) * 100)}%` }} />
+                                </div>
+                                <dl className="grid grid-cols-2 sm:grid-cols-3 gap-x-4 gap-y-1 text-[12px]">
+                                  {[
+                                    ['Total', progress[s.id].total, 'var(--ink-soft)'],
+                                    ['Submitted', progress[s.id].sent, 'var(--ok)'],
+                                    ['Processing', progress[s.id].processing, 'var(--ink-soft)'],
+                                    ['Remaining', progress[s.id].pending, 'var(--ink-soft)'],
+                                    ['Failed', progress[s.id].failed, progress[s.id].failed ? 'var(--danger)' : 'var(--ink-faint)'],
+                                    ['No usable number', progress[s.id].unreachable, progress[s.id].unreachable ? 'var(--warn)' : 'var(--ink-faint)'],
+                                  ].map(([label, value, tone]) => (
+                                    <div key={String(label)} className="flex justify-between gap-2">
+                                      <dt className="text-[var(--ink-faint)]">{label}</dt>
+                                      <dd className="font-semibold tabular-nums" style={{ color: String(tone) }}>{value}</dd>
+                                    </div>
+                                  ))}
+                                </dl>
+                                {progress[s.id].badNumbers?.length > 0 && (
+                                  <p className="text-[11px] text-[var(--warn)] mt-2 leading-snug">
+                                    Need correcting: {progress[s.id].badNumbers.slice(0, 3).join(', ')}
+                                    {progress[s.id].badNumbers.length > 3 ? ` and ${progress[s.id].badNumbers.length - 3} more` : ''}
+                                  </p>
+                                )}
+                                <p className="text-[11px] text-[var(--ink-faint)] mt-2">
+                                  It carries on by itself. You can close this page.
+                                </p>
+                              </>
+                            ) : (
+                              <p className="text-[13px] text-[var(--ink-soft)]">Starting…</p>
+                            )}
+                          </div>
+                        )}
                       </div>
                       {s.status === 'scheduled' && (
                         <div className="flex flex-col gap-2 flex-shrink-0">
                           <button onClick={() => sendNow(s.id, s.title)} className="text-[13px] text-white bg-[var(--accent)] px-3 py-1.5 rounded-lg font-semibold hover:brightness-110">Send now</button>
                           <button onClick={() => cancel(s.id)} className="text-[13px] text-[var(--danger)] font-medium">Cancel</button>
                         </div>
+                      )}
+                      {/*
+                        * Stopping one that is already going. The worker reads
+                        * the status before each batch, so this stops the next
+                        * batch rather than pretending to recall what has gone.
+                        */}
+                      {s.status === 'sending' && (
+                        <button onClick={() => cancel(s.id)} className="text-[13px] text-[var(--danger)] font-medium flex-shrink-0">
+                          Stop sending
+                        </button>
                       )}
                     </div>
                   </Card>

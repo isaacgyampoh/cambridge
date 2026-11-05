@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { saveFailed, lookup, unavailable } from '@/lib/db/lookup'
+import { enrolRecipients, triggerNextHop } from '@/lib/infoSessionCampaign'
 
 export const runtime = 'nodejs'
 
@@ -30,6 +31,41 @@ export const runtime = 'nodejs'
  */
 
 const PORTALS = ['grp_automation']
+
+/**
+ * Begin a campaign and hand it to the worker.
+ *
+ * Returns as soon as the audience is enrolled and the first hop is away. The
+ * count it reports is how many people are IN the campaign, which is a fact;
+ * how many have been reached is a question the progress endpoint answers
+ * while it runs.
+ */
+async function startCampaign(session: { id: string; audience?: string | null; title?: string | null }) {
+  const enrolled = await enrolRecipients(session.id, session.audience || 'all_leads')
+  if (typeof enrolled !== 'number') {
+    return NextResponse.json({
+      session, started: false,
+      error: `${enrolled.error} The session is saved, so you can start it from the list.`,
+    })
+  }
+
+  const sb = createServiceClient()
+  await sb.from('info_sessions').update({ status: 'sending' })
+    .eq('id', session.id).in('status', ['scheduled', 'sending'])
+
+  /*
+   * Not awaited to completion on purpose: this request's job is to START the
+   * campaign, and the hop it fires runs as its own invocation. Waiting would
+   * tie the operator's click to the whole campaign again.
+   */
+  await triggerNextHop(session.id, 0)
+
+  return NextResponse.json({
+    session, started: true, success: true,
+    recipients: enrolled,
+    message: `Sending to ${enrolled} lead${enrolled === 1 ? '' : 's'}. It continues on its own — you can leave this page.`,
+  })
+}
 
 export const GET = withGuard({ portals: PORTALS }, async () => {
   const sb = createServiceClient()
@@ -91,27 +127,16 @@ export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { s
   if (!sendNow) return NextResponse.json({ session: data })
 
   /*
-   * Saved first, then sent. The row exists before anything goes out, so a
-   * send that fails half way through leaves a session that can be continued
-   * from the list — rather than invitations that reached some people and a
-   * record of nothing at all.
+   * Saved first, then started. The row exists before anything goes out, so a
+   * campaign interrupted at any point is continued rather than lost.
    *
-   * The send is the same function the scheduled runner and the Send button
-   * use, so there is one behaviour and not three.
+   * This REQUEST does not send the campaign. It enrols the audience, marks
+   * the session as sending, and starts the first hop — which starts the
+   * next, and so on until the ledger says everybody has been dealt with.
+   * Sending inside this request is what used to cap a campaign at whatever
+   * fitted in one serverless invocation.
    */
-  const { broadcastInfoSession } = await import('@/lib/infoSessionBroadcast')
-  const result = await broadcastInfoSession(data.id)
-
-  if ('error' in result && result.error) {
-    // The session is saved and still scheduled, so it is not lost — say both.
-    return NextResponse.json({
-      session: data,
-      sent: false,
-      error: `${result.error} The session is saved, so you can send it from the list.`,
-    })
-  }
-
-  return NextResponse.json({ session: data, sent: true, ...result })
+  return startCampaign(data)
 })
 
 export const PATCH = withGuard({ portals: PORTALS }, async (req: NextRequest) => {
@@ -120,15 +145,24 @@ export const PATCH = withGuard({ portals: PORTALS }, async (req: NextRequest) =>
   const sb = createServiceClient()
 
   if (action === 'cancel') {
-    await sb.from('info_sessions').update({ status: 'cancelled' }).eq('id', id).eq('status', 'scheduled')
+    /*
+     * A campaign already sending can be stopped too. The worker reads the
+     * status before each batch, so this stops the NEXT batch — what has gone
+     * has gone, and saying otherwise would be a lie.
+     */
+    await sb.from('info_sessions').update({ status: 'cancelled' })
+      .eq('id', id).in('status', ['scheduled', 'sending'])
     return NextResponse.json({ success: true })
   }
 
   if (action === 'send_now') {
-    const { broadcastInfoSession } = await import('@/lib/infoSessionBroadcast')
-    const result = await broadcastInfoSession(id)
-    if ('error' in result && result.error) return NextResponse.json(result, { status: 400 })
-    return NextResponse.json({ success: true, ...result })
+    const { row: s, failed } = await lookup(
+      sb.from('info_sessions').select('*').eq('id', id).maybeSingle(),
+    )
+    if (failed) return unavailable('[info-sessions]', failed, 'that session')
+    if (!s) return NextResponse.json({ error: 'That session no longer exists.' }, { status: 404 })
+    // The same start the create-and-send path uses, so one behaviour.
+    return startCampaign(s)
   }
 
   return NextResponse.json({ success: true })

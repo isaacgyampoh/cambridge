@@ -35,7 +35,13 @@ const TASKS: { name: string; path: string; everyMins: number }[] = [
   { name: 'lead_followup',      path: '/api/leads/followup',          everyMins: 10 },
   { name: 'sequences',          path: '/api/sequences/run',           everyMins: 15 },
   { name: 'class_start',        path: '/api/classes/start-reminders', everyMins: 10 },
-  { name: 'info_sessions',      path: '/api/info-sessions/run',       everyMins: 15 },
+  /*
+   * The campaign worker, sweeping. It starts any scheduled campaign whose
+   * time has come and resumes any that stopped part way — a hop that died
+   * before it could start the next one. The chain normally gets there first;
+   * this is what makes finishing certain rather than likely.
+   */
+  { name: 'info_sessions',      path: '/api/info-sessions/worker',    everyMins: 15 },
   { name: 'info_followup',      path: '/api/info-sessions/followup',  everyMins: 30 },
   { name: 'class_reminders',    path: '/api/class-reminders/run',     everyMins: 15 },
   { name: 'paystack_reconcile', path: '/api/paystack/reconcile',      everyMins: 60 },

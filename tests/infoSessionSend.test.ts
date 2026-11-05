@@ -39,7 +39,18 @@ function codeOf(path: string): string {
 const route = codeOf('app/api/info-sessions/route.ts')
 const preview = codeOf('app/api/info-sessions/preview/route.ts')
 const attendance = codeOf('app/api/info-sessions/attendance/route.ts')
-const broadcast = codeOf('lib/infoSessionBroadcast.ts')
+const campaign = codeOf('lib/infoSessionCampaign.ts')
+const worker = codeOf('app/api/info-sessions/worker/route.ts')
+/*
+ * The migration with its commentary stripped. Every claim below is about the
+ * SQL — and the file explains itself at length, so a search of the whole
+ * thing is satisfied by a sentence describing what the SQL ought to do. One
+ * of these assertions passed against SQL that had had `SKIP LOCKED` removed,
+ * because the paragraph above it still said the words.
+ */
+const migration = readFileSync('supabase/migrations/0029_info_session_recipients.sql', 'utf8')
+  .replace(/\/\*[\s\S]*?\*\//g, '')
+  .replace(/^\s*--.*$/gm, '')
 const page = codeOf('app/(portal)/pm/info-sessions/page.tsx')
 
 describe('who may use the Information section', () => {
@@ -81,74 +92,243 @@ describe('what counts as having reached somebody', () => {
      * The recorder trap. With no key, sendWhatsAppText keeps the message and
      * returns true — so the count was of messages RECORDED, not delivered.
      */
-    assert.match(broadcast, /whatsapp: wanted\.includes\('whatsapp'\) && whatsappConnected\(\)/)
-    assert.match(broadcast, /sms: wanted\.includes\('sms'\) && smsConnected\(\)/)
-    assert.match(broadcast, /email: wanted\.includes\('email'\) && emailConfigured\(\)/)
+    assert.match(campaign, /whatsapp: wanted\.includes\('whatsapp'\) && whatsappConnected\(\)/)
+    assert.match(campaign, /sms: wanted\.includes\('sms'\) && smsConnected\(\)/)
+    assert.match(campaign, /email: wanted\.includes\('email'\) && emailConfigured\(\)/)
   })
 
-  test('and if none of them can, it says so instead of marking itself sent', () => {
-    assert.match(broadcast, /None of the channels chosen/)
-    assert.match(broadcast, /so nothing was sent and the session is still scheduled/)
+  test('and if none of them can, the campaign stops rather than completing', () => {
+    assert.match(campaign, /None of the channels chosen/)
+    assert.match(campaign, /so the campaign was stopped rather than marked sent/)
   })
 
   test('the figures are kept apart', () => {
     /*
-     * Reached, queued, failed, unreachable and pending are five different
-     * facts. Reporting them as one number is what let "Sent to 212 leads"
-     * describe a session nobody received.
+     * Total, pending, processing, sent, failed and unreachable are six
+     * different facts. Reporting them as one number is what let "Sent to 212
+     * leads" describe a session nobody received.
      */
-    for (const field of ['leads_notified', 'queued', 'failed: failedSends', 'unreachable', 'pending']) {
-      assert.ok(broadcast.includes(field), `the result does not report ${field}`)
+    for (const field of ['total:', 'pending:', 'processing:', 'sent:', 'failed:', 'unreachable:']) {
+      assert.ok(campaign.includes(field), `progress does not report ${field}`)
     }
   })
 
-  test('the screen shows them apart too', () => {
-    assert.match(page, /reached/)
-    assert.match(page, /queued/)
-    assert.ok(!/Sent to \$\{d\.leads_notified\} leads/.test(page),
-      'the screen still calls the raw count "sent"')
+  test('the screen never calls a raw count "sent"', () => {
+    assert.ok(!/Sent to \$\{d\.leads_notified\} leads/.test(page))
+    assert.match(page, /Submitted/)
   })
 })
 
-describe('sending twice does not message anybody twice', () => {
-  test('every text carries a key of its own', () => {
+describe('one click finishes the whole campaign', () => {
+  /**
+   * ── WHAT WAS WRONG ───────────────────────────────────────────────────────
+   *
+   * Every recipient was messaged in a loop inside the request that pressed
+   * Send. A serverless invocation does not live long enough for a few
+   * hundred, so the loop stopped at a time budget and told the operator
+   * "566 left to send — press Send again to continue". For a list of eight
+   * hundred that is six presses. The person had become the scheduler.
+   */
+
+  test('the Send request starts the campaign; it does not send it', () => {
     /*
-     * One per lead per session. A run that was cut short can be repeated and
-     * picks up only the people it never reached.
+     * The request enrols the audience, marks the session sending and fires
+     * the first hop. It deliberately does not loop over recipients — that
+     * loop is what capped a campaign at one invocation's lifetime.
      */
-    assert.match(broadcast, /dedupeKey: `info_session:\$\{s\.id\}:\$\{lead\.id\}`/)
-    assert.match(broadcast, /kind: 'info_session'/)
-    assert.match(broadcast, /entityId: s\.id/)
+    assert.match(route, /async function startCampaign\(/)
+    assert.match(route, /await enrolRecipients\(session\.id/)
+    assert.match(route, /await triggerNextHop\(session\.id, 0\)/)
+    assert.ok(!/for \(const lead of/.test(route), 'the request still loops over recipients')
   })
 
-  test('a duplicate is treated as already reached, not as a failure', () => {
-    assert.match(broadcast, /else if \(res\.duplicate\) reached = true/)
+  test('and says so, instead of reporting a partial send', () => {
+    assert.match(route, /It continues on its own — you can leave this page/)
+    assert.ok(!/press Send again/i.test(route))
+    assert.ok(!/press Send again/i.test(page), 'the screen still asks for another press')
+    assert.ok(!/left to send/i.test(page))
   })
 
-  test('it goes through the queue, which retries', () => {
-    // sendSMS makes one attempt and forgets. The queue keeps the row.
-    assert.match(broadcast, /await queueSMS\(\{/)
-    assert.ok(!/await sendSMS\(/.test(broadcast), 'still sending outside the queue')
+  test('each hop starts the next one', () => {
+    /*
+     * The chain. A hop processes a batch and, if the ledger still has work,
+     * makes an HTTP request that becomes the next invocation — a fresh
+     * function with its own budget. Nothing is kept in memory between them,
+     * because on this platform nothing can be.
+     */
+    assert.match(campaign, /export async function triggerNextHop/)
+    assert.match(campaign, /await triggerNextHop\(sessionId, hop\)/)
+    assert.match(campaign, /chained: true/)
   })
 
-  test('a run that runs out of time leaves the session to be continued', () => {
-    assert.match(broadcast, /const DEADLINE = Date\.now\(\) \+ 45_000/)
-    assert.match(broadcast, /if \(Date\.now\(\) > DEADLINE\) \{ pending\+\+; continue \}/)
-    assert.match(broadcast, /status: complete \? 'sent' : 'scheduled'/)
+  test('the chain does not wait for the campaign it starts', () => {
+    // Awaiting the next hop's response would tie this invocation's lifetime
+    // to the whole remaining campaign, which is the thing being avoided.
+    assert.match(campaign, /signal: AbortSignal\.timeout\(1_500\)/)
+  })
+
+  test('a runaway chain is capped', () => {
+    assert.match(campaign, /const MAX_HOPS = 2_000/)
+    assert.match(campaign, /if \(hop >= MAX_HOPS\)/)
+  })
+
+  test('it stops chaining when the ledger says there is nothing left', () => {
+    assert.match(campaign, /if \(progress\.complete\)/)
+    assert.match(campaign, /return \{ \.\.\.batch, progress, chained: false \}/)
+  })
+
+  test('and only then is the campaign marked sent', () => {
+    /*
+     * A status written optimistically by the first hop is what let a
+     * half-finished campaign look finished. It is set once, by the hop that
+     * finds nothing left, and only over a session still `sending`.
+     */
+    const done = campaign.slice(campaign.indexOf('if (progress.complete)'))
+    assert.match(done.slice(0, 500), /status: 'sent'/)
+    assert.match(done.slice(0, 500), /\.eq\('status', 'sending'\)/)
+  })
+
+  test('a hop that runs out of time hands its claim back', () => {
+    /*
+     * Rather than leaving those rows claimed for the five minutes the stale
+     * sweep waits. The next hop is already starting and may as well find them.
+     */
+    assert.match(campaign, /const HOP_BUDGET_MS = 35_000/)
+    assert.match(campaign, /released\.push\(r\.id\)/)
+    assert.match(campaign, /status: 'pending', claimed_at: null/)
+  })
+})
+
+describe('the campaign remembers who it has reached', () => {
+  test('one row per campaign per lead, and enrolling twice changes nothing', () => {
+    /*
+     * The idempotency identity the whole design rests on. Enrolling is called
+     * by the Send request AND by the recovery sweep, so it has to be safe to
+     * call on a campaign already under way.
+     */
+    assert.match(migration, /UNIQUE \(session_id, lead_id\)/)
+    assert.match(campaign, /onConflict: 'session_id,lead_id', ignoreDuplicates: true/)
+  })
+
+  test('two workers never take the same person', () => {
+    // FOR UPDATE SKIP LOCKED: they take different rows and neither waits.
+    assert.match(migration, /FOR UPDATE SKIP LOCKED/)
+    assert.match(migration, /CREATE OR REPLACE FUNCTION claim_info_session_batch/)
+  })
+
+  test('a batch claimed by a worker that died is reclaimed', () => {
+    assert.match(migration, /c\.status = 'claimed' AND c\.claimed_at < NOW\(\) - p_stale/)
+    assert.match(migration, /p_stale   INTERVAL DEFAULT '5 minutes'/)
+  })
+
+  test('but not for ever — a dead number stops being retried', () => {
+    assert.match(migration, /AND c\.attempts < 4/)
+  })
+
+  test('every recipient keeps its own state and reason', () => {
+    assert.match(migration, /status      TEXT NOT NULL DEFAULT 'pending'/)
+    assert.match(migration, /last_error  TEXT/)
+    assert.match(migration, /channel     TEXT/)
+  })
+
+  test('and a text still carries its own dedupe key as well', () => {
+    // Belt and braces: the ledger prevents a second attempt; this prevents a
+    // second TEXT even if it ever did not.
+    assert.match(campaign, /dedupeKey: `info_session:\$\{sessionId\}:\$\{r\.lead_id\}`/)
+  })
+
+  test('the table is not readable by a browser key', () => {
+    assert.match(migration, /ALTER TABLE info_session_recipients ENABLE ROW LEVEL SECURITY/)
+  })
+})
+
+describe('a campaign finishes even when a hop does not', () => {
+  test('the dispatcher sweeps for anything unfinished', () => {
+    /*
+     * The chain makes finishing prompt. This makes it certain: a hop that
+     * died before it could start the next one leaves a campaign still
+     * `sending`, and the sweep picks it up.
+     */
+    assert.match(worker, /\.in\('status', \['sending', 'scheduled'\]\)/)
+    const cron = codeOf('app/api/cron/run/route.ts')
+    assert.match(cron, /path: '\/api\/info-sessions\/worker'/)
+  })
+
+  test('a scheduled campaign starts itself, through the same path', () => {
+    /*
+     * Not a second implementation of sending. The sweep enrols it, switches
+     * it to sending, and hands it to the same advanceCampaign the button
+     * uses — two routines is how the scheduled path and the manual one came
+     * to behave differently.
+     */
+    assert.match(worker, /if \(s\.status === 'scheduled'\)/)
+    assert.match(worker, /await enrolRecipients\(s\.id, s\.audience \|\| 'all_leads'\)/)
+    assert.match(worker, /await advanceCampaign\(s\.id, 0\)/)
+  })
+
+  test('the old cron path runs the same engine, not a copy of it', () => {
+    const run = codeOf('app/api/info-sessions/run/route.ts')
+    assert.match(run, /advanceCampaign/)
+    assert.match(run, /enrolRecipients/)
+    assert.ok(!/sendWhatsAppText|queueSMS/.test(run), 'it sends on its own again')
+  })
+
+  test('the worker is only callable by the server', () => {
+    assert.match(worker, /isValidCronRequest\(req\)/)
+    assert.match(worker, /status: 401/)
+  })
+
+  test('and says plainly when the migration has not been run', () => {
+    // Rather than failing with a PostgREST error nobody outside this
+    // codebase can read.
+    assert.match(worker, /Migration 0029 has not been run/)
+    assert.match(campaign, /await tableExists\('info_session_recipients'\)/)
+  })
+})
+
+describe('progress is read, not guessed', () => {
+  test('the counts come from the ledger', () => {
+    assert.match(migration, /CREATE OR REPLACE FUNCTION info_session_progress/)
+    assert.match(campaign, /rpc\('info_session_progress'/)
+  })
+
+  test('complete means nothing pending and nothing in flight', () => {
+    assert.match(campaign, /p\.complete = p\.total > 0 && p\.pending === 0 && p\.processing === 0/)
+  })
+
+  test('the screen polls while something is sending, and stops when nothing is', () => {
+    /*
+     * The thing that STARTS the polling, not only the cleanup. A test for
+     * clearInterval alone passes on a screen that never set one.
+     */
+    assert.match(page, /\/api\/info-sessions\/progress\?session=/)
+    assert.match(page, /const timer = setInterval\(tick, 4000\)/)
+    assert.match(page, /if \(!sending\.length\) return/)
+    assert.match(page, /clearInterval\(timer\)/)
+  })
+
+  test('and shows the six figures apart', () => {
+    for (const label of ['Total', 'Submitted', 'Processing', 'Remaining', 'Failed', 'No usable number']) {
+      assert.ok(page.includes(`'${label}'`), `the progress panel does not show ${label}`)
+    }
+  })
+
+  test('the operator is told they can close the page', () => {
+    assert.match(page, /You can close this page/)
   })
 })
 
 describe('numbers that cannot be dialled are named, not dropped', () => {
   test('the operator is told which ones to correct', () => {
     /*
-     * The collected list has to be the one returned. `badNumbers: []` in the
-     * result keeps the name and reports nothing, which a search for the word
-     * cannot tell apart from working.
+     * Named, not just counted: three wrong numbers and no word on which three
+     * leaves the list wrong for ever. Read from the ledger, so they survive
+     * the page being closed — unlike the toast that used to carry them.
      */
-    assert.match(broadcast, /badNumbers\.push\(/, 'nothing is collected')
-    assert.match(broadcast, /^\s*badNumbers,$/m, 'the collected list is not the one returned')
-    assert.match(page, /need correcting/)
-    assert.match(page, /d\.badNumbers\?\.length/)
+    assert.match(campaign, /\.eq\('status', 'unreachable'\)/)
+    assert.match(campaign, /p\.badNumbers = \(bad \|\| \[\]\)\.map/)
+    assert.match(page, /Need correcting/)
+    assert.match(page, /progress\[s\.id\]\.badNumbers/)
   })
 
   test('the Ghanaian spellings all reach the same number', () => {
@@ -218,26 +398,24 @@ describe('a session can send the moment it is created', () => {
     assert.match(route, /if \(!notifyAt\)/)
   })
 
-  test('it is saved before anything is sent', () => {
+  test('it is saved before anything is started', () => {
     /*
-     * A send that fails half way through must leave a session that can be
-     * continued from the list, not invitations that reached some people and
-     * no record at all.
+     * A campaign interrupted at any point must leave a session that can be
+     * continued, not invitations that reached some people and no record.
      */
     const insert = route.indexOf("from('info_sessions').insert({")
-    const send = route.indexOf('broadcastInfoSession(data.id)')
-    assert.ok(insert > -1 && send > insert, 'the send happens before the row exists')
+    const start = route.indexOf('return startCampaign(data)')
+    assert.ok(insert > -1 && start > insert, 'it starts sending before the row exists')
   })
 
-  test('and a failed send says the session was still kept', () => {
-    assert.match(route, /The session is saved, so you can send it from the list/)
+  test('and a campaign that could not start says the session was kept', () => {
+    assert.match(route, /The session is saved, so you can start it from the list/)
   })
 
-  test('it is the same send the button and the runner use', () => {
-    // One behaviour, not three implementations of it.
-    assert.match(route, /const \{ broadcastInfoSession \} = await import\('@\/lib\/infoSessionBroadcast'\)/)
-    const runner = codeOf('app/api/info-sessions/run/route.ts')
-    assert.match(runner, /broadcastInfoSession\(s\.id\)/)
+  test('the button and the create-and-send path start it the same way', () => {
+    // One behaviour, not two implementations of it.
+    assert.equal((route.match(/return startCampaign\(/g) || []).length, 2)
+    assert.match(route, /async function startCampaign\(/)
   })
 
   test('the form offers both', () => {
@@ -256,14 +434,14 @@ describe('a session can send the moment it is created', () => {
     assert.match(page, /cannot be recalled/)
   })
 
-  test('both paths report an outcome the same way', () => {
+  test('both paths report the start the same way', () => {
     /*
      * Two reporters would drift, and the one that drifts is the one that
-     * says "sent" about a session nobody received.
+     * says "sent" about a campaign that has barely begun.
      */
-    assert.match(page, /function reportSend\(/)
-    assert.match(page, /if \(sendNow && d\.sent\) reportSend\(d\)/)
-    assert.match(page, /reportSend\(d, 'sn'\)/)
+    assert.match(page, /function reportStart\(/)
+    assert.match(page, /if \(sendNow && d\.started\) reportStart\(d\)/)
+    assert.match(page, /reportStart\(d, 'sn'\)/)
   })
 
   test('a session with no channel is refused before it is saved', () => {

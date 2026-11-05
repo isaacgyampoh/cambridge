@@ -73,3 +73,37 @@ export async function columnExists(table: string, column: string): Promise<boole
   cache.set(key, { present, checkedAt: Date.now() })
   return present
 }
+
+/**
+ * Does this table exist on the database we are actually talking to?
+ *
+ * Same reasoning as columnExists, and the same cache. A feature whose table
+ * arrives with a migration can then ship before the migration runs and say
+ * so, instead of failing with a PostgREST error nobody outside this codebase
+ * can read.
+ */
+export async function tableExists(table: string): Promise<boolean> {
+  const key = `${table}.*`
+  const cached = cache.get(key)
+  if (cached?.present) return true
+  if (cached && Date.now() - cached.checkedAt < RECHECK_MISSING_AFTER_MS) return false
+
+  let present = false
+  try {
+    const sb = createServiceClient()
+    const { error } = await sb.from(table).select('*', { head: true, count: 'exact' }).limit(1)
+    if (!error) {
+      present = true
+    } else if (!/does not exist|42P01|could not find/i.test(error.message)) {
+      // Inconclusive, exactly as above: an outage is not a missing table.
+      console.error(`[hasColumn] could not establish whether ${table} exists:`, error.message)
+      return false
+    }
+  } catch (e) {
+    console.error(`[hasColumn] probe for ${table} threw:`, e instanceof Error ? e.message : e)
+    return false
+  }
+
+  cache.set(key, { present, checkedAt: Date.now() })
+  return present
+}
