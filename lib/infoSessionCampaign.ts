@@ -463,13 +463,40 @@ export async function triggerNextHop(sessionId: string, hop: number): Promise<vo
     console.error('[campaign] hop ceiling reached for', sessionId, '— leaving it to the dispatcher.')
     return
   }
+  /*
+   * Read BEFORE the try, because a missing CRON_SECRET throws when it is read
+   * — and inside the try that throw went into the same catch as the expected
+   * abort below, so a deployment that could not authenticate its own hops
+   * looked exactly like one that was working.
+   */
+  let secret: string
+  try {
+    secret = SECRETS.cronSecret
+  } catch {
+    console.error('[campaign] CRON_SECRET is not set, so no hop can authenticate itself.',
+      'Campaign', sessionId, 'cannot advance.')
+    return
+  }
+
   const url = `${publicOrigin()}/api/info-sessions/worker?session=${encodeURIComponent(sessionId)}&hop=${hop + 1}`
   try {
-    await fetch(url, {
+    const res = await fetch(url, {
       method: 'POST',
-      headers: { Authorization: `Bearer ${SECRETS.cronSecret}` },
+      headers: { Authorization: `Bearer ${secret}` },
       signal: AbortSignal.timeout(1_500),
     })
+    /*
+     * A hop that answers this quickly has not done a batch — it has refused
+     * one. The first version ignored the response entirely, which is how a
+     * middleware rule that answered every hop with 401 went unnoticed while
+     * the campaign sat at "sending" and the operator watched a number that
+     * never moved.
+     */
+    if (!res.ok) {
+      const body = await res.text().catch(() => '')
+      console.error('[campaign] hop', hop + 1, 'for', sessionId, 'was refused:',
+        res.status, body.slice(0, 200))
+    }
   } catch {
     /*
      * Expected: the abort fires long before the next hop finishes. What

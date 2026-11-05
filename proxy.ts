@@ -81,6 +81,17 @@ const CRON_PATHS = [
   '/api/class-reminders/run',
   '/api/payment-reminders/run',
   '/api/info-sessions/run',
+  /*
+   * The campaign worker. Its absence from this list is what froze a campaign
+   * at "sending" with the sent count stuck: the Send request fires the first
+   * hop, each hop fires the next, and the dispatcher sweeps for anything
+   * unfinished every fifteen minutes — every one of those is the server
+   * calling itself with the cron secret and NO session cookie, so every one
+   * was answered with "Please sign in to continue." before it reached the
+   * handler that would have checked the secret. Nothing advanced: not the
+   * chain, not the sweep. The handler authenticates itself.
+   */
+  '/api/info-sessions/worker',
   '/api/info-sessions/followup',
   '/api/sequences/run',
   '/api/reports/generate',
