@@ -3,6 +3,9 @@ import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 import { saveFailed, lookup, unavailable } from '@/lib/db/lookup'
 import { enrolRecipients, triggerNextHop } from '@/lib/infoSessionCampaign'
+import { columnExists } from '@/lib/db/hasColumn'
+import { resolveAudience } from '@/lib/leads/audienceQuery'
+import { describeFilter, type AudienceFilter } from '@/lib/leads/audienceFilter'
 
 export const runtime = 'nodejs'
 
@@ -40,8 +43,13 @@ const PORTALS = ['grp_automation']
  * how many have been reached is a question the progress endpoint answers
  * while it runs.
  */
-async function startCampaign(session: { id: string; audience?: string | null; title?: string | null }) {
-  const enrolled = await enrolRecipients(session.id, session.audience || 'all_leads')
+async function startCampaign(session: {
+  id: string; audience?: string | null; title?: string | null
+  audience_filter?: AudienceFilter | null
+}) {
+  const enrolled = await enrolRecipients(
+    session.id, session.audience || 'all_leads', session.audience_filter || null,
+  )
   if (typeof enrolled !== 'number') {
     return NextResponse.json({
       session, started: false,
@@ -78,7 +86,7 @@ export const GET = withGuard({ portals: PORTALS }, async () => {
 })
 
 export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { session }) => {
-  const { title, link, description, scheduled_at, notify_at, audience, channels, send_now } =
+  const { title, link, description, scheduled_at, notify_at, audience, channels, send_now, message, filter } =
     await req.json()
 
   /*
@@ -98,6 +106,32 @@ export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { s
   if (!title?.trim() || !link?.trim() || !scheduled_at) {
     return NextResponse.json({ error: 'Title, link and the session time are required.' }, { status: 400 })
   }
+
+  /*
+   * ── THE MESSAGE IS THE AUTHOR'S, AND IT IS REQUIRED ──────────────────────
+   *
+   * The invitation text used to live in the code: every campaign said the
+   * same sentence and nobody could change a word of it. It is written here
+   * now, and an empty one is refused rather than quietly replaced with a
+   * default — sending words nobody wrote is the behaviour being removed.
+   */
+  const text = String(message ?? '').trim()
+  if (!text) {
+    return NextResponse.json(
+      { error: 'Write the message you want to send. There is no default.' }, { status: 400 })
+  }
+
+  /*
+   * And it has to be storable. Without the column the campaign would send the
+   * text that used to be hardcoded — which is not what the author wrote, and
+   * worse than refusing.
+   */
+  if (!(await columnExists('info_sessions', 'message'))) {
+    return NextResponse.json({
+      error: 'This deployment has not run migration 0030, so your message cannot be saved. '
+        + 'Nothing was created.',
+    }, { status: 503 })
+  }
   if (!notifyAt) {
     return NextResponse.json(
       { error: 'Choose when it should auto-send, or send it now.' }, { status: 400 })
@@ -114,6 +148,26 @@ export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { s
       { error: 'Choose at least one way to send it — SMS, WhatsApp or email.' }, { status: 400 })
   }
 
+  /*
+   * The audience is resolved NOW and its criteria kept with the campaign.
+   *
+   * A lead edited next week must not change who this campaign was for, and
+   * the history has to be able to say what was asked for — not only who
+   * answered. The counts are recorded at the same moment for the same reason.
+   */
+  const audienceFilter = (filter || {}) as AudienceFilter
+  const resolved = await resolveAudience(audienceFilter)
+  if ('error' in resolved) {
+    return NextResponse.json({ error: resolved.error }, { status: 503 })
+  }
+  if (!resolved.sendable.length) {
+    return NextResponse.json({
+      error: resolved.matching
+        ? `${resolved.matching} lead${resolved.matching === 1 ? '' : 's'} match, but none of them has a usable phone number.`
+        : 'No leads match that selection.',
+    }, { status: 400 })
+  }
+
   const sb = createServiceClient()
   const { data, error } = await sb.from('info_sessions').insert({
     title: title.trim(), link: link.trim(), description: description?.trim() || null,
@@ -121,6 +175,15 @@ export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { s
     audience: audience || 'all_leads',
     channels: picked.join(','),
     created_by: session.userId,
+    message: text,
+    audience_filter: audienceFilter,
+    audience_summary: {
+      matching: resolved.matching,
+      sendable: resolved.sendable.length,
+      excluded: resolved.excluded.length,
+      conditions: describeFilter(audienceFilter),
+      resolvedAt: new Date().toISOString(),
+    },
   }).select().single()
   if (error) return saveFailed('[info-sessions]', error.message, 'that session')
 

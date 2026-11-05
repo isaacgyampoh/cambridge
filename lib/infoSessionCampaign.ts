@@ -5,7 +5,10 @@ import { sendEmail, emailConfigured } from '@/lib/integrations/email'
 import { queueSMS } from '@/lib/notifications/sms'
 import { normaliseRecipient } from '@/lib/integrations/sms'
 import { whatsappConnected, smsConnected } from '@/lib/messaging'
-import { tableExists } from '@/lib/db/hasColumn'
+import { tableExists, columnExists } from '@/lib/db/hasColumn'
+import { resolveAudience } from '@/lib/leads/audienceQuery'
+import { renderMessage } from '@/lib/leads/messageTemplate'
+import type { AudienceFilter } from '@/lib/leads/audienceFilter'
 import { lookup } from '@/lib/db/lookup'
 import { publicOrigin } from '@/lib/url'
 import { SECRETS } from '@/lib/config.server'
@@ -89,57 +92,51 @@ const MISSING_TABLE: CampaignError = {
 
 /* ── 1. Enrol ─────────────────────────────────────────────────────────────── */
 
-type Lead = { id: string; full_name: string | null; phone: string | null; email: string | null; assigned_to: string | null }
-
-/** The audience for a session, by its own rule. */
-async function audienceFor(audience: string): Promise<Lead[] | null> {
-  const sb = createServiceClient()
-  const base = sb.from('leads')
-    .select('id, full_name, phone, email, assigned_to')
-    .not('phone', 'is', null)
-
-  /*
-   * One branch, one extra call on the same builder. Reassigning `q` through
-   * three conditionals instead deepens the builder's type on every line far
-   * enough that the checker gives up on it.
-   */
-  const q = audience === 'uncontacted'
-    ? base.eq('status', 'new')
-    : audience === 'interested'
-      ? base.in('status', ['interested', 'follow_up'])
-      : base.not('status', 'in', '(registered,lost,not_interested)')
-
-  const { data, error } = await q.limit(5000)
-  if (error) {
-    console.error('[campaign] audience read failed:', error.message)
-    return null
-  }
-  return (data as Lead[]) || []
-}
-
 /**
  * Write the audience into the campaign, once.
  *
  * Idempotent by the unique key: running it again on a campaign already
  * enrolled inserts nothing and changes nobody's state. That is what makes it
  * safe for both the Send request and the recovery sweep to call.
+ *
+ * The audience comes from the criteria SAVED WITH THE CAMPAIGN, not from the
+ * filters as they are now — a campaign created last week sent to the people
+ * it selected last week, whatever anybody has edited since.
  */
-export async function enrolRecipients(sessionId: string, audience: string): Promise<number | CampaignError> {
+export async function enrolRecipients(
+  sessionId: string,
+  audience: string,
+  filter?: AudienceFilter | null,
+): Promise<number | CampaignError> {
   if (!(await tableExists('info_session_recipients'))) return MISSING_TABLE
 
-  const leads = await audienceFor(audience)
-  if (leads === null) {
-    return { error: 'The audience could not be read just now, so nothing was enrolled.', retryable: true }
-  }
+  const resolved = await resolveAudience(filter || legacyFilter(audience))
+  if ('error' in resolved) return { error: resolved.error, retryable: true }
 
   const sb = createServiceClient()
-  // In chunks: one insert of five thousand rows is a request nobody should make.
-  for (let i = 0; i < leads.length; i += 500) {
-    const chunk = leads.slice(i, i + 500).map(l => ({
+  const hasMessageColumn = await columnExists('info_session_recipients', 'message')
+
+  /*
+   * The exact text each person is sent, stored with them.
+   *
+   * Rendered here rather than at sending time so the record is written once,
+   * from the message the campaign was created with — and so a campaign
+   * history can show what somebody actually received rather than the template
+   * it came from.
+   */
+  const { row: session } = await lookup(
+    sb.from('info_sessions').select('*').eq('id', sessionId).maybeSingle(),
+  )
+
+  for (let i = 0; i < resolved.sendable.length; i += 500) {
+    const chunk = resolved.sendable.slice(i, i + 500).map(l => ({
       session_id: sessionId,
       lead_id: l.id,
       phone: l.phone,
       email: l.email,
+      ...(hasMessageColumn && session
+        ? { message: renderMessage(session.message, { session, lead: l, origin: publicOrigin() }) }
+        : {}),
     }))
     const { error } = await sb.from('info_session_recipients')
       .upsert(chunk, { onConflict: 'session_id,lead_id', ignoreDuplicates: true })
@@ -149,14 +146,31 @@ export async function enrolRecipients(sessionId: string, audience: string): Prom
     }
   }
 
+  /*
+   * Leads with no usable number are enrolled too, marked unreachable, so the
+   * campaign can account for everybody it selected. Leaving them out would
+   * make "212 selected, 209 recipients" a discrepancy nobody could explain.
+   */
+  for (let i = 0; i < resolved.excluded.length; i += 500) {
+    const chunk = resolved.excluded.slice(i, i + 500).map(l => ({
+      session_id: sessionId,
+      lead_id: l.id,
+      phone: l.phone,
+      email: l.email,
+      status: 'unreachable',
+      last_error: l.reason,
+    }))
+    const { error } = await sb.from('info_session_recipients')
+      .upsert(chunk, { onConflict: 'session_id,lead_id', ignoreDuplicates: true })
+    if (error) console.error('[campaign] enrolling the unreachable failed:', error.message)
+  }
+
   await honourEarlierSends(sessionId)
-  return leads.length
+  return resolved.sendable.length
 }
 
 /**
  * Credit anybody this campaign has already reached, before it resumes.
- *
- * ── WHY THIS IS NEEDED AT ALL ──────────────────────────────────────────────
  *
  * Campaigns sent before the ledger existed left their record in sms_logs and
  * nowhere else. Enrolling such a campaign marks every recipient `pending`,
@@ -164,13 +178,8 @@ export async function enrolRecipients(sessionId: string, audience: string): Prom
  * a second TEXT, it says nothing about WhatsApp, which is tried first. Those
  * people would get the invitation a second time, by the other door.
  *
- * One campaign in production is in exactly that state: a hundred and five
- * recipients texted across the runs that had to be pressed by hand, and the
- * remainder never reached.
- *
- * So the texts that definitely went are read back and credited. Only rows
- * still `pending` are touched, so a result this campaign has since recorded
- * for itself is never overwritten by history.
+ * Only rows still `pending` are touched, so a result this campaign has since
+ * recorded for itself is never overwritten by history.
  */
 async function honourEarlierSends(sessionId: string): Promise<void> {
   const sb = createServiceClient()
@@ -210,6 +219,13 @@ async function honourEarlierSends(sessionId: string): Promise<void> {
   if (leadIds.length) {
     console.log(`[campaign] ${sessionId}: credited ${leadIds.length} recipient(s) reached before the ledger existed.`)
   }
+}
+
+/** The three presets this module shipped with, as filters. */
+function legacyFilter(audience: string): AudienceFilter {
+  if (audience === 'uncontacted') return { statuses: ['new'] }
+  if (audience === 'interested') return { statuses: ['interested', 'follow_up'] }
+  return {}
 }
 
 /* ── 2. Progress ──────────────────────────────────────────────────────────── */
@@ -294,10 +310,9 @@ export async function processBatch(sessionId: string): Promise<BatchResult | Cam
     return { error: 'This batch could not be claimed.', retryable: true }
   }
 
-  const rows = (claimed as Array<{ id: string; lead_id: string; phone: string | null; email: string | null }>) || []
+  const rows = (claimed as Array<{ id: string; lead_id: string; phone: string | null; email: string | null; message?: string | null }>) || []
   if (!rows.length) return { claimed: 0, sent: 0, failed: 0, unreachable: 0, more: false }
 
-  const when = new Date(s.scheduled_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
   const appUrl = publicOrigin()
 
   const { data: marketers } = await sb.from('profiles').select('id, marketer_code').not('marketer_code', 'is', null)
@@ -321,10 +336,29 @@ export async function processBatch(sessionId: string): Promise<BatchResult | Cam
     if (Date.now() > deadline) { released.push(r.id); continue }
 
     const lead = leadById.get(r.lead_id)
-    const first = String(lead?.full_name || 'there').split(' ')[0]
     const code = lead?.assigned_to ? (codeById[lead.assigned_to] || 'x') : 'x'
     const joinLink = `${appUrl}/j/${sessionId}/${code}?p=${encodeURIComponent(r.phone || '')}`
-    const msg = `Hi ${first}, you're invited to Cambridge Center of Excellence's "${s.title}" on ${when}.\nJoin here: ${joinLink}${s.description ? `\n${s.description}` : ''}`
+
+    /*
+     * What this person is sent is what was written for them.
+     *
+     * Stored on their row at enrolment, so the campaign cannot drift from
+     * what the author composed and the history can show the exact text. A row
+     * from before that column existed falls back to rendering the session's
+     * message now; a campaign with no message at all cannot be created, so an
+     * empty one here is a fault worth refusing rather than papering over with
+     * a sentence nobody wrote.
+     */
+    const msg = (r.message || '').trim()
+      || renderMessage(s.message, {
+        session: s, lead: { ...lead, phone: r.phone }, origin: appUrl, marketerCode: code,
+      })
+
+    if (!msg) {
+      failedCount++
+      await mark(sb, r.id, 'failed', null, 'This campaign has no message, so nothing was sent.')
+      continue
+    }
 
     const dialable = normaliseRecipient(r.phone || '')
     if (!dialable && !(usable.email && r.email)) {
@@ -358,14 +392,16 @@ export async function processBatch(sessionId: string): Promise<BatchResult | Cam
 
     if (!channel && usable.email && r.email) {
       try {
+        /*
+         * The same words, laid out for a mailbox. The author's message is the
+         * message — the email adds a button to the link it already contains
+         * and nothing of its own.
+         */
         const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:28px 24px;color:#10231C">
-          <p style="font-size:15px;line-height:1.6">Hi ${first},</p>
-          <p style="font-size:15px;line-height:1.6">You're invited to <b>${s.title}</b> at Cambridge Center of Excellence on <b>${when}</b>.</p>
-          ${s.description ? `<p style="font-size:14px;color:#5A6B64;line-height:1.6">${s.description}</p>` : ''}
+          <p style="font-size:15px;line-height:1.7;white-space:pre-wrap">${escapeHtml(msg)}</p>
           <p style="margin:18px 0"><a href="${joinLink}" style="background:#0B3B2E;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px">Join the session</a></p>
         </div>`
-        if (await sendEmail(r.email, `You're invited: ${s.title} — Cambridge CE`, html,
-          `You're invited to ${s.title} on ${when}. Join: ${joinLink}`)) channel = 'email'
+        if (await sendEmail(r.email, `${s.title} — Cambridge CE`, html, msg)) channel = 'email'
       } catch (e) { error = e instanceof Error ? e.message : 'The email could not be sent.' }
     }
 
@@ -380,6 +416,13 @@ export async function processBatch(sessionId: string): Promise<BatchResult | Cam
   }
 
   return { claimed: rows.length, sent, failed: failedCount, unreachable, more: true }
+}
+
+/** The author's text goes into an HTML mail, so their punctuation cannot become markup. */
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;').replace(/'/g, '&#39;')
 }
 
 async function mark(

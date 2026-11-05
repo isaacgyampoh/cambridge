@@ -137,7 +137,7 @@ describe('one click finishes the whole campaign', () => {
      * loop is what capped a campaign at one invocation's lifetime.
      */
     assert.match(route, /async function startCampaign\(/)
-    assert.match(route, /await enrolRecipients\(session\.id/)
+    assert.match(route, /await enrolRecipients\(\s*\n?\s*session\.id/)
     assert.match(route, /await triggerNextHop\(session\.id, 0\)/)
     assert.ok(!/for \(const lead of/.test(route), 'the request still loops over recipients')
   })

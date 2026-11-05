@@ -6,29 +6,76 @@ import { toast } from 'sonner'
 import { useConfirm } from '@/hooks/useConfirm'
 import { postJson, messageFor } from '@/lib/api/post'
 import type { Progress } from '@/lib/infoSessionCampaign'
+import type { AudienceFilter } from '@/lib/leads/audienceFilter'
+import { countSegments, PLACEHOLDERS } from '@/lib/leads/messageTemplate'
+import { Dialog } from '@/components/ui/overlays'
+import { displayPhone } from '@/lib/ui/contact'
+import { AudiencePicker } from './AudiencePicker'
+import { RecipientsDialog } from './RecipientsDialog'
+
+/** Which recipient state a progress figure opens. */
+const STATUS_FOR: Record<string, string> = {
+  Submitted: 'sent',
+  Processing: 'claimed',
+  Remaining: 'pending',
+  Failed: 'failed',
+  'No usable number': 'unreachable',
+}
 
 export default function InfoSessions() {
   const { confirm, dialog } = useConfirm()
   const [sessions, setSessions] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
   const [saving, setSaving] = useState(false)
-  const [form, setForm] = useState({ title: '', link: '', description: '', scheduled_at: '', notify_at: '', audience: 'all_leads', channels: ['sms', 'whatsapp'] })
-  const [preview, setPreview] = useState<any>(null)
+  const [form, setForm] = useState({
+    title: '', link: '', description: '', scheduled_at: '', notify_at: '',
+    audience: 'all_leads', channels: ['sms', 'whatsapp'],
+    /*
+     * Empty on purpose. There is no default message: whoever creates the
+     * campaign writes what they want to say, and an empty one is refused
+     * rather than quietly replaced — see the note in the API route.
+     */
+    message: '',
+  })
+  /** The audience conditions, and what they currently match. */
+  const [filter, setFilter] = useState<AudienceFilter>({})
+  const [audience, setAudience] = useState<{
+    matching: number; sendable: number; excluded: number
+    conditions: string[]
+    sample: Array<{ id: string; full_name: string | null; phone: string | null; status: string | null; course_interest: string | null }>
+    excludedSample: Array<{ id: string; full_name: string | null; phone: string | null; reason: string }>
+  } | null>(null)
+  const [audienceState, setAudienceState] = useState<'idle' | 'loading' | 'error'>('idle')
+  const [showMatching, setShowMatching] = useState(false)
+  /** Which campaign's recipients are open, and from which figure. */
+  const [inspect, setInspect] = useState<{ id: string; title: string; status?: string | null } | null>(null)
   const [attendance, setAttendance] = useState<any[]>([])
 
-  // Live preview: reach count + message, updates as the form changes
+  /*
+   * How many leads the current conditions match, counted against every lead.
+   *
+   * Debounced, because it re-runs as somebody builds the filter, and counted
+   * on the SERVER: a count taken over the page of leads a browser happens to
+   * hold is right about that page and wrong about the campaign, and the
+   * operator finds that out after pressing Send.
+   */
   useEffect(() => {
+    let alive = true
+    setAudienceState('loading')
     const t = setTimeout(async () => {
       try {
-        const d = await fetch('/api/info-sessions/preview', {
+        const d = await fetch('/api/info-sessions/audience', {
           method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ title: form.title, link: form.link, description: form.description, scheduled_at: form.scheduled_at, audience: form.audience }),
+          body: JSON.stringify(filter),
         }).then(r => r.json())
-        setPreview(d)
-      } catch {}
+        if (!alive) return
+        if (!d.success) { setAudienceState('error'); return }
+        setAudience(d)
+        setAudienceState('idle')
+      } catch { if (alive) setAudienceState('error') }
     }, 400)
-    return () => clearTimeout(t)
-  }, [form.title, form.link, form.description, form.scheduled_at, form.audience])
+    return () => { alive = false; clearTimeout(t) }
+  }, [filter])
 
   async function load() {
     const d = await fetch('/api/info-sessions').then(r => r.json())
@@ -85,6 +132,23 @@ export default function InfoSessions() {
 
   function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
 
+  /** What the message costs to send, and how it reads for a real recipient. */
+  const segments = useMemo(() => countSegments(form.message), [form.message])
+  const isEmptySelection = useMemo(
+    () => Object.values(filter).every(v => v === undefined || (Array.isArray(v) && !v.length) || v === 'any'),
+    [filter],
+  )
+  const messagePreview = useMemo(() => {
+    const first = audience?.sample?.[0]
+    return form.message
+      .replace(/\{name\}/g, String(first?.full_name || 'Ama').split(' ')[0])
+      .replace(/\{title\}/g, form.title || 'the session')
+      .replace(/\{when\}/g, form.scheduled_at
+        ? new Date(form.scheduled_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
+        : 'the session time')
+      .replace(/\{link\}/g, 'https://portal.cambridge.edu.gh/j/…')
+  }, [form.message, form.title, form.scheduled_at, audience])
+
   /**
    * A campaign has STARTED. Not what it sent — it has not sent it yet.
    *
@@ -101,7 +165,11 @@ export default function InfoSessions() {
   }
 
   function blank() {
-    setForm({ title: '', link: '', description: '', scheduled_at: '', notify_at: '', audience: 'all_leads', channels: ['sms', 'whatsapp'] })
+    setForm({
+      title: '', link: '', description: '', scheduled_at: '', notify_at: '',
+      audience: 'all_leads', channels: ['sms', 'whatsapp'], message: '',
+    })
+    setFilter({})
   }
 
   /**
@@ -122,10 +190,17 @@ export default function InfoSessions() {
     if (!form.channels.length) {
       toast.error('Choose at least one way to send it.'); return
     }
+    if (!form.message.trim()) {
+      toast.error('Write the message you want to send.'); return
+    }
+    if (!audience?.sendable) {
+      toast.error('No leads with a usable phone number match your selection.'); return
+    }
 
     if (sendNow && !await confirm({
       title: 'Create and send it now?',
-      message: `"${form.title.trim()}" goes to ${preview?.leadCount ?? 'every targeted'} lead${preview?.leadCount === 1 ? '' : 's'}. Sending starts now and continues on its own — it cannot be recalled.`,
+      message: `"${form.title.trim()}" goes to ${audience?.sendable ?? 0} lead${audience?.sendable === 1 ? '' : 's'}. `
+        + 'Sending starts now and continues on its own — it cannot be recalled.',
       confirmLabel: 'Send now',
       tone: 'accent',
     })) return
@@ -133,7 +208,7 @@ export default function InfoSessions() {
     setSaving(true)
     const res = await fetch('/api/info-sessions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, channels: form.channels.join(','), send_now: sendNow }),
+      body: JSON.stringify({ ...form, channels: form.channels.join(','), send_now: sendNow, filter }),
     })
     const d = await res.json()
     setSaving(false)
@@ -201,6 +276,71 @@ export default function InfoSessions() {
   return (
     <div className="fade-in w-full max-w-5xl mx-auto">
       {dialog}
+
+      <RecipientsDialog
+        sessionId={inspect?.id || null}
+        title={inspect?.title || ''}
+        status={inspect?.status || null}
+        onClose={() => setInspect(null)}
+      />
+
+      {/*
+        * The matching leads, before anything is created. Separate from the
+        * recipient list, which is about a campaign that already exists.
+        */}
+      <Dialog
+        open={showMatching}
+        onClose={() => setShowMatching(false)}
+        size="lg"
+        title="Leads that match your selection"
+        description={audience
+          ? `${audience.matching} matching · ${audience.sendable} can be texted · ${audience.excluded} without a usable number`
+          : ''}
+        footer={<Button variant="secondary" onClick={() => setShowMatching(false)}>Close</Button>}
+      >
+        {audience?.conditions?.length ? (
+          <p className="text-[13px] text-[var(--ink-soft)] mb-3">{audience.conditions.join(' · ')}</p>
+        ) : null}
+        <div className="overflow-x-auto">
+          <table className="w-full text-[13px]">
+            <thead>
+              <tr className="text-left text-[11px] uppercase tracking-wide text-[var(--ink-faint)] border-b border-[var(--line)]">
+                <th className="px-2 py-2 font-semibold">Name</th>
+                <th className="px-2 py-2 font-semibold">Phone</th>
+                <th className="px-2 py-2 font-semibold">Status</th>
+                <th className="px-2 py-2 font-semibold">Course</th>
+              </tr>
+            </thead>
+            <tbody>
+              {(audience?.sample || []).map(l => (
+                <tr key={l.id} className="border-b border-[var(--line-soft)] last:border-0">
+                  <td className="px-2 py-2 font-medium text-[var(--ink)]">{l.full_name || 'Unnamed'}</td>
+                  <td className="px-2 py-2 text-[var(--ink-soft)] tabular-nums">{displayPhone(l.phone)}</td>
+                  <td className="px-2 py-2 text-[var(--ink-soft)]">{l.status?.replace(/_/g, ' ') || '—'}</td>
+                  <td className="px-2 py-2 text-[var(--ink-soft)]">{l.course_interest || '—'}</td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </div>
+        {audience && audience.matching > audience.sample.length && (
+          <p className="text-[12px] text-[var(--ink-faint)] mt-3">
+            Showing the first {audience.sample.length} of {audience.matching}. All of them are included.
+          </p>
+        )}
+        {(audience?.excludedSample?.length ?? 0) > 0 && (
+          <div className="mt-4 pt-3 border-t border-[var(--line-soft)]">
+            <h4 className="text-[13px] font-semibold text-[var(--ink)] mb-1.5">
+              Will not receive it — no usable phone number
+            </h4>
+            <ul className="text-[12px] text-[var(--ink-soft)] space-y-0.5">
+              {(audience?.excludedSample || []).map(l => (
+                <li key={l.id}>{l.full_name || 'Unnamed'} — {l.phone || 'no number'} ({l.reason})</li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </Dialog>
       <PageHeader eyebrow="Automation" title="Info sessions"
         description="Schedule an info session once. At the send time, the system automatically texts and WhatsApps every lead, and pushes the link to all marketers to share. No manual sending." />
 
@@ -224,7 +364,40 @@ export default function InfoSessions() {
                         </div>
                         <p className="text-[13px] text-[var(--ink-soft)] mt-1">Session: {when}</p>
                         {s.status === 'scheduled' && <p className="text-[13px] text-[var(--ink-faint)]">Auto-sends: {sendWhen}</p>}
-                        {s.status === 'sent' && <p className="text-[13px] text-[var(--ok)]">Sent to {s.leads_notified} leads · {s.marketers_notified} marketers notified</p>}
+                        {s.status === 'sent' && (
+                          <p className="text-[13px] text-[var(--ink-soft)]">
+                            {/*
+                              * Clickable, because "sent to 212 leads" invites
+                              * exactly one question — which 212 — and the
+                              * recipient ledger can answer it.
+                              */}
+                            <button onClick={() => setInspect({ id: s.id, title: s.title })}
+                              className="text-[var(--ok)] font-semibold hover:underline tabular-nums">
+                              {s.leads_notified} recipient{s.leads_notified === 1 ? '' : 's'}
+                            </button>
+                            {' · '}
+                            <button onClick={() => setInspect({ id: s.id, title: s.title, status: 'failed' })}
+                              className="hover:underline">failed</button>
+                            {' · '}
+                            <button onClick={() => setInspect({ id: s.id, title: s.title, status: 'unreachable' })}
+                              className="hover:underline">no usable number</button>
+                          </p>
+                        )}
+                        {s.message && (
+                          <details className="mt-2">
+                            <summary className="text-[13px] text-[var(--accent)] cursor-pointer hover:underline">
+                              The message that was sent
+                            </summary>
+                            <p className="text-[13px] text-[var(--ink-soft)] whitespace-pre-wrap mt-1.5 rounded-lg bg-[var(--canvas)] border border-[var(--line-soft)] p-2.5 leading-relaxed">
+                              {s.message}
+                            </p>
+                          </details>
+                        )}
+                        {Array.isArray(s.audience_summary?.conditions) && s.audience_summary.conditions.length > 0 && (
+                          <p className="text-[12px] text-[var(--ink-faint)] mt-1.5">
+                            Audience: {s.audience_summary.conditions.join(' · ')}
+                          </p>
+                        )}
                         <a href={s.link} target="_blank" className="text-[13px] text-[var(--accent)] hover:underline break-all">{s.link}</a>
 
                         {/*
@@ -261,7 +434,12 @@ export default function InfoSessions() {
                                   ].map(([label, value, tone]) => (
                                     <div key={String(label)} className="flex justify-between gap-2">
                                       <dt className="text-[var(--ink-faint)]">{label}</dt>
-                                      <dd className="font-semibold tabular-nums" style={{ color: String(tone) }}>{value}</dd>
+                                      <dd className="font-semibold tabular-nums" style={{ color: String(tone) }}>
+                                        {Number(value) > 0 && STATUS_FOR[String(label)] ? (
+                                          <button onClick={() => setInspect({ id: s.id, title: s.title, status: STATUS_FOR[String(label)] })}
+                                            className="hover:underline">{value}</button>
+                                        ) : value}
+                                      </dd>
                                     </div>
                                   ))}
                                 </dl>
@@ -307,30 +485,77 @@ export default function InfoSessions() {
           {/* Attendance leaderboard — who drove the most joins */}
           {attendance.length > 0 && (
             <div className="mt-6">
-              <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-3">Who drove attendance</h3>
+              <div className="flex items-baseline justify-between gap-3 mb-1">
+                <h3 className="font-display text-[15px] font-semibold text-[var(--ink)]">Who drove attendance</h3>
+              </div>
+              {/*
+                * Said plainly, because the heading alone was being read as
+                * "who sent the invitations" — which is a different question
+                * from any of the three answered below.
+                */}
+              <p className="text-[12px] text-[var(--ink-faint)] leading-snug mb-3">
+                Which lead sources and staff members contributed to the people who attended.
+                Each person is counted once, however many times they opened the link.
+                “Invited” is how many the campaign actually messaged.
+              </p>
               <div className="space-y-3">
                 {attendance.map((sess: any) => (
                   <Card key={sess.session_id} className="p-5">
-                    <div className="flex items-baseline justify-between mb-3">
+                    <div className="flex items-baseline justify-between gap-3 mb-3">
                       <div className="font-medium text-[var(--ink)] truncate pr-3">{sess.title}</div>
-                      <div className="text-[13px] text-[var(--ink-soft)] flex-shrink-0"><span className="font-semibold text-[var(--accent)]">{sess.total}</span> joined</div>
+                      <div className="text-[13px] text-[var(--ink-soft)] flex-shrink-0 tabular-nums">
+                        <span className="font-semibold text-[var(--accent)]">{sess.attended}</span> attended
+                        {sess.invited !== null && <> of {sess.invited} invited</>}
+                        {sess.attendanceRate !== null && <> · {sess.attendanceRate}%</>}
+                      </div>
                     </div>
-                    <div className="space-y-1.5">
-                      {sess.marketers.map((m: any, i: number) => (
-                        <div key={i} className="flex items-center justify-between text-[13px]">
-                          <div className="flex items-center gap-2 min-w-0">
-                            <span className={`w-5 text-center text-[11px] font-semibold ${i === 0 ? 'text-[var(--gold)]' : 'text-[var(--ink-faint)]'}`}>{i + 1}</span>
-                            <span className={`truncate ${m.name === 'Not attributed' ? 'text-[var(--ink-faint)] italic' : 'text-[var(--ink)]'}`}>{m.name}</span>
-                          </div>
-                          <div className="flex items-center gap-2 flex-shrink-0">
-                            <div className="w-24 h-1.5 rounded-full bg-[var(--line-soft)] overflow-hidden">
-                              <div className="h-full bg-[var(--accent)]" style={{ width: `${Math.round((m.count / sess.total) * 100)}%` }} />
-                            </div>
-                            <span className="font-medium text-[var(--ink)] w-6 text-right">{m.count}</span>
-                          </div>
+
+                    {/*
+                      * Three breakdowns of the SAME people, each answering its
+                      * own question. Whose link was clicked is who invited
+                      * them — not who found them and not who is responsible
+                      * for them, and on this data those are usually different.
+                      */}
+                    <div className="grid gap-4 sm:grid-cols-3">
+                      {[
+                        ['Where they came from', sess.bySource, 'The source recorded on the lead'],
+                        ['Who is responsible', sess.byOwner, 'The staff member the lead is assigned to'],
+                        ['Whose link they used', sess.byInviter, 'The invitation they opened'],
+                      ].map(([heading, rows, hint]: any) => (
+                        <div key={heading}>
+                          <div className="text-[12px] font-semibold text-[var(--ink)]">{heading}</div>
+                          <div className="text-[11px] text-[var(--ink-faint)] mb-1.5 leading-snug">{hint}</div>
+                          {rows.length === 0 ? (
+                            <p className="text-[12px] text-[var(--ink-faint)]">Nothing recorded.</p>
+                          ) : (
+                            <table className="w-full text-[12px]">
+                              <tbody>
+                                {rows.map((r: any) => (
+                                  <tr key={r.key}>
+                                    <td className={`py-0.5 pr-2 ${r.label === 'Not recorded' ? 'text-[var(--ink-faint)] italic' : 'text-[var(--ink-soft)]'}`}>
+                                      {r.label}
+                                    </td>
+                                    <td className="py-0.5 text-right font-semibold text-[var(--ink)] tabular-nums w-8">
+                                      {r.attended}
+                                    </td>
+                                  </tr>
+                                ))}
+                              </tbody>
+                            </table>
+                          )}
                         </div>
                       ))}
                     </div>
+
+                    {sess.invited !== null && (
+                      <p className="text-[12px] text-[var(--ink-faint)] mt-3 pt-2 border-t border-[var(--line-soft)]">
+                        <button onClick={() => setInspect({ id: sess.session_id, title: sess.title })}
+                          className="text-[var(--accent)] hover:underline">
+                          {sess.invited} invited
+                        </button>
+                        {sess.absent !== null && <> · {sess.absent} did not attend</>}
+                      </p>
+                    )}
                   </Card>
                 ))}
               </div>
@@ -347,13 +572,100 @@ export default function InfoSessions() {
             <Field label="Note (optional)"><textarea className={textareaClass} rows={2} placeholder="Bring your questions!" value={form.description} onChange={e => set('description', e.target.value)} /></Field>
             <Field label="When is the session?"><input type="datetime-local" className={inputClass} value={form.scheduled_at} onChange={e => set('scheduled_at', e.target.value)} /></Field>
             <Field label="When should it auto-send? (only if scheduling)"><input type="datetime-local" className={inputClass} value={form.notify_at} onChange={e => set('notify_at', e.target.value)} /></Field>
-            <Field label="Who to notify">
-              <select className={inputClass} value={form.audience} onChange={e => set('audience', e.target.value)}>
-                <option value="all_leads">All active leads</option>
-                <option value="uncontacted">Uncontacted leads only</option>
-                <option value="interested">Interested / ready-to-join</option>
-              </select>
-            </Field>
+            {/* ── The message, which nobody writes but the author ───────── */}
+            <div>
+              <div className="flex items-baseline justify-between gap-2 mb-1.5">
+                <label htmlFor="session-message" className="text-[13px] font-medium text-[var(--ink-soft)]">
+                  The message to send
+                </label>
+                <span className="text-[12px] tabular-nums text-[var(--ink-faint)]">
+                  {segments.characters} characters
+                  {segments.segments > 0 && ` · ${segments.segments} SMS`}
+                </span>
+              </div>
+              <textarea
+                id="session-message"
+                className={textareaClass}
+                rows={5}
+                placeholder="Write what you want these leads to read."
+                value={form.message}
+                onChange={e => set('message', e.target.value)}
+              />
+              <div className="flex flex-wrap gap-1.5 mt-2">
+                {PLACEHOLDERS.map(ph => (
+                  <button key={ph.token} type="button"
+                    onClick={() => set('message', `${form.message}${ph.token}`)}
+                    title={ph.label}
+                    className="h-11 sm:h-7 px-2 rounded-lg border border-[var(--line)] bg-[var(--paper)] text-[11px] font-mono text-[var(--ink-soft)] hover:border-[var(--accent)] transition">
+                    {ph.token}
+                  </button>
+                ))}
+              </div>
+              {segments.segments > 1 && (
+                <p className="text-[12px] text-[var(--warn)] mt-2 leading-snug">
+                  This will be sent as {segments.segments} linked texts, and each one is charged —
+                  {' '}{segments.segments} × {audience?.sendable ?? 0} messages in all.
+                  {segments.encoding === 'UCS-2' && ' A special character has reduced the limit to 67 per text.'}
+                </p>
+              )}
+              {form.message.trim() && (
+                <div className="mt-3 rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
+                  <div className="text-[12px] font-semibold text-[var(--ink-soft)] mb-1">
+                    How it reads for the first person on the list
+                  </div>
+                  <p className="text-[13px] text-[var(--ink)] whitespace-pre-wrap leading-relaxed">{messagePreview}</p>
+                </div>
+              )}
+            </div>
+
+            {/* ── Who it goes to ───────────────────────────────────────── */}
+            <div className="border-t border-[var(--line-soft)] pt-4">
+              <div className="flex items-baseline justify-between gap-2 mb-3">
+                <h4 className="text-[13px] font-semibold text-[var(--ink)]">Who should receive it</h4>
+                {!isEmptySelection && (
+                  <button type="button" onClick={() => setFilter({})}
+                    className="text-[12px] text-[var(--accent)] hover:underline">Reset all</button>
+                )}
+              </div>
+              <AudiencePicker filter={filter} onChange={setFilter} />
+            </div>
+
+            {/* ── What that comes to ───────────────────────────────────── */}
+            <div className="rounded-xl border border-[var(--line)] bg-[var(--canvas)] p-3">
+              {audienceState === 'error' ? (
+                <p className="text-[13px] text-[var(--danger)]">
+                  The matching leads could not be counted. Change a filter to try again.
+                </p>
+              ) : !audience ? (
+                <p className="text-[13px] text-[var(--ink-faint)]">Counting the matching leads…</p>
+              ) : (
+                <>
+                  <p className="text-[14px] text-[var(--ink)]">
+                    <button type="button" onClick={() => setShowMatching(true)}
+                      className="font-semibold text-[var(--accent)] hover:underline tabular-nums">
+                      {audience.matching} lead{audience.matching === 1 ? '' : 's'}
+                    </button>
+                    {' '}match your selection.
+                  </p>
+                  <dl className="mt-2 space-y-0.5 text-[12px]">
+                    <div className="flex justify-between gap-2">
+                      <dt className="text-[var(--ink-faint)]">Can be texted</dt>
+                      <dd className="font-semibold text-[var(--ok)] tabular-nums">{audience.sendable}</dd>
+                    </div>
+                    {audience.excluded > 0 && (
+                      <div className="flex justify-between gap-2">
+                        <dt className="text-[var(--ink-faint)]">No usable phone number</dt>
+                        <dd className="font-semibold text-[var(--warn)] tabular-nums">{audience.excluded}</dd>
+                      </div>
+                    )}
+                  </dl>
+                  {audienceState === 'loading' && (
+                    <p className="text-[11px] text-[var(--ink-faint)] mt-1.5">Updating…</p>
+                  )}
+                </>
+              )}
+            </div>
+
             <div>
               <label className="block text-[13px] font-medium text-[var(--ink-soft)] mb-2">Send by</label>
               <div className="flex gap-2">
@@ -365,21 +677,6 @@ export default function InfoSessions() {
                 ))}
               </div>
             </div>
-            {/* Live preview */}
-            {preview && (
-              <div className="rounded-2xl bg-[var(--canvas)] border border-[var(--line)] p-4">
-                <div className="flex items-baseline justify-between mb-2">
-                  <span className="text-[13px] font-semibold text-[var(--ink)]">Reach</span>
-                  <span className="text-[13px] text-[var(--accent)] font-semibold">{preview.leadCount} lead{preview.leadCount === 1 ? '' : 's'}</span>
-                </div>
-                <p className="text-[12px] text-[var(--ink-faint)] mb-3">
-                  {form.channels.includes('email') ? `${preview.withEmail} also have an email. ` : ''}
-                  Each lead gets the message by {form.channels.map(c => c === 'sms' ? 'SMS' : c === 'whatsapp' ? 'WhatsApp' : 'email').join(' + ') || '—'}.
-                </p>
-                <div className="text-[12px] font-semibold text-[var(--ink-soft)] mb-1">Message preview</div>
-                <div className="text-[13px] text-[var(--ink-soft)] whitespace-pre-wrap bg-[var(--paper)] rounded-lg p-3 border border-[var(--line-soft)] leading-relaxed">{preview.message}</div>
-              </div>
-            )}
 
             {/*
               * Two ways out of this form, because there are two things people
