@@ -7,7 +7,7 @@ import { normaliseRecipient } from '@/lib/integrations/sms'
 import { whatsappConnected, smsConnected } from '@/lib/messaging'
 import { tableExists, columnExists } from '@/lib/db/hasColumn'
 import { resolveAudience } from '@/lib/leads/audienceQuery'
-import { renderMessage } from '@/lib/leads/messageTemplate'
+import { renderMessage, messageForSession } from '@/lib/leads/messageTemplate'
 import type { AudienceFilter } from '@/lib/leads/audienceFilter'
 import { lookup } from '@/lib/db/lookup'
 import { publicOrigin } from '@/lib/url'
@@ -135,7 +135,7 @@ export async function enrolRecipients(
       phone: l.phone,
       email: l.email,
       ...(hasMessageColumn && session
-        ? { message: renderMessage(session.message, { session, lead: l, origin: publicOrigin() }) }
+        ? { message: renderMessage(messageForSession(session).text, { session, lead: l, origin: publicOrigin() }) }
         : {}),
     }))
     const { error } = await sb.from('info_session_recipients')
@@ -349,8 +349,14 @@ export async function processBatch(sessionId: string): Promise<BatchResult | Cam
      * empty one here is a fault worth refusing rather than papering over with
      * a sentence nobody wrote.
      */
+    /*
+     * What this person is sent is what was written for them, stored on their
+     * row at enrolment. A row from before that column existed renders it now
+     * — from the campaign's own message, or, for a campaign created before
+     * authors could write one, from the text that WAS the message then.
+     */
     const msg = (r.message || '').trim()
-      || renderMessage(s.message, {
+      || renderMessage(messageForSession(s).text, {
         session: s, lead: { ...lead, phone: r.phone }, origin: appUrl, marketerCode: code,
       })
 

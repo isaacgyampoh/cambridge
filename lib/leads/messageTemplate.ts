@@ -29,6 +29,35 @@ export const PLACEHOLDERS: readonly Placeholder[] = [
   { token: '{when}', label: 'When the session is', example: '12 Nov 2026, 18:30' },
 ]
 
+/**
+ * What a campaign created before authors could write one actually said.
+ *
+ * ── WHY THIS IS NOT A DEFAULT ──────────────────────────────────────────────
+ *
+ * A campaign created from now on cannot exist without a message: the route
+ * refuses it. This is for the ones already in the database, created when this
+ * text WAS the message — the author chose it by creating the campaign under
+ * that behaviour, and it is the text the people already reached received.
+ *
+ * One such campaign is part-way through sending. Without this it would resume
+ * and mark every remaining recipient failed for having no message, which
+ * would be true and useless.
+ *
+ * It is reached only when `message` is null. A campaign with an empty message
+ * is still a fault, and still refused.
+ */
+export const LEGACY_INVITATION =
+  'Hi {name}, you\'re invited to Cambridge Center of Excellence\'s "{title}" on {when}.\nJoin here: {link}'
+
+/** The message to send for a session: the author's, or what it used to say. */
+export function messageForSession(
+  session: { message?: string | null } | null | undefined,
+): { text: string; legacy: boolean } {
+  const written = String(session?.message ?? '')
+  if (written.trim()) return { text: written, legacy: false }
+  return { text: LEGACY_INVITATION, legacy: true }
+}
+
 export type RenderContext = {
   session: { id?: string; title?: string | null; scheduled_at?: string | null; message?: string | null; link?: string | null }
   lead: { full_name?: string | null; assigned_to?: string | null; phone?: string | null }

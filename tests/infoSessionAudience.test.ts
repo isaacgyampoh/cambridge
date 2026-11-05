@@ -5,7 +5,10 @@ import {
   rangeFor, matchesFilter, describeFilter, isEmptyFilter, DATE_PRESETS, TIMEZONE,
   type AudienceFilter, type MatchableLead,
 } from '../lib/leads/audienceFilter.ts'
-import { renderMessage, countSegments, sessionWhen, PLACEHOLDERS } from '../lib/leads/messageTemplate.ts'
+import {
+  renderMessage, countSegments, sessionWhen, PLACEHOLDERS,
+  messageForSession, LEGACY_INVITATION,
+} from '../lib/leads/messageTemplate.ts'
 
 /**
  * CHOOSING WHO AN INVITATION GOES TO, AND WRITING WHAT IT SAYS.
@@ -355,15 +358,43 @@ describe('the audience is counted and kept by the server', () => {
 
   test('the message the author wrote is what each recipient is sent', () => {
     const campaign = codeOf('lib/infoSessionCampaign.ts')
-    assert.match(campaign, /message: renderMessage\(session\.message/)
+    assert.match(campaign, /message: renderMessage\(messageForSession\(session\)\.text/)
     assert.match(campaign, /const msg = \(r\.message \|\| ''\)\.trim\(\)/)
     assert.match(campaign, /This campaign has no message, so nothing was sent/)
   })
 
-  test('and the old hardcoded invitation is gone', () => {
+  test('the old invitation is no longer written into the sending code', () => {
     const campaign = codeOf('lib/infoSessionCampaign.ts')
     assert.ok(!/you're invited to Cambridge Center of Excellence/i.test(campaign),
-      'the built-in invitation text is still there')
+      'the built-in invitation text is still in the sender')
+  })
+
+  test('but a campaign created before authors could write one keeps its words', () => {
+    /*
+     * One such campaign was part-way through sending when this shipped. Left
+     * alone it would have resumed and marked every remaining recipient failed
+     * for having no message — true, and useless to everybody.
+     *
+     * It is not a default: a campaign created from now on cannot exist
+     * without a message, and an EMPTY one is still a fault.
+     */
+    assert.equal(messageForSession({ message: 'My own words' }).text, 'My own words')
+    assert.equal(messageForSession({ message: 'My own words' }).legacy, false)
+
+    const legacy = messageForSession({ message: null })
+    assert.equal(legacy.legacy, true)
+    assert.equal(legacy.text, LEGACY_INVITATION)
+    assert.match(legacy.text, /\{name\}/)
+    assert.match(legacy.text, /\{link\}/)
+
+    // Whitespace is not a message either.
+    assert.equal(messageForSession({ message: '   ' }).legacy, true)
+    assert.equal(messageForSession(null).legacy, true)
+  })
+
+  test('and the route still refuses a NEW campaign with no message', () => {
+    assert.match(route, /if \(!text\) \{/)
+    assert.match(route, /There is no default/)
   })
 })
 
