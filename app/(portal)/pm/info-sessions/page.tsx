@@ -130,6 +130,39 @@ export default function InfoSessions() {
     return () => { alive = false; clearInterval(timer) }
   }, [sending.join(',')])
 
+  /*
+   * How far a stopped campaign got.
+   *
+   * A cancelled row said "Cancelled" and nothing else — not that 105 of 642
+   * had already been reached, which is the whole of what decides whether to
+   * resume it or put it away. Read once per cancelled campaign rather than
+   * polled: a stopped campaign's figures do not move until somebody resumes
+   * it, and then it is `sending` and the poll above has it.
+   */
+  const stopped = useMemo(
+    () => sessions.filter((x: any) => x.status === 'cancelled').map((x: any) => x.id),
+    [sessions],
+  )
+
+  useEffect(() => {
+    if (!stopped.length) return
+    let alive = true
+    void (async () => {
+      const entries = await Promise.all(stopped.map(async (id: string) => {
+        try {
+          const d = await fetch(`/api/info-sessions/progress?session=${encodeURIComponent(id)}`)
+            .then(r => (r.ok ? r.json() : null))
+          return d?.success ? ([id, d] as const) : null
+        } catch { return null }
+      }))
+      if (!alive) return
+      const next: Record<string, Progress> = {}
+      for (const e of entries) if (e) next[e[0]] = e[1]
+      if (Object.keys(next).length) setProgress(p => ({ ...p, ...next }))
+    })()
+    return () => { alive = false }
+  }, [stopped.join(',')])
+
   function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
 
   /** What the message costs to send, and how it reads for a real recipient. */
@@ -456,6 +489,27 @@ export default function InfoSessions() {
                               className="hover:underline">no usable number</button>
                           </p>
                         )}
+                        {s.status === 'cancelled' && (() => {
+                          const p = progress[s.id]
+                          if (!p) return (
+                            <p className="text-[13px] text-[var(--ink-faint)]">
+                              Stopped. Reading how far it got…
+                            </p>
+                          )
+                          const left = p.pending + p.processing
+                          return (
+                            <p className="text-[13px] text-[var(--ink-soft)]">
+                              Stopped after reaching{' '}
+                              <button onClick={() => setInspect({ id: s.id, title: s.title, status: 'sent' })}
+                                className="font-semibold tabular-nums hover:underline">
+                                {p.sent} of {p.total}
+                              </button>
+                              {left > 0
+                                ? ` — ${left} still to go. Resuming skips the ${p.sent} already reached.`
+                                : ' — everybody selected was reached before it stopped.'}
+                            </p>
+                          )
+                        })()}
                         {s.message && (
                           <details className="mt-2">
                             <summary className="text-[13px] text-[var(--accent)] cursor-pointer hover:underline">

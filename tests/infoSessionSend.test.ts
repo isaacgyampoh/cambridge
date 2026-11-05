@@ -615,12 +615,20 @@ describe('a cancelled campaign can be resumed or put away', () => {
      * can all sit in the file behind `{false && …}` and the test still finds
      * the words.
      */
-    assert.match(page, /\{s\.status === 'scheduled' && \(/)
-    assert.match(page, /\{s\.status === 'cancelled' && \(/)
-    assert.match(page, /\{\(s\.status === 'sent' \|\| s\.status === 'archived'\) && \(/)
-    const cancelledBlock = page.slice(
-      page.indexOf("{s.status === 'cancelled' && ("),
-      page.indexOf("{(s.status === 'sent' || s.status === 'archived') && ("))
+    /*
+     * Sliced from the ACTION GROUP, not from the first mention of the status
+     * in the file — the row also reports how far a cancelled campaign got,
+     * and a slice taken from that read the wrong block entirely.
+     */
+    const actions = page.slice(
+      page.indexOf('<div className="flex flex-col items-end gap-2 flex-shrink-0">'))
+    assert.ok(actions.length > 400, 'there is no action group on the row')
+    assert.match(actions, /\{s\.status === 'scheduled' && \(/)
+    assert.match(actions, /\{s\.status === 'cancelled' && \(/)
+    assert.match(actions, /\{\(s\.status === 'sent' \|\| s\.status === 'archived'\) && \(/)
+    const cancelledBlock = actions.slice(
+      actions.indexOf("{s.status === 'cancelled' && ("),
+      actions.indexOf("{(s.status === 'sent' || s.status === 'archived') && ("))
     assert.match(cancelledBlock, /resume\(s\.id, s\.title\)/)
     assert.match(cancelledBlock, /remove\(s\.id, s\.title, Number\(s\.leads_notified\) > 0\)/)
     assert.ok(!/cancel\(s\.id\)/.test(cancelledBlock), 'a cancelled campaign is offered Cancel')
@@ -644,5 +652,44 @@ describe('a cancelled campaign can be resumed or put away', () => {
     assert.match(fn, /tone: 'danger'/)
     assert.match(fn, /the record `?\s*\n?\s*\+ 'of who was messaged/)
     assert.match(fn, /The leads it selected are/)
+  })
+})
+
+describe('a stopped campaign says how far it got', () => {
+  /*
+   * The row carried the word "Cancelled" and nothing else. Whether to resume
+   * one or put it away depends entirely on the figure it was not showing: 105
+   * of 642 reached is a campaign to finish, 0 of 642 is one to delete.
+   */
+  test('the figures are read for cancelled campaigns, not only sending ones', () => {
+    assert.match(page, /sessions\.filter\(\(x: any\) => x\.status === 'cancelled'\)\.map\(\(x: any\) => x\.id\)/)
+    const block = page.slice(page.indexOf('const stopped = useMemo('), page.indexOf('function set(k: string'))
+    assert.match(block, /if \(!stopped\.length\) return/)
+    assert.match(block, /\/api\/info-sessions\/progress\?session=/)
+    assert.match(block, /setProgress\(p => \(\{ \.\.\.p, \.\.\.next \}\)\)/)
+  })
+
+  test('and read once, not polled for ever', () => {
+    /*
+     * A stopped campaign's figures do not move. The four-second poll belongs
+     * to campaigns in flight, and extending it to stopped ones would have an
+     * idle screen asking the server about them until the tab is closed.
+     */
+    const block = page.slice(page.indexOf('const stopped = useMemo('), page.indexOf('function set(k: string'))
+    assert.ok(!/setInterval/.test(block), 'the stopped campaigns are polled')
+  })
+
+  test('the row says what was reached and what is left', () => {
+    const row = page.slice(page.indexOf("{s.status === 'cancelled' && (() => {"))
+    assert.match(row.slice(0, 1200), /const left = p\.pending \+ p\.processing/)
+    assert.match(row.slice(0, 1200), /\{p\.sent\} of \{p\.total\}/)
+    assert.match(row.slice(0, 1200), /still to go\. Resuming skips the \$\{p\.sent\} already reached\./)
+  })
+
+  test('and does not guess before the figures arrive', () => {
+    // "Stopped after reaching 0 of 0" is a lie with a loading spinner's excuse.
+    const row = page.slice(page.indexOf("{s.status === 'cancelled' && (() => {"))
+    assert.match(row.slice(0, 600), /if \(!p\) return \(/)
+    assert.match(row.slice(0, 900), /Reading how far it got/)
   })
 })
