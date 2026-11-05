@@ -42,9 +42,29 @@ export const GET = withGuard({ portals: PORTALS }, async () => {
 })
 
 export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { session }) => {
-  const { title, link, description, scheduled_at, notify_at, audience, channels } = await req.json()
-  if (!title?.trim() || !link?.trim() || !scheduled_at || !notify_at) {
-    return NextResponse.json({ error: 'Title, link, session time and send time are required.' }, { status: 400 })
+  const { title, link, description, scheduled_at, notify_at, audience, channels, send_now } =
+    await req.json()
+
+  /*
+   * ── SENDING IT THE MOMENT IT IS CREATED ──────────────────────────────────
+   *
+   * Scheduling was the only way in: fill the form, choose a time for it to
+   * auto-send, save, and then find the row and press Send. For an invitation
+   * that is going out now anyway, that is three steps and a decision nobody
+   * wanted to make — and the auto-send time was REQUIRED, so somebody sending
+   * immediately still had to invent one.
+   *
+   * With send_now the send time is now, because that is what it means.
+   */
+  const sendNow = send_now === true
+  const notifyAt = sendNow ? new Date().toISOString() : notify_at
+
+  if (!title?.trim() || !link?.trim() || !scheduled_at) {
+    return NextResponse.json({ error: 'Title, link and the session time are required.' }, { status: 400 })
+  }
+  if (!notifyAt) {
+    return NextResponse.json(
+      { error: 'Choose when it should auto-send, or send it now.' }, { status: 400 })
   }
 
   /*
@@ -61,13 +81,37 @@ export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { s
   const sb = createServiceClient()
   const { data, error } = await sb.from('info_sessions').insert({
     title: title.trim(), link: link.trim(), description: description?.trim() || null,
-    scheduled_at, notify_at,
+    scheduled_at, notify_at: notifyAt,
     audience: audience || 'all_leads',
     channels: picked.join(','),
     created_by: session.userId,
   }).select().single()
   if (error) return saveFailed('[info-sessions]', error.message, 'that session')
-  return NextResponse.json({ session: data })
+
+  if (!sendNow) return NextResponse.json({ session: data })
+
+  /*
+   * Saved first, then sent. The row exists before anything goes out, so a
+   * send that fails half way through leaves a session that can be continued
+   * from the list — rather than invitations that reached some people and a
+   * record of nothing at all.
+   *
+   * The send is the same function the scheduled runner and the Send button
+   * use, so there is one behaviour and not three.
+   */
+  const { broadcastInfoSession } = await import('@/lib/infoSessionBroadcast')
+  const result = await broadcastInfoSession(data.id)
+
+  if ('error' in result && result.error) {
+    // The session is saved and still scheduled, so it is not lost — say both.
+    return NextResponse.json({
+      session: data,
+      sent: false,
+      error: `${result.error} The session is saved, so you can send it from the list.`,
+    })
+  }
+
+  return NextResponse.json({ session: data, sent: true, ...result })
 })
 
 export const PATCH = withGuard({ portals: PORTALS }, async (req: NextRequest) => {

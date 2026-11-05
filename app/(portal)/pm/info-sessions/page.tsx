@@ -39,22 +39,80 @@ export default function InfoSessions() {
 
   function set(k: string, v: any) { setForm(f => ({ ...f, [k]: v })) }
 
-  async function create() {
-    if (!form.title.trim() || !form.link.trim() || !form.scheduled_at || !form.notify_at) {
-      toast.error('Fill in the title, link, session time and send time.'); return
+  /**
+   * What a send actually did, in the words of the five things it can be.
+   *
+   * Shared by "send now" on a saved session and by creating one that sends
+   * immediately, so the two cannot describe the same outcome differently.
+   */
+  function reportSend(d: any, toastId?: string) {
+    const parts = [`${d.leads_notified} reached`]
+    if (d.queued) parts.push(`${d.queued} queued`)
+    if (d.failed) parts.push(`${d.failed} failed`)
+    if (d.unreachable) parts.push(`${d.unreachable} with no usable number`)
+    toast.success(parts.join(' · '), toastId ? { id: toastId } : undefined)
+
+    if (d.pending) {
+      toast.warning(`${d.pending} left to send — press Send on the session to continue. Nobody is messaged twice.`,
+        { duration: 10_000 })
     }
+    if (d.badNumbers?.length) {
+      toast.warning(`${d.badNumbers.length} number${d.badNumbers.length === 1 ? '' : 's'} need correcting: ${d.badNumbers.slice(0, 3).join(', ')}${d.badNumbers.length > 3 ? '…' : ''}`,
+        { duration: 12_000 })
+    }
+  }
+
+  function blank() {
+    setForm({ title: '', link: '', description: '', scheduled_at: '', notify_at: '', audience: 'all_leads', channels: ['sms', 'whatsapp'] })
+  }
+
+  /**
+   * Create the session — and, when asked, send it there and then.
+   *
+   * `sendNow` skips the auto-send time, because "now" is the answer to that
+   * question. It confirms first: the invitation goes to every targeted lead
+   * and cannot be recalled, which is the same reason the Send button on a
+   * saved session confirms.
+   */
+  async function create(sendNow = false) {
+    if (!form.title.trim() || !form.link.trim() || !form.scheduled_at) {
+      toast.error('Fill in the title, link and the session time.'); return
+    }
+    if (!sendNow && !form.notify_at) {
+      toast.error('Choose when it should auto-send — or send it now.'); return
+    }
+    if (!form.channels.length) {
+      toast.error('Choose at least one way to send it.'); return
+    }
+
+    if (sendNow && !await confirm({
+      title: 'Create and send it now?',
+      message: `"${form.title.trim()}" goes to ${preview?.leadCount ?? 'every targeted'} lead${preview?.leadCount === 1 ? '' : 's'} immediately. It cannot be recalled.`,
+      confirmLabel: 'Send now',
+      tone: 'accent',
+    })) return
+
     setSaving(true)
     const res = await fetch('/api/info-sessions', {
       method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ ...form, channels: form.channels.join(',') }),
+      body: JSON.stringify({ ...form, channels: form.channels.join(','), send_now: sendNow }),
     })
     const d = await res.json()
     setSaving(false)
-    if (d.session) {
-      toast.success('Info session scheduled. It will send automatically.')
-      setForm({ title: '', link: '', description: '', scheduled_at: '', notify_at: '', audience: 'all_leads', channels: ['sms', 'whatsapp'] })
-      load()
-    } else toast.error(d.error || 'Could not schedule.')
+
+    if (!d.session) { toast.error(d.error || 'Could not schedule.'); return }
+
+    /*
+     * Saved either way. When the send failed the session is still there to
+     * be sent from the list, and saying only "could not send" would read as
+     * though nothing had been kept.
+     */
+    if (sendNow && d.sent) reportSend(d)
+    else if (sendNow) toast.error(d.error || 'Saved, but it could not be sent. Send it from the list.', { duration: 10_000 })
+    else toast.success('Info session scheduled. It will send automatically.')
+
+    blank()
+    load()
   }
 
   async function cancel(id: string) {
@@ -91,24 +149,10 @@ export default function InfoSessions() {
      *
      * This said "Sent to N leads" from a count that included every lead a
      * disconnected WhatsApp had merely RECORDED — so a session that reached
-     * nobody reported a clean success. The figures are now separate: reached
-     * is confirmed, queued is accepted and not yet confirmed, and pending is
-     * what a second press will pick up.
+     * nobody reported a clean success. The five figures are kept apart, and
+     * reported by the same function the create-and-send path uses.
      */
-    const parts = [`${d.leads_notified} reached`]
-    if (d.queued) parts.push(`${d.queued} queued`)
-    if (d.failed) parts.push(`${d.failed} failed`)
-    if (d.unreachable) parts.push(`${d.unreachable} with no usable number`)
-    toast.success(parts.join(' · '), { id: 'sn' })
-
-    if (d.pending) {
-      toast.warning(`${d.pending} left to send — press Send again to continue. Nobody is messaged twice.`,
-        { duration: 10_000 })
-    }
-    if (d.badNumbers?.length) {
-      toast.warning(`${d.badNumbers.length} number${d.badNumbers.length === 1 ? '' : 's'} need correcting: ${d.badNumbers.slice(0, 3).join(', ')}${d.badNumbers.length > 3 ? '…' : ''}`,
-        { duration: 12_000 })
-    }
+    reportSend(d, 'sn')
     load()
   }
 
@@ -200,7 +244,7 @@ export default function InfoSessions() {
             <Field label="Meeting link"><input className={inputClass} placeholder="https://zoom.us/j/..." value={form.link} onChange={e => set('link', e.target.value)} /></Field>
             <Field label="Note (optional)"><textarea className={textareaClass} rows={2} placeholder="Bring your questions!" value={form.description} onChange={e => set('description', e.target.value)} /></Field>
             <Field label="When is the session?"><input type="datetime-local" className={inputClass} value={form.scheduled_at} onChange={e => set('scheduled_at', e.target.value)} /></Field>
-            <Field label="When should it auto-send?"><input type="datetime-local" className={inputClass} value={form.notify_at} onChange={e => set('notify_at', e.target.value)} /></Field>
+            <Field label="When should it auto-send? (only if scheduling)"><input type="datetime-local" className={inputClass} value={form.notify_at} onChange={e => set('notify_at', e.target.value)} /></Field>
             <Field label="Who to notify">
               <select className={inputClass} value={form.audience} onChange={e => set('audience', e.target.value)}>
                 <option value="all_leads">All active leads</option>
@@ -235,7 +279,23 @@ export default function InfoSessions() {
               </div>
             )}
 
-            <Button onClick={create} disabled={saving} className="w-full">{saving ? 'Scheduling…' : 'Schedule session'}</Button>
+            {/*
+              * Two ways out of this form, because there are two things people
+              * come here to do. Scheduling needs an auto-send time; sending
+              * now does not, and asking for one was the step that made a
+              * three-click job out of pressing Send.
+              */}
+            <div className="flex flex-col sm:flex-row gap-2">
+              <Button onClick={() => create(true)} disabled={saving} className="flex-1">
+                {saving ? 'Working…' : 'Send now'}
+              </Button>
+              <Button onClick={() => create(false)} disabled={saving} variant="secondary" className="flex-1">
+                {saving ? 'Working…' : 'Schedule for later'}
+              </Button>
+            </div>
+            <p className="text-[12px] text-[var(--ink-faint)] text-center">
+              Sending now goes to every targeted lead immediately. Scheduling needs an auto-send time.
+            </p>
           </div>
         </Card>
       </div>

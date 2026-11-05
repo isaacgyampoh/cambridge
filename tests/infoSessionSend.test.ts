@@ -193,3 +193,81 @@ describe('numbers that cannot be dialled are named, not dropped', () => {
     }
   })
 })
+
+/**
+ * ─── CREATING ONE AND SENDING IT, IN ONE ACTION ─────────────────────────────
+ *
+ * Scheduling was the only way in: fill the form, choose a time for it to
+ * auto-send, save it, then find the row in the list and press Send. For an
+ * invitation going out now anyway that is three steps — and the auto-send
+ * time was REQUIRED, so somebody sending immediately still had to invent one.
+ */
+describe('a session can send the moment it is created', () => {
+  test('the route takes send_now and uses now as the send time', () => {
+    assert.match(route, /const sendNow = send_now === true/)
+    assert.match(route, /const notifyAt = sendNow \? new Date\(\)\.toISOString\(\) : notify_at/)
+  })
+
+  test('and does not demand an auto-send time for it', () => {
+    /*
+     * "When should it auto-send?" has an obvious answer when the button says
+     * Send now, and making somebody fill it in anyway was the friction.
+     */
+    assert.ok(!/!title\?\.trim\(\) \|\| !link\?\.trim\(\) \|\| !scheduled_at \|\| !notify_at/.test(route),
+      'the auto-send time is still required for every session')
+    assert.match(route, /if \(!notifyAt\)/)
+  })
+
+  test('it is saved before anything is sent', () => {
+    /*
+     * A send that fails half way through must leave a session that can be
+     * continued from the list, not invitations that reached some people and
+     * no record at all.
+     */
+    const insert = route.indexOf("from('info_sessions').insert({")
+    const send = route.indexOf('broadcastInfoSession(data.id)')
+    assert.ok(insert > -1 && send > insert, 'the send happens before the row exists')
+  })
+
+  test('and a failed send says the session was still kept', () => {
+    assert.match(route, /The session is saved, so you can send it from the list/)
+  })
+
+  test('it is the same send the button and the runner use', () => {
+    // One behaviour, not three implementations of it.
+    assert.match(route, /const \{ broadcastInfoSession \} = await import\('@\/lib\/infoSessionBroadcast'\)/)
+    const runner = codeOf('app/api/info-sessions/run/route.ts')
+    assert.match(runner, /broadcastInfoSession\(s\.id\)/)
+  })
+
+  test('the form offers both', () => {
+    assert.match(page, /onClick=\{\(\) => create\(true\)\}/)
+    assert.match(page, /onClick=\{\(\) => create\(false\)\}/)
+  })
+
+  test('and it confirms before it blasts', () => {
+    /*
+     * The CONDITION, not the words inside it. `if (false && !await confirm(…))`
+     * leaves the whole dialog in the file, question and warning and all, and
+     * asks nobody.
+     */
+    assert.match(page, /if \(sendNow && !await confirm\(\{/)
+    assert.match(page, /Create and send it now\?/)
+    assert.match(page, /cannot be recalled/)
+  })
+
+  test('both paths report an outcome the same way', () => {
+    /*
+     * Two reporters would drift, and the one that drifts is the one that
+     * says "sent" about a session nobody received.
+     */
+    assert.match(page, /function reportSend\(/)
+    assert.match(page, /if \(sendNow && d\.sent\) reportSend\(d\)/)
+    assert.match(page, /reportSend\(d, 'sn'\)/)
+  })
+
+  test('a session with no channel is refused before it is saved', () => {
+    assert.match(page, /Choose at least one way to send it/)
+    assert.match(route, /Choose at least one way to send it/)
+  })
+})
