@@ -409,7 +409,8 @@ export default function ImportLeadsPage() {
         <div>
           <h1 className="font-display text-[22px] font-semibold text-[var(--ink)]">Import leads</h1>
           <p className="text-[13px] text-[var(--ink-soft)]">
-            An Excel or CSV file from a Google Sheet, a Facebook lead form, or a list you were sent.
+            Add people from a spreadsheet — a Google Sheet export, a Facebook lead form, or a list
+            you were sent. Nothing is saved until you have reviewed it.
           </p>
         </div>
       </div>
@@ -430,6 +431,26 @@ export default function ImportLeadsPage() {
             The columns can be in any order and named however the file names them —
             you will be shown what each one was understood as before anything is imported.
           </p>
+
+          <dl className="text-[13px] space-y-1.5 mb-4">
+            <div className="flex gap-2">
+              <dt className="text-[var(--ink-faint)] w-28 shrink-0">File types</dt>
+              <dd className="text-[var(--ink-soft)]">Excel (.xlsx, .xls) or CSV (.csv)</dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-[var(--ink-faint)] w-28 shrink-0">Needed</dt>
+              <dd className="text-[var(--ink-soft)]">
+                A name, and a phone number or an email address. Everything else is optional.
+              </dd>
+            </div>
+            <div className="flex gap-2">
+              <dt className="text-[var(--ink-faint)] w-28 shrink-0">Duplicates</dt>
+              <dd className="text-[var(--ink-soft)]">
+                Anybody already on file is shown before you import and skipped. Nothing existing
+                is changed or overwritten.
+              </dd>
+            </div>
+          </dl>
 
           <button onClick={downloadTemplate}
             className="text-[13px] font-medium text-[var(--accent)] hover:underline">

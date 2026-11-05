@@ -245,6 +245,79 @@ export default function InfoSessions() {
     load()
   }
 
+  /**
+   * Start a cancelled campaign again.
+   *
+   * The confirmation says what is actually left, read from the campaign's own
+   * record of who it has reached — because "resume" on a campaign that has
+   * already messaged a hundred people is a different decision from resuming
+   * one that has messaged nobody.
+   */
+  async function resume(id: string, title: string) {
+    let counts: Progress | null = null
+    try {
+      const d = await fetch(`/api/info-sessions/progress?session=${encodeURIComponent(id)}`)
+        .then(r => (r.ok ? r.json() : null))
+      if (d?.success) counts = d
+    } catch { /* the confirmation still works without them */ }
+
+    const remaining = counts ? counts.pending + counts.processing : null
+    if (!await confirm({
+      title: 'Resume sending?',
+      message: counts
+        ? `"${title}" has reached ${counts.sent} of ${counts.total}. `
+          + `${remaining} still to go. Anybody already reached is skipped — nobody is messaged twice.`
+        : `"${title}" will continue from where it stopped. Anybody already reached is skipped.`,
+      confirmLabel: 'Resume sending',
+      tone: 'accent',
+    })) return
+
+    toast.loading('Starting…', { id: 'rs' })
+    try {
+      const d = await fetch('/api/info-sessions', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'resume' }),
+      }).then(r => r.json())
+      if (!d.started) throw new Error(d.error || 'That campaign could not be resumed.')
+      toast.success(d.message || 'Sending has started again.', { id: 'rs' })
+    } catch (e) {
+      toast.error(messageFor(e, 'That campaign could not be resumed.'), { id: 'rs' })
+    }
+    load()
+  }
+
+  /**
+   * Remove a campaign from the list.
+   *
+   * One that has messaged people is archived rather than erased: its
+   * recipients and what each of them was sent are evidence, and the
+   * confirmation says which of the two is about to happen.
+   */
+  async function remove(id: string, title: string, everSent: boolean) {
+    if (!await confirm({
+      title: everSent ? 'Remove this campaign from the list?' : 'Delete this campaign?',
+      message: everSent
+        ? `"${title}" has already sent messages. It will be removed from this list, and the record `
+          + 'of who was messaged and what they were sent is kept. This cannot be undone here.'
+        : `"${title}" has sent nothing, so it will be deleted completely. The leads it selected are `
+          + 'not affected. This cannot be undone.',
+      confirmLabel: everSent ? 'Remove it' : 'Delete it',
+      tone: 'danger',
+    })) return
+
+    try {
+      const d = await fetch('/api/info-sessions', {
+        method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ id, action: 'delete' }),
+      }).then(r => r.json())
+      if (!d.success) throw new Error(d.error || 'That campaign could not be removed.')
+      toast.success(d.message || 'Campaign removed.')
+    } catch (e) {
+      toast.error(messageFor(e, 'That campaign could not be removed.'))
+    }
+    load()
+  }
+
   async function sendNow(id: string, title: string) {
     if (!await confirm({
       title: 'Send this session invitation now?',
@@ -459,12 +532,48 @@ export default function InfoSessions() {
                           </div>
                         )}
                       </div>
-                      {s.status === 'scheduled' && (
-                        <div className="flex flex-col gap-2 flex-shrink-0">
-                          <button onClick={() => sendNow(s.id, s.title)} className="text-[13px] text-white bg-[var(--accent)] px-3 py-1.5 rounded-lg font-semibold hover:brightness-110">Send now</button>
-                          <button onClick={() => cancel(s.id)} className="text-[13px] text-[var(--danger)] font-medium">Cancel</button>
-                        </div>
-                      )}
+                      {/*
+                        * What can be done depends on where the campaign is.
+                        * A finished campaign is never offered "resume", and a
+                        * cancelled one is never offered "stop".
+                        */}
+                      <div className="flex flex-col items-end gap-2 flex-shrink-0">
+                        {s.status === 'scheduled' && (
+                          <>
+                            <button onClick={() => sendNow(s.id, s.title)}
+                              className="h-11 sm:h-9 px-3 text-[13px] text-white bg-[var(--accent)] rounded-lg font-semibold hover:brightness-110">
+                              Send now
+                            </button>
+                            <button onClick={() => cancel(s.id)} className="h-11 sm:h-9 px-2 text-[13px] text-[var(--danger)] font-medium">
+                              Cancel
+                            </button>
+                          </>
+                        )}
+                        {s.status === 'cancelled' && (
+                          <>
+                            <button onClick={() => resume(s.id, s.title)}
+                              className="h-11 sm:h-9 px-3 text-[13px] text-white bg-[var(--accent)] rounded-lg font-semibold hover:brightness-110">
+                              Resume sending
+                            </button>
+                            <button onClick={() => remove(s.id, s.title, Number(s.leads_notified) > 0)}
+                              className="h-11 sm:h-9 px-2 text-[13px] text-[var(--danger)] font-medium">
+                              Delete campaign
+                            </button>
+                          </>
+                        )}
+                        {(s.status === 'sent' || s.status === 'archived') && (
+                          <button onClick={() => remove(s.id, s.title, Number(s.leads_notified) > 0)}
+                            className="h-11 sm:h-9 px-2 text-[13px] text-[var(--ink-faint)] font-medium hover:text-[var(--danger)]">
+                            Remove from list
+                          </button>
+                        )}
+                        {Number(s.leads_notified) > 0 && (
+                          <button onClick={() => setInspect({ id: s.id, title: s.title })}
+                            className="h-11 sm:h-9 px-2 text-[13px] text-[var(--accent)] font-medium">
+                            View recipients
+                          </button>
+                        )}
+                      </div>
                       {/*
                         * Stopping one that is already going. The worker reads
                         * the status before each batch, so this stops the next
@@ -567,16 +676,26 @@ export default function InfoSessions() {
         <Card className="p-6">
           <h3 className="font-display text-[15px] font-semibold text-[var(--ink)] mb-4">Schedule a session</h3>
           <div className="space-y-4">
-            <Field label="Title"><input className={inputClass} placeholder="PMP Info Session" value={form.title} onChange={e => set('title', e.target.value)} /></Field>
-            <Field label="Meeting link"><input className={inputClass} placeholder="https://zoom.us/j/..." value={form.link} onChange={e => set('link', e.target.value)} /></Field>
-            <Field label="Note (optional)"><textarea className={textareaClass} rows={2} placeholder="Bring your questions!" value={form.description} onChange={e => set('description', e.target.value)} /></Field>
-            <Field label="When is the session?"><input type="datetime-local" className={inputClass} value={form.scheduled_at} onChange={e => set('scheduled_at', e.target.value)} /></Field>
-            <Field label="When should it auto-send? (only if scheduling)"><input type="datetime-local" className={inputClass} value={form.notify_at} onChange={e => set('notify_at', e.target.value)} /></Field>
+            <Field label="Session title" hint="What should this info session be called?">
+              <input className={inputClass} placeholder="PMP Information Session" value={form.title} onChange={e => set('title', e.target.value)} />
+            </Field>
+            <Field label="Meeting link" hint="The Zoom, Google Meet or other link people should join on.">
+              <input className={inputClass} placeholder="https://zoom.us/j/..." value={form.link} onChange={e => set('link', e.target.value)} />
+            </Field>
+            <Field label="Note (optional)" hint="Anything else to keep with the session details.">
+              <textarea className={textareaClass} rows={2} placeholder="Bring your questions" value={form.description} onChange={e => set('description', e.target.value)} />
+            </Field>
+            <Field label="When is the session?" hint="The date and time it actually takes place.">
+              <input type="datetime-local" className={inputClass} value={form.scheduled_at} onChange={e => set('scheduled_at', e.target.value)} />
+            </Field>
+            <Field label="When should the invitations go out?" hint="Only needed if you are scheduling. Sending now does not use it.">
+              <input type="datetime-local" className={inputClass} value={form.notify_at} onChange={e => set('notify_at', e.target.value)} />
+            </Field>
             {/* ── The message, which nobody writes but the author ───────── */}
             <div>
               <div className="flex items-baseline justify-between gap-2 mb-1.5">
                 <label htmlFor="session-message" className="text-[13px] font-medium text-[var(--ink-soft)]">
-                  The message to send
+                  The invitation message
                 </label>
                 <span className="text-[12px] tabular-nums text-[var(--ink-faint)]">
                   {segments.characters} characters
@@ -587,7 +706,7 @@ export default function InfoSessions() {
                 id="session-message"
                 className={textareaClass}
                 rows={5}
-                placeholder="Write what you want these leads to read."
+                placeholder="Write the message you want the selected leads to receive."
                 value={form.message}
                 onChange={e => set('message', e.target.value)}
               />

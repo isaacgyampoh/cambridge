@@ -287,7 +287,14 @@ export async function processBatch(sessionId: string): Promise<BatchResult | Cam
   )
   if (failed) return { error: 'The session could not be read.', retryable: true }
   if (!s) return { error: 'That session no longer exists.' }
-  if (s.status === 'cancelled') return { claimed: 0, sent: 0, failed: 0, unreachable: 0, more: false }
+  /*
+   * Stopped or put away. Read before every batch, so cancelling a campaign
+   * stops the NEXT one rather than pretending to recall what has gone — and
+   * so a cancelled campaign is never restarted by the recovery sweep.
+   */
+  if (s.status === 'cancelled' || s.status === 'archived') {
+    return { claimed: 0, sent: 0, failed: 0, unreachable: 0, more: false }
+  }
 
   const wanted = String(s.channels || 'sms,whatsapp').split(',').map((c: string) => c.trim()).filter(Boolean)
   const usable = {

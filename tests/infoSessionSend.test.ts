@@ -490,3 +490,159 @@ describe('a session can send the moment it is created', () => {
     assert.match(route, /Choose at least one way to send it/)
   })
 })
+
+/**
+ * ─── A CAMPAIGN THAT WAS STOPPED ────────────────────────────────────────────
+ *
+ * PMP INFORMATION SESSION reached 105 of 642 and was cancelled when the SMS
+ * credits ran out. The screen then offered nothing: no resume, no delete, and
+ * the row sat there as a dead end. The only way to finish the send was to
+ * create the campaign again — which would have messaged those 105 twice, and
+ * would have reported a second campaign's figures for one invitation.
+ *
+ * So: cancelled is a state you can leave, in one of two directions.
+ */
+describe('a cancelled campaign can be resumed or put away', () => {
+  const resumeBranch = route.slice(
+    route.indexOf("if (action === 'resume')"), route.indexOf("if (action === 'delete')"))
+  const deleteBranch = route.slice(
+    route.indexOf("if (action === 'delete')"), route.indexOf("if (action === 'send_now')"))
+
+  test('the branches exist and are not empty', () => {
+    // Everything below slices these, and a slice of nothing matches nothing.
+    assert.ok(resumeBranch.length > 200, 'there is no resume branch')
+    assert.ok(deleteBranch.length > 200, 'there is no delete branch')
+  })
+
+  test('resuming re-enrols nobody and re-resolves no audience', () => {
+    /*
+     * This is the whole correctness claim. The ledger already holds who was
+     * selected and who has been reached; resuming is a status change and a
+     * nudge. Re-running the audience would pick up leads added since, and
+     * re-enrolling would reset rows that have already been sent.
+     */
+    assert.ok(!/enrolRecipients/.test(resumeBranch), 'resume re-enrols the audience')
+    assert.ok(!/resolveAudience/.test(resumeBranch), 'resume re-resolves the audience')
+    assert.match(resumeBranch, /await triggerNextHop\(id, 0\)/)
+  })
+
+  test('and only the rows still pending are ever claimed', () => {
+    // The other half of "nobody is messaged twice" lives in the claim itself.
+    assert.match(campaign, /\.eq\('status', 'pending'\)/)
+  })
+
+  test('resuming anything that is not cancelled is refused', () => {
+    assert.match(resumeBranch, /if \(s\.status !== 'cancelled'\)/)
+    assert.match(resumeBranch, /not cancelled, so there is nothing to resume/)
+  })
+
+  test('and two people pressing Resume together start it once', () => {
+    /*
+     * The status is written over `cancelled` specifically, so the second
+     * update matches no row. Without it both requests fire a first hop and
+     * two chains run over one ledger.
+     */
+    assert.match(resumeBranch, /\.eq\('id', id\)\.eq\('status', 'cancelled'\)/)
+  })
+
+  test('a campaign that has sent nothing is deleted outright', () => {
+    assert.match(deleteBranch, /\.delete\(\)\.eq\('id', id\)/)
+    assert.match(deleteBranch, /action: 'info_session\.deleted'/)
+  })
+
+  test('but one that has already messaged people is archived, not deleted', () => {
+    /*
+     * The delivery record is evidence of what was sent to whom. The ORDER
+     * matters: the archive must be reached by the branch that finds sent > 0,
+     * and the delete must be after it, or a sent campaign is erased.
+     */
+    assert.match(deleteBranch, /const progress = await campaignProgress\(id\)/)
+    assert.match(deleteBranch, /const everSent = !\('error' in progress\) && progress\.sent > 0/)
+    const guard = deleteBranch.indexOf('if (everSent)')
+    const archive = deleteBranch.indexOf("status: 'archived'")
+    const hardDelete = deleteBranch.indexOf('.delete()')
+    assert.ok(guard > -1, 'nothing checks whether it ever sent')
+    assert.ok(archive > guard && archive < hardDelete,
+      'the archive is not inside the branch that finds messages already sent')
+    assert.ok(hardDelete > archive, 'a campaign that has sent can reach the delete')
+  })
+
+  test('archiving keeps the recipients; it does not sweep them up', () => {
+    assert.ok(!/from\('info_session_recipients'\)\s*\n?\s*\.delete\(\)/.test(route),
+      'the ledger is deleted along with the campaign')
+  })
+
+  test('and an archived campaign is out of the list without being gone', () => {
+    assert.match(route, /\.neq\('status', 'archived'\)/)
+  })
+
+  test('the worker sends nothing for a cancelled or archived campaign', () => {
+    /*
+     * Read before every batch. Resuming works by changing this status, so the
+     * same check is what makes cancel stop the next batch and what keeps the
+     * daily recovery sweep from restarting something somebody stopped.
+     */
+    const guard = campaign.slice(campaign.indexOf("if (s.status === 'cancelled'"))
+    assert.match(guard.slice(0, 200), /\|\| s\.status === 'archived'/)
+    assert.match(guard.slice(0, 200), /more: false/)
+  })
+
+  test('only an administrator or project manager may resume or delete', () => {
+    /*
+     * Everybody holding grp_automation can create and send — that is the
+     * portal's decision and it was hard won. Undoing somebody else's campaign
+     * is a different act, so these two check the role as well.
+     */
+    for (const [name, branch] of [['resume', resumeBranch], ['delete', deleteBranch]] as const) {
+      assert.match(branch, /if \(!MAY_MANAGE\.includes\(String\(session\.role\)\)\)/,
+        `${name} does not check the role`)
+      assert.match(branch, /status: 403/, `${name} does not refuse`)
+    }
+    assert.match(route, /const MAY_MANAGE: readonly string\[\] = COMPANY_LEAD_ROLES/)
+  })
+
+  test('and both are written to the audit log', () => {
+    for (const action of ['resumed', 'archived', 'deleted']) {
+      assert.match(route, new RegExp(`action: 'info_session\\.${action}'`),
+        `${action} is not recorded`)
+    }
+  })
+
+  test('the screen offers the actions that fit the state it is in', () => {
+    /*
+     * A finished campaign is never offered Resume, and a cancelled one is
+     * never offered Cancel. The CONDITION is what is asserted — the labels
+     * can all sit in the file behind `{false && …}` and the test still finds
+     * the words.
+     */
+    assert.match(page, /\{s\.status === 'scheduled' && \(/)
+    assert.match(page, /\{s\.status === 'cancelled' && \(/)
+    assert.match(page, /\{\(s\.status === 'sent' \|\| s\.status === 'archived'\) && \(/)
+    const cancelledBlock = page.slice(
+      page.indexOf("{s.status === 'cancelled' && ("),
+      page.indexOf("{(s.status === 'sent' || s.status === 'archived') && ("))
+    assert.match(cancelledBlock, /resume\(s\.id, s\.title\)/)
+    assert.match(cancelledBlock, /remove\(s\.id, s\.title, Number\(s\.leads_notified\) > 0\)/)
+    assert.ok(!/cancel\(s\.id\)/.test(cancelledBlock), 'a cancelled campaign is offered Cancel')
+  })
+
+  test('resuming asks first, and says what is actually left', () => {
+    const fn = page.slice(page.indexOf('async function resume('), page.indexOf('async function remove('))
+    assert.match(fn, /if \(!await confirm\(\{/)
+    assert.match(fn, /counts\.pending \+ counts\.processing/)
+    assert.match(fn, /has reached \$\{counts\.sent\} of \$\{counts\.total\}/)
+    assert.match(fn, /Anybody already reached is skipped/)
+  })
+
+  test('and removing says which of the two things it is about to do', () => {
+    /*
+     * "Delete this campaign?" over a campaign that will actually be kept as a
+     * record is the kind of wording that makes somebody press it to find out.
+     */
+    const fn = page.slice(page.indexOf('async function remove('), page.indexOf('async function sendNow('))
+    assert.match(fn, /everSent \? 'Remove this campaign from the list\?' : 'Delete this campaign\?'/)
+    assert.match(fn, /tone: 'danger'/)
+    assert.match(fn, /the record `?\s*\n?\s*\+ 'of who was messaged/)
+    assert.match(fn, /The leads it selected are/)
+  })
+})

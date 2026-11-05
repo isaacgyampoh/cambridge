@@ -6,6 +6,9 @@ import { enrolRecipients, triggerNextHop } from '@/lib/infoSessionCampaign'
 import { columnExists } from '@/lib/db/hasColumn'
 import { resolveAudience } from '@/lib/leads/audienceQuery'
 import { describeFilter, type AudienceFilter } from '@/lib/leads/audienceFilter'
+import { campaignProgress } from '@/lib/infoSessionCampaign'
+import { COMPANY_LEAD_ROLES } from '@/lib/leads/ownership'
+import { recordAudit } from '@/lib/audit'
 
 export const runtime = 'nodejs'
 
@@ -34,6 +37,15 @@ export const runtime = 'nodejs'
  */
 
 const PORTALS = ['grp_automation']
+
+/**
+ * Who may resume or delete a campaign.
+ *
+ * Seeing the section is a portal; stopping, restarting or removing a campaign
+ * that has messaged hundreds of people is a different question, and it is the
+ * same list that decides who owns leads for the company.
+ */
+const MAY_MANAGE: readonly string[] = COMPANY_LEAD_ROLES
 
 /**
  * Begin a campaign and hand it to the worker.
@@ -78,7 +90,14 @@ async function startCampaign(session: {
 export const GET = withGuard({ portals: PORTALS }, async () => {
   const sb = createServiceClient()
   const { row: sessions, failed } = await lookup(
-    sb.from('info_sessions').select('*').order('scheduled_at', { ascending: false }).limit(50),
+    /*
+     * Archived campaigns are kept, not shown. A campaign that has messaged
+     * people has a history that is not the operator's to erase — putting it
+     * away takes it out of this list and leaves its recipients, its message
+     * and its delivery record exactly where they are.
+     */
+    sb.from('info_sessions').select('*').neq('status', 'archived')
+      .order('scheduled_at', { ascending: false }).limit(50),
   )
   // An empty list because the read failed is not an empty list.
   if (failed) return unavailable('[info-sessions]', failed, 'the information sessions')
@@ -202,7 +221,7 @@ export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest, { s
   return startCampaign(data)
 })
 
-export const PATCH = withGuard({ portals: PORTALS }, async (req: NextRequest) => {
+export const PATCH = withGuard({ portals: PORTALS }, async (req: NextRequest, { session }) => {
   const { id, action } = await req.json()
   if (!id) return NextResponse.json({ error: 'Missing id' }, { status: 400 })
   const sb = createServiceClient()
@@ -215,7 +234,106 @@ export const PATCH = withGuard({ portals: PORTALS }, async (req: NextRequest) =>
      */
     await sb.from('info_sessions').update({ status: 'cancelled' })
       .eq('id', id).in('status', ['scheduled', 'sending'])
+    await recordAudit({
+      actorId: session.userId, action: 'info_session.cancelled',
+      resource: 'info_sessions', resourceId: id, success: true, request: req,
+    })
     return NextResponse.json({ success: true })
+  }
+
+  /*
+   * ── RESUMING ONE THAT WAS STOPPED ────────────────────────────────────────
+   *
+   * PMP INFORMATION SESSION was cancelled half way because the SMS credits
+   * ran out: 105 of 642 reached. Without this the only way to finish it was
+   * to create it again, which would have messaged those 105 a second time.
+   *
+   * Nothing is re-enrolled and no audience is re-resolved. The ledger already
+   * holds who was selected and who has been reached, so resuming is a change
+   * of status and a nudge to the worker — which then claims only the rows
+   * still pending. The original message and the original audience are
+   * untouched by construction rather than by care.
+   */
+  if (action === 'resume') {
+    if (!MAY_MANAGE.includes(String(session.role))) {
+      return NextResponse.json(
+        { error: 'Only an administrator or project manager can resume a campaign.' }, { status: 403 })
+    }
+
+    const { row: s, failed } = await lookup(
+      sb.from('info_sessions').select('*').eq('id', id).maybeSingle(),
+    )
+    if (failed) return unavailable('[info-sessions]', failed, 'that campaign')
+    if (!s) return NextResponse.json({ error: 'That campaign no longer exists.' }, { status: 404 })
+    if (s.status !== 'cancelled') {
+      return NextResponse.json(
+        { error: `This campaign is ${s.status}, not cancelled, so there is nothing to resume.` },
+        { status: 400 })
+    }
+
+    const { error: updateErr } = await sb.from('info_sessions')
+      .update({ status: 'sending' })
+      .eq('id', id).eq('status', 'cancelled')   // nobody else resumed it first
+    if (updateErr) return saveFailed('[info-sessions]', updateErr.message, 'that campaign')
+
+    await recordAudit({
+      actorId: session.userId, action: 'info_session.resumed',
+      resource: 'info_sessions', resourceId: id, success: true, request: req,
+      metadata: { title: s.title },
+    })
+
+    await triggerNextHop(id, 0)
+    return NextResponse.json({
+      success: true, started: true,
+      message: 'Sending has started again. Anybody already reached is skipped.',
+    })
+  }
+
+  /*
+   * ── PUTTING ONE AWAY ─────────────────────────────────────────────────────
+   *
+   * A campaign that has messaged people is ARCHIVED: it leaves the list and
+   * keeps its recipients, its message and its delivery record, because that
+   * is evidence of what was sent to whom and it is not the operator's to
+   * erase. One that never sent anything is deleted outright — its recipient
+   * rows go with it through the foreign key, and the LEADS do not: they are a
+   * different table and the campaign never owned them.
+   */
+  if (action === 'delete') {
+    if (!MAY_MANAGE.includes(String(session.role))) {
+      return NextResponse.json(
+        { error: 'Only an administrator or project manager can delete a campaign.' }, { status: 403 })
+    }
+
+    const progress = await campaignProgress(id)
+    const everSent = !('error' in progress) && progress.sent > 0
+
+    if (everSent) {
+      const { error: archiveErr } = await sb.from('info_sessions')
+        .update({ status: 'archived' }).eq('id', id)
+      if (archiveErr) return saveFailed('[info-sessions]', archiveErr.message, 'that campaign')
+      await recordAudit({
+        actorId: session.userId, action: 'info_session.archived',
+        resource: 'info_sessions', resourceId: id, success: true, request: req,
+        metadata: { reason: 'messages had already been sent', sent: progress.sent },
+      })
+      return NextResponse.json({
+        success: true, archived: true,
+        message: `Removed from the list. The record of the ${progress.sent} message`
+          + `${progress.sent === 1 ? '' : 's'} already sent is kept.`,
+      })
+    }
+
+    const { error: deleteErr } = await sb.from('info_sessions').delete().eq('id', id)
+    if (deleteErr) return saveFailed('[info-sessions]', deleteErr.message, 'that campaign')
+    await recordAudit({
+      actorId: session.userId, action: 'info_session.deleted',
+      resource: 'info_sessions', resourceId: id, success: true, request: req,
+      metadata: { reason: 'nothing had been sent' },
+    })
+    return NextResponse.json({
+      success: true, deleted: true, message: 'Campaign deleted. Nothing had been sent.',
+    })
   }
 
   if (action === 'send_now') {
