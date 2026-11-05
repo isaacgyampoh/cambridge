@@ -84,8 +84,31 @@ export default function InfoSessions() {
     toast.loading('Sending…', { id: 'sn' })
     const res = await fetch('/api/info-sessions', { method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ id, action: 'send_now' }) })
     const d = await res.json()
-    if (d.success) toast.success(`Sent to ${d.leads_notified} leads · ${d.marketers_notified} marketers notified`, { id: 'sn' })
-    else toast.error(d.error || 'Could not send', { id: 'sn' })
+    if (!d.success) { toast.error(d.error || 'Could not send', { id: 'sn' }); load(); return }
+
+    /*
+     * What actually happened, not "sent".
+     *
+     * This said "Sent to N leads" from a count that included every lead a
+     * disconnected WhatsApp had merely RECORDED — so a session that reached
+     * nobody reported a clean success. The figures are now separate: reached
+     * is confirmed, queued is accepted and not yet confirmed, and pending is
+     * what a second press will pick up.
+     */
+    const parts = [`${d.leads_notified} reached`]
+    if (d.queued) parts.push(`${d.queued} queued`)
+    if (d.failed) parts.push(`${d.failed} failed`)
+    if (d.unreachable) parts.push(`${d.unreachable} with no usable number`)
+    toast.success(parts.join(' · '), { id: 'sn' })
+
+    if (d.pending) {
+      toast.warning(`${d.pending} left to send — press Send again to continue. Nobody is messaged twice.`,
+        { duration: 10_000 })
+    }
+    if (d.badNumbers?.length) {
+      toast.warning(`${d.badNumbers.length} number${d.badNumbers.length === 1 ? '' : 's'} need correcting: ${d.badNumbers.slice(0, 3).join(', ')}${d.badNumbers.length > 3 ? '…' : ''}`,
+        { duration: 12_000 })
+    }
     load()
   }
 

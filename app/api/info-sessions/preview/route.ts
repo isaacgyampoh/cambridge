@@ -1,10 +1,15 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifySession } from '@/lib/auth/pin'
+import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
 
-const ALLOWED = ['super_admin', 'project_manager']
+/*
+ * The grp_automation portal, the same answer the page guard and the API path
+ * guard give. A role list here refused the admissions officers the portal had
+ * admitted — see the note in ../route.ts for what that cost.
+ */
+const PORTALS = ['grp_automation']
 
 /**
  * Preview: how many leads a session will reach + the exact message text,
@@ -12,11 +17,7 @@ const ALLOWED = ['super_admin', 'project_manager']
  * Accepts the draft (title/link/description/scheduled_at/audience) so it
  * works before the session is even saved.
  */
-export async function POST(req: NextRequest) {
-  const token = req.cookies.get('cce_session')?.value
-  const session: any = token ? await verifySession(token) : { valid: false }
-  if (!session.valid || !ALLOWED.includes(session.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
-
+export const POST = withGuard({ portals: PORTALS }, async (req: NextRequest) => {
   const { title, link, description, scheduled_at, audience } = await req.json()
   const sb = createServiceClient()
 
@@ -38,4 +39,4 @@ export async function POST(req: NextRequest) {
     withEmail,
     message: sampleMsg,
   })
-}
+})

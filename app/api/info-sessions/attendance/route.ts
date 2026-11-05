@@ -1,18 +1,19 @@
 import { NextRequest, NextResponse } from 'next/server'
-import { verifySession } from '@/lib/auth/pin'
+import { withGuard } from '@/lib/auth/guard'
 import { createServiceClient } from '@/lib/supabase/server'
 
 export const runtime = 'nodejs'
-const ALLOWED = ['super_admin', 'project_manager', 'administrator']
+/*
+ * The grp_automation portal, the same answer the page guard and the API path
+ * guard give — see the note in ../route.ts for what disagreeing cost.
+ */
+const PORTALS = ['grp_automation']
 
 /**
  * PM/admin view: how many people joined each info session, broken down by the
  * marketer they came through. Optional ?session_id= to scope to one session.
  */
-export async function GET(req: NextRequest) {
-  const token = req.cookies.get('cce_session')?.value
-  const s: any = token ? await verifySession(token) : { valid: false }
-  if (!s.valid || !ALLOWED.includes(s.role)) return NextResponse.json({ error: 'unauth' }, { status: 401 })
+export const GET = withGuard({ portals: PORTALS }, async (req: NextRequest) => {
 
   const sessionId = new URL(req.url).searchParams.get('session_id')
   const sb = createServiceClient()
@@ -47,4 +48,4 @@ export async function GET(req: NextRequest) {
   })).sort((a: any, b: any) => new Date(b.scheduled_at || 0).getTime() - new Date(a.scheduled_at || 0).getTime())
 
   return NextResponse.json({ sessions: result })
-}
+})

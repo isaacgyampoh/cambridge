@@ -1,7 +1,9 @@
 import { createServiceClient } from '@/lib/supabase/server'
 import { sendWhatsAppText } from '@/lib/integrations/whatsapp'
-import { sendSMS } from '@/lib/integrations/sms'
-import { sendEmail } from '@/lib/integrations/email'
+import { sendEmail, emailConfigured } from '@/lib/integrations/email'
+import { queueSMS } from '@/lib/notifications/sms'
+import { normaliseRecipient } from '@/lib/integrations/sms'
+import { whatsappConnected, smsConnected } from '@/lib/messaging'
 import { lookup } from '@/lib/db/lookup'
 import { publicOrigin } from '@/lib/url'
 
@@ -43,18 +45,103 @@ export async function broadcastInfoSession(sessionId: string) {
   }
 
   const when = new Date(s.scheduled_at).toLocaleString('en-GB', { dateStyle: 'medium', timeStyle: 'short' })
-  const channels = (s.channels || 'sms,whatsapp').split(',')
+  const wanted = String(s.channels || 'sms,whatsapp').split(',').map((c: string) => c.trim()).filter(Boolean)
 
-  let notified = 0
+  /*
+   * ── WHICH CHANNELS CAN ACTUALLY CARRY THIS ───────────────────────────────
+   *
+   * Asked of the senders, not assumed from what was ticked. With no API key
+   * both sendWhatsAppText and sendSMS hand the message to a recording
+   * provider that keeps it and answers TRUE — so a session sent with
+   * WhatsApp ticked and no WhatsApp configured counted every lead as
+   * notified, marked itself sent, and told the operator "Sent to 212 leads".
+   * Nobody received anything.
+   */
+  const usable = {
+    sms: wanted.includes('sms') && smsConnected(),
+    whatsapp: wanted.includes('whatsapp') && whatsappConnected(),
+    email: wanted.includes('email') && emailConfigured(),
+  }
+
+  if (!usable.sms && !usable.whatsapp && !usable.email) {
+    const asked = wanted.join(', ') || 'none'
+    return {
+      error: `None of the channels chosen (${asked}) can send from this deployment right now, `
+        + 'so nothing was sent and the session is still scheduled.',
+      retryable: true,
+    }
+  }
+
+  /*
+   * ── A BUDGET, BECAUSE THIS RUNS IN ONE REQUEST ───────────────────────────
+   *
+   * Up to five thousand leads were messaged one after another in the request
+   * that pressed Send. The platform kills it long before that finishes, with
+   * some leads messaged, the session still marked `scheduled`, and no record
+   * of where it stopped — so pressing Send again started from the top and
+   * texted those people twice.
+   *
+   * Each text is queued with a key of its own now, so a second run skips
+   * anybody already queued and picks up where this one left off. The budget
+   * stops the request before the platform does.
+   */
+  const DEADLINE = Date.now() + 45_000
+  let notified = 0        // reached on at least one channel
+  let queued = 0          // accepted by the queue, not yet confirmed sent
+  let failedSends = 0
+  let unreachable = 0     // no usable number or address
+  let pending = 0         // left for the next run
+  const badNumbers: string[] = []
+
   for (const lead of leads || []) {
+    if (Date.now() > DEADLINE) { pending++; continue }
+
     const first = (lead.full_name || 'there').split(' ')[0]
     const joinLink = trackedFor(lead)
     const msg = `Hi ${first}, you're invited to Cambridge Center of Excellence's "${s.title}" on ${when}.\nJoin here: ${joinLink}${s.description ? `\n${s.description}` : ''}`
-    let ok = false
-    try { if (channels.includes('whatsapp')) ok = await sendWhatsAppText(lead.phone, msg, lead.assigned_to || null) || ok } catch {}
-    try { if (channels.includes('sms')) ok = await sendSMS(lead.phone, msg) || ok } catch {}
-    try {
-      if (channels.includes('email') && lead.email) {
+
+    /*
+     * A number the sender would refuse is reported, not dropped. "212 of 260
+     * sent" with no word on the other forty-eight is how a list stays wrong
+     * for ever.
+     */
+    const dialable = normaliseRecipient(lead.phone)
+    if (!dialable && !(usable.email && lead.email)) {
+      unreachable++
+      if (lead.phone && badNumbers.length < 50) badNumbers.push(`${lead.full_name || 'Unnamed'}: ${lead.phone}`)
+      continue
+    }
+
+    let reached = false
+
+    if (usable.whatsapp && dialable) {
+      try { reached = Boolean(await sendWhatsAppText(lead.phone, msg, lead.assigned_to || null)) } catch { /* the next channel still runs */ }
+    }
+
+    if (usable.sms && dialable && !reached) {
+      try {
+        /*
+         * Through the queue, with one key per lead per session: a retry
+         * cannot text anybody twice, a failure is retried by the existing
+         * machinery, and every recipient has a row that the Information
+         * section can report a real status from.
+         */
+        const res = await queueSMS({
+          to: lead.phone,
+          message: msg,
+          kind: 'info_session',
+          entityId: s.id,
+          dedupeKey: `info_session:${s.id}:${lead.id}`,
+        })
+        if (res.sent) reached = true
+        else if (res.duplicate) reached = true      // already sent on an earlier run
+        else if (res.queued) queued++
+        else failedSends++
+      } catch { failedSends++ }
+    }
+
+    if (usable.email && lead.email && !reached) {
+      try {
         const html = `<div style="font-family:-apple-system,Segoe UI,Roboto,sans-serif;max-width:480px;margin:0 auto;padding:28px 24px;color:#10231C">
           <p style="font-size:15px;line-height:1.6">Hi ${first},</p>
           <p style="font-size:15px;line-height:1.6">You're invited to <b>${s.title}</b> at Cambridge Center of Excellence on <b>${when}</b>.</p>
@@ -62,10 +149,13 @@ export async function broadcastInfoSession(sessionId: string) {
           <p style="margin:18px 0"><a href="${joinLink}" style="background:#0B3B2E;color:#fff;text-decoration:none;padding:11px 20px;border-radius:10px;font-weight:600;font-size:14px">Join the session</a></p>
           <p style="font-size:13px;color:#97a1b0">Or copy this link: ${joinLink}</p>
         </div>`
-        ok = await sendEmail(lead.email, `You're invited: ${s.title} — Cambridge CE`, html, `You're invited to ${s.title} on ${when}. Join: ${joinLink}`) || ok
-      }
-    } catch {}
-    if (ok) notified++
+        reached = Boolean(await sendEmail(lead.email, `You're invited: ${s.title} — Cambridge CE`, html,
+          `You're invited to ${s.title} on ${when}. Join: ${joinLink}`))
+      } catch { /* counted below */ }
+    }
+
+    if (reached) notified++
+    else if (!queued) failedSends++
   }
 
   // Push a link to marketers. Each marketer gets THEIR OWN tracked version
@@ -94,10 +184,32 @@ export async function broadcastInfoSession(sessionId: string) {
     }
   } catch {}
 
+  /*
+   * `sent` only when every lead was dealt with. Left `scheduled` while any
+   * are pending so the runner picks the session up again — and because the
+   * dedupe keys make that safe, the second run messages only the remainder.
+   */
+  const complete = pending === 0
   await sb.from('info_sessions').update({
-    status: 'sent', sent_at: new Date().toISOString(),
-    leads_notified: notified, marketers_notified: marketersNotified,
+    status: complete ? 'sent' : 'scheduled',
+    sent_at: complete ? new Date().toISOString() : null,
+    leads_notified: notified,
+    marketers_notified: marketersNotified,
   }).eq('id', s.id)
 
-  return { leads_notified: notified, marketers_notified: marketersNotified, title: s.title }
+  return {
+    title: s.title,
+    leads_notified: notified,
+    marketers_notified: marketersNotified,
+    /** Accepted by the queue and not yet confirmed. Not the same as sent. */
+    queued,
+    failed: failedSends,
+    /** No usable number or address on the record. */
+    unreachable,
+    /** Left for the next run, because this one ran out of time. */
+    pending,
+    /** The first few numbers that need correcting, for the operator. */
+    badNumbers,
+    channels: usable,
+  }
 }
