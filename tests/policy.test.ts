@@ -55,7 +55,19 @@ describe('row scoping', () => {
 
   test('marketers see only leads assigned to them', () => {
     assert.equal(ownerColumnFor('leads', 'marketing_officer'), 'assigned_to')
-    assert.equal(ownerColumnFor('leads', 'trainer'), 'assigned_to')
+    // Granted the portal by hand, anybody is scoped the same way.
+    assert.equal(ownerColumnFor('leads', 'receptionist', ['dashboard', 'my_leads']), 'assigned_to')
+  })
+
+  test('and a trainer reads no leads at all, so there is nothing to scope', () => {
+    /*
+     * Trainers are no longer given leads, so they no longer hold `my_leads`.
+     * ownerColumnFor answers null for them — which on its own would mean "no
+     * scoping", i.e. every row — so the assertion that matters is the one
+     * below it: the table is refused before scoping is ever consulted.
+     */
+    assert.equal(ownerColumnFor('leads', 'trainer'), null)
+    assert.equal(canRead('leads', 'trainer'), false, 'a trainer can still read the leads table')
   })
 
   test('non-oversight roles are locked to their own profile row', () => {

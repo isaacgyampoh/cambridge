@@ -117,7 +117,14 @@ export const ROLE_DEFAULTS: Record<string, string[]> = {
   marketing_officer: ['dashboard','my_leads','my_earnings','my_link','my_flyers','reports','my_attendance','clock_in','messages'],
   admissions_officer:['dashboard','admissions','leads','my_leads','my_earnings','my_links','clock_in','messages'],
   accountant:        ['dashboard','finance','grp_automation','registrations','leads','my_leads','my_earnings','my_links','clock_in','messages'],
-  trainer:           ['dashboard','my_classes','attendance','my_leads','my_earnings','documents','my_links','clock_in','messages'],
+  /*
+   * No `my_leads`. Trainers teach; they were in the distribution pool by
+   * default, which took leads away from the people whose job is to work them
+   * and left those leads on a dashboard nobody was watching. `my_links` and
+   * `my_earnings` stay: a trainer may still refer somebody and be credited
+   * for it — the lead itself goes to the pool.
+   */
+  trainer:           ['dashboard','my_classes','attendance','my_earnings','documents','my_links','clock_in','messages'],
   exam_coordinator:  ['documents','prep','my_leads','my_earnings','my_links','clock_in','messages'],
   content_manager:   ['dashboard','grp_socials','my_leads','my_earnings','my_links','clock_in','messages'],
   /*

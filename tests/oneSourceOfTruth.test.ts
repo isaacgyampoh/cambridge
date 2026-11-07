@@ -132,9 +132,15 @@ describe('access rules are defined once', () => {
   })
 
   test('LEADS_PORTAL is defined once', () => {
-    // Receiving a lead and being allowed to read it must be the same question.
+    /*
+     * Receiving a lead and being allowed to read it must be the same
+     * question. It used to be defined in lib/data/policy; it now lives with
+     * the rule that uses it, because policy is server-only and the
+     * assignment screen — which must offer exactly the people the server
+     * will accept — runs in the browser. One definition either way.
+     */
     const where = definedIn('LEADS_PORTAL')
-    assert.deepEqual(where, ['lib/data/policy.ts'],
+    assert.deepEqual(where, ['lib/leads/mayReceiveLeads.ts'],
       'lead eligibility and lead visibility read different constants again:' +
       '\n  ' + where.join('\n  '))
   })

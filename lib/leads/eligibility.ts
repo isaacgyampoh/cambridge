@@ -1,6 +1,6 @@
 import 'server-only'
 import { createServiceClient } from '@/lib/supabase/server'
-import { resolvePortals } from '@/lib/access/portals'
+import { mayReceiveLeads } from '@/lib/leads/mayReceiveLeads'
 import { DEFAULT_TIER, weightForTier } from '@/lib/leads/selection'
 
 export { TIER_WEIGHT, DEFAULT_TIER, pickRecipient } from '@/lib/leads/selection'
@@ -38,15 +38,15 @@ export type Candidate = {
 }
 
 /*
- * Imported, not restated.
+ * Re-exported, not restated.
  *
- * lib/data/policy decides whether you may READ a lead from this same
- * constant, and this file decides whether you may RECEIVE one. Two copies of
- * the answer is precisely the shape that caused the bug both are now fixing:
- * a content manager the distributor picked and the data layer refused.
+ * Who may RECEIVE a lead and who may READ one are now the same rule, written
+ * once in ./mayReceiveLeads and imported by both this file and the data
+ * layer. Two copies of the answer is precisely the shape that caused the bug
+ * both were written to fix: a content manager the distributor picked and the
+ * data layer refused.
  */
-export { LEADS_PORTAL } from '@/lib/data/policy'
-import { LEADS_PORTAL } from '@/lib/data/policy'
+export { LEADS_PORTAL, NEVER_RECEIVES_LEADS, mayReceiveLeads } from '@/lib/leads/mayReceiveLeads'
 
 export type EligibilityOptions = {
   /** 'google' and 'website' can be restricted to specifically flagged staff. */
@@ -87,18 +87,17 @@ export async function eligibleMarketers(opts: EligibilityOptions = {}): Promise<
 
   type Row = {
     id: string; full_name: string; role: string; portals: string[] | null
+    is_active: boolean | null
     in_lead_pool: boolean | null; performance_tier: string | null
     gets_google_leads: boolean | null; gets_website_leads: boolean | null
   }
 
-  let pool = (staff || []).filter((m: Row) => {
-    // Super admins run the system; they are not a destination for leads.
-    if (m.role === 'super_admin') return false
-    // An explicit opt-out always wins.
-    if (m.in_lead_pool === false) return false
-    // The decisive test: do they actually have a leads portal?
-    return resolvePortals(m.role, m.portals).includes(LEADS_PORTAL)
-  }) as Row[]
+  let pool = (staff || []).filter((m: Row) => mayReceiveLeads({
+    role: m.role,
+    portals: m.portals,
+    isActive: m.is_active,
+    inLeadPool: m.in_lead_pool,
+  })) as Row[]
 
   // Source routing: Google and website leads can be reserved for named staff.
   // If nobody is flagged, fall back to the whole pool rather than losing leads.
@@ -131,8 +130,11 @@ export async function isEligible(marketerId: string): Promise<boolean> {
   const { data: m } = await sb.from('profiles')
     .select('id, role, portals, is_active, in_lead_pool')
     .eq('id', marketerId).maybeSingle()
-  if (!m || m.is_active === false) return false
-  if (m.role === 'super_admin') return false
-  if (m.in_lead_pool === false) return false
-  return resolvePortals(m.role, m.portals).includes(LEADS_PORTAL)
+  if (!m) return false
+  return mayReceiveLeads({
+    role: m.role,
+    portals: m.portals,
+    isActive: m.is_active,
+    inLeadPool: m.in_lead_pool,
+  })
 }

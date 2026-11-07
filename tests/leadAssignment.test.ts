@@ -44,24 +44,34 @@ describe('RC-1 — who may receive a lead', () => {
   })
 
   /*
-   * These four carry `my_leads` in ROLE_DEFAULTS, so under the corrected rule
-   * they remain eligible. That is the organisation's own configuration, not a
-   * defect, and changing it is a business decision rather than a bug fix — so
-   * the current state is recorded here rather than quietly altered. If leads
-   * should not reach accountants or content managers, the change belongs in
-   * ROLE_DEFAULTS (for the role) or in a person's own portal list, and this
-   * test will then fail and need updating deliberately.
+   * These three carry `my_leads` in ROLE_DEFAULTS, so under the corrected
+   * rule they remain eligible. That is the organisation's own configuration,
+   * not a defect, and changing it is a business decision rather than a bug
+   * fix — so the current state is recorded here rather than quietly altered.
+   * If leads should not reach accountants or content managers, the change
+   * belongs in ROLE_DEFAULTS (for the role) or in a person's own portal list,
+   * and this test will then fail and need updating deliberately.
    */
   test('roles that carry my_leads by configuration remain eligible', () => {
-    for (const role of ['accountant', 'trainer', 'exam_coordinator', 'content_manager']) {
+    for (const role of ['accountant', 'exam_coordinator', 'content_manager']) {
       assert.equal(hasLeadsPortal(role), true,
         `${role} carries my_leads in ROLE_DEFAULTS — if that is wrong, change it there`)
     }
   })
 
+  /*
+   * And this is that decision being taken, in November 2026: trainers teach.
+   * Tested in full in ./trainersDoNotReceiveLeads, including the part a
+   * portal check cannot express — a trainer configured by hand, whose saved
+   * portal list still carries my_leads, is refused by role.
+   */
+  test('a trainer is not, by decision rather than by defect', () => {
+    assert.equal(hasLeadsPortal('trainer'), false)
+  })
+
   test('explicit portals override role defaults in both directions', () => {
-    // Given explicit access, a trainer can be taken out of the lead pool …
-    assert.equal(hasLeadsPortal('trainer', ['dashboard', 'my_classes']), false)
+    // Given explicit access, a content manager can be taken out of the pool …
+    assert.equal(hasLeadsPortal('content_manager', ['dashboard', 'grp_socials']), false)
     // … and a receptionist can be put into it.
     assert.equal(hasLeadsPortal('receptionist', ['dashboard', 'my_leads']), true)
   })

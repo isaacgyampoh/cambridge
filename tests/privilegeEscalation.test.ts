@@ -71,11 +71,14 @@ const RESTRICTED: Record<string, string[]> = {
   content_manager: ['/admin/conversions'],
 
   /*
-   * A trainer additionally holds `attendance` and `documents` — they mark
-   * class registers and hand out course material. Both screens live under
-   * /admin by URL only.
+   * A trainer holds `attendance` and `documents` — they mark class registers
+   * and hand out course material. Both screens live under /admin by URL only.
+   *
+   * NOT /admin/conversions, which the two roles above reach: that screen is a
+   * person's own lead conversions, and a trainer no longer holds `my_leads`,
+   * because trainers are not given leads.
    */
-  trainer: ['/admin/attendance', '/admin/conversions', '/admin/documents'],
+  trainer: ['/admin/attendance', '/admin/documents'],
 
   /* An exam coordinator holds `documents` for prep material. */
   exam_coordinator: ['/admin/conversions', '/admin/documents'],

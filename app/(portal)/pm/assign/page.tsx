@@ -1,5 +1,6 @@
 'use client'
-import { useState } from 'react'
+import { useMemo, useState } from 'react'
+import { mayReceiveLeads } from '@/lib/leads/mayReceiveLeads'
 import { displayPhone } from '@/lib/ui/contact'
 import { useData } from '@/hooks/useData'
 import { toast } from 'sonner'
@@ -10,6 +11,14 @@ import { Card, Badge, SectionLabel, Button, Field, inputClass, textareaClass } f
 import Modal from '@/components/shared/Modal'
 import { DataTable, type Column } from '@/components/ui/DataTable'
 import type { LeadActivity } from '@/types'
+
+type StaffRow = {
+  id: string
+  full_name: string
+  role?: string | null
+  portals?: string[] | null
+  in_lead_pool?: boolean | null
+}
 
 type Lead = {
   id: string
@@ -48,15 +57,31 @@ export default function PMAssign() {
     orderBy: 'created_at', limit: 300,
   })
 
-  const { data: marketers } = useData({
+  const { data: staff } = useData({
     table: 'profiles',
-    select: 'id, full_name, email, phone',
+    select: 'id, full_name, email, phone, role, portals, in_lead_pool',
     // Was filtered to role = marketing_officer, so a PM could not assign to an
-    // admissions officer, coordinator or trainer who legitimately works leads.
+    // admissions officer or coordinator who legitimately works leads.
     // Eligibility is the my_leads portal, not one role name.
     filters: [{ col: 'is_active', op: 'eq', val: true }],
     orderBy: 'full_name', orderAsc: true,
   })
+
+  /*
+   * Only the people who can actually be given a lead.
+   *
+   * The list was every active profile, so it offered trainers, students and
+   * receptionists — and the server refuses all of them. Picking one produced
+   * "that person cannot receive leads" about a name this screen had just put
+   * in front of the operator. The rule is imported rather than retyped, so
+   * the list and the refusal cannot drift apart.
+   */
+  const marketers = useMemo(
+    () => (staff as StaffRow[]).filter(m => mayReceiveLeads({
+      role: m.role, portals: m.portals, inLeadPool: m.in_lead_pool,
+    })),
+    [staff],
+  )
 
   // Recent marketer notes/status-comments — the "why" behind each move
   const { data: activities } = useData<LeadActivity>({

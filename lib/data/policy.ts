@@ -193,7 +193,8 @@ export const UNWRITABLE_COLUMNS = [
  *
  * Lead access is derived from the portal now, on both sides of the question.
  */
-export const LEADS_PORTAL = 'my_leads'
+export { LEADS_PORTAL } from '../leads/mayReceiveLeads.ts'
+import { LEADS_PORTAL } from '../leads/mayReceiveLeads.ts'
 
 /**
  * May this user read the leads table, and if so whose rows?
