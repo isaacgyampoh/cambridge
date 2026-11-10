@@ -25,6 +25,8 @@ import { recordingProviderFor } from '@/lib/messaging'
 const ARKESEL_URL = 'https://sms.arkesel.com/api/v2/sms/send'
 const TIMEOUT_MS = 15_000
 const ARKESEL_BALANCE_URL = 'https://sms.arkesel.com/api/v2/clients/balance-details'
+/** One message's delivery record: GET …/sms/{id}. */
+const ARKESEL_MESSAGE_URL = 'https://sms.arkesel.com/api/v2/sms'
 
 /*
  * Moved to ./smsRecipient so the rule can be exercised on its own — this
@@ -34,6 +36,9 @@ const ARKESEL_BALANCE_URL = 'https://sms.arkesel.com/api/v2/clients/balance-deta
 import { normaliseRecipient } from './smsRecipient'
 export { normaliseRecipient }
 import { readBalanceResponse } from './smsAccountCheck'
+import { readDeliveryReport, type DeliveryReport } from './smsDeliveryReport'
+export { readDeliveryReport, undeliveredExplanation } from './smsDeliveryReport'
+export type { DeliveryReport, DeliveryState } from './smsDeliveryReport'
 
 /** Kept as an alias so existing callers do not change. */
 export type DeliveryResult = SendOutcome
@@ -218,6 +223,18 @@ export async function sendSMS(
         kind: log.kind ?? null,
         status: results[i].ok ? 'sent' : 'failed',
         provider: 'arkesel',
+        /*
+         * The provider's reference, which this path was dropping.
+         *
+         * The queue stores it; this one wrote the whole response and not the
+         * id, so every message sent directly — a PIN reset, a sign-in code,
+         * an onboarding PIN, the ones that matter most — showed as "no
+         * provider reference was returned" on the delivery screen and could
+         * not be looked up with the provider at all. The one question worth
+         * asking about a missing text is what the network did with it, and
+         * this is the only thing that lets anybody ask it.
+         */
+        provider_message_id: results[i].providerMessageId ?? null,
         provider_response: results[i].response ?? null,
         last_error: results[i].error || null,
         attempts: 1,
@@ -260,6 +277,36 @@ export const SMS = {
   registrationConfirmed: (name: string, programme: string, classMode: string) =>
     `${BRAND_VOICE.smsPrefix}: Hi ${name}, your registration for ${programme} (${classMode}) is confirmed and your payment has been received. ` +
     `Admission processing has begun — watch this number and your email for the next step. Welcome to ${BRAND.shortName}!`,
+}
+
+/**
+ * What the network did with one message, asked of the provider.
+ *
+ * `status = 'sent'` only ever meant "Arkesel accepted it". This is the fact
+ * underneath it, and it is the one an administrator is actually asking for
+ * when somebody says they never got their PIN.
+ */
+export async function deliveryReportFor(messageId: string): Promise<DeliveryReport> {
+  let apiKey: string
+  try {
+    apiKey = SECRETS.arkeselApiKey
+  } catch {
+    return { state: 'unknown', detail: 'SMS is not configured on this deployment.' }
+  }
+
+  try {
+    const res = await fetch(`${ARKESEL_MESSAGE_URL}/${encodeURIComponent(messageId)}`, {
+      headers: { 'api-key': apiKey },
+      signal: AbortSignal.timeout(TIMEOUT_MS),
+      cache: 'no-store',
+    })
+    const body = await res.json().catch(() => ({}))
+    return readDeliveryReport(res.status, body)
+  } catch (e) {
+    // A lookup that did not complete says nothing about the message, so it
+    // must not be recorded as either outcome.
+    return { state: 'unknown', detail: (e as Error).message }
+  }
 }
 
 /**

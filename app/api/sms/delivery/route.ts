@@ -29,7 +29,7 @@ export const runtime = 'nodejs'
 const PAGE = 100
 
 /** Statuses a caller may filter on. Anything else is refused, not ignored. */
-const FILTERABLE = ['queued', 'sending', 'retrying', 'sent', 'failed'] as const
+const FILTERABLE = ['queued', 'sending', 'retrying', 'sent', 'delivered', 'undelivered', 'failed'] as const
 
 // The portal list here must match lib/access/apiAccess.ts for this path and
 // lib/access/portals.ts for /admin/sms-delivery. If they drift, a user reaches
@@ -144,10 +144,33 @@ type Row = {
  */
 function diagnose(row: Row): string {
   switch (row.status) {
+    /*
+     * Accepted, and nothing more than that.
+     *
+     * This case used to read "Delivered to the network", which is where the
+     * misreading started: a number that was refusing every message showed a
+     * column of green Delivered badges, so the search went looking for a bug
+     * in the sending code — which was working perfectly.
+     */
     case 'sent':
       return row.provider_message_id
-        ? `Delivered to the network. Arkesel reference ${row.provider_message_id}.`
-        : 'Delivered to the network, but no provider reference was returned.'
+        ? `Accepted by Arkesel (reference ${row.provider_message_id}). `
+          + 'Whether the handset received it is checked within half an hour.'
+        : 'Accepted by Arkesel, but no provider reference was returned, so delivery cannot be confirmed.'
+
+    case 'delivered':
+      return `The network confirmed delivery to the handset.${
+        row.provider_message_id ? ` Arkesel reference ${row.provider_message_id}.` : ''}`
+
+    /*
+     * The answer to "why didn't they get it?", at last. Not a failed send —
+     * the message reached the network and the network could not place it, and
+     * every reason for that is at the far end.
+     */
+    case 'undelivered':
+      return row.last_error
+        || 'The network did not deliver it. The handset may be off, out of coverage, '
+           + 'no longer in use, or blocking messages from this sender.'
 
     case 'queued':
       return 'Waiting for the next delivery run. No attempt has been made yet.'

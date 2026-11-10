@@ -18,6 +18,12 @@ const TASKS: { name: string; path: string; everyMins: number }[] = [
   // Anything left unassigned for five minutes is distributed by percentage.
   { name: 'lead_sweep',         path: '/api/leads/sweep',             everyMins: 10 },
   { name: 'sms_queue',          path: '/api/sms/queue',               everyMins: 5 },
+  /*
+   * Half an hour rather than five minutes: a handset that is switched off is
+   * given time to come back before the network's verdict is taken as final,
+   * and each check is one API call per message.
+   */
+  { name: 'sms_reconcile',      path: '/api/sms/reconcile',           everyMins: 30 },
   // Greets imported leads. Ten at a time, since each is two WhatsApp round
   // trips and an AI call — the work that used to sit inside the import request.
   /*

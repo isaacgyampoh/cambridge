@@ -91,8 +91,18 @@ const SMS: Record<string, StatusDescriptor> = {
   queued:   { label: 'Waiting',   tone: 'neutral', hint: 'Queued; no attempt made yet' },
   sending:  { label: 'Sending',   tone: 'accent',  hint: 'An attempt is in flight' },
   retrying: { label: 'Retrying',  tone: 'warning', hint: 'An attempt failed; another is scheduled' },
-  sent:     { label: 'Delivered', tone: 'success', hint: 'Handed to the network' },
-  failed:   { label: 'Given up',  tone: 'danger',  hint: 'Every attempt failed' },
+  /*
+   * `sent` is NOT "delivered", and labelling it that way is what hid a number
+   * that was receiving nothing: every message to it carried a green
+   * Delivered badge while the network was refusing all of them. It means the
+   * provider accepted the message — the last thing this system knows on its
+   * own. What the handset did with it is `delivered` / `undelivered`, which
+   * come back from the provider's own record.
+   */
+  sent:        { label: 'Sent',          tone: 'accent',  hint: 'Accepted by the provider; delivery not yet confirmed' },
+  delivered:   { label: 'Delivered',     tone: 'success', hint: 'The network confirmed it reached the handset' },
+  undelivered: { label: 'Not delivered', tone: 'danger',  hint: 'The network could not put it on the handset' },
+  failed:      { label: 'Given up',      tone: 'danger',  hint: 'Every attempt failed' },
 }
 
 const IMPORT_ROW: Record<string, StatusDescriptor> = {

@@ -184,15 +184,26 @@ export async function processSmsQueue(
 /** A snapshot of delivery health, for the observability screen. */
 export async function smsHealth(): Promise<{
   queued: number; retrying: number; failed24h: number; sent24h: number
+  delivered24h: number; undelivered24h: number
 }> {
   const sb = createServiceClient()
   const dayAgo = new Date(Date.now() - 86_400_000).toISOString()
 
-  const [queued, retrying, failed24h, sent24h] = await Promise.all([
+  const count = (status: string) => sb.from('sms_logs')
+    .select('id', { count: 'exact', head: true }).eq('status', status).gte('created_at', dayAgo)
+
+  const [queued, retrying, failed24h, sent24h, delivered24h, undelivered24h] = await Promise.all([
     sb.from('sms_logs').select('id', { count: 'exact', head: true }).eq('status', 'queued'),
     sb.from('sms_logs').select('id', { count: 'exact', head: true }).eq('status', 'retrying'),
-    sb.from('sms_logs').select('id', { count: 'exact', head: true }).eq('status', 'failed').gte('created_at', dayAgo),
-    sb.from('sms_logs').select('id', { count: 'exact', head: true }).eq('status', 'sent').gte('created_at', dayAgo),
+    count('failed'),
+    count('sent'),
+    /*
+     * Counted apart from `sent`, because they are different facts. One number
+     * for both is how "212 delivered" described a day in which a staff
+     * member received nothing at all.
+     */
+    count('delivered'),
+    count('undelivered'),
   ])
 
   return {
@@ -200,5 +211,7 @@ export async function smsHealth(): Promise<{
     retrying: retrying.count || 0,
     failed24h: failed24h.count || 0,
     sent24h: sent24h.count || 0,
+    delivered24h: delivered24h.count || 0,
+    undelivered24h: undelivered24h.count || 0,
   }
 }

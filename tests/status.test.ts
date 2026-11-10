@@ -101,7 +101,8 @@ describe('the fallback is honest', () => {
 describe('filters can be built from the vocabulary', () => {
   test('knownStatuses returns real values, so a filter cannot list a status that does not exist', () => {
     const sms = knownStatuses('sms')
-    assert.deepEqual(sms.sort(), ['failed', 'queued', 'retrying', 'sending', 'sent'])
+    assert.deepEqual(sms.sort(),
+      ['delivered', 'failed', 'queued', 'retrying', 'sending', 'sent', 'undelivered'])
     for (const s of sms) assert.notEqual(describeStatus('sms', s).label, 'Unknown')
   })
 })
@@ -119,10 +120,25 @@ describe('tone carries meaning consistently', () => {
 
   test('a settled state is never shown as a problem', () => {
     for (const [domain, value] of [
-      ['lead', 'registered'], ['payment', 'paid'], ['sms', 'sent'],
+      ['lead', 'registered'], ['payment', 'paid'], ['sms', 'delivered'],
       ['importRow', 'assigned'], ['feePayment', 'verified'], ['admission', 'admitted'],
     ] as const) {
       assert.equal(describeStatus(domain, value).tone, 'success')
     }
+  })
+
+  test('and an SMS is not settled merely because the provider took it', () => {
+    /*
+     * `sms/sent` used to be the success state here, labelled "Delivered".
+     * It means the provider accepted the message and nothing more — and for
+     * one staff number every message was accepted and none arrived, which the
+     * green badge hid completely. Confirmation is `delivered`; the opposite,
+     * which the product could not previously express at all, is
+     * `undelivered`.
+     */
+    assert.equal(describeStatus('sms', 'sent').label, 'Sent')
+    assert.notEqual(describeStatus('sms', 'sent').tone, 'success')
+    assert.equal(describeStatus('sms', 'delivered').label, 'Delivered')
+    assert.equal(describeStatus('sms', 'undelivered').tone, 'danger')
   })
 })

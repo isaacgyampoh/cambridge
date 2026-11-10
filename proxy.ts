@@ -77,6 +77,7 @@ const PUBLIC = [
 const CRON_PATHS = [
   '/api/cron/run',
   '/api/sms/queue',
+  '/api/sms/reconcile',
   '/api/maintenance/prune',
   '/api/class-reminders/run',
   '/api/payment-reminders/run',

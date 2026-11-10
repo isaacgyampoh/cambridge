@@ -49,7 +49,10 @@ type Message = {
   diagnosis: string
 }
 
-type Health = { queued: number; retrying: number; failed24h: number; sent24h: number }
+type Health = {
+  queued: number; retrying: number; failed24h: number; sent24h: number
+  delivered24h: number; undelivered24h: number
+}
 
 /*
  * The state of the account itself, as the provider reports it. Separate from
@@ -66,7 +69,13 @@ type Account = {
 }
 
 /** The order an administrator cares about: problems first. */
-const FILTERS = ['failed', 'retrying', 'queued', 'sending', 'sent'] as const
+/*
+ * "Not delivered" first after the failures, because it is the tab somebody
+ * opens this screen to find: the message the provider took and the network
+ * never placed. It did not exist before — those messages were filed under
+ * Delivered.
+ */
+const FILTERS = ['undelivered', 'failed', 'retrying', 'queued', 'sending', 'sent', 'delivered'] as const
 
 function when(iso: string | null): string {
   if (!iso) return '—'
@@ -188,10 +197,24 @@ export default function SmsDeliveryPage() {
 
       {health && (
         <div className={`grid grid-cols-2 gap-2.5 sm:gap-3 mb-5 ${
-          account ? 'lg:grid-cols-5' : 'lg:grid-cols-4'
+          account ? 'lg:grid-cols-6' : 'lg:grid-cols-5'
         }`}>
           {[
-            { label: 'Delivered (24h)', value: health.sent24h, sub: 'Handed to the network' },
+            /*
+             * Two tiles where there was one, because they were two facts all
+             * along. "Delivered (24h)" counted messages the provider had
+             * ACCEPTED, so a day in which a member of staff received nothing
+             * still read as a day of deliveries.
+             */
+            { label: 'Delivered (24h)', value: health.delivered24h,
+              sub: 'Confirmed on the handset' },
+            { label: 'Not delivered (24h)', value: health.undelivered24h,
+              sub: health.undelivered24h > 0
+                ? 'The network could not reach these phones'
+                : 'Every confirmed message arrived',
+              tone: health.undelivered24h > 0 ? 'text-[var(--danger)]' : undefined },
+            { label: 'Awaiting confirmation', value: health.sent24h,
+              sub: 'Accepted by the provider, checked within the half hour' },
             { label: 'Given up (24h)', value: health.failed24h,
               sub: health.failed24h > 0 ? 'These people were never reached' : 'Nothing lost',
               tone: health.failed24h > 0 ? 'text-[var(--danger)]' : undefined },
