@@ -1,5 +1,6 @@
 import { NextRequest, NextResponse } from 'next/server'
 import { isValidPin, PIN_LENGTH } from '@/lib/auth/pinPolicy'
+import { canonicalGhanaMobile, localGhanaMobile } from '@/lib/phone'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN, getSessionFromCookies } from '@/lib/auth/pin'
 import { DUTIES, ROLE_DEFAULTS } from '@/lib/access/portals'
@@ -19,11 +20,23 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Full name, phone number and role are required' }, { status: 400 })
   }
 
-  // Normalize phone to 233XXXXXXXXX
-  const rawPhone = phone.trim().replace(/\s+/g, '')
-  const phone233 = rawPhone.startsWith('0') ? '233' + rawPhone.slice(1)
-    : rawPhone.startsWith('+') ? rawPhone.slice(1)
-    : rawPhone
+  /*
+   * One rule, lib/phone's, rather than a third spelling of it here.
+   *
+   * This one only stripped spaces, so "+233 (0) 244 721 555" was stored as
+   * 233(0)244721555 and "024-472-1555" as 23324-472-1555. The reader that
+   * decides whether a PIN can be texted refused both, so the account was
+   * created with a number nobody could send to — and the initial PIN below
+   * is the last four digits of it, so a malformed number made a nonsense PIN
+   * as well.
+   */
+  const phone233 = canonicalGhanaMobile(phone)
+  if (!phone233) {
+    return NextResponse.json({
+      error: 'Enter a Ghanaian mobile number, such as 0244721555. '
+        + 'This is where their PIN and sign-in codes are sent.',
+    }, { status: 400 })
+  }
 
   // Generate PIN — last 4 digits of phone or custom
   const pin = initial_pin?.trim() || phone233.slice(-4)
@@ -190,7 +203,12 @@ export async function POST(req: NextRequest) {
     userId,
     smsSent,
     credentials: {
-      phone: rawPhone,           // show the original format they typed
+      /*
+       * The stored form, not what was typed. An administrator reading this
+       * back needs the number the portal will actually text, which is the
+       * one thing "the original format they typed" could not tell them.
+       */
+      phone: localGhanaMobile(phone233),
       initial_pin: pin,
       // Said accurately: the PIN is the whole credential, and a sign-in code
       // follows it by text. Telling an administrator otherwise means they

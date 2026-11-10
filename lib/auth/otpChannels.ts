@@ -120,6 +120,46 @@ export function pinResetSmsText(pin: string, name: string | null | undefined, po
 }
 
 /**
+ * Why nothing could be sent, in words an ADMINISTRATOR can act on.
+ *
+ * ── WHY THIS IS NOT undeliverableMessage ───────────────────────────────────
+ *
+ * That one is read by whoever is trying to sign in, on a screen with no
+ * session, so it deliberately says nothing about which integrations this
+ * deployment has. This one is read by a super admin who has just reset a
+ * colleague's PIN and been told it could not be sent — and "could not be
+ * sent" with no reason is how a staff member stays locked out for a week
+ * while everybody assumes the text is on its way.
+ *
+ * The three causes need three different actions: correct the number on the
+ * record, configure the sender, or chase the provider. Returns null when
+ * there IS a usable channel, in which case the failure was the send itself.
+ */
+export function deliveryObstacle(target: OtpTarget, opts: ChannelReadiness): string | null {
+  if (channelsFor(target, opts).length) return null
+
+  const phoneOnFile = String(target.phone ?? '').trim()
+  const emailOnFile = String(target.email ?? '').trim()
+
+  if (phoneOnFile && !hasPhone(target)) {
+    // The commonest cause by far, and the one nobody can guess: the record
+    // holds something that is not a Ghanaian mobile number.
+    return `the number on their record (${phoneOnFile}) is not a Ghanaian mobile number`
+      + (emailOnFile ? ', and email is not configured on this deployment' : '')
+  }
+  if (hasPhone(target) && !opts.smsReady) {
+    return 'text messages are not configured on this deployment'
+  }
+  if (!phoneOnFile && !emailOnFile) {
+    return 'their record has no phone number and no email address'
+  }
+  if (!phoneOnFile) {
+    return 'their record has no mobile number, and email is not configured on this deployment'
+  }
+  return 'no channel on this deployment can reach them'
+}
+
+/**
  * What to say when nothing could be sent.
  *
  * Two different situations, and they need different sentences: an account

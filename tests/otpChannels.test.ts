@@ -2,7 +2,7 @@ import { test, describe } from 'node:test'
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import {
-  channelsFor, otpSmsText, pinResetSmsText, undeliverableMessage,
+  channelsFor, deliveryObstacle, otpSmsText, pinResetSmsText, undeliverableMessage,
 } from '../lib/auth/otpChannels.ts'
 import { maskPhone } from '../lib/ui/contact.ts'
 import { readBalanceResponse } from '../lib/integrations/smsAccountCheck.ts'
@@ -93,7 +93,17 @@ describe('which channels a code can travel on', () => {
      * would have been "sent" to nowhere.
      */
     assert.deepEqual(channelsFor({ phone: '12345', email: PERSON.email }, BOTH), ['email'])
-    assert.deepEqual(channelsFor({ phone: '241234567' }, BOTH), [])
+    assert.deepEqual(channelsFor({ phone: '0302123456' }, BOTH), [], 'a landline is not an SMS channel')
+    assert.deepEqual(channelsFor({ phone: '0244721555/0501234567' }, BOTH), [],
+      'two numbers in one field is ambiguous, and a PIN must not be guessed at')
+
+    /*
+     * But a number missing its leading zero IS that person's number, and the
+     * sender dials it — see the reversal noted in ./infoSessionSend. It was
+     * refused here too, which is how a staff member whose record had been
+     * through a spreadsheet could not be sent a sign-in code.
+     */
+    assert.deepEqual(channelsFor({ phone: '241234567' }, BOTH), ['sms'])
   })
 
   test('and an address with no @ is not one either', () => {
@@ -257,7 +267,8 @@ describe('every path that issues a code can use both channels', () => {
 })
 
 describe('a code that did not go anywhere is not reported as sent', () => {
-  const lines = codeOf('lib/auth/otpDelivery.ts').split('\n')
+  const source = codeOf('lib/auth/otpDelivery.ts')
+  const lines = source.split('\n')
 
   test('every sent:true is the body of a successful send', () => {
     /*
@@ -285,9 +296,16 @@ describe('a code that did not go anywhere is not reported as sent', () => {
   })
 
   test('and the fall-through says so plainly', () => {
-    const last = lines.filter(l => /return \{ sent:/.test(l)).pop() ?? ''
-    assert.match(last, /sent: false, via: null, hint: null/,
+    /*
+     * The last return in the loop is the one taken when every channel has
+     * been tried, so it must report failure. It now carries a reason as
+     * well, which is why this reads the fields rather than one whole line.
+     */
+    const tail = source.slice(source.lastIndexOf('return {'))
+    assert.match(tail, /sent: false, via: null, hint: null/,
       'the end of the loop must report failure, not the last thing it tried')
+    assert.match(tail, /reason: deliveryObstacle/,
+      'and it must say why, or an administrator has nothing to act on')
   })
 
   test('a thrown sender costs that channel its turn, not the whole send', () => {
@@ -475,7 +493,9 @@ describe('resetting a colleague’s PIN tells them', () => {
      * have made, so the response says which it was.
      */
     assert.match(route, /notified: notice\.sent/)
-    assert.match(route, /you will need to pass it on yourself/)
+    assert.match(route, /Pass the PIN on yourself/)
+    // And why it did not arrive, which is the part they can act on.
+    assert.match(route, /because \$\{notice\.reason\}/)
   })
 
   test('the audit records that they were told, never what they were told', () => {
@@ -687,5 +707,74 @@ describe('a credential already in the log is masked on the way out', () => {
     const page = codeOf('app/(portal)/admin/sms-delivery/page.tsx')
     assert.match(page, /row\.redacted && \(/)
     assert.match(page, /is hidden/)
+  })
+})
+
+/**
+ * WHY A PIN DID NOT ARRIVE.
+ *
+ * ── THE REPORT THAT COULD NOT BE ANSWERED ──────────────────────────────────
+ *
+ * "Staff are not receiving the SMS for a PIN reset." The portal knew exactly
+ * why for each person — no mobile number it could read, no sender
+ * configured, a provider refusal — and said "the message could not be sent"
+ * for all three. Three different problems with three different fixes, and
+ * nothing to tell them apart without reading the database.
+ *
+ * The three sentences below are read by a super admin on the staff screen,
+ * not by somebody signing in: undeliverableMessage stays vague on purpose,
+ * because it is shown to an unauthenticated visitor.
+ */
+describe('an undelivered PIN says what is wrong with it', () => {
+  const BOTH = { smsReady: true, emailReady: true }
+  const SMS_ONLY = { smsReady: true, emailReady: false }
+
+  test('a number that is not a Ghanaian mobile is named, and quoted', () => {
+    /*
+     * Quoted because the administrator has to correct it, and cannot do that
+     * from "could not be sent". This is the case that caused the report: the
+     * staff screens stored what was typed without validating it.
+     */
+    const reason = deliveryObstacle({ phone: '0244 721 555 / 0501234567', email: null }, SMS_ONLY)
+    assert.match(String(reason), /is not a Ghanaian mobile number/)
+    assert.match(String(reason), /0244 721 555 \/ 0501234567/)
+  })
+
+  test('a deployment with no SMS sender says so instead', () => {
+    const reason = deliveryObstacle({ phone: '0244721555', email: null },
+      { smsReady: false, emailReady: false })
+    assert.match(String(reason), /text messages are not configured/)
+  })
+
+  test('an empty record says that', () => {
+    assert.match(String(deliveryObstacle({ phone: null, email: null }, BOTH)),
+      /no phone number and no email address/)
+  })
+
+  test('and when a channel was available there is no obstacle to report', () => {
+    /*
+     * The distinction that makes the sentence worth printing: null here means
+     * the send itself failed, which is the provider's problem and not the
+     * record's. Reporting "no usable number" for a provider outage would send
+     * an administrator to edit a number that is perfectly correct.
+     */
+    assert.equal(deliveryObstacle({ phone: '0244721555', email: null }, SMS_ONLY), null)
+    assert.equal(deliveryObstacle({ phone: '244721555', email: null }, SMS_ONLY), null,
+      'a number missing its leading zero is reachable, so it is not an obstacle')
+    assert.equal(deliveryObstacle({ phone: null, email: 'ama@example.com' }, BOTH), null)
+  })
+
+  test('the delivery loop carries the reason out, and only when nothing was sent', () => {
+    const delivery = codeOf('lib/auth/otpDelivery.ts')
+    assert.match(delivery, /reason: deliveryObstacle\(target, readiness\)/)
+    assert.match(delivery, /the message was rejected by/)
+    // On the success path there is nothing to explain.
+    assert.match(delivery, /sent: true,[\s\S]{0,220}reason: null/)
+  })
+
+  test('and the reset screen prints it rather than swallowing it', () => {
+    const route = codeOf('app/api/admin/reset-pin/route.ts')
+    assert.match(route, /because \$\{notice\.reason\}/)
+    assert.match(route, /notDeliveredBecause: notice\.sent \? null : notice\.reason/)
   })
 })

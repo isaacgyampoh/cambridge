@@ -386,20 +386,31 @@ describe('numbers that cannot be dialled are named, not dropped', () => {
     }
   })
 
-  test('a bare nine digits is refused here, and that is deliberate', () => {
+  test('a bare nine digits is the same number, and is dialled', () => {
     /*
-     * `244721555` has no 0 and no country code. The IMPORT accepts it, because
-     * Excel eats the leading zero off a phone column and the alternative is
-     * throwing away real people — and it stores the canonical form, so what
-     * lands in the database is dialable either way.
+     * ── A REVERSAL, DELIBERATELY ──────────────────────────────────────────
      *
-     * The SENDER is stricter on purpose. By the time a number reaches Arkesel
-     * it has been through a writer that should have canonicalised it, so nine
-     * bare digits means something else went wrong, and guessing a country
-     * code onto it would post a request that delivers nowhere and is then
-     * retried.
+     * Nine bare digits used to be refused here. The reasoning was that a
+     * number reaching the sender has already been through a writer that
+     * should have canonicalised it, so nine digits meant an upstream fault
+     * and adding a country code would be a guess.
+     *
+     * Both halves turned out to be wrong. There was no such writer: the two
+     * staff screens each had their own rule and neither validated, and the
+     * lead import had a third that accepted nine digits and stored them. And
+     * it is not a guess — a Ghanaian mobile is nine digits beginning 2 or 5,
+     * which is checked, and this is a Ghana-only product. The cost of the
+     * strictness was a colleague who could not be sent a PIN at all.
      */
-    assert.equal(normaliseRecipient('244721555'), null)
+    assert.equal(normaliseRecipient('244721555'), '233244721555')
+    assert.equal(normaliseRecipient('541234567'), '233541234567')
+  })
+
+  test('but nine digits that are not a mobile prefix are still refused', () => {
+    // 02x and 05x are every network's prefix. Nine digits beginning anything
+    // else is not a phone number, and a credential must not be sent to it.
+    assert.equal(normaliseRecipient('123456789'), null)
+    assert.equal(normaliseRecipient('302123456'), null)
   })
 
   test('054 and the other networks too', () => {

@@ -377,8 +377,10 @@ describe('a letter that cannot be stated correctly is refused', () => {
      * recorded as having been sent a letter that went nowhere.
      */
     assert.match(blockingReason({ ...ok, email: null, phone: '12345' })!, /no phone number/)
-    assert.match(blockingReason({ ...ok, email: null, phone: '241234567' })!, /no phone number/)
+    assert.match(blockingReason({ ...ok, email: null, phone: '0302123456' })!, /no phone number/)
     assert.equal(blockingReason({ ...ok, email: null, phone: '+233 24 123 4567' }), null)
+    // Missing its leading zero, which a spreadsheet does; the sender dials it.
+    assert.equal(blockingReason({ ...ok, email: null, phone: '241234567' }), null)
   })
 
   test('not admitted yet', () => {

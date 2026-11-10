@@ -5,7 +5,7 @@ import { sendOTPEmail, sendEmail, emailConfigured } from '@/lib/integrations/ema
 import { CONFIG } from '@/lib/config'
 import { maskEmail, maskPhone } from '@/lib/ui/contact'
 import {
-  channelsFor, otpSmsText, pinResetSmsText, undeliverableMessage,
+  channelsFor, deliveryObstacle, otpSmsText, pinResetSmsText, undeliverableMessage,
   type OtpChannel, type OtpTarget,
 } from '@/lib/auth/otpChannels'
 
@@ -17,7 +17,7 @@ import {
  * touches the outside world.
  */
 
-export { channelsFor, otpSmsText, pinResetSmsText, undeliverableMessage }
+export { channelsFor, deliveryObstacle, otpSmsText, pinResetSmsText, undeliverableMessage }
 export type { OtpChannel, OtpTarget }
 
 export type OtpDelivery = {
@@ -27,6 +27,13 @@ export type OtpDelivery = {
   hint: string | null
   /** Channels that were tried and did not deliver, for the log. */
   failed: OtpChannel[]
+  /**
+   * Why nothing arrived, for the person who has to do something about it.
+   *
+   * Null when it was sent. "Could not be sent" on its own is what leaves a
+   * colleague locked out while everybody assumes a text is on its way.
+   */
+  reason: string | null
 }
 
 /** Which senders this deployment has configured. */
@@ -62,7 +69,8 @@ async function deliverByChannel(
   label: string,
   send: Record<OtpChannel, () => Promise<boolean>>,
 ): Promise<OtpDelivery> {
-  const order = channelsFor(target, channelReadiness())
+  const readiness = channelReadiness()
+  const order = channelsFor(target, readiness)
   const failed: OtpChannel[] = []
 
   for (const channel of order) {
@@ -73,6 +81,7 @@ async function deliverByChannel(
           via: channel,
           hint: channel === 'sms' ? maskPhone(target.phone) : maskEmail(target.email),
           failed,
+          reason: null,
         }
       }
     } catch (e) {
@@ -81,7 +90,17 @@ async function deliverByChannel(
     failed.push(channel)
   }
 
-  return { sent: false, via: null, hint: null, failed }
+  return {
+    sent: false, via: null, hint: null, failed,
+    /*
+     * An obstacle means there was no usable channel to begin with — a number
+     * that is not a mobile, a sender that is not configured — and no amount
+     * of retrying changes it. Otherwise a channel was tried and the provider
+     * did not take it, which is a different conversation.
+     */
+    reason: deliveryObstacle(target, readiness)
+      || `the message was rejected by ${failed.join(' and ') || 'the provider'}`,
+  }
 }
 
 /**

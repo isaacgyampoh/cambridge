@@ -4,15 +4,20 @@ import { verifySession } from '@/lib/auth/pin'
 import { createServiceClient } from '@/lib/supabase/server'
 import { hashPIN } from '@/lib/auth/pin'
 import { saveFailed } from '@/lib/db/lookup'
+import { canonicalGhanaMobile } from '@/lib/phone'
 
 export const runtime = 'nodejs'
 
-function normPhone(p: string) {
-  const digits = (p || '').replace(/[^0-9]/g, '')
-  if (digits.startsWith('233')) return digits
-  if (digits.startsWith('0')) return '233' + digits.slice(1)
-  return digits
-}
+/*
+ * The staff phone is the address a PIN reset and a sign-in code are sent to,
+ * so what is stored here has to be what the sender can read.
+ *
+ * This had its own rule, and it did not validate: anything already starting
+ * 233 was stored verbatim, so "+233 (0) 244 721 555" went in as
+ * 2330244721555 — thirteen digits, past the length check below, and refused
+ * by every reader afterwards. The person could be edited, listed and given a
+ * PIN, and could never be texted one.
+ */
 
 /**
  * Super admin edits a staff member: name, phone, email, and/or reset their
@@ -36,8 +41,13 @@ export async function POST(req: NextRequest) {
   if (email !== undefined) update.email = email?.trim() || null
 
   if (phone?.trim()) {
-    const phone233 = normPhone(phone)
-    if (phone233.length < 12) return NextResponse.json({ error: 'Enter a valid phone number.' }, { status: 400 })
+    const phone233 = canonicalGhanaMobile(phone)
+    if (!phone233) {
+      return NextResponse.json({
+        error: 'Enter a Ghanaian mobile number, such as 0244721555. '
+          + 'This is where their PIN and sign-in codes are sent.',
+      }, { status: 400 })
+    }
     // ensure not taken by someone else
     const { data: clash } = await sb.from('profiles').select('id').eq('phone', phone233).neq('id', id).maybeSingle()
     if (clash) return NextResponse.json({ error: 'That phone number is already used by another staff member.' }, { status: 409 })

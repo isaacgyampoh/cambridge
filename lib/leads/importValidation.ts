@@ -1,3 +1,4 @@
+import { canonicalGhanaMobile } from '../phone.ts'
 /**
  * Import row validation — pure, no data access, so it can be tested directly.
  *
@@ -37,26 +38,21 @@ export type LeadSource = typeof LEAD_SOURCES[number]
 /**
  * Normalise a Ghanaian mobile number to its storage form, 233XXXXXXXXX.
  *
- * Spreadsheets carry numbers in every shape a person might type: with the
- * country code, without it, with a leading zero, with spaces, dashes or
- * brackets, and quite often as a number that Excel has helpfully stripped the
- * leading zero from. All of those are the same phone.
+ * ── IT USED TO BE ITS OWN RULE, AND THAT WAS THE BUG ──────────────────────
  *
- * Returns null when it is not a Ghanaian mobile, rather than storing something
- * unreachable — a lead nobody can call is worse than a row rejected with a
- * reason the operator can act on.
+ * Spreadsheets carry numbers in every shape a person might type, including
+ * one Excel has stripped the leading zero from, and this copy accepted all of
+ * them. lib/phone's copy — the one that decides whether somebody can be sent
+ * a PIN or a sign-in code — did not. So a number could be accepted when it
+ * was saved and be unreachable when it was used, which is not a disagreement
+ * anybody notices until a colleague is waiting for a text that was never
+ * sent.
+ *
+ * Kept as a name because the import and its tests read well with it; the rule
+ * itself is lib/phone's, for everybody.
  */
 export function canonicalPhone(raw?: string | null): string | null {
-  // The international dialling prefix, before anything else. Without this
-  // "00233201234567" keeps its zeros, fails the nine-digit test and is
-  // refused — or, in the intake path that kept its own copy of this rule, was
-  // turned into 2330233201234567 and stored as somebody's phone number.
-  const digits = String(raw ?? '').replace(/\D/g, '').replace(/^00/, '')
-  if (!digits) return null
-
-  const local = digits.replace(/^233/, '').replace(/^0/, '')
-  // Ghanaian mobile numbers are nine digits after the country code.
-  return local.length === 9 ? `233${local}` : null
+  return canonicalGhanaMobile(raw)
 }
 
 /**

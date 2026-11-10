@@ -142,6 +142,8 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
       target: target.full_name, targetRole: target.role,
       recoveryPinIssued: Boolean(recoveryPin),
       notified: notice.sent, notifiedVia: notice.via,
+      // Why it did not arrive, so the audit says more than "no".
+      notDeliveredBecause: notice.sent ? null : notice.reason,
     },
   })
 
@@ -162,6 +164,7 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
       ? `${target.full_name} has been sent the new PIN and the portal address ${
           notice.via === 'sms' ? 'by text' : 'by email'} (${notice.hint}), and will be asked to choose their own.`
       : `${target.full_name} can sign in with that PIN and will be asked to choose their own — `
-        + 'but the message could not be sent, so you will need to pass it on yourself.',
+        + `but the message could not be sent${notice.reason ? `, because ${notice.reason}` : ''}. `
+        + 'Pass the PIN on yourself.',
   })
 })

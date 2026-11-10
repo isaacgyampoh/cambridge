@@ -27,32 +27,61 @@
  * the server and the client.
  */
 
-/** A Ghanaian mobile number: 233 followed by nine digits. */
-const GHANA_MOBILE = /^233\d{9}$/
+/**
+ * A Ghanaian mobile, as it is stored and dialled: 233 then nine digits
+ * beginning 2 or 5 — every network's prefix is 02x or 05x.
+ *
+ * The prefix is checked rather than the length alone, because this value is
+ * where a PIN and a sign-in code are sent. Nine digits that are not a phone
+ * number — an ID, a reference, half of something pasted — would otherwise be
+ * turned into a plausible-looking recipient and the credential sent into the
+ * dark.
+ */
+const GHANA_MOBILE = /^[25]\d{8}$/
 
 /**
  * Normalise to 233XXXXXXXXX, or null when it is not a Ghanaian mobile.
  *
- * Null rather than a best guess: a malformed tel: link fails silently when
- * tapped, and a malformed recipient is a message that never arrives. Both are
- * worse than a button that is honestly absent.
+ * ── THE FORMS THIS NOW RESCUES, AND WHY IT MUST ────────────────────────────
+ *
+ * This function decides whether somebody can be TEXTED at all: a null here
+ * means no SMS channel, and with the campus mailbox unconfigured that means
+ * no PIN reset, no sign-in code, nothing. It was stricter than the rule the
+ * lead import has used all along, and stricter than what the staff screens
+ * actually write, so numbers that were accepted when they were saved became
+ * unreachable when somebody tried to use them:
+ *
+ *   2330244721555   "+233 (0) 244 721 555" — the international form with the
+ *                   trunk zero kept. Both staff writers store this verbatim,
+ *                   and the old rule read it as thirteen digits and refused.
+ *
+ *   244721555       the leading zero gone — what a spreadsheet does to a
+ *                   phone column, and what a person types when they are
+ *                   already giving the country code elsewhere.
+ *
+ * Reading those correctly repairs the rows already in the database without
+ * touching them: the stored text does not change, but the person becomes
+ * reachable again.
+ *
+ * Still null rather than a best guess for anything genuinely ambiguous — two
+ * numbers in one field, a landline, a foreign number. A malformed tel: link
+ * fails silently when tapped and a malformed recipient is a message that
+ * never arrives, but a GUESSED recipient is a PIN sent to a stranger.
  */
 export function canonicalGhanaMobile(raw: string | null | undefined): string | null {
-  const cleaned = String(raw ?? '')
-    // Everything a person might type or paste: spaces, dashes, brackets, dots.
-    .replace(/[\s()\-.]/g, '')
-    .replace(/^\+233/, '233')
-    .replace(/^\+/, '')
-    /*
-     * The international dialling prefix, BEFORE the single-zero rule. This is
-     * the line the three copies were missing: without it "00233…" has its
-     * first zero rewritten and comes out as a duplicated country code.
-     */
-    .replace(/^00/, '')
-    .replace(/^0/, '233')
+  /*
+   * Every separator a person might type or paste, and the international
+   * dialling prefix BEFORE the single-zero rule — without that, "00233…" has
+   * its first zero rewritten and comes out as a duplicated country code.
+   */
+  const digits = String(raw ?? '').replace(/\D/g, '').replace(/^00/, '')
+  if (!digits) return null
 
-  const digits = cleaned.replace(/[^0-9]/g, '')
-  return GHANA_MOBILE.test(digits) ? digits : null
+  // Country code, then the trunk zero. Both optional, in that order, which is
+  // what makes "233 0 244721555" and "0244721555" and "244721555" one number.
+  const local = digits.replace(/^233/, '').replace(/^0/, '')
+
+  return GHANA_MOBILE.test(local) ? `233${local}` : null
 }
 
 /** How the number is shown to a Ghanaian reader: 0201234567. */
