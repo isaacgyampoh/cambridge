@@ -1,5 +1,5 @@
 'use client'
-import { Suspense, useState } from 'react'
+import { Suspense, useEffect, useState } from 'react'
 import { useSearchParams } from 'next/navigation'
 import Link from 'next/link'
 import { toast } from 'sonner'
@@ -30,6 +30,25 @@ import { BRAND } from '@/lib/brand'
 
 function ResetForm() {
   const token = useSearchParams().get('t') || ''
+
+  /*
+   * Take the token out of the address bar once it has been read.
+   *
+   * It is a credential, briefly, and a URL is the leakiest place to keep one:
+   * it goes into browser history, into a screenshot of the address bar, and
+   * into the Referer header of anything the page loads. Referrer-Policy is
+   * strict-origin-when-cross-origin, so the query string does not travel to
+   * another origin — but history and a shared screen are enough reason to
+   * wipe it the moment the form has it in memory.
+   *
+   * replaceState rather than push, so Back does not restore it.
+   */
+  useEffect(() => {
+    if (!token) return
+    try {
+      window.history.replaceState(null, '', window.location.pathname)
+    } catch { /* an older browser keeps the URL; the token still expires */ }
+  }, [token])
   const [pin, setPin] = useState('')
   const [confirm, setConfirm] = useState('')
   const [busy, setBusy] = useState(false)

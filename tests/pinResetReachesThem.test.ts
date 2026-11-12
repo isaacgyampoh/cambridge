@@ -218,6 +218,18 @@ describe('nothing secret is written down anywhere it can be read', () => {
     assert.match(page, /resetToken: token, newPin: pin/)
   })
 
+  test('the token does not stay in the address bar', () => {
+    /*
+     * It is a credential, briefly, and a URL is the leakiest place to keep
+     * one: browser history, a screenshot of the address bar, the Referer
+     * header of anything the page loads. It is wiped as soon as the form has
+     * it in memory, with replaceState so Back cannot restore it.
+     */
+    const page = codeOf('app/(auth)/reset/page.tsx')
+    assert.match(page, /window\.history\.replaceState\(null, '', window\.location\.pathname\)/)
+    assert.ok(!/history\.pushState/.test(page), 'Back would restore the token')
+  })
+
   test('the reset page is reachable without a session, and only that page', () => {
     const proxy = codeOf('proxy.ts')
     assert.match(proxy, /'\/reset', '\/setup'/)
