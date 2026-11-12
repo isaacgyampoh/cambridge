@@ -30,7 +30,14 @@ const PUBLIC = [
    * and every visitor without somebody's referral code was redirected to a
    * staff sign-in box.
    */
-  '/login', '/setup', '/apply', '/refer', '/f/', '/j/', '/signin/', '/public-alumni',
+  '/login',
+  /*
+   * Setting a PIN from the single-use link an administrator sent. Public by
+   * necessity — somebody who cannot sign in cannot be asked to sign in first
+   * — and authorised by the token itself, which is random, hashed at rest,
+   * bound to one account, spent on use and good for an hour.
+   */
+  '/reset', '/setup', '/apply', '/refer', '/f/', '/j/', '/signin/', '/public-alumni',
   // A member of staff's permanent marketing link. Public by design: it is
   // shared on WhatsApp, printed on cards and put behind QR codes. It exposes
   // the current promotion and the sharer's name, and nothing else — see

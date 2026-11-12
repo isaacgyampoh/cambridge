@@ -210,7 +210,7 @@ export async function startRecovery(pin: string): Promise<RecoveryStart> {
  * Shared by both paths, so the token has identical properties however it was
  * earned: stored hashed, expires, and cleared the moment it is spent.
  */
-async function issueResetToken(userId: string): Promise<string | null> {
+async function issueResetToken(userId: string, minutes = RESET_TOKEN_MINUTES): Promise<string | null> {
   const sb = createServiceClient()
   const token = randomBytes(32).toString('hex')
   const { error } = await sb.from('profiles').update({
@@ -218,7 +218,7 @@ async function issueResetToken(userId: string): Promise<string | null> {
     otp_expires_at: null,
     otp_attempts: 0,
     reset_token_hash: hashToken(token),
-    reset_token_expires_at: new Date(Date.now() + RESET_TOKEN_MINUTES * 60_000).toISOString(),
+    reset_token_expires_at: new Date(Date.now() + minutes * 60_000).toISOString(),
   }).eq('id', userId)
 
   if (error) {
@@ -226,6 +226,40 @@ async function issueResetToken(userId: string): Promise<string | null> {
     return null
   }
   return token
+}
+
+/**
+ * ── AN ADMINISTRATOR STARTS A RESET FOR SOMEBODY ELSE ──────────────────────
+ *
+ * The same single-use token the self-service path mints, issued on behalf of
+ * a colleague who cannot get in. It replaces the thing that used to happen
+ * here: the administrator typed a PIN, the system wrote it to the account and
+ * sent it in a text, and the colleague had a working credential sitting in
+ * their message history — readable by anyone who picks up the phone,
+ * forwardable, and usable again and again until they thought to change it.
+ *
+ * What the token gives instead is permission to CHOOSE a PIN, once:
+ *
+ *   random    32 bytes from the system's CSPRNG
+ *   hashed    only the hash is stored, like a session token
+ *   bound     to this one account, by the row it is written on
+ *   brief     an hour, because an administrator starts this while the person
+ *             is usually not at their desk — the fifteen minutes the
+ *             self-service path uses assumes somebody waiting at the screen
+ *   single    completeRecovery clears it, so a second use fails
+ *
+ * ── AND THE ACCOUNT IS LEFT ALONE ──────────────────────────────────────────
+ *
+ * Deliberately. The old reset overwrote the PIN immediately, so a message
+ * that never arrived — which is exactly what was happening — left the person
+ * locked out of an account whose new PIN only the administrator knew. Nothing
+ * changes here until they use the link: if it never reaches them they are no
+ * worse off than before it was pressed.
+ */
+export const ADMIN_RESET_TOKEN_MINUTES = 60
+
+export async function startAdminReset(userId: string): Promise<string | null> {
+  return issueResetToken(userId, ADMIN_RESET_TOKEN_MINUTES)
 }
 
 export type RecoveryVerify =

@@ -1,6 +1,5 @@
 'use client'
 import { useState, useEffect } from 'react'
-import { BRAND } from '@/lib/brand'
 import { Dialog, Button, Input } from '@/components/ui'
 import { PIN_LENGTH } from '@/lib/auth/pinPolicy'
 import { displayPhone } from '@/lib/ui/contact'
@@ -99,6 +98,45 @@ export default function StaffPage() {
   const [resetConfirm, setResetConfirm] = useState('')
   const [resetBusy, setResetBusy] = useState(false)
   const [issuedRecovery, setIssuedRecovery] = useState<string | null>(null)
+  /** Per-channel outcome of the link, as the server reported it. */
+  const [sendResult, setSendResult] = useState<{
+    anyAccepted: boolean
+    channels: Array<{ channel: string; accepted: boolean; hint: string | null; reason: string | null }>
+    expiresInMinutes: number
+    message: string
+  } | null>(null)
+  /** The administrator asked to set a PIN by hand instead, for somebody unreachable. */
+  const [manualMode, setManualMode] = useState(false)
+
+  /**
+   * Start a reset by sending a single-use link.
+   *
+   * Nothing on the account changes until the colleague uses it, so a message
+   * that does not arrive leaves them exactly where they were rather than
+   * locked out of an account whose new PIN only an administrator knows.
+   */
+  async function sendResetLink(mode: 'link' | 'resend' = 'link') {
+    if (!resetFor) return
+    setResetBusy(true)
+    try {
+      const d = await fetch('/api/admin/reset-pin', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ userId: resetFor.id, mode }),
+      }).then(r => r.json())
+      if (!d.success) { toast.error(d.error || 'The reset could not be started'); return }
+      setSendResult(d)
+      /*
+       * Not a success toast unless a provider actually took it. "Sent" over a
+       * delivery nobody accepted is what stopped anybody picking up the phone.
+       */
+      if (d.anyAccepted) toast.success(d.message)
+      else toast.error(d.message, { duration: 10_000 })
+    } catch {
+      toast.error('Could not reach the server. Check your connection.')
+    } finally {
+      setResetBusy(false)
+    }
+  }
 
   async function submitReset() {
     if (!resetFor) return
@@ -111,7 +149,9 @@ export default function StaffPage() {
     try {
       const d = await fetch('/api/admin/reset-pin', {
         method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ userId: resetFor.id, newPin: resetPin, withRecoveryPin: true }),
+        body: JSON.stringify({
+          userId: resetFor.id, mode: 'manual_pin', newPin: resetPin, withRecoveryPin: true,
+        }),
       }).then(r => r.json())
       if (!d.success) { toast.error(d.error || 'Could not reset that PIN'); return }
       setIssuedRecovery(d.recoveryPin || null)
@@ -879,26 +919,91 @@ export default function StaffPage() {
           afterwards. */}
       <Dialog
         open={Boolean(resetFor)}
-        onClose={() => { setResetFor(null); setIssuedRecovery(null) }}
+        onClose={() => { setResetFor(null); setIssuedRecovery(null); setSendResult(null); setManualMode(false) }}
         title={resetFor ? `Reset ${resetFor.name}'s PIN` : ''}
-        description={issuedRecovery
+        description={issuedRecovery || sendResult
           ? undefined
-          : `Choose a temporary ${PIN_LENGTH}-digit PIN. They will be asked to pick their own when they next sign in.`}
+          : manualMode
+            ? `Choose a ${PIN_LENGTH}-digit PIN and read it out to them. Use this only when they cannot receive messages.`
+            : 'They will be sent a link to choose their own PIN. Nothing on their account changes until they use it.'}
         footer={issuedRecovery ? (
-          <Button onClick={() => { setResetFor(null); setIssuedRecovery(null) }}>Done</Button>
-        ) : (
+          <Button onClick={() => { setResetFor(null); setIssuedRecovery(null); setManualMode(false) }}>Done</Button>
+        ) : sendResult ? (
           <>
-            <Button variant="secondary" onClick={() => setResetFor(null)}>Cancel</Button>
+            {/*
+              * Retry sends the SAME reset again. It does not reset the PIN a
+              * second time and does not mint another recovery PIN — a failed
+              * text must not cost somebody their credential twice.
+              */}
+            <Button variant="secondary" onClick={() => sendResetLink('resend')} disabled={resetBusy}>
+              {resetBusy ? 'Sending…' : 'Retry sending'}
+            </Button>
+            <Button onClick={() => { setResetFor(null); setSendResult(null); setManualMode(false) }}>Done</Button>
+          </>
+        ) : manualMode ? (
+          <>
+            <Button variant="secondary" onClick={() => setManualMode(false)}>Back</Button>
             <Button
               onClick={submitReset}
               disabled={resetBusy || resetPin.length !== PIN_LENGTH || resetConfirm.length !== PIN_LENGTH}
             >
-              {resetBusy ? 'Resetting…' : 'Reset PIN'}
+              {resetBusy ? 'Resetting…' : 'Set this PIN'}
+            </Button>
+          </>
+        ) : (
+          <>
+            <Button variant="secondary" onClick={() => setResetFor(null)}>Cancel</Button>
+            <Button onClick={() => sendResetLink('link')} disabled={resetBusy}>
+              {resetBusy ? 'Sending…' : 'Send reset link'}
             </Button>
           </>
         )}
       >
-        {issuedRecovery ? (
+        {sendResult ? (
+          <div className="space-y-4">
+            <p className="text-[14px] text-[var(--ink)] leading-relaxed">{sendResult.message}</p>
+
+            {/*
+              * Each channel on its own line, with what it actually did.
+              * "Accepted" is the honest word: it means a provider took the
+              * message. Whether a handset received it is on the SMS delivery
+              * screen, and claiming it here is how a number that was refusing
+              * every message went unnoticed for weeks.
+              */}
+            <ul className="space-y-2">
+              {sendResult.channels.map(c => (
+                <li key={c.channel}
+                  className="flex items-start gap-2.5 rounded-xl border border-[var(--line)] p-3">
+                  <span className={`mt-0.5 h-2 w-2 rounded-full flex-shrink-0 ${
+                    c.accepted ? 'bg-[var(--ok)]' : 'bg-[var(--danger)]'}`} />
+                  <div className="min-w-0">
+                    <div className="text-[13px] font-semibold text-[var(--ink)]">
+                      {c.channel === 'sms' ? 'Text message' : 'Email'}
+                      {': '}
+                      {c.accepted ? 'accepted for sending' : 'not sent'}
+                    </div>
+                    <div className="text-[12px] text-[var(--ink-soft)] leading-relaxed">
+                      {c.accepted ? `To ${c.hint}. Delivery is confirmed on the SMS delivery screen.` : c.reason}
+                    </div>
+                  </div>
+                </li>
+              ))}
+            </ul>
+
+            <p className="text-[12px] text-[var(--ink-faint)] leading-relaxed">
+              The link works once and expires in {sendResult.expiresInMinutes} minutes. Their current
+              PIN keeps working until they use it, so nobody is locked out by a message that did not arrive.
+            </p>
+
+            {!sendResult.anyAccepted && (
+              <button type="button"
+                onClick={() => { setSendResult(null); setManualMode(true) }}
+                className="text-[13px] font-semibold text-[var(--accent)] hover:underline min-h-[44px]">
+                Set a PIN to read out instead
+              </button>
+            )}
+          </div>
+        ) : issuedRecovery ? (
           <div className="space-y-4">
             <p className="text-[14px] text-[var(--ink)] leading-relaxed">
               Their PIN has been reset. Give them the PIN you chose — they will be asked
@@ -913,14 +1018,18 @@ export default function StaffPage() {
               </div>
               <p className="text-[12px] text-[var(--ink-soft)] mt-2 leading-relaxed">
                 This is what lets them reset their own PIN later without asking you.
-                They will also need a code sent to their {BRAND.shortName} email, so
+                They will also need a one-time code sent to their phone or mailbox, so
                 this alone cannot sign anyone in. Write it down now — it is not stored
-                anywhere you can read it again.
+                anywhere you can read it again, and do not send it in a message.
               </p>
             </div>
           </div>
-        ) : (
+        ) : manualMode ? (
           <div className="space-y-4">
+            <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
+              This sets their PIN immediately and sends it to them. Read it out rather than
+              forwarding the message, and only use this when a link cannot reach them.
+            </p>
             <Input
               label="Temporary PIN"
               purpose="pin"
@@ -943,6 +1052,23 @@ export default function StaffPage() {
                 : null}
               required
             />
+          </div>
+        ) : (
+          <div className="space-y-3">
+            <p className="text-[14px] text-[var(--ink)] leading-relaxed">
+              They will be sent a link — by text and by email, wherever each one can reach them —
+              to choose a PIN of their own. You never see it, and neither does anybody who reads
+              the message afterwards: the link works once and then stops working.
+            </p>
+            <p className="text-[13px] text-[var(--ink-soft)] leading-relaxed">
+              Their current PIN keeps working until they use it, so a message that does not arrive
+              cannot lock them out. You will be shown which channels accepted it.
+            </p>
+            <button type="button"
+              onClick={() => setManualMode(true)}
+              className="text-[13px] text-[var(--ink-faint)] hover:text-[var(--accent)] hover:underline min-h-[44px]">
+              They cannot receive messages — let me set a PIN to read out
+            </button>
           </div>
         )}
       </Dialog>

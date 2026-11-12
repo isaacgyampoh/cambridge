@@ -301,7 +301,17 @@ describe('a code that did not go anywhere is not reported as sent', () => {
      * been tried, so it must report failure. It now carries a reason as
      * well, which is why this reads the fields rather than one whole line.
      */
-    const tail = source.slice(source.lastIndexOf('return {'))
+    /*
+     * Scoped to deliverByChannel. The file now also holds deliverEveryChannel
+     * — which tries every channel instead of stopping at the first success,
+     * for messages that have to arrive rather than codes that must not be
+     * copied — so "the last return in the file" stopped being this one.
+     */
+    const fn = source.slice(
+      source.indexOf('async function deliverByChannel'),
+      source.indexOf('export async function deliverOTP'))
+    assert.ok(fn.length > 400, 'deliverByChannel was not found')
+    const tail = fn.slice(fn.lastIndexOf('return {'))
     assert.match(tail, /sent: false, via: null, hint: null/,
       'the end of the loop must report failure, not the last thing it tried')
     assert.match(tail, /reason: deliveryObstacle/,

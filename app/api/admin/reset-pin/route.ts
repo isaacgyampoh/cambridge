@@ -6,7 +6,9 @@ import { hashPIN, verifyPIN } from '@/lib/auth/pin'
 import { setRecoveryPin } from '@/lib/auth/recovery'
 import { recordAudit } from '@/lib/audit'
 import { PIN_PATTERN, PIN_LENGTH, pinRejectionReason } from '@/lib/auth/pinPolicy'
-import { deliverPinReset } from '@/lib/auth/otpDelivery'
+import { deliverPinReset, deliverResetLink } from '@/lib/auth/otpDelivery'
+import { startAdminReset, ADMIN_RESET_TOKEN_MINUTES } from '@/lib/auth/recovery'
+import { publicUrl } from '@/lib/url'
 
 export const runtime = 'nodejs'
 
@@ -32,9 +34,28 @@ export const runtime = 'nodejs'
  * over its peers silently.
  */
 
+/**
+ * ── TWO WAYS TO RESET, AND WHY BOTH EXIST ──────────────────────────────────
+ *
+ * `link` (the default) sends a single-use, expiring link and changes nothing
+ * on the account until the person uses it. No PIN travels anywhere.
+ *
+ * `manual_pin` is the old behaviour, kept deliberately rather than removed:
+ * when somebody's phone is refusing our messages and there is no mailbox
+ * configured — which is exactly the position this centre is in today — an
+ * administrator still has to be able to set a PIN and read it out. It is no
+ * longer the default, it says plainly that the PIN must be spoken rather than
+ * forwarded, and it is recorded as the deliberate choice it is.
+ *
+ * `resend` re-sends the link for a reset already started. It mints no PIN and
+ * no recovery PIN: retrying a message that did not arrive must not be a
+ * second reset, or every failed text costs the person their credential again.
+ */
 const Body = z.object({
   userId: z.string().uuid(),
-  newPin: z.string().regex(PIN_PATTERN, `A PIN must be exactly ${PIN_LENGTH} digits`),
+  mode: z.enum(['link', 'manual_pin', 'resend']).optional().default('link'),
+  /** Only for manual_pin: the PIN the administrator will read out. */
+  newPin: z.string().regex(PIN_PATTERN, `A PIN must be exactly ${PIN_LENGTH} digits`).optional(),
   /** Also issue a recovery PIN, so this person can help themselves next time. */
   withRecoveryPin: z.boolean().optional().default(false),
 })
@@ -47,10 +68,16 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
       { status: 400 }
     )
   }
-  const { userId, newPin, withRecoveryPin } = parsed.data
+  const { userId, mode, withRecoveryPin } = parsed.data
+  const newPin = parsed.data.newPin
 
-  const rejection = pinRejectionReason(newPin)
-  if (rejection) return NextResponse.json({ error: rejection }, { status: 400 })
+  if (mode === 'manual_pin') {
+    if (!newPin) {
+      return NextResponse.json({ error: 'Choose the PIN you will read out to them.' }, { status: 400 })
+    }
+    const rejection = pinRejectionReason(newPin)
+    if (rejection) return NextResponse.json({ error: rejection }, { status: 400 })
+  }
 
   const sb = createServiceClient()
   const { data: target, error: readErr } = await sb.from('profiles')
@@ -70,6 +97,70 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
     return NextResponse.json(
       { error: 'A super admin cannot reset another super admin\'s PIN.' }, { status: 403 }
     )
+  }
+
+  /*
+   * ── THE DEFAULT PATH: A LINK, NOT A CREDENTIAL ───────────────────────────
+   *
+   * Nothing about the account changes here. The old reset wrote a new PIN
+   * immediately and texted it, so a message that never arrived — which is
+   * what was happening — left somebody locked out of an account whose PIN
+   * only the administrator knew. If this link never reaches them, they are
+   * exactly where they were before it was pressed.
+   */
+  if (mode === 'link' || mode === 'resend') {
+    const token = await startAdminReset(userId)
+    if (!token) {
+      return NextResponse.json({
+        error: 'The reset could not be started. Nothing has changed on their account.',
+      }, { status: 503 })
+    }
+
+    const link = publicUrl(`/reset?t=${token}`)
+    const delivery = await deliverResetLink(target, link, ADMIN_RESET_TOKEN_MINUTES)
+
+    await recordAudit({
+      actorId: session.userId,
+      action: mode === 'resend' ? 'staff.pin_reset_link_resent' : 'staff.pin_reset_link_sent',
+      resource: 'profiles', resourceId: userId, success: true, request: req,
+      /*
+       * Who, by whom, and which channels took it. Never the token: an audit
+       * record is readable, and a token in it would be the credential this
+       * whole path exists to stop sending.
+       */
+      metadata: {
+        target: target.full_name, targetRole: target.role,
+        channels: delivery.outcomes.map(o => `${o.channel}:${o.accepted ? 'accepted' : 'failed'}`),
+      },
+    })
+
+    return NextResponse.json({
+      success: true,
+      mode,
+      /*
+       * Said exactly: a provider ACCEPTED it. Whether a handset received it is
+       * a different fact, and the delivery screen is where it is answered —
+       * claiming delivery here is what left everybody believing a text had
+       * gone out when the network had refused it.
+       */
+      anyAccepted: delivery.anyAccepted,
+      channels: delivery.outcomes,
+      expiresInMinutes: ADMIN_RESET_TOKEN_MINUTES,
+      message: delivery.anyAccepted
+        ? `${target.full_name} has been sent a link to choose a new PIN. It works once and expires in `
+          + `${ADMIN_RESET_TOKEN_MINUTES} minutes. Their current PIN keeps working until they use it.`
+        : `Nothing could be sent to ${target.full_name}, so their account is unchanged. `
+          + 'Use "Set a PIN to read out" instead, or fix the details below and retry.',
+    })
+  }
+
+  /*
+   * Only the manual path reaches here, and it was refused above without a
+   * PIN. Stated again rather than asserted, so the narrowing is a fact the
+   * code checks and not a promise a later edit can quietly break.
+   */
+  if (!newPin) {
+    return NextResponse.json({ error: 'Choose the PIN you will read out to them.' }, { status: 400 })
   }
 
   /*
@@ -161,8 +252,9 @@ export const POST = withGuard({ roles: ['super_admin'] }, async (req, { session 
     notifiedVia: notice.via,
     notifiedTo: notice.hint,
     message: notice.sent
-      ? `${target.full_name} has been sent the new PIN and the portal address ${
-          notice.via === 'sms' ? 'by text' : 'by email'} (${notice.hint}), and will be asked to choose their own.`
+      ? `${target.full_name} has been sent the new PIN ${
+          notice.via === 'sms' ? 'by text' : 'by email'} (${notice.hint}). Read it out to them rather than `
+        + 'forwarding the message, and they will be asked to choose their own at sign-in.'
       : `${target.full_name} can sign in with that PIN and will be asked to choose their own — `
         + `but the message could not be sent${notice.reason ? `, because ${notice.reason}` : ''}. `
         + 'Pass the PIN on yourself.',
