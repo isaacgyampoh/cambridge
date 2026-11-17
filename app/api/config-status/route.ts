@@ -16,7 +16,7 @@ export async function GET() {
   return NextResponse.json({
     supabase: !!CONFIG.supabaseUrl && !!SECRETS.supabaseServiceKey,
     arkesel: !!SECRETS.arkeselApiKey,
-    paystack: !!CONFIG.paystackPublicKey && !!SECRETS.paystackSecretKey && CONFIG.paystackPublicKey.startsWith('pk_'),
+    paystack: !!CONFIG.paystackPublicKey && !!SECRETS.paystackSecretIfSet && CONFIG.paystackPublicKey.startsWith('pk_'),
     paystackLive: CONFIG.paystackPublicKey?.startsWith('pk_live_') || false,
     wawpCentral: !!SECRETS.wasenderApiKey,
     wawpLines: waLines,

@@ -10,7 +10,12 @@ export const runtime = 'nodejs'
  */
 export async function GET() {
   const pub = CONFIG.paystackPublicKey || ''
-  const sec = SECRETS.paystackSecretKey || ''
+  /*
+   * This endpoint exists to answer "are the keys set and deployed?". Read
+   * through the throwing getter it crashed whenever the answer was "no",
+   * which is the only time anybody asks.
+   */
+  const sec = SECRETS.paystackSecretIfSet
   return NextResponse.json({
     public_key_set: !!pub,
     public_key_fingerprint: pub ? `${pub.slice(0, 12)}…${pub.slice(-4)}` : null,

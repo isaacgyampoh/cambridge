@@ -77,9 +77,20 @@ async function sweep(origin: string) {
 }
 
 async function verifyAndComplete(reference: string, origin: string) {
+  /*
+   * Named rather than swallowed. Without the key this threw into the catch
+   * below and every payment was reported as "not successful on Paystack",
+   * which is both false and the opposite of what reconciliation is for.
+   */
+  const secret = SECRETS.paystackSecretIfSet
+  if (!secret) {
+    console.error('[paystack/reconcile] PAYSTACK_SECRET_KEY is not set — nothing can be reconciled.')
+    return { ok: false, reference, reason: 'PAYSTACK_SECRET_KEY is not configured on this deployment' }
+  }
+
   try {
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${SECRETS.paystackSecretKey}` },
+      headers: { Authorization: `Bearer ${secret}` },
     })
     const data = await res.json()
     if (!data.status || data.data?.status !== 'success') return { ok: false, reference, reason: 'not successful on Paystack' }

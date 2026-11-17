@@ -40,11 +40,17 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'The application could not be identified.' }, { status: 400 })
   }
 
-  const secret = SECRETS.paystackSecretKey
+  /*
+   * Read so that ABSENCE IS A VALUE, not an exception. The throwing getter
+   * made the check below unreachable in the one case it was written for.
+   */
+  const secret = SECRETS.paystackSecretIfSet
   if (!secret || !secret.startsWith('sk_')) {
+    console.error('[paystack/init] PAYSTACK_SECRET_KEY is not set — no payment can be started.')
     return NextResponse.json(
-      { error: 'Payment is not configured on the server. Please contact the centre.' },
-      { status: 500 },
+      { error: 'Payment is not set up on the server yet, so this could not be started. '
+        + 'Please tell the centre — trying again will not help until they fix it.' },
+      { status: 503 },
     )
   }
 

@@ -12,9 +12,26 @@ export async function POST(req: NextRequest) {
   const { reference, applicationId } = await req.json()
   if (!reference) return NextResponse.json({ error: 'Missing reference.' }, { status: 400 })
 
+  /*
+   * Checked here, and said in words that are true.
+   *
+   * Without the key this route threw inside the try below and answered with
+   * the catch-all — which reads "Payment not successful" to somebody who has
+   * just paid. Telling a student their money did not arrive because OUR
+   * configuration is missing is the worst sentence in this file.
+   */
+  const secret = SECRETS.paystackSecretIfSet
+  if (!secret) {
+    console.error('[paystack/verify] PAYSTACK_SECRET_KEY is not set — cannot confirm payments.')
+    return NextResponse.json({
+      error: 'Your payment cannot be confirmed right now because this system is not fully set up. '
+        + 'Your money is safe with Paystack — tell the centre and keep your reference.',
+    }, { status: 503 })
+  }
+
   try {
     const res = await fetch(`https://api.paystack.co/transaction/verify/${encodeURIComponent(reference)}`, {
-      headers: { Authorization: `Bearer ${SECRETS.paystackSecretKey}` },
+      headers: { Authorization: `Bearer ${secret}` },
     })
     const data = await res.json()
     if (!data.status || data.data?.status !== 'success') {

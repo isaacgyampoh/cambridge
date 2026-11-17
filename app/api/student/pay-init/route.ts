@@ -33,8 +33,15 @@ export async function POST(req: NextRequest) {
   }
   const { base, charge, gross } = chargeBreakdown(Number(amount))
 
-  const secret = SECRETS.paystackSecretKey
-  if (!secret) return NextResponse.json({ error: 'Payment is not configured yet.' }, { status: 500 })
+  // Same trap as /api/paystack/init: the throwing getter made this check dead.
+  const secret = SECRETS.paystackSecretIfSet
+  if (!secret) {
+    console.error('[student/pay-init] PAYSTACK_SECRET_KEY is not set.')
+    return NextResponse.json(
+      { error: 'Payment is not set up on the server yet. Please tell the centre.' },
+      { status: 503 },
+    )
+  }
 
   const sb = createServiceClient()
   const { data: lead } = await sb.from('leads').select('id, full_name, email, phone').eq('id', s.leadId).maybeSingle()

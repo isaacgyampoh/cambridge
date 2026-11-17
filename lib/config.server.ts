@@ -54,7 +54,36 @@ export const SECRETS = {
   get supabaseServiceKey() { return required('SUPABASE_SERVICE_KEY') },
 
   // ── PAYSTACK ────────────────────────────────────────────────
+  /**
+   * Throws when unset. Correct where there is nothing sensible to do without
+   * it — signing a webhook check, verifying a payment — and WRONG anywhere
+   * whose job is to report or handle its absence.
+   */
   get paystackSecretKey() { return required('PAYSTACK_SECRET_KEY') },
+  /**
+   * The same value, empty when unset.
+   *
+   * ── WHY BOTH EXIST ──────────────────────────────────────────────────────
+   *
+   * A student pressing "Pay GHS 202.00" was shown "Could not start payment.
+   * Please try again." — the one message that is no use to anybody, because
+   * trying again does the same thing. PAYSTACK_SECRET_KEY was not set in
+   * production, and the route read it like this:
+   *
+   *     const secret = SECRETS.paystackSecretKey
+   *     if (!secret || !secret.startsWith('sk_')) return  ...contact the centre...
+   *
+   * The getter threw on the first line, so the second — written for exactly
+   * this case, with exactly the right words — could never run. The route
+   * returned an unhandled 500, the page could not parse it, and the student
+   * got the generic fallback.
+   *
+   * The same shape disabled the two endpoints built to DIAGNOSE this:
+   * /api/paystack/key and /api/config-status both read the throwing getter,
+   * so the screens that would have said "payment is not configured" crashed
+   * instead.
+   */
+  get paystackSecretIfSet() { return optional('PAYSTACK_SECRET_KEY') },
 
   // ── ARKESEL SMS ─────────────────────────────────────────────
   get arkeselApiKey() { return required('ARKESEL_API_KEY') },
